@@ -1018,7 +1018,7 @@ function inp(path,val,o={}){return `<input data-p="${esc(path)}" value="${esc(va
 function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=investCheck(t);const pu=ptSockets(t),pm=ptMax(t);
  return `<section class="folder ${t.open?'open':''}" id="tr-${t.id}" data-ti="${ti}" data-si="${ti}">
  <header class="fh" data-tog="${P}" data-grab tabindex="0" role="button" data-kbd aria-expanded="${!!t.open}" aria-label="${esc(t.name||'트레이너')} 펼치기/접기"><span class="caret">▸</span><span class="avatar">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="">`:esc([...(t.name||'?')][0]||'?')}</span>
-  <span class="tname">${esc(t.name)}</span>${(t.pl||'').trim()?`<span class="plchip" title="PL">PL <b>${esc(t.pl.trim())}</b></span>`:''}<span class="row">${QUAL.map(q=>rkChip(q,t.ranks[q])).join('')}</span>
+  <span class="tname">${esc(t.name)}</span>${(t.pl||'').trim()?`<span class="plchip" title="PL">PL <b>${esc(t.pl.trim())}</b></span>`:''}<span class="row">${QUAL.map(q=>rkChip(q,t.ranks[q])).join('')}</span>${t.pokemon.length?ptStripHTML(t):''}
   <span class="small muted">포켓몬 ${t.pokemon.length}체 · PT 기술점 <b class="${pu>pm?'warn':''} num">${pu}/${pm}</b></span><span class="sp"></span>
   ${S.folders.length?`<select class="tmove" data-tmove="${ti}" aria-label="폴더 이동" title="폴더 이동"><option value="">폴더 없음</option>${S.folders.map(f=>`<option value="${esc(f.id)}" ${tFolder(t)===f.id?'selected':''}>${esc(f.name||'이름 없는 폴더')}</option>`).join('')}</select>`:''}<button class="btn sm ghost" data-act="dupT" data-i="${ti}">복제</button><button class="btn sm ghost danger" data-act="delT" data-i="${ti}">삭제</button></header>
  ${t.open?`<div class="fb"><div class="tgrid">
@@ -1046,13 +1046,24 @@ function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=inve
  <div class="plist" data-sort="poke" data-i="${ti}">${t.pokemon.map((p,pi)=>pokeHTML(t,ti,p,pi)).join('')}</div>
  <div class="row"><button class="btn pri" data-act="addP" data-i="${ti}">+ 포켓몬 시트</button><button class="btn" data-act="addOld" data-i="${ti}">+ 올드 타입 일람에서 추가</button><button class="btn" data-act="impP" data-i="${ti}">복사용 텍스트로 불러오기</button></div>
  </div>`:''}</section>`}
+const tyCol=n=>{const ti=typeInfo((tyParts(n)[0])||'');return ti&&safeCss(ti[1])||''};
+const pkVars=p=>{const a=tyCol(p.t1),b=tyCol(p.t2)||a;return `--c1:${a||'var(--sunk2)'};--c2:${b||'var(--sunk2)'}`};
+/* 능력치 육각형: 위부터 시계 방향 HP·공격·방어·스피드·특방·특공 (원작 순서) */
+const RADAR_ORD=[0,1,2,5,4,3];
+function radar(p){const R=25,cx=28,cy=28;const pt=(i,r)=>{const a=-Math.PI/2+i*Math.PI/3;return (cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1)};
+ const ring=f=>[0,1,2,3,4,5].map(i=>pt(i,R*f)).join(' ');const vals=RADAR_ORD.map(i=>Math.min(1,(+p.base[i]||0)/180));const any=vals.some(v=>v>0);
+ const poly=vals.map((v,i)=>pt(i,Math.max(1.5,v*R))).join(' ');
+ return `<svg class="radar" viewBox="0 0 56 56" aria-hidden="true"><polygon points="${ring(1)}" class="rg"/><polygon points="${ring(.5)}" class="rg"/>${[0,1,2,3,4,5].map(i=>`<line x1="${cx}" y1="${cy}" x2="${pt(i,R).replace(',',' ').split(' ')[0]}" y2="${pt(i,R).split(',')[1]}" class="rg"/>`).join('')}${any?`<polygon points="${poly}" class="rv"/>`:''}</svg>`}
+const genderGlyph=g=>g==='♂'?'<span class="gen m" title="수컷">♂</span>':g==='♀'?'<span class="gen f" title="암컷">♀</span>':g==='무성'?'<span class="gen n" title="무성">⚲</span>':'';
+function ptStripHTML(t){return `<span class="ptstrip">${t.pokemon.map(p=>{const a=tyCol(p.t1),b=tyCol(p.t2)||a;return `<i style="background:linear-gradient(135deg,${a||'var(--sunk2)'} 50%,${b||'var(--sunk2)'} 50%)" title="${esc(p.name||'')} · ${esc([p.t1,p.t2].filter(x=>x&&x!=='-').join('/')||'타입 없음')}"></i>`}).join('')}</span>`}
 function miniBars(p){return `<div class="mini">${STATS.map((s,i)=>{const v=+p.base[i]||0;const g=grade(p.base[i]);return `<div><span>${s.slice(0,2)}</span><i><b style="width:${Math.min(100,v/200*100)}%;background:${gcol(g)}"></b></i></div>`}).join('')}</div>`}
 function pokeHTML(t,ti,p,pi){const P=`T.${ti}.pokemon.${pi}`;const c=moveCap(t,p);const filled=p.moves.filter(m=>m.name).length;const npot=p.pots.filter(x=>x).length+exclAll(p).length;
- return `<article class="pk ${p.open?'open':''}" id="pk-${p.id}" data-si="${pi}">
+ const tot=p.base.reduce((a,b)=>a+(+b||0),0);
+ return `<article class="pk ${p.open?'open':''}" id="pk-${p.id}" data-si="${pi}" style="${pkVars(p)}">
  <div class="ph" data-tog="${P}" data-grab tabindex="0" role="button" data-kbd aria-expanded="${!!p.open}"><span class="pno">${pi+1}</span>
-  <div class="row" style="min-width:0;gap:8px;flex-wrap:nowrap">${safeImg(p.image)?`<img class="pav" src="${safeImg(p.image)}" alt="">`:''}<div style="min-width:0"><div class="pname">${esc(p.name||'(이름 없음)')}${p.partner?' <span class="kindb ptn">파트너</span>':''}</div><div class="psub">Lv.${lv(t,p)} · ${esc(roleOf(p)||'역할 없음')}${classOf(p)?' · '+esc(classOf(p)):''}</div></div></div>
+  <div class="row" style="min-width:0;gap:9px;flex-wrap:nowrap">${safeImg(p.image)?`<img class="pav" src="${safeImg(p.image)}" alt="">`:'<span class="pav ph0" aria-hidden="true"></span>'}<div style="min-width:0"><div class="pname">${esc(p.name||'(이름 없음)')}${genderGlyph(p.gender)}<span class="lvb">Lv.${lv(t,p)}</span>${p.partner?' <span class="kindb ptn">파트너</span>':''}</div><div class="psub">${esc(roleOf(p)||'역할 없음')}${classOf(p)?' · '+esc(classOf(p)):''}${prideOf(p)?` · 프라이드 ${esc(prideOf(p))}`:''}</div></div></div>
   <div class="hide-s" style="min-width:0"><div class="chips">${tchip(p.t1)}${tchip(p.t2)}${tchip(p.t3)}</div><div class="psub">${esc(p.ability||'특성 없음')}${p.item?' · '+esc(p.item):''}</div></div>
-  <div class="hide-s">${miniBars(p)}<div class="psub" style="margin-top:2px">기술 ${capTxt(c,'-','/')} · 포텐셜 ${npot}</div></div>
+  <div class="hide-s pkstat">${radar(p)}<div style="min-width:0"><div class="psub">종족치 합 <b class="num">${tot||'-'}</b></div>${miniBars(p)}<div class="psub" style="margin-top:2px">기술 ${capTxt(c,'-','/')} · 포텐셜 ${npot}</div></div></div>
   <div class="pact"><button class="btn sm ghost" data-act="copy" data-i="${ti}" data-j="${pi}" title="복사용 텍스트 복사">복사</button><button class="btn sm ghost" data-act="dupP" data-i="${ti}" data-j="${pi}">복제</button><button class="btn sm ghost danger" data-act="delP" data-i="${ti}" data-j="${pi}">삭제</button></div></div>
  ${p.open?`<div class="pbody"><nav class="ptabs">${[['base','기본<span class="wide-only">·능력치</span>',''],['moves','기술',filled],['pots','포텐셜',npot],['text','<span class="wide-only">복사용 </span>텍스트','']].map(([k,n,cn])=>`<button data-ptab="${k}" data-i="${ti}" data-j="${pi}" class="${p.tab===k?'on':''}">${n}${cn!==''?`<span class="cnt">${cn}</span>`:''}</button>`).join('')}</nav>
  ${p.tab==='moves'?movesTab(t,ti,p,pi,P,c):p.tab==='pots'?potsTab(t,ti,p,pi):p.tab==='text'?textTab(t,ti,p,pi,P):baseTab(t,ti,p,pi,P)}</div>`:''}</article>`}
@@ -1078,13 +1089,13 @@ function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=idx.items.get(
   ${it?`<div class="effbox"><b>${esc(p.item)}</b> ${rich(it[4])} ${it[6]&&it[6]!=='-'?`<span class="faint">· ${esc(it[6])}</span>`:''}</div>`:''}
  </div>
  <div class="panel" style="min-width:0"><h3>능력치<span class="sp"></span><span class="small muted">종족치 합 <b class="num">${tot}</b>${(()=>{const pl=planRange(p);if(!pl)return '';const ok=tot>=pl.lo&&tot<=pl.hi;return ` · 예정 <b class="num${ok?'':' warn'}">${pl.lo}${pl.hi!==pl.lo?'~'+pl.hi:''}</b>${pl.alt?' <span class="faint">(괄호 값)</span>':''}`})()}</span></h3>
-  <div class="stats">${STATS.map((s,i)=>{const g=grade(p.base[i]);const v=+p.base[i]||0;return `<div class="st"><span class="k">${s}</span>${inp(`${P}.base.${i}`,p.base[i],{num:1,ph:'종족치'})}<div class="bar"><i style="width:${Math.min(100,v/200*100)}%;background:${gcol(g)}"></i></div><span class="v">${stat(t,p,i)}</span><span class="gb" style="background:${gcol(g)}">${esc(g)}</span></div>`}).join('')}</div>
+  <div class="stats">${STATS.map((s,i)=>{const g=grade(p.base[i]);const v=+p.base[i]||0;return `<div class="st s${i}"><span class="k">${s}</span>${inp(`${P}.base.${i}`,p.base[i],{num:1,ph:'종족치'})}<div class="bar"><i style="width:${Math.min(100,v/200*100)}%;background:${gcol(g)}"></i></div><span class="v">${stat(t,p,i)}</span><span class="gb" style="background:${gcol(g)}">${esc(g)}</span></div>`}).join('')}</div>
   <div class="stfoot"><span>물리 내구 <b class="num">${(stat(t,p,0)*stat(t,p,2)).toLocaleString()}</b></span><span>특수 내구 <b class="num">${(stat(t,p,0)*stat(t,p,4)).toLocaleString()}</b></span><span class="faint">실수치 = 테이블(더블) 식 · Lv.${lv(t,p)}</span></div>
   ${(()=>{const ck=pokeChecks(t,p);return ck.length?`<div class="checks">${ck.map(c=>`<div class="${c.w?'warn':'muted'}">${c.w?'⚠ ':'· '}${esc(c.t)}</div>`).join('')}</div>`:''})()}</div></div>`}
 function movesTab(t,ti,p,pi,P,c){const ms=p.moves;const over=c.cap!=null&&c.used>c.cap;
  return `<div class="capline"><b>${c.mode==='count'?'기술 개수':'기술 소켓'}</b><span class="num ${over?'warn':''}">${capTxt(c,'종족치 입력 필요')}</span>${c.mode==='count'?`<span class="small muted">『${esc(classOf(p))}』 · PT 기술점 ${c.pt} 고정</span>`:''}${c.cap?`<div class="meter ${over?'over':''}"><i style="width:${Math.min(100,c.used/c.cap*100)}%"></i></div>`:''}
   <span class="small muted">상한 직접 지정</span>${inp(P+'.sockMax',p.sockMax,{w:'56px',num:1,ph:String(c.auto??'')})}<span class="sp"></span><button class="btn pri sm" data-act="pickMove" data-i="${ti}" data-j="${pi}">+ 기술 검색·추가</button></div>
- <div class="mlist" data-sort="moves" data-i="${ti}" data-j="${pi}">${ms.map((m,i)=>{const r=idx.moves.get(m.name);return `<div class="mv" data-si="${i}" data-grab><div class="row mvt" style="gap:3px;flex-wrap:nowrap">${r?tchip(r[5]):'<span class="kindb">DB 없음</span>'}</div><div class="mvn"><div class="nm"><span class="mvchip">${r?tchip(r[5]):'<span class="kindb">DB 없음</span>'}</span>${esc(m.name)}</div><div class="small muted rgwrap">${r?rangeGrid(r[9])+esc(r[6]+' · '+r[9]+(r[10]&&r[10]!=='-'?' · 접촉 '+r[10]:'')):''}</div></div>
+ <div class="mlist" data-sort="moves" data-i="${ti}" data-j="${pi}">${ms.map((m,i)=>{const r=idx.moves.get(m.name);return `<div class="mv" data-si="${i}" data-grab style="border-left-color:${r&&tyCol(r[5])||'var(--line)'}"><div class="row mvt" style="gap:3px;flex-wrap:nowrap">${r?tchip(r[5])+`<span class="mcat ${r[6]==='물리'?'phy':r[6]==='특수'?'spe':'sta'}">${esc(r[6]||'')}</span>`:'<span class="kindb">DB 없음</span>'}</div><div class="mvn"><div class="nm"><span class="mvchip">${r?tchip(r[5]):'<span class="kindb">DB 없음</span>'}</span>${esc(m.name)}</div><div class="small muted rgwrap">${r?rangeGrid(r[9])+esc(r[6]+' · '+r[9]+(r[10]&&r[10]!=='-'?' · 접촉 '+r[10]:'')):''}</div></div>
   <div class="st2">${r?esc(r[7]):'-'}<small>위력</small></div><div class="st2">${r?esc(r[8]):'-'}<small>명중</small></div><div class="st2">${r?esc(r[11]):'-'}<small>우선도</small></div><div class="st2">${moveSock(p,m)}<small>소켓</small></div>
   <div class="ef">${r?rich(r[13]):''}</div><div class="row mva" style="gap:2px;flex-wrap:nowrap"><label class="small row" title="「기술 할인점」 1점을 써서 이 기술의 소켓을 0.5 할인합니다 (올드 타입 계열은 교배기·유전기 습득용)" style="gap:2px"><input type="checkbox" data-p="${P}.moves.${i}.half" ${m.half?'checked':''}>할인</label>
   ${r?`<button class="btn sm ghost" data-act="mvEdit" data-name="${esc(m.name)}">수정</button>`:''}<button class="btn sm ghost danger" data-act="mvDel" data-i="${ti}" data-j="${pi}" data-k="${i}" aria-label="삭제">✕</button></div></div>`}).join('')||'<div class="empty">기술이 없습니다. 「기술 검색·추가」로 DB에서 찾거나 오리지널 기술을 만드세요.</div>'}</div>`}
@@ -1108,7 +1119,7 @@ function withFocus(fn){const f=document.activeElement;const key=focusKey(f);let 
  fn();if(!key)return;const n=document.querySelector(key);if(n&&n!==document.activeElement){n.focus({preventScroll:true});try{if(ss!=null)n.setSelectionRange(ss,se)}catch(e){}}}
 function refreshTrainer(t){if(rfBusy)return;const ti=S.trainers.indexOf(t);const el=$('#tr-'+t.id);if(!el||!el.parentNode||ti<0)return renderChar();
  rfBusy=true;try{withFocus(()=>{try{el.outerHTML=trainerHTML(t,ti)}catch(e){renderChar()}})}finally{rfBusy=false}}
-function refreshAll(){if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else if(S.ui.tab==='img'){if(typeof renderImg==='function')renderImg()}else renderTbl()}
+function refreshAll(){if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
 let rT=null;
 let composing=false;
 $('#v-char').addEventListener('compositionstart',()=>{composing=true;clearTimeout(rT)});
@@ -1442,6 +1453,53 @@ function tyOpt(){const o=S.ui.ty||(S.ui.ty={});if(o.scope==null)o.scope='';if(!o
 function tyMonTypes(p,o){const ks=['t1','t2'];if(o.t3)ks.push('t3');if(o.tera)ks.push('tera');const out=[];for(const k of ks)for(const x of tyParts(p[k]))if(!out.includes(x))out.push(x);return out}
 function tyFmt(n){return Math.abs(n-Math.round(n))<1e-9?String(Math.round(n)):n.toFixed(1)}
 function tyPct(n,d){return d?(n/d*100).toFixed(1)+'%':'-'}
+
+/* 원작 18타입 상성표 (공격 타입 → {2배 타입, 1/2배 타입, 무효 타입}). PT 일관성(공통 약점) 계산에만 쓴다 */
+const TY_CHART={
+ '노말':[[],['바위','강철'],['고스트']],
+ '불꽃':[['풀','얼음','벌레','강철'],['불꽃','물','바위','드래곤'],[]],
+ '물':[['불꽃','땅','바위'],['물','풀','드래곤'],[]],
+ '전기':[['물','비행'],['전기','풀','드래곤'],['땅']],
+ '풀':[['물','땅','바위'],['불꽃','풀','독','비행','벌레','드래곤','강철'],[]],
+ '얼음':[['풀','땅','비행','드래곤'],['불꽃','물','얼음','강철'],[]],
+ '격투':[['노말','얼음','바위','악','강철'],['독','비행','에스퍼','벌레','페어리'],['고스트']],
+ '독':[['풀','페어리'],['독','땅','바위','고스트'],['강철']],
+ '땅':[['불꽃','전기','독','바위','강철'],['풀','벌레'],['비행']],
+ '비행':[['풀','격투','벌레'],['전기','바위','강철'],[]],
+ '에스퍼':[['격투','독'],['에스퍼','강철'],['악']],
+ '벌레':[['풀','에스퍼','악'],['불꽃','격투','독','비행','고스트','강철','페어리'],[]],
+ '바위':[['불꽃','얼음','비행','벌레'],['격투','땅','강철'],[]],
+ '고스트':[['에스퍼','고스트'],['악'],['노말']],
+ '드래곤':[['드래곤'],['강철'],['페어리']],
+ '악':[['에스퍼','고스트'],['격투','악','페어리'],[]],
+ '강철':[['얼음','바위','페어리'],['불꽃','물','전기','강철'],[]],
+ '페어리':[['격투','드래곤','악'],['불꽃','독','강철'],[]]};
+/* 방어 타입 목록(t1·t2)에 공격 타입 atk 가 들어갈 때의 배율 */
+function tyMult(atk,defs){const c=TY_CHART[atk];if(!c)return 1;let m=1;for(const d of defs){if(c[2].includes(d))return 0;if(c[0].includes(d))m*=2;else if(c[1].includes(d))m*=0.5}return m}
+/* PT 한 벌의 타입 일관성: 구성·팩션·프리랜서·공통 약점·못 막는 타입 */
+function ptTypeReport(t){const ps=t.pokemon;const n=ps.length;const cnt={},who={};const atkTypes=Object.keys(TY_CHART);
+ const defs=ps.map(p=>[...tyParts(p.t1),...tyParts(p.t2)].filter((x,i,a)=>a.indexOf(x)===i));
+ ps.forEach((p,i)=>{for(const x of defs[i]){cnt[x]=(cnt[x]||0)+1;(who[x]=who[x]||[]).push(p.name||'(이름 없음)')}});
+ const comp=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]||KO.compare(a,b)).map(x=>({x,n:cnt[x],who:who[x]}));
+ const need=t.solo?[1,2]:[2,4];const fac=comp.filter(e=>e.n>=need[0]).map(e=>({x:e.x,n:e.n,lv:e.n>=need[1]?2:1}));
+ const dup=comp.filter(e=>e.n>1);
+ const weak=[],open=[];
+ for(const a of atkTypes){const w=[],r=[];ps.forEach((p,i)=>{if(!defs[i].length)return;const mu=tyMult(a,defs[i]);if(mu>=2)w.push(p.name||'(이름 없음)');if(mu<1)r.push(p.name||'(이름 없음)')});
+  if(w.length>=2||(n>0&&w.length===n))weak.push({x:a,n:w.length,who:w});if(!r.length&&n)open.push(a)}
+ weak.sort((a,b)=>b.n-a.n||KO.compare(a.x,b.x));
+ return{n,kinds:comp.length,comp,fac,need,dup,weak,open,typed:defs.filter(d=>d.length).length}}
+function ptTypeCard(t){const r=ptTypeReport(t);const nm=esc(t.name||'트레이너');if(!r.n)return `<div class="ptc"><div class="ptch"><button type="button" class="lk" data-yact="open" data-v="${esc(t.id)}">${nm}</button><span class="small faint">포켓몬 없음</span></div></div>`;
+ const facTxt=t.solo&&!r.fac.some(f=>f.lv===2)&&r.fac.length>1?`<span class="small muted">2체 타입이 모두 달라 그 타입들의 팩션은 어느 쪽이든 PT 포텐셜 1체</span>`:r.fac.length?r.fac.map(f=>`<span class="cb ${f.lv===2?'ok2':'ok1'}" title="${esc(f.who||'')}">${tchip(f.x)}<b>${f.n}체</b><small>${f.lv===2?`PT 포텐셜 ${t.solo?1:2}체`:`PT 포텐셜 1체`}</small></span>`).join(''):`<span class="small muted">같은 타입 ${r.need[0]}체 이상이 없어 팩션 조건 미충족</span>`;
+ const freeTxt=r.dup.length?`<span class="small warn">타입 중복: ${r.dup.map(e=>`${esc(e.x)} ×${e.n}`).join(', ')} → 프리랜서 불가</span>`:`<span class="small ok">타입 중복 없음 · 프리랜서 가능</span>`;
+ const half=Math.max(2,Math.ceil(r.n/2));
+ const weakTxt=r.weak.length?r.weak.map(w=>`<span class="cb ${w.n>=half?'bad':''}" title="${w.who.map(esc).join('\n')}">${tchip(w.x)}<b>${w.n}</b>${w.n===r.n?'<small>전원</small>':''}</span>`).join(''):'<span class="small ok">2체 이상이 같이 약한 타입 없음</span>';
+ const openTxt=r.open.length?r.open.map(tchip).join(''):'<span class="small ok">모든 타입을 누군가는 반감·무효로 받습니다</span>';
+ return `<div class="ptc"><div class="ptch"><button type="button" class="lk" data-yact="open" data-v="${esc(t.id)}" title="캐릭터 시트에서 열기">${nm}</button><span class="small muted">${r.n}체 · 타입 ${r.kinds}종${t.solo?' · 1인 기준':''}${r.typed<r.n?` · 타입 미입력 ${r.n-r.typed}체`:''}</span><span class="ptstrip">${t.pokemon.map(p=>{const a=typeInfo(tyParts(p.t1)[0]),b=typeInfo(tyParts(p.t2)[0])||a;return `<i style="background:linear-gradient(135deg,${a&&safeCss(a[1])||'var(--sunk2)'} 50%,${b&&safeCss(b[1])||'var(--sunk2)'} 50%)" title="${esc(p.name||'')} · ${esc([p.t1,p.t2].filter(x=>x&&x!=='-').join('/'))}"></i>`}).join('')}</span></div>
+  <div class="ptcr"><span class="k">구성</span><span class="v">${r.comp.map(e=>`<span class="cb" title="${e.who.map(esc).join('\n')}">${tchip(e.x)}<b>${e.n}</b></span>`).join('')}</span></div>
+  <div class="ptcr"><span class="k">팩션</span><span class="v">${facTxt}</span></div>
+  <div class="ptcr"><span class="k">프리랜서</span><span class="v">${freeTxt}</span></div>
+  <div class="ptcr"><span class="k">공통 약점</span><span class="v">${weakTxt}</span></div>
+  <div class="ptcr"><span class="k">못 막는 타입</span><span class="v">${openTxt}</span></div></div>`}
 function renderType(){const root=$('#v-type');if(!root)return;const o=tyOpt();
  const folders=S.folders.filter(f=>S.trainers.some(t=>tFolder(t)===f.id));const hasNone=S.trainers.some(t=>!tFolder(t));
  if(o.scope&&o.scope!=='_none'&&!S.folders.some(f=>f.id===o.scope))o.scope='';
@@ -1490,13 +1548,16 @@ function renderType(){const root=$('#v-type');if(!root)return;const o=tyOpt();
  </div>
  <div class="tygrid"><div class="panel"><h3>전체 타입 분포</h3><div class="tybars">${order.map(bar).join('')}</div></div>
   <div class="panel"><h3>타입 조합 <span class="small muted">(타입1/타입2)</span></h3><p class="small faint" style="margin:2px 0 0">같은 조합이 2체 이상이면 붉게 표시합니다.</p><div class="tycombo">${cl.map(e=>`<span class="cb ${e.n>1?'dup':''}" title="${e.who.map(esc).join('\n')}">${e.k.map(tchip).join('')}<b>${e.n}</b></span>`).join('')||'<span class="small faint">없음</span>'}</div></div></div>
+ <div class="panel"><h3>PT별 타입 일관성 <span class="small muted" style="font-weight:400">팩션·프리랜서 조건과 공통 약점 (원작 18타입 상성 기준 · 타입1·타입2만)</span></h3>
+  <p class="small faint" style="margin:2px 0 8px">팩션은 같은 타입이 ${'2(4)체'} 이상(1인 기준 1(2)체)일 때 『PT 포텐셜』을 1(2)체에게 줄 수 있고, 프리랜서는 PT에 타입이 겹치지 않아야 합니다. 「공통 약점」은 2체 이상이 함께 2배 이상으로 맞는 공격 타입, 「못 막는 타입」은 PT의 누구도 반감·무효로 받지 못하는 공격 타입입니다.</p>
+  <div class="ptcs">${groups.flatMap(([,ts])=>ts).map(ptTypeCard).join('')}</div></div>
  <div class="panel"><h3>트레이너별 현황</h3><div class="tw"><table class="tymx"><thead>${head}</thead><tbody>${body}</tbody>${foot}</table></div></div>`}`}
 $('#v-type').addEventListener('click',e=>{const b=e.target.closest('[data-yact]');if(!b||b.tagName==='INPUT')return;const o=tyOpt(),a=b.dataset.yact,v=b.dataset.v;
  if(a==='open'){const t=S.trainers.find(x=>x.id===v);if(!t)return;t.open=true;showTab('char');setTimeout(()=>{const el=document.getElementById('tr-'+t.id);if(el)el.scrollIntoView({block:'start'})},30);return}
  if(a==='scope'||a==='mode'||a==='sort'){o[a]=v;save();renderType()}});
 $('#v-type').addEventListener('change',e=>{const a=e.target.dataset.yact;if(a==='t3'||a==='tera'){tyOpt()[a]=e.target.checked?1:0;save();renderType()}});
-function showTab(tab){S.ui.tab=tab;$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
- $('#v-char').hidden=tab!=='char';$('#v-type').hidden=tab!=='type';$('#v-db').hidden=tab!=='db';$('#v-tbl').hidden=tab!=='tbl';$('#v-img').hidden=tab!=='img';refreshAll();save();MKROOT().scrollTo(0,0)}
+function showTab(tab){if(!$('#v-'+tab))tab='char';S.ui.tab=tab;$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+ $('#v-char').hidden=tab!=='char';$('#v-type').hidden=tab!=='type';$('#v-db').hidden=tab!=='db';$('#v-tbl').hidden=tab!=='tbl';refreshAll();save();MKROOT().scrollTo(0,0)}
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)showTab(b.dataset.tab)});
 /* 좁은 화면: 파일 메뉴(엑셀·백업)는 「파일」 버튼으로 펼친다 */
 const MTOP=()=>$('[data-toolsbtn]').closest('.top');
