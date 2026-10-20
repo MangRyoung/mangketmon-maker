@@ -1,6 +1,6 @@
 # 망켓몬 제작기 (공용판)
 
-트레이너·포켓몬 시트, DB(기술·특성·포텐셜), 테이블·계산식, 이미지 수집을 한 페이지에서 다루는 제작기입니다.
+트레이너·포켓몬 시트, DB(기술·특성·포텐셜), 테이블·계산식을 한 페이지에서 다루는 제작기입니다.
 GitHub Pages에 올라가는 정적 사이트이고, 데이터는 Supabase 테이블 하나(`docs`)에 저장되어 링크를 아는 사람 모두가 같이 보고 고칩니다.
 
 ## 구성
@@ -10,8 +10,8 @@ GitHub Pages에 올라가는 정적 사이트이고, 데이터는 Supabase 테�
 | `index.html` | 페이지 뼈대 |
 | `css/maker.css` | 스타일 |
 | `js/maker.js` | 제작기 본체 (시트·DB·계산·공유 저장) |
-| `js/imgcollect.js` | 이미지 수집 탭 |
 | `js/store.js` | 공유 DB 어댑터 (Supabase) |
+| `js/fx/` | 배틀 자동화 — `fx.js`(구문 해석·실행) · `fx_ui.js`(구문 편집기·생성기) · `readymade.js`(레디메이드 사전 915) · `states.js`(상태 변화 DB). **여기가 원본**이고 오레마스 웹툴은 이 파일들을 `https://mangryoung.github.io/mangketmon-maker/js/fx/` 에서 불러간다 |
 | `js/config.js` | Supabase URL · anon 키 (**여기만 고치면 됨**) |
 | `data/db.js` | 기본 DB (기술·특성·소지품·포텐셜·테이블) |
 | `supabase/schema.sql` | DB 테이블·권한·실시간 설정 SQL |

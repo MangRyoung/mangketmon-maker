@@ -312,6 +312,25 @@ async function copySession(ts){if(!ts.length)return toast('트레이너가 없�
  const msg=ts.length===1?`「${ts[0].name}」를 세션 노트용으로 복사했습니다`:`트레이너 ${ts.length}명을 세션 노트용으로 복사했습니다`;
  try{await navigator.clipboard.writeText(s);toast(msg)}catch(e){copyStr(s)}}
 
+/* ---------- 자동화 구문 (js/fx/ 의 fx.js · fx_ui.js · 레디메이드 사전 · 상태 DB — 이 저장소가 원본이고 오레마스 웹툴이 여기서 불러간다) ----------
+   포켓몬마다 p.auto[이름] = 구문(DSL 문자열). 오레마스가 시트를 가져갈 때 그대로 읽는다. 같은 이름의 레디메이드가 있으면 구문을 비워 둬도 자동으로 돈다. */
+const FX_SRC=(window.MKM_CONFIG&&MKM_CONFIG.fxBase)||'js/fx/';
+const FXK=n=>String(n||'').replace(/『|』/g,'').trim();
+const fxReady=()=>!!(window.OM_FX&&window.OM_FX_UI);
+window.OM_APP=window.OM_APP||{openModal:h=>openModal(h,{wide:true}),closeModal:()=>closeModal(),toast:t=>toast(t),ST:{role:'player',state:{}},set:async()=>false};
+let fxLoadP=null;
+function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
+ const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src;s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
+ fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 오레마스 스크립트를 불러오지 못함',e);return false}})();return fxLoadP}
+function fxEffOf(p,kind,name,slot){if(kind==='trait'){const r=idx.abil.get(name);return r?r[2]:''}if(kind==='item'){const r=idx.items.get(name);return r?r[4]:''}
+ if(slot==='excl')return p.excl.eff||'';if(typeof slot==='string'&&slot[0]==='x'){const x=(p.exclX||[])[+slot.slice(1)];return x?x.eff:''}if(typeof slot==='number')return potEffOf(p,slot);const i=p.pots.indexOf(name);return i>=0?potEffOf(p,i):''}
+function fxRm(kind,name){if(!fxReady()||!name)return null;try{return OM_FX.autoOf({auto:{}},kind,name)}catch(e){return null}}
+function fxAutoBtn(p,kind,name,ti,pi,slot){if(!name||!fxReady())return '';const K=OM_FX;const own=String((p.auto||{})[FXK(name)]||'').trim();const base=fxRm(kind,name);
+ const has=!!own;const rmHas=!!(base&&base.ops&&base.ops.length&&!base.manual);let ttl='';try{ttl=has?K.unparse(K.parse(own).ops).join(' / '):rmHas?'레디메이드 자동: '+K.unparse(base.ops).join(' / '):base&&base.manual?'레디메이드는 있지만 자동화 미지원 (손으로)':'자동화 없음 — 구문을 써 넣을 수 있다'}catch(e){}
+ return `<button type="button" class="btn sm fxb ${has?'pri':rmHas?'':'ghost'}" data-act="fx" data-i="${ti}" data-j="${pi}" data-kind="${kind}" data-name="${esc(name)}" data-slot="${slot==null?'':esc(String(slot))}" title="${esc(ttl)}">${has?'구문 ✓':rmHas?'자동':'구문'}</button>`}
+function fxRmChip(kind,name){const base=fxRm(kind,name);if(!base||!base.ops||!base.ops.length)return '';let ttl='';try{ttl=OM_FX.unparse(base.ops).join(' / ')}catch(e){}return `<span class="kindb fx-rm" title="${esc('레디메이드 자동화: '+ttl)}">${base.manual?'자동화 (손으로)':'자동화'}</span>`}
+function fxOpen(t,p,kind,name,slot){if(!fxReady())return toast('구문 편집기를 아직 불러오는 중입니다');const K=OM_FX;const mon={auto:{}};for(const k in (p.auto||{})){const v=String(p.auto[k]||'').trim();if(v)mon.auto[k]={dsl:v,ops:K.parse(v).ops}}
+ OM_FX_UI.openEditor({mon,kind,name,text:fxEffOf(p,kind,name,slot),save:auto=>{p.auto=p.auto||{};const key=FXK(name);if(auto&&auto.dsl)p.auto[key]=auto.dsl;else delete p.auto[key];save();refreshTrainer(t);toast(auto?'구문을 저장했습니다':'구문을 지웠습니다')}})}
 /* ---------- 시트 템플릿 ---------- */
 function stplRankOk(rk,have){if(have==null)return false;const ps=String(rk||'').split('~').map(x=>RV[strip(x.trim())]);if(ps[0]==null||have<ps[0])return false;if(ps.length>1&&ps[1]!=null&&have>ps[1])return false;return true}
 /* 대상: 「전원」 「파트너」 「N체」 「파트너 N체」. 「6체 기준/1인 기준」처럼 「/」로 나누면 1인 기준(2체) 트레이너는 뒤쪽을 씁니다. 1인 기준은 모두 파트너. */
@@ -336,7 +355,7 @@ function stplApplyAll(){let n=0,k=0;for(const t of S.trainers)for(const p of t.p
 
 /* ---------- 모델 ---------- */
 function newPoke(){return{id:uid(),open:true,tab:'base',name:'',gender:'-',pride:'',egg1:'-',egg2:'-',t1:'-',t2:'-',t3:'-',tera:'-',ability:'',item:'',dist:0,
- base:Array(6).fill(''),ev:Array(6).fill(''),pots:Array(20).fill(''),potEff:Array(20).fill(''),potKind:Array(20).fill(''),excl:{name:'',eff:''},exclX:[],moves:[],sockMax:'',memo:'',image:'',partner:false}}
+ base:Array(6).fill(''),ev:Array(6).fill(''),pots:Array(20).fill(''),potEff:Array(20).fill(''),potKind:Array(20).fill(''),excl:{name:'',eff:''},exclX:[],moves:[],sockMax:'',memo:'',image:'',partner:false,auto:{}}}
 function fixP(p){const n=newPoke();for(const k in n)if(p[k]==null)p[k]=n[k];
  for(const k of ['pots','potEff','potKind'])while(p[k].length<20)p[k].push('');
  p.moves=(p.moves||[]).filter(m=>m&&m.name);p.exclX=(Array.isArray(p.exclX)?p.exclX:[]).filter(x=>x&&typeof x==='object').map(x=>({name:String(x.name||''),eff:String(x.eff||'')}));delete p.iv;delete p.nature;p.image=safeImg(p.image);if(!p.id)p.id=uid();return p}
@@ -418,11 +437,11 @@ function lintHTML(s){const l=tagLint(s);return l.length?`<div class="taglint">${
 /* ---------- DB 검색 피커 ---------- */
 function rowHTML(kind,r,sel){const D=DBS[kind];
  if(kind==='moves')return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[2])}"><div><div class="t1">${tchip(r[5])}<b>${esc(r[2])}</b><span class="kindb">${esc(r[6])}</span>${S.custom.moves.includes(r[2])?'<span class="kindb">오리지널</span>':''}</div><div class="t2">${rich(r[13])}</div></div><div class="meta">${rangeGrid(r[9])}<span>위력 ${esc(r[7])} · 명중 ${esc(r[8])}</span><span>${esc(r[9])} · 우선도 ${esc(r[11])} · 소켓 <b>${esc(r[0])}</b></span></div></div>`;
- if(kind==='abil')return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1"><b>${esc(r[1])}</b>${r[3]==='O'?'<span class="kindb">틀깨기 대상</span>':''}${r[4]==='O'?'<span class="kindb">방호</span>':''}</div><div class="t2">${rich(r[2])}</div></div><div class="meta">소켓 <b>${esc(r[0])}</b></div></div>`;
- if(kind==='items')return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1"><b>${esc(r[1])}</b><span class="kindb">${esc(r[0])}</span>${r[3]==='O'?'<span class="kindb">소모</span>':''}${ilockChip(r[1])}</div><div class="t2">${rich(r[4])}${r[6]&&r[6]!=='-'?` <span class="faint">· ${esc(r[6])}</span>`:''}</div></div><div class="meta">소켓 <b>${esc(r[5])}</b></div></div>`;
+ if(kind==='abil')return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1"><b>${esc(r[1])}</b>${r[3]==='O'?'<span class="kindb">틀깨기 대상</span>':''}${r[4]==='O'?'<span class="kindb">방호</span>':''}${fxRmChip('trait',r[1])}</div><div class="t2">${rich(r[2])}</div></div><div class="meta">소켓 <b>${esc(r[0])}</b></div></div>`;
+ if(kind==='items')return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1"><b>${esc(r[1])}</b><span class="kindb">${esc(r[0])}</span>${r[3]==='O'?'<span class="kindb">소모</span>':''}${ilockChip(r[1])}${fxRmChip('item',r[1])}</div><div class="t2">${rich(r[4])}${r[6]&&r[6]!=='-'?` <span class="faint">· ${esc(r[6])}</span>`:''}</div></div><div class="meta">소켓 <b>${esc(r[5])}</b></div></div>`;
  if(kind==='old'){const tot=r.slice(11,17).reduce((a,b)=>a+(+b||0),0);return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1">${tchip(r[3])}${tchip(r[4])}<b>${esc(r[1])}</b>${r[10]==='O'?'<span class="kindb">메가</span>':''}<span class="kindb">${esc(r[0])}</span></div><div class="t2">${[r[5],r[6],r[7]].filter(a=>a&&a!=='-').map(esc).join(' / ')} · 알그룹 ${esc(r[8])}${r[9]&&r[9]!=='-'?' / '+esc(r[9]):''} <span class="faint">${esc(r[2])}</span></div></div><div class="meta num"><span>${r.slice(11,17).map(esc).join('-')}</span><span>합 <b>${tot}</b></span></div></div>`}
  if(kind==='points')return `<div tabindex="0" role="button" data-kbd class="pkr" data-pick="${esc(r[4])}"><div><div class="t1"><b>${esc(r[4])}</b><span class="kindb">${esc(r[1])}</span></div><div class="t2">${esc(r[5])}</div></div><div class="meta">${esc(r[3])} −${esc(r[6])}</div></div>`;
- return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1"><span class="kindb">${esc(r[0])}</span><b>${esc(r[1])}</b></div><div class="t2">${rich(r[2])}${r[3]?` <span class="faint">· ${esc(r[3])}</span>`:''}</div></div><div class="meta"></div></div>`}
+ return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1"><span class="kindb">${esc(r[0])}</span><b>${esc(r[1])}</b>${kind==='pots'?fxRmChip('pot',r[1]):''}</div><div class="t2">${rich(r[2])}${r[3]?` <span class="faint">· ${esc(r[3])}</span>`:''}</div></div><div class="meta"></div></div>`}
 /* ---------- 소지품 해금 표: [장소, 품목(쉼표), 조건 메모, '열림'|'잠김'] ---------- */
 function ilockMap(){const mp=new Map();for(const r of S.db.ilock||[]){if(!r)continue;for(const n of String(r[1]||'').split(/[,，·]/).map(x=>x.trim()).filter(Boolean))mp.set(n,{place:String(r[0]||''),cond:String(r[2]||''),open:r[3]==='열림'})}return mp}
 const ilockOf=n=>n?ilockMap().get(String(n).trim())||null:null;
@@ -989,24 +1008,50 @@ function openPotBuilder(t,p,onPick,excl,preset){const C=prCtx(t,p);
   if(e.target.closest('[data-use]')){const txt=build();const name=$('[data-name]',l).value.trim();const kind=$('[data-kind]',l).value.trim();closeModal();onPick({kind,name,eff:txt})}});
 }
 
+/* ---------- 내 서명 · 비공개 (화면에서만 숨김: 비밀구가 맞는 브라우저와 GM 만 본다) ---------- */
+const ME={name:'',hash:'',gm:false};
+async function sha256hex(s){if(window.crypto&&crypto.subtle){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+ let h1=0x811c9dc5,h2=0x1b873593;for(const ch of String(s)){const c=ch.codePointAt(0);h1=Math.imul(h1^c,16777619)>>>0;h2=Math.imul(h2+c,2246822519)>>>0}return (h1.toString(16).padStart(8,'0')+h2.toString(16).padStart(8,'0')).repeat(4)}
+const meHash=async secret=>(await sha256hex('mkm:'+String(secret||''))).slice(0,24);
+async function meLoad(){let o=null;try{o=JSON.parse(lsGet('mkm_me')||'null')}catch(e){}
+ if(o&&o.secret){ME.name=String(o.name||'');ME.hash=await meHash(o.secret);const gh=(window.MKM_CONFIG&&MKM_CONFIG.gmHash)||'';ME.gm=!!(gh&&ME.hash===gh)}else{ME.name='';ME.hash='';ME.gm=false}
+ renderMe();if(S.ui.tab)refreshAll()}
+function renderMe(){const b=$('#mebtn');if(!b)return;b.textContent=ME.hash?(ME.gm?'GM · ':'서명 · ')+(ME.name||'이름 없음'):'서명 없음';b.classList.toggle('on',!!ME.hash);b.title=ME.hash?'비공개 설정에 쓰는 내 서명. 눌러서 바꾸기':'비공개 트레이너를 만들거나 보려면 서명(이름 + 비밀구)을 적어 두세요'}
+const canSee=o=>!o||!o.priv||ME.gm||!!(ME.hash&&o.owner===ME.hash);
+const canEditPriv=o=>!o.priv||ME.gm||!!(ME.hash&&o.owner===ME.hash)||!o.owner;
+const fVis=f=>canSee(f);
+const tVis=t=>canSee(t)&&canSee(S.folders.find(f=>f.id===tFolder(t)));
+function openMe(){let o=null;try{o=JSON.parse(lsGet('mkm_me')||'null')}catch(e){}o=o||{};
+ const l=openModal(`<div class="mhead"><h2>내 서명</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
+ <div class="mbody"><p class="small muted" style="margin:0 0 8px">비공개로 둔 폴더·트레이너는 같은 비밀구를 적은 브라우저와 GM 에게만 보입니다. 이름은 표시용, 비밀구가 열쇠입니다. 다른 기기에서도 같은 비밀구를 적으면 내 것이 보입니다. (화면에서만 숨기는 방식이라 DB 자체가 비밀이 되지는 않습니다)</p>
+  <label class="lbl" for="me-name">이름<input id="me-name" value="${esc(o.name||'')}" maxlength="24" placeholder="표시 이름"></label>
+  <label class="lbl" for="me-secret" style="margin-top:8px">비밀구<input id="me-secret" type="password" value="${esc(o.secret||'')}" maxlength="64" placeholder="나만 아는 문장" autocomplete="off"></label>
+  <p class="small faint" style="margin:8px 0 0">GM 은 config.js 의 gmHash 와 비밀구가 맞으면 전부 봅니다. <button type="button" class="btn sm" id="me-gmhash">이 비밀구의 해시 보기</button> <span class="mono small" id="me-gmout"></span></p></div>
+ <div class="mfoot"><button class="btn ghost" data-x="clear">서명 지우기</button><span class="sp"></span><button class="btn pri" data-x="ok">저장</button></div>`);
+ $('#me-gmhash',l).onclick=async()=>{$('#me-gmout',l).textContent=await meHash($('#me-secret',l).value)};
+ l.addEventListener('click',async e=>{const x=e.target.closest('[data-x]');if(!x)return;const v=x.dataset.x;
+  if(v==='ok'){const name=$('#me-name',l).value.trim(),secret=$('#me-secret',l).value;if(!secret){toast('비밀구를 적어 주세요');return}lsSet('mkm_me',JSON.stringify({name,secret}));closeModal();await meLoad();toast(ME.gm?'GM 으로 서명했습니다':'서명을 저장했습니다');return}
+  if(v==='clear'){try{localStorage.removeItem('mkm_me')}catch(e){}closeModal();await meLoad();return}
+  closeModal()})}
+document.addEventListener('click',e=>{if(e.target.closest('#mebtn'))openMe()});
 /* ---------- 렌더: 캐릭터 ---------- */
 const FOLDER_SVG='<svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 5.5A1.5 1.5 0 0 1 3.5 4h4l1.6 1.8h7.4A1.5 1.5 0 0 1 18 7.3v7.2a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 14.5z"/></svg>';
 /* 트레이너가 속한 폴더 id ('' = 폴더 없음 · 지워진 폴더를 가리키면 폴더 없음으로 본다) */
 const tFolder=t=>t.folder&&S.folders.some(f=>f.id===t.folder)?t.folder:'';
 const fOpen=fid=>!((S.ui.fclosed||{})[fid||'_none']);
-const trVisible=t=>!S.folders.length||fOpen(tFolder(t));
+const trVisible=t=>tVis(t)&&(!S.folders.length||fOpen(tFolder(t)));
 function renderChar(){const root=$('#v-char');
- const inF=fid=>S.trainers.map((t,ti)=>[t,ti]).filter(([t])=>tFolder(t)===fid);
+ const inF=fid=>S.trainers.map((t,ti)=>[t,ti]).filter(([t])=>tFolder(t)===fid&&tVis(t));const hiddenN=S.trainers.filter(t=>!tVis(t)).length;
  let body;
- if(!S.folders.length)body=`<div id="trs" data-sort="trainers" data-fid="">${S.trainers.map((t,ti)=>trainerHTML(t,ti)).join('')||'<div class="empty">트레이너가 없습니다. 「+ 트레이너」를 눌러 시작하세요.</div>'}</div>`;
+ if(!S.folders.length)body=`<div id="trs" data-sort="trainers" data-fid="">${S.trainers.map((t,ti)=>tVis(t)?trainerHTML(t,ti):'').join('')||'<div class="empty">트레이너가 없습니다. 「+ 트레이너」를 눌러 시작하세요.</div>'}</div>`;
  else{
-  const grp=(fid,name,fi)=>{const n=inF(fid),open=fOpen(fid),pk=n.reduce((a,[t])=>a+t.pokemon.length,0),key=fid||'_none';
-   return `<div class="tfold ${open?'open':''}" ${fid?`data-si="${fi}"`:''} data-fold="${esc(key)}">
-   <div class="tfh" data-ftog="${esc(key)}" data-fdrop="${esc(key)}" ${fid?'data-grab':''} tabindex="0" role="button" data-kbd aria-expanded="${open}" aria-label="${esc(name)} 폴더 펼치기/접기"><span class="caret">▸</span>${fid?`<span class="ficon">${FOLDER_SVG}</span>`:''}<span class="fname${fid?'':' muted'}">${esc(name)}</span><span class="small muted">트레이너 ${n.length}명 · 포켓몬 ${pk}체</span><span class="sp"></span>
-    <button class="btn sm" data-act="addTin" data-f="${esc(fid)}">+ 트레이너</button>${fid?`<button class="btn sm ghost" data-act="renF" data-f="${esc(fid)}">이름 바꾸기</button><button class="btn sm ghost danger" data-act="delF" data-f="${esc(fid)}">폴더 삭제</button>`:''}</div>
+  const grp=(fid,name,fi)=>{const f=S.folders.find(x=>x.id===fid);if(f&&!fVis(f))return '';const n=inF(fid),open=fOpen(fid),pk=n.reduce((a,[t])=>a+t.pokemon.length,0),key=fid||'_none';
+   return `<div class="tfold ${open?'open':''} ${f&&f.priv?'priv':''}" ${fid?`data-si="${fi}"`:''} data-fold="${esc(key)}">
+   <div class="tfh" data-ftog="${esc(key)}" data-fdrop="${esc(key)}" ${fid?'data-grab':''} tabindex="0" role="button" data-kbd aria-expanded="${open}" aria-label="${esc(name)} 폴더 펼치기/접기"><span class="caret">▸</span>${fid?`<span class="ficon">${FOLDER_SVG}</span>`:''}<span class="fname${fid?'':' muted'}">${esc(name)}</span>${f&&f.priv?`<span class="kindb privchip" title="${esc('비공개 · '+(f.ownerName||'')+(ME.gm?' (GM 열람)':''))}">🔒 비공개</span>`:''}<span class="small muted">트레이너 ${n.length}명 · 포켓몬 ${pk}체</span><span class="sp"></span>
+    <button class="btn sm" data-act="addTin" data-f="${esc(fid)}">+ 트레이너</button>${fid?`<button class="btn sm ghost" data-act="privF" data-f="${esc(fid)}" title="비공개 폴더는 만든 사람과 GM 에게만 보입니다">${f&&f.priv?'공개로':'비공개'}</button><button class="btn sm ghost" data-act="renF" data-f="${esc(fid)}">이름 바꾸기</button><button class="btn sm ghost danger" data-act="delF" data-f="${esc(fid)}">폴더 삭제</button>`:''}</div>
    ${open?`<div class="tfb" data-sort="trainers" data-fid="${esc(fid)}">${n.map(([t,ti])=>trainerHTML(t,ti)).join('')}</div>`:''}</div>`};
   body=`<div id="trs" data-sort="folders">${S.folders.map((f,fi)=>grp(f.id,f.name||'이름 없는 폴더',fi)).join('')}${grp('','폴더 없음')}</div>`}
- root.innerHTML=`<div class="intro"><h1>캐릭터 시트</h1><p>트레이너 폴더마다 자질·포인트·PT 서머리를 관리하고, 그 아래에 포켓몬 시트를 자유롭게 추가합니다. 「+ 폴더」로 세션별 대분류를 만들고 트레이너를 끌어다 넣을 수 있습니다. ${SH.on?'모든 내용은 공유 DB에 자동 저장되어, 링크를 아는 사람 모두가 같이 보고 고칩니다.':'모든 내용은 이 브라우저에 자동 저장됩니다.'}</p>
+ root.innerHTML=`${hiddenN?`<p class="small faint" style="margin:0 0 8px">🔒 비공개라서 안 보이는 트레이너 ${hiddenN}명 (내 것이면 「서명」에 같은 비밀구를 적으세요)</p>`:''}<div class="intro"><h1>캐릭터 시트</h1><p>트레이너 폴더마다 자질·포인트·PT 서머리를 관리하고, 그 아래에 포켓몬 시트를 자유롭게 추가합니다. 「+ 폴더」로 세션별 대분류를 만들고 트레이너를 끌어다 넣을 수 있습니다. ${SH.on?'모든 내용은 공유 DB에 자동 저장되어, 링크를 아는 사람 모두가 같이 보고 고칩니다.':'모든 내용은 이 브라우저에 자동 저장됩니다.'}</p>
  <button class="btn pri" data-act="addT">+ 트레이너</button><button class="btn" data-act="addF">+ 폴더</button><button class="btn" data-act="impText">복사용 텍스트 붙여넣기</button></div>
  ${body}`}
 /* 이름 입력 창 */
@@ -1025,9 +1070,9 @@ function inp(path,val,o={}){return `<input data-p="${esc(path)}" value="${esc(va
 function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=investCheck(t);const pu=ptSockets(t),pm=ptMax(t);
  return `<section class="folder ${t.open?'open':''}" id="tr-${t.id}" data-ti="${ti}" data-si="${ti}">
  <header class="fh" data-tog="${P}" data-grab tabindex="0" role="button" data-kbd aria-expanded="${!!t.open}" aria-label="${esc(t.name||'트레이너')} 펼치기/접기"><span class="caret">▸</span><span class="avatar">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="">`:esc([...(t.name||'?')][0]||'?')}</span>
-  <span class="tname">${esc(t.name)}</span>${(t.pl||'').trim()?`<span class="plchip" title="PL">PL <b>${esc(t.pl.trim())}</b></span>`:''}<span class="row">${QUAL.map(q=>rkChip(q,t.ranks[q])).join('')}</span>${t.pokemon.length?ptStripHTML(t):''}
+  <span class="tname">${esc(t.name)}</span>${t.priv?`<span class="kindb privchip" title="${esc('비공개 · '+(t.ownerName||'')+(ME.gm?' (GM 열람)':''))}">🔒</span>`:''}${(t.pl||'').trim()?`<span class="plchip" title="PL">PL <b>${esc(t.pl.trim())}</b></span>`:''}<span class="row">${QUAL.map(q=>rkChip(q,t.ranks[q])).join('')}</span>${t.pokemon.length?ptStripHTML(t):''}
   <span class="small muted">포켓몬 ${t.pokemon.length}체 · PT 기술점 <b class="${pu>pm?'warn':''} num">${pu}/${pm}</b></span><span class="sp"></span>
-  ${S.folders.length?`<select class="tmove" data-tmove="${ti}" aria-label="폴더 이동" title="폴더 이동"><option value="">폴더 없음</option>${S.folders.map(f=>`<option value="${esc(f.id)}" ${tFolder(t)===f.id?'selected':''}>${esc(f.name||'이름 없는 폴더')}</option>`).join('')}</select>`:''}<button class="btn sm ghost" data-act="dupT" data-i="${ti}">복제</button><button class="btn sm ghost danger" data-act="delT" data-i="${ti}">삭제</button></header>
+  ${S.folders.length?`<select class="tmove" data-tmove="${ti}" aria-label="폴더 이동" title="폴더 이동"><option value="">폴더 없음</option>${S.folders.map(f=>`<option value="${esc(f.id)}" ${tFolder(t)===f.id?'selected':''}>${esc(f.name||'이름 없는 폴더')}</option>`).join('')}</select>`:''}<button class="btn sm ghost" data-act="privT" data-i="${ti}" title="비공개 트레이너는 만든 사람(같은 비밀구)과 GM 에게만 보입니다">${t.priv?'공개로':'비공개'}</button><button class="btn sm ghost" data-act="dupT" data-i="${ti}">복제</button><button class="btn sm ghost danger" data-act="delT" data-i="${ti}">삭제</button></header>
  ${t.open?`<div class="fb"><div class="tgrid">
   <div class="panel"><h3>프로필</h3><label class="lbl" for="tn-${t.id}">이름${inp(P+'.name',t.name,{id:'tn-'+t.id})}</label>
    <div class="imgbox" style="margin-top:8px">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="트레이너 이미지">`:'<span class="small">이미지 없음</span>'}</div>
@@ -1093,8 +1138,8 @@ function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=idx.items.get(
    <div class="lbl">특성<button class="pickbtn" data-act="pickAbil" data-i="${ti}" data-j="${pi}">${p.ability?`<b>${esc(p.ability)}</b><span class="sp"></span><span class="faint small">${ab?'소켓 '+esc(ab[0]):'DB에 없음'}</span>`:'<span class="ph0">특성 검색…</span>'}</button></div>
    <div class="lbl">소지품<button class="pickbtn" data-act="pickItem" data-i="${ti}" data-j="${pi}">${p.item?`<b>${esc(p.item)}</b>${ilockChip(p.item)}<span class="sp"></span><span class="faint small">${it?'소켓 '+esc(it[5]):'DB에 없음'}</span>`:'<span class="ph0">소지품 검색…</span>'}</button></div>
   </div>
-  ${ab?`<div class="effbox"><b>${esc(p.ability)}</b> ${rich(ab[2])}</div>`:p.ability?`<div class="effbox">DB에 없는 특성입니다. <button class="btn sm" data-act="newAbil" data-i="${ti}" data-j="${pi}">이 이름으로 오리지널 특성 만들기</button></div>`:''}
-  ${it?`<div class="effbox"><b>${esc(p.item)}</b> ${rich(it[4])} ${it[6]&&it[6]!=='-'?`<span class="faint">· ${esc(it[6])}</span>`:''}</div>`:''}
+  ${ab?`<div class="effbox"><b>${esc(p.ability)}</b> ${rich(ab[2])}<span class="fxrow">${fxAutoBtn(p,'trait',p.ability,ti,pi)}</span></div>`:p.ability?`<div class="effbox">DB에 없는 특성입니다. <button class="btn sm" data-act="newAbil" data-i="${ti}" data-j="${pi}">이 이름으로 오리지널 특성 만들기</button><span class="fxrow">${fxAutoBtn(p,'trait',p.ability,ti,pi)}</span></div>`:''}
+  ${it?`<div class="effbox"><b>${esc(p.item)}</b> ${rich(it[4])} ${it[6]&&it[6]!=='-'?`<span class="faint">· ${esc(it[6])}</span>`:''}<span class="fxrow">${fxAutoBtn(p,'item',p.item,ti,pi)}</span></div>`:p.item?`<div class="effbox"><b>${esc(p.item)}</b><span class="fxrow">${fxAutoBtn(p,'item',p.item,ti,pi)}</span></div>`:''}
  </div>
  <div class="panel" style="min-width:0"><h3>능력치<span class="sp"></span><span class="small muted">종족치 합 <b class="num">${tot}</b>${(()=>{const pl=planRange(p);if(!pl)return '';const ok=tot>=pl.lo&&tot<=pl.hi;return ` · 예정 <b class="num${ok?'':' warn'}">${pl.lo}${pl.hi!==pl.lo?'~'+pl.hi:''}</b>${pl.alt?' <span class="faint">(괄호 값)</span>':''}`})()}</span></h3>
   <div class="stats">${STATS.map((s,i)=>{const g=grade(p.base[i]);const v=+p.base[i]||0;return `<div class="st s${i}"><span class="k">${s}</span>${inp(`${P}.base.${i}`,p.base[i],{num:1,ph:'종족치'})}<div class="bar"><i style="width:${Math.min(100,v/200*100)}%;background:${gcol(g)}"></i></div><span class="v">${stat(t,p,i)}</span><span class="gb" style="background:${gcol(g)}">${esc(g)}</span></div>`}).join('')}</div>
@@ -1108,11 +1153,11 @@ function movesTab(t,ti,p,pi,P,c){const ms=p.moves;const over=c.cap!=null&&c.used
   <div class="ef">${r?rich(r[13]):''}</div><div class="row mva" style="gap:2px;flex-wrap:nowrap"><label class="small row" title="「기술 할인점」 1점을 써서 이 기술의 소켓을 0.5 할인합니다 (올드 타입 계열은 교배기·유전기 습득용)" style="gap:2px"><input type="checkbox" data-p="${P}.moves.${i}.half" ${m.half?'checked':''}>할인</label>
   ${r?`<button class="btn sm ghost" data-act="mvEdit" data-name="${esc(m.name)}">수정</button>`:''}<button class="btn sm ghost danger" data-act="mvDel" data-i="${ti}" data-j="${pi}" data-k="${i}" aria-label="삭제">✕</button></div></div>`}).join('')||'<div class="empty">기술이 없습니다. 「기술 검색·추가」로 DB에서 찾거나 오리지널 기술을 만드세요.</div>'}</div>`}
 function potsTab(t,ti,p,pi){const exE=p.excl.eff;
- return `<div class="potl" data-sort="pots" data-i="${ti}" data-j="${pi}"><div class="pot excl ${p.excl.name?'':'vac'}" tabindex="0" role="button" data-kbd data-act="editPot" data-i="${ti}" data-j="${pi}" data-k="excl"><span class="sl">전용</span><span class="pn">${esc(p.excl.name||'전용 포텐셜 · 눌러서 작성')}</span><span class="pe">${rich(exE)}${banHits(exE).length?' <span class="warn">금지어</span>':''}</span><span></span></div>
- ${(p.exclX||[]).map((x,xi)=>`<div class="pot excl ${x.name?'':'vac'}" tabindex="0" role="button" data-kbd data-act="editPot" data-i="${ti}" data-j="${pi}" data-k="x${xi}"><span class="sl">전용 ${xi+2}</span><span class="pn">${esc(x.name||'추가 전용 포텐셜 · 눌러서 작성')}</span><span class="pe">${rich(x.eff)}${banHits(x.eff).length?' <span class="warn">금지어</span>':''}</span><span class="row" style="gap:2px;flex-wrap:nowrap"><button class="btn sm ghost danger" data-act="potDel" data-i="${ti}" data-j="${pi}" data-k="x${xi}" aria-label="전용 칸 지우기">✕</button></span></div>`).join('')}
- ${p.pots.map((n,i)=>{if(!n)return '';const r=potRow(n);const e=potEffOf(p,i);const k=potKindOf(p,i);const custom=n&&(!r||p.potEff[i]);return `<div class="pot ${n?'':'vac'}" tabindex="0" role="button" data-kbd data-act="editPot" data-i="${ti}" data-j="${pi}" data-k="${i}" data-si="${i}" data-grab><span class="sl">#${i+1}</span><span><span class="pn">${esc(n||'비어 있음')}</span>${n?`<br><span class="kindb">${esc(k||'종류 미지정')}</span>${custom?' <span class="kindb">직접 작성</span>':''}`:''}</span><span class="pe">${rich(e)}${banHits(e).length?' <span class="warn">금지어</span>':''}</span><span class="row" style="gap:2px;flex-wrap:nowrap">${n?`<button class="btn sm ghost danger" data-act="potDel" data-i="${ti}" data-j="${pi}" data-k="${i}" aria-label="비우기">✕</button>`:''}</span></div>`}).join('')}</div>
+ return `<div class="potl" data-sort="pots" data-i="${ti}" data-j="${pi}"><div class="pot excl ${p.excl.name?'':'vac'}" tabindex="0" role="button" data-kbd data-act="editPot" data-i="${ti}" data-j="${pi}" data-k="excl"><span class="sl">전용</span><span class="pn">${esc(p.excl.name||'전용 포텐셜 · 눌러서 작성')}</span><span class="pe">${rich(exE)}${banHits(exE).length?' <span class="warn">금지어</span>':''}</span><span class="row" style="gap:2px;flex-wrap:nowrap">${fxAutoBtn(p,'pot',p.excl.name,ti,pi,'excl')}</span></div>
+ ${(p.exclX||[]).map((x,xi)=>`<div class="pot excl ${x.name?'':'vac'}" tabindex="0" role="button" data-kbd data-act="editPot" data-i="${ti}" data-j="${pi}" data-k="x${xi}"><span class="sl">전용 ${xi+2}</span><span class="pn">${esc(x.name||'추가 전용 포텐셜 · 눌러서 작성')}</span><span class="pe">${rich(x.eff)}${banHits(x.eff).length?' <span class="warn">금지어</span>':''}</span><span class="row" style="gap:2px;flex-wrap:nowrap">${fxAutoBtn(p,'pot',x.name,ti,pi,'x'+xi)}<button class="btn sm ghost danger" data-act="potDel" data-i="${ti}" data-j="${pi}" data-k="x${xi}" aria-label="전용 칸 지우기">✕</button></span></div>`).join('')}
+ ${p.pots.map((n,i)=>{if(!n)return '';const r=potRow(n);const e=potEffOf(p,i);const k=potKindOf(p,i);const custom=n&&(!r||p.potEff[i]);return `<div class="pot ${n?'':'vac'}" tabindex="0" role="button" data-kbd data-act="editPot" data-i="${ti}" data-j="${pi}" data-k="${i}" data-si="${i}" data-grab><span class="sl">#${i+1}</span><span><span class="pn">${esc(n||'비어 있음')}</span>${n?`<br><span class="kindb">${esc(k||'종류 미지정')}</span>${custom?' <span class="kindb">직접 작성</span>':''}`:''}</span><span class="pe">${rich(e)}${banHits(e).length?' <span class="warn">금지어</span>':''}</span><span class="row" style="gap:2px;flex-wrap:nowrap">${n?fxAutoBtn(p,'pot',n,ti,pi,i):''}${n?`<button class="btn sm ghost danger" data-act="potDel" data-i="${ti}" data-j="${pi}" data-k="${i}" aria-label="비우기">✕</button>`:''}</span></div>`}).join('')}</div>
  <div class="row" style="margin-top:8px">${p.pots.some(n=>!n)?`<button class="btn pri sm" data-act="addPot" data-i="${ti}" data-j="${pi}">+ 포텐셜 추가</button>`:''}<button class="btn sm" data-act="addEx" data-i="${ti}" data-j="${pi}" title="이 포켓몬에 전용 포텐셜 칸을 하나 더 만듭니다 (능력 AAA: 1체에게 2개까지)">+ 전용 칸</button><button class="btn sm" data-act="stpl" data-i="${ti}" data-j="${pi}" title="테이블·계산식 탭의 포켓몬 시트 템플릿(트레이너 자질 반영)으로 빠진 포텐셜 슬롯을 채웁니다">시트 템플릿 적용</button><span class="small muted">트레이너 자질에 맞는 기본 포텐셜 중 빠진 것만 빈 슬롯에 넣습니다</span></div>
- <p class="small faint" style="margin:8px 0 0">줄을 누르면 편집 창이 열리고, 줄을 잡고 위아래로 끌면 순서를 바꿀 수 있습니다(휴대폰은 길게 누른 뒤 끌기). DB에서 고르거나, 태그 버튼을 써서 직접 작성할 수 있습니다. 복사용 텍스트에는 채워진 슬롯만 위에서부터 순서대로 들어갑니다.</p>`}
+ <p class="small faint" style="margin:8px 0 0">오른쪽 「구문」 버튼은 오레마스 배틀 자동화입니다 — <b>구문 ✓</b> 이 포켓몬만의 구문 있음 · <b>자동</b> 같은 이름의 레디메이드가 자동으로 돎 · <b>구문</b> 자동화 없음(써 넣을 수 있음). 줄을 누르면 편집 창이 열리고, 줄을 잡고 위아래로 끌면 순서를 바꿀 수 있습니다(휴대폰은 길게 누른 뒤 끌기). DB에서 고르거나, 태그 버튼을 써서 직접 작성할 수 있습니다. 복사용 텍스트에는 채워진 슬롯만 위에서부터 순서대로 들어갑니다.</p>`}
 function textTab(t,ti,p,pi,P){const s=copyText(t,p);return `<div class="row" style="margin-bottom:8px"><b>복사용 텍스트</b><span class="small muted">시트 「복사용 텍스트」 칸과 같은 규칙</span><span class="sp"></span><button class="btn pri sm" data-act="copy" data-i="${ti}" data-j="${pi}">복사</button></div>
  <div class="copybox">${esc(s)}</div><label class="lbl" for="memo-${p.id}" style="margin-top:10px">메모<textarea id="memo-${p.id}" data-p="${P}.memo" rows="3">${esc(p.memo)}</textarea></label>`}
 
@@ -1177,6 +1222,12 @@ $('#v-char').addEventListener('click',async e=>{
   case 'delP':if(await ask(`포켓몬 시트 「${esc(P.name||'이름 없음')}」을(를) 삭제할까요?`,'삭제')){T.pokemon.splice(j,1);rf()}break;
   case 'dupP':{const c=clone(P);c.id=uid();T.pokemon.splice(j+1,0,c);rf();break}
   case 'noPimg':P.image='';rf();break;
+  case 'privT':case 'privF':{const o=b.dataset.act==='privT'?T:S.folders.find(x=>x.id===b.dataset.f);if(!o)break;
+   if(!ME.hash){toast('먼저 오른쪽 위 「서명」에 이름과 비밀구를 적어 주세요');openMe();break}
+   if(!canEditPriv(o)){toast('만든 사람(또는 GM)만 바꿀 수 있습니다');break}
+   if(o.priv){o.priv=false}else{o.priv=true;if(!o.owner){o.owner=ME.hash;o.ownerName=ME.name}}
+   save();renderChar();toast(o.priv?'비공개로 두었습니다 · 같은 비밀구를 적은 브라우저와 GM 만 봅니다':'공개로 바꿨습니다');break}
+  case 'fx':{e.stopPropagation();const sl=b.dataset.slot;fxOpen(T,P,b.dataset.kind,b.dataset.name,sl===''?null:/^\d+$/.test(sl)?+sl:sl);break}
   case 'pimgPick':{e.stopPropagation();let inp=$('#pimg-any');if(!inp){inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.id='pimg-any';inp.hidden=true;inp.addEventListener('change',()=>{const f=inp.files[0];if(!f)return;const [a,b]=String(inp.dataset.pimg).split('.').map(Number);setPokeImg(a,b,f)});MKROOT().appendChild(inp)}inp.dataset.pimg=`${i}.${j}`;inp.value='';inp.click();break}
   case 'pickOld':openOldFill(T,P);break;
   case 'addOld':openOldFill(T,null);break;
@@ -1521,8 +1572,8 @@ function renderType(){const root=$('#v-type');if(!root)return;const o=tyOpt();
  const tsel=o.scope.startsWith('t:')?o.scope.slice(2):'';if(tsel&&!S.trainers.some(t=>t.id===tsel))o.scope='';
  if(o.scope&&!tsel&&o.scope!=='_none'&&!S.folders.some(f=>f.id===o.scope))o.scope='';
  const inScope=t=>!o.scope||(tsel?t.id===tsel:o.scope==='_none'?!tFolder(t):tFolder(t)===o.scope);
- const groups=[];for(const f of S.folders){const ts=S.trainers.filter(t=>tFolder(t)===f.id&&inScope(t));if(ts.length)groups.push([f.name||'이름 없는 폴더',ts])}
- {const ts=S.trainers.filter(t=>!tFolder(t)&&inScope(t));if(ts.length)groups.push([S.folders.length?'폴더 없음':'',ts])}
+ const groups=[];for(const f of S.folders){if(!fVis(f))continue;const ts=S.trainers.filter(t=>tFolder(t)===f.id&&inScope(t)&&tVis(t));if(ts.length)groups.push([f.name||'이름 없는 폴더',ts])}
+ {const ts=S.trainers.filter(t=>!tFolder(t)&&inScope(t)&&tVis(t));if(ts.length)groups.push([S.folders.length?'폴더 없음':'',ts])}
  const base=S.db.types.slice(0,TY_BASE).map(x=>x[0]);
  const rows=[];const tot={};const names={};let mons=0,slots=0;const combos=new Map();
  for(const [,ts] of groups)for(const t of ts){const r={t,c:{},n:t.pokemon.length,mn:{}};
@@ -1552,7 +1603,7 @@ function renderType(){const root=$('#v-type');if(!root)return;const o=tyOpt();
   <span><span class="lab">정렬</span>${seg('sort',o.sort,[['cnt','많은 순'],['dex','타입 순']],'정렬')}</span>
   <label class="small row" style="gap:4px"><input type="checkbox" data-yact="t3" ${o.t3?'checked':''}>타입3 포함</label>
   <label class="small row" style="gap:4px"><input type="checkbox" data-yact="tera" ${o.tera?'checked':''}>테라스탈 포함</label>
-  <span><span class="lab">트레이너</span><select data-ysel="trainer" style="max-width:220px"><option value="">전체 (폴더 범위)</option>${(S.folders.length?[...S.folders.map(f=>[f.name||'이름 없는 폴더',S.trainers.filter(t=>tFolder(t)===f.id)]),['폴더 없음',S.trainers.filter(t=>!tFolder(t))]]:[['',S.trainers]]).filter(([,ts])=>ts.length).map(([g,ts])=>(g?`<optgroup label="${esc(g)}">`:'')+ts.map(t=>`<option value="t:${esc(t.id)}" ${o.scope==='t:'+t.id?'selected':''}>${esc(t.name||'트레이너')}</option>`).join('')+(g?'</optgroup>':'')).join('')}</select></span></div>
+  <span><span class="lab">트레이너</span><select data-ysel="trainer" style="max-width:220px"><option value="">전체 (폴더 범위)</option>${(S.folders.length?[...S.folders.filter(fVis).map(f=>[f.name||'이름 없는 폴더',S.trainers.filter(t=>tFolder(t)===f.id&&tVis(t))]),['폴더 없음',S.trainers.filter(t=>!tFolder(t)&&tVis(t))]]:[['',S.trainers.filter(tVis)]]).filter(([,ts])=>ts.length).map(([g,ts])=>(g?`<optgroup label="${esc(g)}">`:'')+ts.map(t=>`<option value="t:${esc(t.id)}" ${o.scope==='t:'+t.id?'selected':''}>${esc(t.name||'트레이너')}</option>`).join('')+(g?'</optgroup>':'')).join('')}</select></span></div>
  ${(()=>{const all=groups.flatMap(([,ts])=>ts);const picked=tsel?all:all.filter(t=>o.pick.includes(t.id));
   return `<div class="panel" style="margin-bottom:12px"><h3>PT별 타입 일관성 <span class="small muted" style="font-weight:400">타입 구성과 공통 약점 (원작 18타입 상성 · 타입1·타입2만)</span></h3>
   <p class="small faint" style="margin:2px 0 8px">보고 싶은 트레이너를 골라 주세요. 「구성」은 PT 안의 타입별 마릿수, 「공통 약점」은 2체 이상이 함께 2배 이상으로 맞는 공격 타입, 「못 막는 타입」은 PT의 누구도 반감·무효로 받지 못하는 공격 타입입니다.</p>
@@ -1842,4 +1893,6 @@ window.MKM={bundle:()=>sessionBundle(S.trainers),
 /* ---------- 시작 ---------- */
 load();
 showTab(S.ui.tab||'char');
+loadFx();
+meLoad();
 shInit();

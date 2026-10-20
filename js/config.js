@@ -3,5 +3,7 @@
 window.MKM_CONFIG={
   supabaseUrl:"https://jsnvqcvwspxzfnhdethl.supabase.co",
   supabaseKey:"sb_publishable_HDcgWnb1QS1P6GOiBPqdAA_yBJNhU7R",
-  table:"docs"
+  table:"docs",
+  /* GM 서명 해시: 제작기 「서명」 창의 「이 비밀구의 해시 보기」로 만든 값. 이 해시와 맞는 비밀구를 적은 브라우저는 비공개 트레이너를 전부 본다 */
+  gmHash:""
 };
