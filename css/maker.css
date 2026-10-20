@@ -345,7 +345,10 @@ html.modal-on #mk{overflow:hidden}
 #mk .gen{font-size:15px;line-height:1;font-weight:700}
 #mk .gen.m{color:#3B82F6} #mk .gen.f{color:#EC4899} #mk .gen.n{color:var(--muted)}
 #mk .pkstat{display:flex;gap:8px;align-items:center;min-width:0}
-#mk .pkstat .mini{width:120px;max-width:100%}
+#mk .minig{display:flex;gap:3px;flex-wrap:nowrap}
+#mk .mg{display:inline-flex;flex-direction:column;align-items:center;gap:1px;min-width:34px}
+#mk .mg small{font-size:9.5px;color:var(--muted);font-weight:600;white-space:nowrap;line-height:1}
+#mk .mg b{font:11px/1 var(--mono);font-weight:500;color:#fff;padding:3px 0;border-radius:5px;width:100%;text-align:center}
 #mk .radar{width:52px;height:52px;flex:none}
 #mk .radar .rg{fill:none;stroke:var(--line);stroke-width:1}
 #mk .radar .rv{fill:color-mix(in srgb,var(--c1,var(--blue)) 45%,transparent);stroke:var(--c1,var(--blue));stroke-width:1.5;stroke-linejoin:round}
@@ -361,3 +364,4 @@ html.modal-on #mk{overflow:hidden}
 #mk .mcat.phy{background:#C8362B} #mk .mcat.spe{background:#2B5FB4} #mk .mcat.sta{background:#6B7280}
 #mk .mv{border-left:4px solid var(--line)}
 #mk .avatar{border-radius:50%;border:2px solid var(--line)}
+#mk .tchips button.ghost{border-style:dashed;color:var(--muted);font-weight:500}
