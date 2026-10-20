@@ -406,3 +406,12 @@ html.modal-on #mk{overflow:hidden}
 /* 포켓몬 스탠딩 */
 #mk .pstands{margin-top:10px;padding:8px 10px;border:1px dashed var(--line);border-radius:8px}
 #mk .pstands .stands{margin-top:6px}
+/* 스탠딩 줄: 좁은 칸에서도 글이 세로로 찢어지지 않게 — 썸네일 | 이름·주소(한 줄 말줄임) / 버튼은 아래 줄 */
+#mk .stand{display:grid;grid-template-columns:46px minmax(0,1fr);gap:4px 8px;align-items:center}
+#mk .stand .sth{grid-row:1 / span 2}
+#mk .stand .stb{min-width:0;overflow:hidden}
+#mk .stand .stb b{white-space:nowrap}
+#mk .stand .stb .small{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;word-break:normal!important}
+#mk .stand>.row{flex-wrap:wrap!important;gap:4px!important;min-width:0}
+#mk .stand>.row .btn{padding-inline:7px}
+#mk .stands+.row input[type=text]{flex:1 1 120px;min-width:0;width:auto!important}
