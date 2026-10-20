@@ -379,3 +379,5 @@ html.modal-on #mk{overflow:hidden}
 #mk .stand .stb{flex:1;min-width:0}
 
 #mk .autobox{border:1px dashed var(--line,#cfd3da);border-radius:8px;padding:6px 10px;margin-top:4px}#mk .autobox summary{cursor:pointer;font-weight:600}
+
+#mk .plchip.npc{color:#fff;background:#7a2a2a;border-color:#7a2a2a}

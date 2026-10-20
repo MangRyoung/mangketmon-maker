@@ -322,7 +322,7 @@ function sessionPoke(t,p,types){
    exclX:(p.exclX||[]).filter(x=>x&&x.name).map(x=>({name:x.name,eff:brN(x.eff||'')})),
   moves,memo:p.memo||'',image:safeImg(p.image)&&p.image.length<60000?p.image:'',copy:copyText(t,p)}}
 function sessionBundle(ts){const types={};
- const trainers=ts.map(t=>({id:t.id,name:t.name||'트레이너',image:safeImg(t.image)&&t.image.length<90000?t.image:'',ranks:Object.assign({},t.ranks),
+ const trainers=ts.map(t=>({id:t.id,name:t.name||'트레이너',kind:t.kind==='npc'?'npc':'pc',image:safeImg(t.image)&&t.image.length<90000?t.image:'',ranks:Object.assign({},t.ranks),
   unique:(t.unique||[]).filter(u=>u&&u.name).map(u=>({name:u.name,eff:brN(u.eff||'')})),pokemon:t.pokemon.map(p=>sessionPoke(t,p,types))}));
  return {kind:'mkm-session',v:1,at:Date.now(),from:'망켓몬 제작기',types,trainers}}
 async function copySession(ts){if(!ts.length)return toast('트레이너가 없습니다');const s=JSON.stringify(sessionBundle(ts));
@@ -357,7 +357,7 @@ function newPoke(){return{id:uid(),open:true,tab:'base',name:'',gender:'-',pride
 function fixP(p){const n=newPoke();for(const k in n)if(p[k]==null)p[k]=n[k];
  for(const k of ['pots','potEff','potKind'])while(p[k].length<20)p[k].push('');
  p.moves=(p.moves||[]).filter(m=>m&&m.name);p.exclX=(Array.isArray(p.exclX)?p.exclX:[]).filter(x=>x&&typeof x==='object').map(x=>({name:String(x.name||''),eff:String(x.eff||'')}));delete p.iv;delete p.nature;p.image=safeImg(p.image);if(!p.auto||typeof p.auto!=='object')p.auto={};if(!p.id)p.id=uid();return p}
-function newTrainer(){const t={id:uid(),open:true,name:'새 트레이너',pl:'',folder:'',image:'',ranks:{지시:'C',육성:'C',통솔:'C',능력:'C'},detail:{지시:'',육성:'',통솔:'',능력:''},solo:false,
+function newTrainer(){const t={id:uid(),open:true,name:'새 트레이너',kind:'pc',pl:'',folder:'',image:'',ranks:{지시:'C',육성:'C',통솔:'C',능력:'C'},detail:{지시:'',육성:'',통솔:'',능력:''},solo:false,
  pts:[],extra:{},base:Object.fromEntries(ptItems().map(([n,d])=>[n,+d||0])),unique:[{name:'',eff:''}],ptMax:'',pokemon:[]};applyTpl(t);return t}
 function fixT(t){if(t.base)delete t.base['소지품 소켓'];const n=newTrainer();for(const k in n)if(t[k]==null)t[k]=n[k];for(const k in n.base)if(t.base[k]==null)t.base[k]=n.base[k];
  if(t.extra){for(const k in t.extra)if(!+t.extra[k])delete t.extra[k]}t.image=safeImg(t.image);if(!t.id)t.id=uid();t.stands=(Array.isArray(t.stands)?t.stands:[]).filter(x=>x&&typeof x==='object'&&/^https?:\/\//.test(String(x.src||''))).map(x=>({label:String(x.label||'기본').slice(0,40),src:String(x.src),point:+x.point||0}));if(!(+t.standActive>=0))t.standActive=0;t.pokemon.forEach(fixP);return t}
@@ -1056,7 +1056,7 @@ function inp(path,val,o={}){return `<input data-p="${esc(path)}" value="${esc(va
 function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=investCheck(t);const pu=ptSockets(t),pm=ptMax(t);
  return `<section class="folder ${t.open?'open':''}" id="tr-${t.id}" data-ti="${ti}" data-si="${ti}">
  <header class="fh" data-tog="${P}" data-grab tabindex="0" role="button" data-kbd aria-expanded="${!!t.open}" aria-label="${esc(t.name||'트레이너')} 펼치기/접기"><span class="caret">▸</span><span class="avatar">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="">`:esc([...(t.name||'?')][0]||'?')}</span>
-  <span class="tname">${esc(t.name)}</span>${(t.pl||'').trim()?`<span class="plchip" title="PL">PL <b>${esc(t.pl.trim())}</b></span>`:''}<span class="row">${QUAL.map(q=>rkChip(q,t.ranks[q])).join('')}</span>${t.pokemon.length?ptStripHTML(t):''}
+  <span class="tname">${esc(t.name)}</span>${t.kind==='npc'?'<span class="plchip npc" title="NPC — 오레마스 관계도에 NPC 노드로 들어간다">NPC</span>':''}${(t.pl||'').trim()?`<span class="plchip" title="PL">PL <b>${esc(t.pl.trim())}</b></span>`:''}<span class="row">${QUAL.map(q=>rkChip(q,t.ranks[q])).join('')}</span>${t.pokemon.length?ptStripHTML(t):''}
   <span class="small muted">포켓몬 ${t.pokemon.length}체 · PT 기술점 <b class="${pu>pm?'warn':''} num">${pu}/${pm}</b></span><span class="sp"></span>
   ${S.folders.length?`<select class="tmove" data-tmove="${ti}" aria-label="폴더 이동" title="폴더 이동"><option value="">폴더 없음</option>${S.folders.map(f=>`<option value="${esc(f.id)}" ${tFolder(t)===f.id?'selected':''}>${esc(f.name||'이름 없는 폴더')}</option>`).join('')}</select>`:''}<button class="btn sm ghost" data-act="dupT" data-i="${ti}">복제</button><button class="btn sm ghost danger" data-act="delT" data-i="${ti}">삭제</button></header>
  ${t.open?`<div class="fb"><div class="tgrid">
@@ -1070,7 +1070,8 @@ function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=inve
    <table><tr><th>자질</th><th>랭크</th><th>상세 사항</th></tr>${QUAL.map(q=>`<tr><td><b>${q}</b></td><td>${sel(`${P}.ranks.${q}`,t.ranks[q],RANKS,{style:'width:76px'})}</td><td>${inp(`${P}.detail.${q}`,t.detail[q],{ph:'메모'})}</td></tr>`).join('')}</table>
    <div class="invest ${iv.msg.length?'bad':''}">${iv.msg.length?iv.msg.map(esc).join(' · '):`자질 투자 ${iv.steps}/${iv.allow}회 · 규칙 이상 없음`}</div>
    <p class="small muted" style="margin:6px 0 0">육성 ${esc(t.ranks['육성'])} → 기본 레벨 <b>${baseLevel(t.ranks['육성'])}</b> · 포켓몬 기술 소켓 상한 ${esc((sockRow(t.ranks['육성'])||[])[6]??'-')}</p>
-   <label class="plrow"><span>PL</span>${inp(P+'.pl',t.pl,{ph:'플레이어 이름'})}</label></div>
+   <label class="plrow"><span>PL</span>${inp(P+'.pl',t.pl,{ph:'플레이어 이름'})}</label>
+   <label class="plrow" title="오레마스 방으로 가져갈 때 관계도·휴대폰에서 PC(플레이어)인지 NPC 인지"><span>구분</span><select data-p="${P}.kind"><option value="pc" ${t.kind!=='npc'?'selected':''}>PC (플레이어 캐릭터)</option><option value="npc" ${t.kind==='npc'?'selected':''}>NPC</option></select></label></div>
   <div class="panel"><h3>포인트<span class="sp"></span><label class="row small" style="gap:4px;font-weight:500"><input type="checkbox" data-p="${P}.solo" ${t.solo?'checked':''}>1인 기준 (2체)</label></h3><table><tr><th>항목</th><th class="n">기본</th><th class="n">소모</th><th class="n">잔여</th></tr>
    ${ptItems().map(([k,d])=>{if(t.base[k]==null)t.base[k]=+d||0;const r=(+t.base[k]||0)-(use[k]||0);return `<tr><td>${esc(k)}</td><td class="n">${inp(`${P}.base.${seg(k)}`,t.base[k],{w:'52px',num:1})}</td><td class="n">${use[k]||0}</td><td class="n ${r<0?'warn':''}">${r}</td></tr>`}).join('')}</table>
    <div class="row" style="margin-top:8px"><b class="small">포인트 사용 항목</b><span class="sp"></span><button class="btn sm" data-act="addPt" data-i="${ti}">+ 항목</button></div>
