@@ -1477,28 +1477,22 @@ const TY_CHART={
  '페어리':[['격투','드래곤','악'],['불꽃','독','강철'],[]]};
 /* 방어 타입 목록(t1·t2)에 공격 타입 atk 가 들어갈 때의 배율 */
 function tyMult(atk,defs){const c=TY_CHART[atk];if(!c)return 1;let m=1;for(const d of defs){if(c[2].includes(d))return 0;if(c[0].includes(d))m*=2;else if(c[1].includes(d))m*=0.5}return m}
-/* PT 한 벌의 타입 일관성: 구성·팩션·프리랜서·공통 약점·못 막는 타입 */
+/* PT 한 벌의 타입 일관성: 구성·공통 약점·못 막는 타입 */
 function ptTypeReport(t){const ps=t.pokemon;const n=ps.length;const cnt={},who={};const atkTypes=Object.keys(TY_CHART);
  const defs=ps.map(p=>[...tyParts(p.t1),...tyParts(p.t2)].filter((x,i,a)=>a.indexOf(x)===i));
  ps.forEach((p,i)=>{for(const x of defs[i]){cnt[x]=(cnt[x]||0)+1;(who[x]=who[x]||[]).push(p.name||'(이름 없음)')}});
  const comp=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]||KO.compare(a,b)).map(x=>({x,n:cnt[x],who:who[x]}));
- const need=t.solo?[1,2]:[2,4];const fac=comp.filter(e=>e.n>=need[0]).map(e=>({x:e.x,n:e.n,lv:e.n>=need[1]?2:1}));
- const dup=comp.filter(e=>e.n>1);
  const weak=[],open=[];
  for(const a of atkTypes){const w=[],r=[];ps.forEach((p,i)=>{if(!defs[i].length)return;const mu=tyMult(a,defs[i]);if(mu>=2)w.push(p.name||'(이름 없음)');if(mu<1)r.push(p.name||'(이름 없음)')});
   if(w.length>=2||(n>0&&w.length===n))weak.push({x:a,n:w.length,who:w});if(!r.length&&n)open.push(a)}
  weak.sort((a,b)=>b.n-a.n||KO.compare(a.x,b.x));
- return{n,kinds:comp.length,comp,fac,need,dup,weak,open,typed:defs.filter(d=>d.length).length}}
+ return{n,kinds:comp.length,comp,weak,open,typed:defs.filter(d=>d.length).length}}
 function ptTypeCard(t){const r=ptTypeReport(t);const nm=esc(t.name||'트레이너');if(!r.n)return `<div class="ptc"><div class="ptch"><button type="button" class="lk" data-yact="open" data-v="${esc(t.id)}">${nm}</button><span class="small faint">포켓몬 없음</span></div></div>`;
- const facTxt=t.solo&&!r.fac.some(f=>f.lv===2)&&r.fac.length>1?`<span class="small muted">2체 타입이 모두 달라 그 타입들의 팩션은 어느 쪽이든 PT 포텐셜 1체</span>`:r.fac.length?r.fac.map(f=>`<span class="cb ${f.lv===2?'ok2':'ok1'}" title="${esc(f.who||'')}">${tchip(f.x)}<b>${f.n}체</b><small>${f.lv===2?`PT 포텐셜 ${t.solo?1:2}체`:`PT 포텐셜 1체`}</small></span>`).join(''):`<span class="small muted">같은 타입 ${r.need[0]}체 이상이 없어 팩션 조건 미충족</span>`;
- const freeTxt=r.dup.length?`<span class="small warn">타입 중복: ${r.dup.map(e=>`${esc(e.x)} ×${e.n}`).join(', ')} → 프리랜서 불가</span>`:`<span class="small ok">타입 중복 없음 · 프리랜서 가능</span>`;
  const half=Math.max(2,Math.ceil(r.n/2));
  const weakTxt=r.weak.length?r.weak.map(w=>`<span class="cb ${w.n>=half?'bad':''}" title="${w.who.map(esc).join('\n')}">${tchip(w.x)}<b>${w.n}</b>${w.n===r.n?'<small>전원</small>':''}</span>`).join(''):'<span class="small ok">2체 이상이 같이 약한 타입 없음</span>';
  const openTxt=r.open.length?r.open.map(tchip).join(''):'<span class="small ok">모든 타입을 누군가는 반감·무효로 받습니다</span>';
  return `<div class="ptc"><div class="ptch"><button type="button" class="lk" data-yact="open" data-v="${esc(t.id)}" title="캐릭터 시트에서 열기">${nm}</button><span class="small muted">${r.n}체 · 타입 ${r.kinds}종${t.solo?' · 1인 기준':''}${r.typed<r.n?` · 타입 미입력 ${r.n-r.typed}체`:''}</span><span class="ptstrip">${t.pokemon.map(p=>{const a=typeInfo(tyParts(p.t1)[0]),b=typeInfo(tyParts(p.t2)[0])||a;return `<i style="background:linear-gradient(135deg,${a&&safeCss(a[1])||'var(--sunk2)'} 50%,${b&&safeCss(b[1])||'var(--sunk2)'} 50%)" title="${esc(p.name||'')} · ${esc([p.t1,p.t2].filter(x=>x&&x!=='-').join('/'))}"></i>`}).join('')}</span></div>
   <div class="ptcr"><span class="k">구성</span><span class="v">${r.comp.map(e=>`<span class="cb" title="${e.who.map(esc).join('\n')}">${tchip(e.x)}<b>${e.n}</b></span>`).join('')}</span></div>
-  <div class="ptcr"><span class="k">팩션</span><span class="v">${facTxt}</span></div>
-  <div class="ptcr"><span class="k">프리랜서</span><span class="v">${freeTxt}</span></div>
   <div class="ptcr"><span class="k">공통 약점</span><span class="v">${weakTxt}</span></div>
   <div class="ptcr"><span class="k">못 막는 타입</span><span class="v">${openTxt}</span></div></div>`}
 function renderType(){const root=$('#v-type');if(!root)return;const o=tyOpt();
@@ -1539,8 +1533,8 @@ function renderType(){const root=$('#v-type');if(!root)return;const o=tyOpt();
   <label class="small row" style="gap:4px"><input type="checkbox" data-yact="tera" ${o.tera?'checked':''}>테라스탈 포함</label>
   <span><span class="lab">트레이너</span><select data-ysel="trainer" style="max-width:220px"><option value="">전체 (폴더 범위)</option>${(S.folders.length?[...S.folders.map(f=>[f.name||'이름 없는 폴더',S.trainers.filter(t=>tFolder(t)===f.id)]),['폴더 없음',S.trainers.filter(t=>!tFolder(t))]]:[['',S.trainers]]).filter(([,ts])=>ts.length).map(([g,ts])=>(g?`<optgroup label="${esc(g)}">`:'')+ts.map(t=>`<option value="t:${esc(t.id)}" ${o.scope==='t:'+t.id?'selected':''}>${esc(t.name||'트레이너')}</option>`).join('')+(g?'</optgroup>':'')).join('')}</select></span></div>
  ${(()=>{const all=groups.flatMap(([,ts])=>ts);const picked=tsel?all:all.filter(t=>o.pick.includes(t.id));
-  return `<div class="panel" style="margin-bottom:12px"><h3>PT별 타입 일관성 <span class="small muted" style="font-weight:400">팩션·프리랜서 조건과 공통 약점 (원작 18타입 상성 · 타입1·타입2만)</span></h3>
-  <p class="small faint" style="margin:2px 0 8px">보고 싶은 트레이너를 골라 주세요. 팩션은 같은 타입이 2(4)체 이상(1인 기준 1(2)체)일 때 『PT 포텐셜』 1(2)체, 프리랜서는 PT에 타입이 겹치지 않아야 합니다. 「공통 약점」은 2체 이상이 함께 2배 이상으로 맞는 공격 타입, 「못 막는 타입」은 PT의 누구도 반감·무효로 받지 못하는 공격 타입입니다.</p>
+  return `<div class="panel" style="margin-bottom:12px"><h3>PT별 타입 일관성 <span class="small muted" style="font-weight:400">타입 구성과 공통 약점 (원작 18타입 상성 · 타입1·타입2만)</span></h3>
+  <p class="small faint" style="margin:2px 0 8px">보고 싶은 트레이너를 골라 주세요. 「구성」은 PT 안의 타입별 마릿수, 「공통 약점」은 2체 이상이 함께 2배 이상으로 맞는 공격 타입, 「못 막는 타입」은 PT의 누구도 반감·무효로 받지 못하는 공격 타입입니다.</p>
   ${tsel?'':`<div class="tchips" style="margin-bottom:8px">${all.map(t=>`<button type="button" class="${o.pick.includes(t.id)?'on':''}" data-yact="pick" data-v="${esc(t.id)}">${esc(t.name||'트레이너')}<span class="faint"> ${t.pokemon.length}</span></button>`).join('')}${all.length>1?`<button type="button" class="ghost" data-yact="pickAll">모두</button><button type="button" class="ghost" data-yact="pickNone">지우기</button>`:''}</div>`}
   ${picked.length?`<div class="ptcs">${picked.map(ptTypeCard).join('')}</div>`:`<div class="empty">위에서 트레이너를 고르면 그 PT의 타입 일관성이 여기에 뜹니다.</div>`}</div>`})()}
  ${empty?`<div class="empty">${rows.length?'이 범위의 트레이너에게 아직 포켓몬 시트가 없습니다. 캐릭터 시트에서 포켓몬을 추가하고 타입을 고르면 여기에 바로 집계됩니다.':'이 범위에 트레이너가 없습니다.'}</div>`:`
