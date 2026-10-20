@@ -25,7 +25,7 @@ window.OM_FX_UI=(()=>{
 - ② 라벨 → 회복 1/4
 효과 글의 표식: 【등장】 등장 때 자동 · 【상시】 처음 한 번 자동 · 【N/시】 횟수 · 드물게/저확률/중확률/고확률 확률 판정`;
  const KINDS=[['rank','랭크 변화'],['mult','배율 변화'],['boost','위력 강화'],['guard','위력 완화'],['state','상태 변화'],['statefx','상태 (확률)'],['cure','상태 치유'],['heal','HP 회복'],['dmg','HP 대미지'],['weather','날씨'],['terrain','필드·룸'],['etc','필드의 상태'],['object','설치기'],['type','타입 변경'],['trait','특성 변경'],['prio','우선도'],['immune','상태 면역'],['nodrop','감소 무시'],['ignoreup','강화 무시'],['noind','비례 대미지/설치기 무시'],['float','하늘 위'],['role','역할 취급'],['pursuit','추격'],['confirm','조건 확인'],['cond','조건 (자동)']];
- const TG=['self','ally','enemy','others','all','ally1','enemy1','randother','randenemy','randall','area'];
+ const TG=['self','ally','enemy','others','all','ally1','adj','enemy1','randother','randenemy','randall','area'];
  const TYPES=['Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison','Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy'];
  const STATS=['attack','defense','specialattack','specialdefense','speed','accuracy','evasion','critical','critical_buff'];
  const sel=(id,opts,v,extra)=>`<select id="${id}" ${extra||''}>${opts.map(o=>`<option value="${esc(o[0])}" ${String(o[0])===String(v)?'selected':''}>${esc(o[1])}</option>`).join('')}</select>`;

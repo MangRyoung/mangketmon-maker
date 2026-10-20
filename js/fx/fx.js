@@ -4,7 +4,7 @@
    · 효과는 포켓몬의 m.fx 에 이름 붙은 항목으로 남고(위력 강화·완화, 우선도, 면역, 감소 무시, 비례 무시, 하늘 위 …),
      공격 창·HP 창·행동 순서·턴 종료가 자동으로 읽는다. 횟수·턴이 다 되면 저절로 사라진다.
    · 모두 순수 함수: 배틀 사본(b)과 문맥(ctx)을 받아 고치고 로그 줄을 돌려준다. 선택·확인이 필요하면 ctx.ask 로 묻는다 (async).
-   대상(tgt): self 자신 · ally 아군 전체 · enemy 상대 전체 · others 자신 이외 · all 전체 · ally1 아군 1체 · enemy1 상대 1체 ·
+   대상(tgt): self 자신 · ally 아군 전체 · enemy 상대 전체 · others 자신 이외 · all 전체 · ally1 아군 1체 · adj 옆에 선 아군 · enemy1 상대 1체 ·
             randother 자신 이외 무작위 · randenemy 상대 무작위 · randall 전원 무작위 · area 지정 에리어(지령) */
 "use strict";
 window.OM_FX=(()=>{
@@ -12,8 +12,8 @@ window.OM_FX=(()=>{
  const STATS=['attack','defense','specialattack','specialdefense','speed','accuracy','evasion','critical','critical_buff'];
  const STAT_KO={attack:'공격',defense:'방어',specialattack:'특공',specialdefense:'특방',speed:'스피드',accuracy:'명중',evasion:'회피',critical:'급소',critical_buff:'급소방호'};
  const KO_STAT={};for(const k in STAT_KO)KO_STAT[STAT_KO[k]]=k;KO_STAT['특수공격']='specialattack';KO_STAT['특수방어']='specialdefense';KO_STAT['민첩']='speed';KO_STAT['속도']='speed';
- const TGT_KO={self:'자신',ally:'아군 전체',enemy:'상대 전체',others:'자신 이외',all:'전체',ally1:'아군 1체',enemy1:'상대 1체',randother:'자신 이외 무작위 1체',randenemy:'상대 무작위 1체',randall:'전원 무작위 1체',area:'지정 에리어'};
- const KO_TGT={자신:'self',아군전체:'ally',아군:'ally',상대전체:'enemy',상대:'enemy',자신이외:'others',전체:'all',아군1체:'ally1',아군1:'ally1',상대1체:'enemy1',상대1:'enemy1',무작위1:'randother',자신이외무작위:'randother',상대무작위:'randenemy',전원무작위:'randall',무작위1체:'randother',자신이외무작위1체:'randother',자신이외무작위1:'randother',상대무작위1체:'randenemy',상대무작위1:'randenemy',전원무작위1체:'randall',전원무작위1:'randall',에리어:'area',지정에리어:'area'};
+ const TGT_KO={self:'자신',ally:'아군 전체',enemy:'상대 전체',others:'자신 이외',all:'전체',ally1:'아군 1체',adj:'옆 아군',enemy1:'상대 1체',randother:'자신 이외 무작위 1체',randenemy:'상대 무작위 1체',randall:'전원 무작위 1체',area:'지정 에리어'};
+ const KO_TGT={옆아군:'adj',옆에선아군:'adj',자신:'self',아군전체:'ally',아군:'ally',상대전체:'enemy',상대:'enemy',자신이외:'others',전체:'all',아군1체:'ally1',아군1:'ally1',상대1체:'enemy1',상대1:'enemy1',무작위1:'randother',자신이외무작위:'randother',상대무작위:'randenemy',전원무작위:'randall',무작위1체:'randother',자신이외무작위1체:'randother',자신이외무작위1:'randother',상대무작위1체:'randenemy',상대무작위1:'randenemy',전원무작위1체:'randall',전원무작위1:'randall',에리어:'area',지정에리어:'area'};
  const TYPE_KO={Normal:'노말',Fire:'불꽃',Water:'물',Electric:'전기',Grass:'풀',Ice:'얼음',Fighting:'격투',Poison:'독',Ground:'땅',Flying:'비행',Psychic:'에스퍼',Bug:'벌레',Rock:'바위',Ghost:'고스트',Dragon:'드래곤',Dark:'악',Steel:'강철',Fairy:'페어리',God:'신',Shadow:'그림자',Wild:'야생'};
  const KO_TYPE={};for(const k in TYPE_KO)KO_TYPE[TYPE_KO[k]]=k;
  const NEG=['Poison','Toxic','Burn','Paralysis','Freeze','Sleep','SyrupBomb','Confusion','Flinch','Embrago','Silence','Seal','Powder','Oblivion','TraitBroken','Taunt','Encore','Attract','HealBlock','Disable','Torrment','MeanLook','Bind','OctoLock','Block','Curse','LeechSeed','SaltCure','Nightmare','Yawn','DeathCount','LockOn','Telekinesis'];
@@ -44,6 +44,7 @@ window.OM_FX=(()=>{
   const rnd=list=>list.length?[list[Math.floor(Math.random()*list.length)]]:[];
   switch(tgt){case 'self':return [self];case 'ally':return allies.length?allies:[self];case 'enemy':return enemies;case 'others':return [...allies,...enemies].filter(m=>m.id!==self.id);case 'all':return [...allies,...enemies];
    case 'ally1':return pick(allies.filter(m=>m.id!==self.id),'아군 1체');case 'enemy1':return pick(enemies,'상대 1체');case 'randother':return rnd([...allies,...enemies].filter(m=>m.id!==self.id));case 'randenemy':return rnd(enemies);case 'randall':return rnd([...allies,...enemies]);
+   case 'adj':{const AR=['a','b','c'];const i=AR.indexOf(self.entry);return allies.filter(m=>m.id!==self.id&&i>=0&&Math.abs(AR.indexOf(m.entry)-i)===1)}   /* 옆에 선 아군: 에리어 a-b-c 에서 바로 옆 칸 (B 는 A·C 둘 다) */
    case 'area':{if(ctx.area){const m=allies.find(x=>x.entry===ctx.area);if(m)return [m]}return pick(allies,'에리어')}default:return [self]}}
 
  /* ===== 실행 ===== */
