@@ -402,3 +402,7 @@ html.modal-on #mk{overflow:hidden}
 #mk .ptbar h3{flex-wrap:wrap;gap:6px}
 #mk .ptbar h3 .num{margin-left:6px}
 #mk .ptbar [data-tip]{width:22px;height:22px;padding:0;border-radius:50%;font-weight:700}
+
+/* 포켓몬 스탠딩 */
+#mk .pstands{margin-top:10px;padding:8px 10px;border:1px dashed var(--line);border-radius:8px}
+#mk .pstands .stands{margin-top:6px}

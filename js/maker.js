@@ -4,18 +4,24 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const uid=()=>Math.random().toString(36).slice(2,10);
 const clone=o=>JSON.parse(JSON.stringify(o));
 /* 이미지는 data:image 만, 색은 #hex · 이름 · rgb() 만 받는다 (백업·공유 저장소로 들어온 값이 HTML을 깨지 않게) */
-const safeImg=u=>/^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(String(u||''))?u:'';
+const safeImg=u=>/^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(String(u||''))||/^https:\/\/[^\s"'<>()\\]+$/.test(String(u||''))?u:'';/* 시트 안 그림(data URL) 또는 공유 저장소에 올린 그림 주소 */
 const safeCss=c=>/^(#[0-9a-f]{3,8}|[a-z]{3,20}|rgba?\([\d\s.,%]+\)|var\(--[\w-]+\))$/i.test(String(c||'').trim())?String(c).trim():'';
 /* data-p 경로의 한 칸: 「.」과 「%」가 든 이름(포인트 항목 등)도 쓸 수 있게 */
 const seg=k=>String(k).replace(/%/g,'%25').replace(/\./g,'%2E');
 const unseg=k=>String(k).replace(/%2E/gi,'.').replace(/%25/g,'%');
 const DEF=window.MKM_DB;
+/* 포텐셜 종류 표기를 「번호. 이름」 하나로 (00.1.역할 → 00.1. 역할, 14.특권 → 14. 특권). 필터·템플릿 매칭이 갈라지지 않게 */
+const normKind=k=>String(k==null?'':k).replace(/^(\d+(?:\.\d+)*\.)\s*(?=\S)/,'$1 ');
+for(const r of DEF.pots||[])if(r)r[0]=normKind(r[0]);
 /* 제작기에서 고친 레디메이드 → fx.js 가 기본 대신 쓴다 (행이 바뀐 것만 다시 파싱) */
 const RMC=new Map();window.MKM_RM=()=>{const rows=(S&&S.db&&S.db.rm)||[];const out={};for(const r of rows){const key=r[0];if(!key)continue;const sig=r[1]+'\u0001'+r[2]+'\u0001'+r[3];let c=RMC.get(key);if(!c||c.sig!==sig){c={sig,v:{text:r[1]||'',ops:window.OM_FX?window.OM_FX.parse(r[2]||'').ops:[],manual:r[3]==='O'?1:0}};RMC.set(key,c)}out[key]=c.v}return out};
 /* 레디메이드 DB: data/readymade.js 를 행으로 (이름 · 효과 글 · 구문 · 손으로). 수정은 다른 DB 처럼 dbedit 로 공유되고, 오레마스가 「제작기 새로고침」으로 가져간다 */
 if(!Array.isArray(DEF.rm))DEF.rm=[];/* 행은 fx 스크립트를 불러온 뒤 rmInit 이 채운다 */
-function rmInit(){if(!(window.OM_DB&&window.OM_DB.readymade&&window.OM_FX))return false;if(!DEF.rm||!DEF.rm.length){DEF.rm=Object.keys(window.OM_DB.readymade).sort((a,b)=>a.localeCompare(b,'ko')).map(n=>{const r=window.OM_DB.readymade[n];return [n,String(r.text||''),window.OM_FX.unparse(r.ops||[]).join('\n'),r.manual?'O':'']})}
+function rmInit(){if(!(window.OM_DB&&window.OM_DB.readymade&&window.OM_FX))return false;if(!DEF.rm||!DEF.rm.length){DEFJ=null;DEF.rm=Object.keys(window.OM_DB.readymade).sort((a,b)=>a.localeCompare(b,'ko')).map(n=>{const r=window.OM_DB.readymade[n];return [n,String(r.text||''),window.OM_FX.unparse(r.ops||[]).join('\n'),r.manual?'O':'']})}
+ /* 공유 모드: 레디메이드 기본 행이 이제 생겼으니 받아 둔 수정 행(dbedit/rm.*)을 그 위에 다시 짠다 */
+ let shr=false;try{shr=SH.ready}catch(e){}if(shr){shRebuildDB();return true}
  if(S.db&&(!S.db.rm||!S.db.rm.length)){S.db.rm=clone(DEF.rm);if(!S.custom.rm)S.custom.rm=[];reindex()}return true}
+const rmLoaded=()=>!!(DEF.rm&&DEF.rm.length);
 
 /* ---------- 기본 보조 데이터 ---------- */
 const TAGS_DEF=[
@@ -48,9 +54,9 @@ const TAGS_DEF=[
 const TAGS_V=3;
 const TPL_DEF=[
  ['공통','*','메인','4','기존 시트 기본값','4'],
- ['통솔','D','통솔점','6','룰북 · 1인(2체)은 6체의 1/3 반올림 (2026-10-17 망령 지정)','2'],['통솔','C','통솔점','6','룰북 · 1인(2체)은 6체의 1/3 반올림 (2026-10-17 망령 지정)','2'],['통솔','B-','통솔점','7','룰북 · 1인(2체)은 6체의 1/3 반올림 (2026-10-17 망령 지정)','2'],['통솔','B','통솔점','8','룰북 · 1인(2체)은 6체의 1/3 반올림 (2026-10-17 망령 지정)','3'],['통솔','A','통솔점','10','룰북 · 1인(2체)은 6체의 1/3 반올림 (2026-10-17 망령 지정)','3'],['통솔','AA','통솔점','12','룰북 · 1인(2체)은 6체의 1/3 반올림 (2026-10-17 망령 지정)','4'],
- ['육성','D','분배레벨','5','룰북 · 1인(2체)은 6체의 1/3 반올림 (2026-10-17 망령 지정)','2'],['육성','C','분배레벨','10','룰북 · 1인(2체)은 6체의 1/3 반올림 (2026-10-17 망령 지정)','3'],['육성','B-','분배레벨','10','룰북 · 1인(2체)은 6체의 1/3 반올림 (2026-10-17 망령 지정)','3'],['육성','B','분배레벨','15','룰북 · 1인(2체)은 6체의 1/3 반올림 (2026-10-17 망령 지정)','5'],['육성','A','분배레벨','20','룰북 · 1인(2체)은 6체의 1/3 반올림 (2026-10-17 망령 지정)','7'],
- ['공통','*','「기술 할인점」','6','공통 요소 · 1인(2체)은 6의 1/3 = 2 (2026-10-17 망령 지정)','2'],['공통','*','【1/시】','3','공통 요소 · 1인은 1','1']
+ ['통솔','D','통솔점','6','룰북 · 1인(2체)은 6체의 1/3 반올림','2'],['통솔','C','통솔점','6','룰북 · 1인(2체)은 6체의 1/3 반올림','2'],['통솔','B-','통솔점','7','룰북 · 1인(2체)은 6체의 1/3 반올림','2'],['통솔','B','통솔점','8','룰북 · 1인(2체)은 6체의 1/3 반올림','3'],['통솔','A','통솔점','10','룰북 · 1인(2체)은 6체의 1/3 반올림','3'],['통솔','AA','통솔점','12','룰북 · 1인(2체)은 6체의 1/3 반올림','4'],
+ ['육성','D','분배레벨','5','룰북 · 1인(2체)은 6체의 1/3 반올림','2'],['육성','C','분배레벨','10','룰북 · 1인(2체)은 6체의 1/3 반올림','3'],['육성','B-','분배레벨','10','룰북 · 1인(2체)은 6체의 1/3 반올림','3'],['육성','B','분배레벨','15','룰북 · 1인(2체)은 6체의 1/3 반올림','5'],['육성','A','분배레벨','20','룰북 · 1인(2체)은 6체의 1/3 반올림','7'],
+ ['공통','*','「기술 할인점」','6','공통 요소 · 1인(2체)은 6의 1/3 = 2','2'],['공통','*','【1/시】','3','공통 요소 · 1인은 1','1']
 ];
 const TPL_V=3;
 /* 1인 기준(2체)의 PT 기술점 · 육성 랭크별. 테이블·계산식 탭에서 고친다 */
@@ -59,19 +65,21 @@ const SOLO_SOCK_DEF={D:'11',C:'11.5',B:'12',A:'12.5'};
 function tplNormalize(db){const strip0=r=>String(r||'').replace(/[+-]/g,'');
  if(!Array.isArray(db.tpl))db.tpl=clone(TPL_DEF);
  for(const r of db.tpl)while(r.length<6)r.push('');
- /* 「기술 할인점」·【1/시】는 능력과 관계없는 공통 요소 (2026-10-16) */
+ /* 「기술 할인점」·【1/시】는 능력과 관계없는 공통 요소 */
  for(const r of db.tpl)if(r[0]==='능력'&&(r[2]==='「기술 할인점」'||r[2]==='【1/시】')){r[0]='공통';r[1]='*'}
  if((db.tplSoloV||0)<2){const solo=db.tpl.filter(r=>r[5]==='1인');db.tpl=db.tpl.filter(r=>r[5]!=='1인');
   for(const r of solo){const m=db.tpl.find(x=>x[0]===r[0]&&x[1]===r[1]&&x[2]===r[2])||db.tpl.find(x=>x[2]===r[2]&&strip0(x[1])===strip0(r[1]))||db.tpl.find(x=>x[2]===r[2]);if(m)m[5]=r[3];else db.tpl.push([r[0],r[1],r[2],r[3],r[4],r[3]])}
   db.tplSoloV=2}
  if((db.tplSoloV||0)<3){for(const r of db.tpl)if(r[2]==='「기술 할인점」'&&String(r[5])==='2')r[5]='3';db.tplSoloV=3}
- /* 1인(2체) 통솔점 = 6체의 1/3 반올림: D·C·B- 2, B·A 3, AA 4 (2026-10-17 망령 지정) */
- if((db.tplSoloV||0)<4){const T={D:'2',C:'2','B-':'2',B:'3',A:'3',AA:'4'};for(const r of db.tpl)if(r[2]==='통솔점'&&T[r[1]]!=null){r[5]=T[r[1]];r[4]='룰북 · 1인(2체)은 6체의 1/3 반올림 (2026-10-17 망령 지정)'}db.tplSoloV=4}
- /* 1인(2체) 분배레벨 = 6체의 1/3 반올림: D 2 · C·B- 3 · B 5 · A 7, 「기술 할인점」 2 (2026-10-17 망령 지정) */
+ /* 1인(2체) 통솔점 = 6체의 1/3 반올림: D·C·B- 2, B·A 3, AA 4 */
+ if((db.tplSoloV||0)<4){const T={D:'2',C:'2','B-':'2',B:'3',A:'3',AA:'4'};for(const r of db.tpl)if(r[2]==='통솔점'&&T[r[1]]!=null){r[5]=T[r[1]];r[4]='룰북 · 1인(2체)은 6체의 1/3 반올림'}db.tplSoloV=4}
+ /* 1인(2체) 분배레벨 = 6체의 1/3 반올림: D 2 · C·B- 3 · B 5 · A 7, 「기술 할인점」 2 */
  if((db.tplSoloV||0)<5){const T={D:'2',C:'3','B-':'3',B:'5',A:'7'};for(const r of db.tpl){if(r[2]==='분배레벨'&&T[r[1]]!=null)r[5]=T[r[1]];if(r[2]==='「기술 할인점」'&&String(r[5])==='3')r[5]='2'}db.tplSoloV=5}
  for(const r of db.tpl){if(r[5]==null||r[5]===''||r[5]==='1인'){const d=TPL_DEF.find(d=>d[0]===r[0]&&d[1]===r[1]&&d[2]===r[2])||TPL_DEF.find(d=>d[2]===r[2]&&strip0(d[1])===strip0(r[1]));r[5]=d?d[5]:r[3]}}
  if(!Array.isArray(db.ilock))db.ilock=[];
- if(!db.soloSock)db.soloSock=clone(SOLO_SOCK_DEF);for(const k in SOLO_SOCK_DEF)if(db.soloSock[k]==null||db.soloSock[k]==='')db.soloSock[k]=SOLO_SOCK_DEF[k]}
+ for(const r of db.tpl)if(typeof r[4]==='string')r[4]=r[4].replace(/\s*\(\d{4}-\d{2}-\d{2}[^)]*\)/g,'');
+ if(!db.soloSock)db.soloSock=clone(SOLO_SOCK_DEF);for(const k in SOLO_SOCK_DEF)if(db.soloSock[k]==null||db.soloSock[k]==='')db.soloSock[k]=SOLO_SOCK_DEF[k];
+ rulesNormalize(db)}
 /* 포켓몬 시트 템플릿: 자질 '기본'은 항상, 그 밖에는 트레이너 자질이 해당 랭크 이상일 때 추가 */
 const STPL_DEF=[
  ['기본','','00. 역할','역할 포텐셜','기본','전원'],['기본','','01.0. 분류','현대종','기본','전원'],['기본','','04.1. 종족','종족 포텐셜①','기본','전원'],['기본','','04.2. 종족','종족 포텐셜②','기본','전원'],['기본','','05. 속별','속별 포텐셜','기본','전원'],
@@ -82,7 +90,7 @@ const STPL_DEF=[
  ['통솔','A','06. 유대','유대 포텐셜','룰북: 통솔 A · 『영혼의 유대』 1체 추가 (1인 기준 2체 모두)','파트너 2체']
 ];
 const STPL_V=4;
-/* v2 → v3: 기본값은 새 표로, 사용자가 더한 행은 뒤에 남긴다. 대상 칸(6번째)이 없으면 「전원」. v3 → v4: 『계제』 행 제거(종족 포텐셜로 대체, 2026-10-20 망령) */
+/* v2 → v3: 기본값은 새 표로, 사용자가 더한 행은 뒤에 남긴다. 대상 칸(6번째)이 없으면 「전원」. v3 → v4: 『계제』 행 제거(종족 포텐셜로 대체) */
 const STPL_V2=[['기본','','00. 역할','역할 포텐셜'],['기본','','01.0. 분류','현대종'],['기본','','04.1. 종족','종족 포텐셜①'],['기본','','04.2. 종족','종족 포텐셜②'],['기본','','05. 속별','속별 포텐셜'],['육성','A','08.1. 회피','약점회피'],['육성','A','09.1. 내성','약점내성'],['지시','A','12.1. 전술','전술 포텐셜①'],['통솔','B','14. 특권','익스펜션 : ○○']];
 const stplIsGyeje=r=>r&&(/계제 포텐셜/.test(String(r[3]||''))||/^05\.1\./.test(String(r[2]||'')));
 function stplMigrate(old,v){if(!Array.isArray(old))return clone(STPL_DEF);if((v||0)>=STPL_V)return old.map(r=>{const x=r.slice();if(x[5]==null)x[5]='전원';return x});
@@ -140,7 +148,8 @@ function save(dbToo){if(dbToo){dbDirty=true;SH.dbDirty=true}clearTimeout(svT);sv
  if(SH.on){shFlush();return}
  $('#saved').textContent=ok?'자동 저장 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'브라우저 저장 실패 · 백업 저장을 눌러 파일로 보관하세요'},300)}
 const idx={};
-function reindex(){for(const k in DBS){const m=new Map();for(const r of S.db[k])if(r[DBS[k].key]!==''&&!m.has(r[DBS[k].key]))m.set(r[DBS[k].key],r);idx[k]=m}}
+function reindex(){for(const r of (S.db&&S.db.pots)||[])if(r&&r[0])r[0]=normKind(r[0]);for(const r of (S.db&&S.db.stpl)||[])if(r&&r[2])r[2]=normKind(r[2]);
+ for(const k in DBS){const m=new Map();for(const r of S.db[k])if(r[DBS[k].key]!==''&&!m.has(r[DBS[k].key]))m.set(r[DBS[k].key],r);idx[k]=m}}
 
 /* ---------- 계산 ---------- */
 const strip=r=>String(r||'').replace(/[+-]/g,'');
@@ -231,17 +240,27 @@ function pointUse(t){const u={};for(const [n] of ptItems())u[n]=0;
  for(const k in t.extra)if(k in u)u[k]+=(+t.extra[k]||0);
  for(const [n,,a] of ptItems())u[n]+=autoUse(t,a);return u}
 const RV={E:-2,D:-1,C:0,B:1,A:2,AA:3,AAA:4,S:5};
-/* 룰북 「능력」: 고유·전용 포텐셜 개수 */
-const ABIL_UNIQUE={D:1,C:1,'B-':2,B:2,A:2,AA:3,AAA:3};
-/* 1인 기준(2체): 룰북 「1인 기준 (2체)」 장 시안 · 전용 포텐셜 개수 */
-const ABIL_SOLO={D:{x:0,xs:'0'},C:{x:1,xs:'1 (템플릿 전용만 · 상시 1)'},'B-':{x:1,xs:'1 (커스텀 1 · 상시 1)'},B:{x:2,xs:'a) 1 (템플릿만 · 상시 1) 또는 b) 2 (커스텀 1 · 상시 1)'},A:{x:2,xs:'2 (상시 1)'},AA:{x:3,xs:'3 (상시 2)'},AAA:{x:4,xs:'4 (1체에게 2개까지 부여 가능)'}};
-function abilLimits(r,solo){if(solo){const b=abilLimitsBase(r);const o=ABIL_SOLO[r]||ABIL_SOLO[strip(r)]||ABIL_SOLO.C;return {u:b.u,x:o.x,xs:o.xs+' · 1인 기준'}}return abilLimitsBase(r)}
-function abilLimitsBase(r){const T={D:{u:'1',x:0,xs:'0'},C:{u:'1',x:2,xs:'2 (템플릿 전용만 · 상시 1)'},'B-':{u:'2 (상시1+단발1)',x:3,xs:'3 (커스텀 1 · 상시 1)'},B:{u:'2',x:4,xs:'2 (템플릿만) 또는 4 (커스텀 2 · 상시 2)'},A:{u:'2 (상시2)',x:6,xs:'6 (상시 3)'},AA:{u:'3 (상시2+단발1)',x:8,xs:'8 (상시 4)'},AAA:{u:'3 (상시2+단발1)',x:10,xs:'10 (1체에게 2개까지 부여 가능)'}};return T[r]||T[strip(r)]||T.C}
-function investCheck(t){const v=q=>RV[strip(t.ranks[q])]??0;const steps=QUAL.reduce((a,q)=>a+Math.max(0,v(q)),0);const ds=QUAL.filter(q=>v(q)<0).length;
- const allow=ds?4:3;const msg=[];if(ds>1)msg.push('「D」로 내릴 수 있는 자질은 1개입니다');if(steps>allow)msg.push(`투자 횟수 초과 (${steps}/${allow})`);
- if(ds&&Math.max(0,v('육성'))+Math.max(0,v('통솔'))>2)msg.push('「D」 조정 시 육성+통솔 투자는 합쳐서 2회까지');
- if(v('육성')>=2&&v('능력')>=2)msg.push('육성·능력 모두 「A」 이상은 금지 조합');
- if(v('육성')>=3)msg.push('「육성 : AA」는 사용 금지');if(v('통솔')>=3)msg.push('「통솔 : AA」는 사용 금지');
+/* 룰 상수 (테이블·계산식 탭 「룰 상수」에서 고친다 · 공유 설정 meta/set.rules 와 백업에 들어간다)
+   abil 행: [능력 랭크, 고유 칸 수, 고유 표시, 전용 개수, 전용 설명, 1인 전용 개수, 1인 전용 설명] — 룰북 「능력」 · 「1인 기준 (2체)」 */
+const ABIL_DEF=[['D','1','1','0','0','0','0'],['C','1','1','2','2 (템플릿 전용만 · 상시 1)','1','1 (템플릿 전용만 · 상시 1)'],['B-','2','2 (상시1+단발1)','3','3 (커스텀 1 · 상시 1)','1','1 (커스텀 1 · 상시 1)'],['B','2','2','4','2 (템플릿만) 또는 4 (커스텀 2 · 상시 2)','2','a) 1 (템플릿만 · 상시 1) 또는 b) 2 (커스텀 1 · 상시 1)'],['A','2','2 (상시2)','6','6 (상시 3)','2','2 (상시 1)'],['AA','3','3 (상시2+단발1)','8','8 (상시 4)','3','3 (상시 2)'],['AAA','3','3 (상시2+단발1)','10','10 (1체에게 2개까지 부여 가능)','4','4 (1체에게 2개까지 부여 가능)']];
+/* invest: 자질 투자 규칙 — 투자 횟수 · D 조정 · 금지 조합 */
+const INVEST_DEF={allow:'3',allowD:'4',dMax:'1',dPair:'육성+통솔',dPairMax:'2',banPair:'육성+능력',banAA:'육성,통솔'};
+function rulesDef(){return {invest:clone(INVEST_DEF),abil:clone(ABIL_DEF),ty:Object.entries(TY_CHART).map(([a,c])=>[a,c[0].join(','),c[1].join(','),c[2].join(',')])}}
+function rulesNormalize(db){const d=rulesDef();if(!db.rules||typeof db.rules!=='object'||Array.isArray(db.rules))db.rules={};const R=db.rules;
+ if(!R.invest||typeof R.invest!=='object')R.invest={};for(const k in d.invest)if(R.invest[k]==null)R.invest[k]=d.invest[k];
+ if(!Array.isArray(R.abil)||!R.abil.length)R.abil=d.abil;for(const r of R.abil)while(r.length<7)r.push('');
+ if(!Array.isArray(R.ty)||!R.ty.length)R.ty=d.ty;for(const r of R.ty)while(r.length<4)r.push('');return R}
+const RULES=()=>{const R=S.db&&S.db.rules;return R&&R.invest&&Array.isArray(R.abil)&&Array.isArray(R.ty)?R:rulesNormalize(S.db)};
+function abilRow(r){const L=RULES().abil;return L.find(x=>x[0]===r)||L.find(x=>x[0]===strip(r))||L.find(x=>x[0]==='C')||ABIL_DEF[1]}
+const uniqNeed=r=>{const n=parseInt(abilRow(r)[1],10);return n>=0?n:1};
+function abilLimits(r,solo){const a=abilRow(r);if(solo)return {u:a[2],x:+a[5]||0,xs:a[6]+' · 1인 기준'};return abilLimitsBase(r)}
+function abilLimitsBase(r){const a=abilRow(r);return {u:a[2],x:+a[3]||0,xs:a[4]}}
+const ruleList=s=>String(s||'').split(/[+,，·\s]+/).map(x=>x.trim()).filter(Boolean);
+function investCheck(t){const I=RULES().invest;const v=q=>RV[strip(t.ranks[q])]??0;const steps=QUAL.reduce((a,q)=>a+Math.max(0,v(q)),0);const ds=QUAL.filter(q=>v(q)<0).length;
+ const allow=ds?(+I.allowD||0):(+I.allow||0);const dMax=+I.dMax||0;const msg=[];if(ds>dMax)msg.push(dMax?`「D」로 내릴 수 있는 자질은 ${dMax}개입니다`:'「D」로 내릴 수 있는 자질이 없습니다');if(steps>allow)msg.push(`투자 횟수 초과 (${steps}/${allow})`);
+ const dp=ruleList(I.dPair).filter(q=>QUAL.includes(q));if(ds&&dp.length&&dp.reduce((a,q)=>a+Math.max(0,v(q)),0)>(+I.dPairMax||0))msg.push(`「D」 조정 시 ${dp.join('+')} 투자는 합쳐서 ${+I.dPairMax||0}회까지`);
+ for(const pr of String(I.banPair||'').split(/[,，]/)){const qs=ruleList(pr).filter(q=>QUAL.includes(q));if(qs.length>1&&qs.every(q=>v(q)>=2))msg.push(`${qs.join('·')} 모두 「A」 이상은 금지 조합`)}
+ for(const q of ruleList(I.banAA))if(QUAL.includes(q)&&v(q)>=3)msg.push(`「${q} : AA」는 사용 금지`);
  return {steps,allow,msg}}
 
 /* ---------- 복사용 텍스트 (더블용 시트 AI118 규칙) ---------- */
@@ -324,7 +343,7 @@ function sessionPoke(t,p,types){
   pots:fill.map(i=>({name:String(p.pots[i]).replace(/『|』/g,''),kind:potKindOf(p,i)||'',eff:brN(potEffOf(p,i))})),
    excl:p.excl&&p.excl.name&&p.excl.name!=='전용 포텐셜'?{name:p.excl.name,eff:brN(p.excl.eff||'')}:null,
    exclX:(p.exclX||[]).filter(x=>x&&x.name).map(x=>({name:x.name,eff:brN(x.eff||'')})),
-  moves,memo:p.memo||'',image:safeImg(p.image)&&p.image.length<60000?p.image:'',copy:copyText(t,p)}}
+  moves,memo:p.memo||'',image:safeImg(p.image)&&p.image.length<60000?p.image:'',stands:standsFix(p.stands),standActive:+p.standActive||0,copy:copyText(t,p)}}
 function sessionBundle(ts){const types={};
  const trainers=ts.map(t=>({id:t.id,name:t.name||'트레이너',kind:t.kind==='npc'?'npc':'pc',image:safeImg(t.image)&&t.image.length<90000?t.image:'',ranks:Object.assign({},t.ranks),
   unique:(t.unique||[]).filter(u=>u&&u.name).map(u=>({name:u.name,eff:brN(u.eff||'')})),pokemon:t.pokemon.map(p=>sessionPoke(t,p,types))}));
@@ -339,14 +358,17 @@ const FX_SRC=(window.MKM_CONFIG&&MKM_CONFIG.fxBase)||'js/fx/';
 const FXK=n=>String(n||'').replace(/『|』/g,'').trim();
 const fxReady=()=>!!(window.OM_FX&&window.OM_FX_UI);
 window.OM_APP=window.OM_APP||{openModal:h=>openModal(h,{wide:true}),closeModal:()=>closeModal(),toast:t=>toast(t),ST:{role:'player',state:{}},set:async()=>false};
-let fxLoadP=null;
+let fxLoadP=null,FXST='';/* '' 불러오는 중 · ok · fail */
 function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
  const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src;s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
- fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');rmInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 오레마스 스크립트를 불러오지 못함',e);return false}})();return fxLoadP}
+ FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');FXST='ok';rmInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
+function fxRetry(){if(fxReady())return;fxLoadP=null;toast('구문 스크립트를 다시 불러옵니다…');loadFx();if(S.ui&&S.ui.tab)refreshAll()}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fxretry]');if(!b)return;e.preventDefault();e.stopPropagation();fxRetry()},true);
+const fxRetryBtn=()=>FXST==='fail'?'<button type="button" class="btn sm ghost" data-fxretry title="자동화 구문 스크립트를 불러오지 못했습니다 — 눌러서 다시 시도">구문 ⟳</button>':'';
 function fxEffOf(p,kind,name,slot){if(kind==='trait'){const r=idx.abil.get(name);return r?r[2]:''}if(kind==='item'){const r=idx.items.get(name);return r?r[4]:''}
  if(slot==='excl')return p.excl.eff||'';if(typeof slot==='string'&&slot[0]==='x'){const x=(p.exclX||[])[+slot.slice(1)];return x?x.eff:''}if(typeof slot==='number')return potEffOf(p,slot);const i=p.pots.indexOf(name);return i>=0?potEffOf(p,i):''}
 function fxRm(kind,name){if(!fxReady()||!name)return null;try{return OM_FX.autoOf({auto:{}},kind,name)}catch(e){return null}}
-function fxAutoBtn(p,kind,name,ti,pi,slot){if(!name||!fxReady())return '';const K=OM_FX;const own=String((p.auto||{})[FXK(name)]||'').trim();const base=fxRm(kind,name);
+function fxAutoBtn(p,kind,name,ti,pi,slot){if(!name)return '';if(!fxReady())return fxRetryBtn();const K=OM_FX;const own=String((p.auto||{})[FXK(name)]||'').trim();const base=fxRm(kind,name);
  const has=!!own;const rmHas=!!(base&&base.ops&&base.ops.length&&!base.manual);let ttl='';try{ttl=has?K.unparse(K.parse(own).ops).join(' / '):rmHas?'레디메이드 자동: '+K.unparse(base.ops).join(' / '):base&&base.manual?'레디메이드는 있지만 자동화 미지원 (손으로)':'자동화 없음 — 구문을 써 넣을 수 있다'}catch(e){}
  return `<button type="button" class="btn sm fxb ${has?'pri':rmHas?'':'ghost'}" data-act="fx" data-i="${ti}" data-j="${pi}" data-kind="${kind}" data-name="${esc(name)}" data-slot="${slot==null?'':esc(String(slot))}" title="${esc(ttl)}">${has?'구문 ✓':rmHas?'자동':'구문'}</button>`}
 function fxRmChip(kind,name){const base=fxRm(kind,name);if(!base||!base.ops||!base.ops.length)return '';let ttl='';try{ttl=OM_FX.unparse(base.ops).join(' / ')}catch(e){}return `<span class="kindb fx-rm" title="${esc('레디메이드 자동화: '+ttl)}">${base.manual?'자동화 (손으로)':'자동화'}</span>`}
@@ -376,21 +398,22 @@ function stplApplyAll(){let n=0,k=0;for(const t of S.trainers)for(const p of t.p
 
 /* ---------- 모델 ---------- */
 function newPoke(){return{id:uid(),open:true,tab:'base',name:'',gender:'-',pride:'',egg1:'-',egg2:'-',t1:'-',t2:'-',t3:'-',tera:'-',ability:'',item:'',dist:0,
- base:Array(6).fill(''),ev:Array(6).fill(''),pots:Array(20).fill(''),potEff:Array(20).fill(''),potKind:Array(20).fill(''),excl:{name:'',eff:''},exclX:[],moves:[],sockMax:'',memo:'',image:'',partner:false,auto:{}}}
+ base:Array(6).fill(''),ev:Array(6).fill(''),pots:Array(20).fill(''),potEff:Array(20).fill(''),potKind:Array(20).fill(''),excl:{name:'',eff:''},exclX:[],moves:[],sockMax:'',memo:'',image:'',stands:[],standActive:0,partner:false,auto:{}}}
 function fixP(p){const n=newPoke();for(const k in n)if(p[k]==null)p[k]=n[k];
  for(const k of ['pots','potEff','potKind'])while(p[k].length<20)p[k].push('');
- p.moves=(p.moves||[]).filter(m=>m&&m.name);p.exclX=(Array.isArray(p.exclX)?p.exclX:[]).filter(x=>x&&typeof x==='object').map(x=>({name:String(x.name||''),eff:String(x.eff||'')}));delete p.iv;delete p.nature;p.image=safeImg(p.image);if(!p.auto||typeof p.auto!=='object')p.auto={};if(!p.id)p.id=uid();return p}
+ p.moves=(p.moves||[]).filter(m=>m&&m.name);p.exclX=(Array.isArray(p.exclX)?p.exclX:[]).filter(x=>x&&typeof x==='object').map(x=>({name:String(x.name||''),eff:String(x.eff||'')}));delete p.iv;delete p.nature;p.image=safeImg(p.image);p.stands=standsFix(p.stands);if(!(+p.standActive>=0)||+p.standActive>=p.stands.length)p.standActive=0;p.potKind=p.potKind.map(k=>k?normKind(k):'');if(!p.auto||typeof p.auto!=='object')p.auto={};if(!p.id)p.id=uid();return p}
+const standsFix=a=>(Array.isArray(a)?a:[]).filter(x=>x&&typeof x==='object'&&/^https?:\/\//.test(String(x.src||''))).map(x=>Object.assign({label:String(x.label||'기본').slice(0,40),src:String(x.src),point:+x.point||0},x.kind==='stand'||x.kind==='portrait'?{kind:x.kind}:{}));
 function newTrainer(){const t={id:uid(),open:true,name:'새 트레이너',kind:'pc',pl:'',folder:'',image:'',ranks:{지시:'C',육성:'C',통솔:'C',능력:'C'},detail:{지시:'',육성:'',통솔:'',능력:''},solo:false,
  pts:[],extra:{},base:Object.fromEntries(ptItems().map(([n,d])=>[n,+d||0])),unique:[{name:'',eff:''}],ptMax:'',pokemon:[]};applyTpl(t);return t}
 function fixT(t){if(t.base)delete t.base['소지품 소켓'];const n=newTrainer();for(const k in n)if(t[k]==null)t[k]=n[k];for(const k in n.base)if(t.base[k]==null)t.base[k]=n.base[k];
- if(t.extra){for(const k in t.extra)if(!+t.extra[k])delete t.extra[k]}t.image=safeImg(t.image);if(!t.id)t.id=uid();t.stands=(Array.isArray(t.stands)?t.stands:[]).filter(x=>x&&typeof x==='object'&&/^https?:\/\//.test(String(x.src||''))).map(x=>Object.assign({label:String(x.label||'기본').slice(0,40),src:String(x.src),point:+x.point||0},x.kind==='stand'||x.kind==='portrait'?{kind:x.kind}:{}));if(!(+t.standActive>=0))t.standActive=0;t.pokemon.forEach(fixP);return t}
+ if(t.extra){for(const k in t.extra)if(!+t.extra[k])delete t.extra[k]}t.image=safeImg(t.image);if(!t.id)t.id=uid();t.stands=standsFix(t.stands);if(!(+t.standActive>=0))t.standActive=0;t.pokemon.forEach(fixP);return t}
 /* 같은 id가 두 번 나오면(예전 백업을 「추가」로 불러온 경우 등) 뒤의 것에 새 id를 준다 */
 function dedupeIds(){const seen=new Set();for(const t of S.trainers){if(seen.has('t'+t.id))t.id=uid();seen.add('t'+t.id);for(const p of t.pokemon){if(seen.has('p'+p.id))p.id=uid();seen.add('p'+p.id)}}}
 function applyTpl(t,only){const rows=S.db.tpl;for(const r of rows){const [q,rk,item,v6,,v1]=r;const val=t.solo&&v1!=null&&v1!==''?v1:v6;if(!item)continue;
  if(q==='공통'&&!only){t.base[item]=+val||0;continue}
  if(only&&q!==only)continue;if(!QUAL.includes(q))continue;const cur=t.ranks[q];
   const exact=rows.some(x=>x[0]===q&&x[2]===item&&x[1]===cur);if(exact?rk===cur:strip(rk)===strip(cur))t.base[item]=+val||0}
- const need=ABIL_UNIQUE[t.ranks['능력']]??ABIL_UNIQUE[strip(t.ranks['능력'])]??1;while(t.unique.length<need)t.unique.push({name:'',eff:''})}
+ const need=uniqNeed(t.ranks['능력']);while(t.unique.length<need)t.unique.push({name:'',eff:''})}
 const EXAMPLE='싱잉 플로라;105;풀;독;-;-;음절초;150;65;100;40;100;70;;;;;;;C;식물;-#어시스트;현대종;귀를 기울여요;함께 춤춰요;마음을 추스려요;조화로운 멜로디;유인술;#【탈진】/기술 배치에 「도우미」「감싸기」「쉬프트업」을 추가한다.;최근에 발견된 새로운 종.;「씨뿌리기」 상태인 상대의 「변화기」에 저확률로 「특성 : 음절초」가 발동한다.;【지시 : B】/이 포텐셜을 「유인술」로 취급한다.;「정화」가 아군의 「혼란」「도발」도 치유할 수 있다.;「소리」 기술의 대상이 되었을 때 중확률로 「HP」를 1/6만큼 회복한다.;【1/시】【등장 (통상 교대)】/「날따름」「분노가루」「사이드체인지」에 의한 추가 행동을 얻는다.;#0;1;4;4;4;5;12;999;999;999;999;999;999;999;999;999;999;999;999;999;#-#-#크로스포이즌;독;물리;70;100;1체;O;0;베기;1할 「독」. 기술이 급소에 맞기 쉽다(C+1).;공격;방어;;4세대;Poison;1;1;\\씨뿌리기;풀;변화;0;90;1체;-;0;-;대상을 「씨뿌리기」 상태로 만들어 대상이 매 턴 종료 시 이 에리어의 포켓몬에게 「HP」를 1/8만큼 드레인당하게 만든다. 「타입 : 풀」에게 무효.;-;-;;1세대;Grass;1;1;\\정화;독;변화;0;100;1체;-;0;-;대상의 상태 이상을 치유한다. 그 후, 자신의 「HP」를 1/2만큼 회복한다.;-;-;;7세대;Poison;1;1;\\분노가루;벌레;변화;0;0;자신;-;2;가루, 선공;「우선도」+2. 대상이 자신을 공격하게 만든다. 「가루」 기술.「연속 제한 : 실패 확률 증가」.;-;-;「날따름」 상태와 동일 처리.;5세대;Bug;1;1;\\도우미;노말;변화;0;0;아군;-;5;선공;「우선도」+5. 아군을 턴 종료 시까지 「도우미」 상태로 만들어 기술 대미지를 강화(1.5배)한다.;-;-;;3세대;Normal;1;1;\\감싸기;노말;변화;0;0;아군;-;3;방어;「우선도」+3. 턴 종료 시까지 아군을 「유사 방어」 상태로 만들어 받는 대미지를 반감시킨다. 「연속 제한 (방어) : 실패 확률 증가」.;-;-;;3기;Normal;1;1;\\쉬프트업;노말;변화;0;0;아군;-;2;-;「우선도」+2. 턴 종료 시까지 아군의 「스피드」를 강화(1.5배)한다. 「연속 제한 : 실패 확률 증가」.;-;-;;3기;Normal;1;1;#';
 function sampleTrainer(){const t=newTrainer();t.name='예시 트레이너';const p=parseCopy(EXAMPLE,t);p.open=true;t.pokemon.push(p);return t}
 
@@ -1163,6 +1186,7 @@ function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=idx.items.get(
   <div class="row" style="gap:12px;align-items:center;flex-wrap:nowrap"><div class="pimg" data-act="pimgPick" data-i="${ti}" data-j="${pi}" data-pdrop="${ti}.${pi}" role="button" tabindex="0" data-kbd title="클릭하거나 그림을 끌어다 놓거나 Ctrl+V로 붙여넣기">${safeImg(p.image)?`<img src="${safeImg(p.image)}" alt="포켓몬 이미지">`:'<span class="small">이미지<br>클릭 · 끌어다 놓기 · 붙여넣기</span>'}</div>
    <div style="display:flex;flex-direction:column;gap:6px;min-width:0"><div class="row"><label class="btn sm" for="pimg-${id}" tabindex="0" role="button" data-kbd>이미지 삽입</label><input type="file" id="pimg-${id}" accept="image/*" data-pimg="${ti}.${pi}" hidden>${p.image?`<button class="btn sm ghost" data-act="noPimg" data-i="${ti}" data-j="${pi}">제거</button>`:''}</div>
    <button class="btn sm" data-act="pickOld" data-i="${ti}" data-j="${pi}" title="시트 「올드 타입 일람」의 타입·특성·알그룹·종족치를 채웁니다">올드 타입 일람에서 자동 입력</button></div></div>
+  ${pStandsHtml(p,ti,pi)}
   <div class="fgrid">
    <label class="lbl" for="nm-${id}" style="grid-column:span 2">이름${inp(P+'.name',p.name,{id:'nm-'+id})}</label>
    <label class="lbl" for="dist-${id}">레벨 <span class="faint">기본 ${baseLevel(t.ranks['육성'])} + 분배</span><span class="row"><b class="num" style="font-size:15px">${lv(t,p)}</b>${inp(P+'.dist',p.dist,{id:'dist-'+id,w:'56px',num:1})}</span></label>
@@ -1221,16 +1245,23 @@ $('#v-char').addEventListener('change',e=>{const el=e.target;
  if(el.dataset.tmove!=null){const t=S.trainers[+el.dataset.tmove];if(t){t.folder=el.value;S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed[el.value||'_none'];save();renderChar();const f=S.folders.find(x=>x.id===el.value);toast(`「${t.name}」 → ${f?f.name:'폴더 없음'}`)}return}
  if(el.dataset.p){const t=trOf(el);const m=el.dataset.p.match(/^T\.\d+\.ranks\.(.+)$/);if(m&&t){applyTpl(t,m[1]);save()}
   if(t&&/^T\.\d+\.solo$/.test(el.dataset.p)){for(const [n,d] of ptItems())t.base[n]=+d||0;applyTpl(t);save();toast(t.solo?'1인 기준 (2체) 템플릿을 적용했습니다':'6체 기준 템플릿을 적용했습니다')}clearTimeout(rT);if(t)setTimeout(()=>refreshTrainer(t),0);return}
- if(el.dataset.img){const f=el.files[0];if(!f)return;const t=S.trainers[+el.dataset.img];readImg(f,640,'image/jpeg',u=>{t.image=u;save();refreshTrainer(t)})}
+ if(el.dataset.img){const f=el.files[0];if(!f)return;const t=S.trainers[+el.dataset.img];readImg(f,640,'image/webp',u=>setImgOf(t,'t',u,t))}
  if(el.dataset.stf){const f=el.files[0];if(!f)return;const t=S.trainers[+el.dataset.stf];uploadStand(t,f).then(u=>{const inp=$('#stu-'+t.id);if(inp)inp.value=u;const l=$('#stl-'+t.id);if(l&&!l.value)l.value=f.name.replace(/\.[^.]+$/,'');toast('올렸습니다 — 「추가」를 누르세요')}).catch(e=>toast('올리지 못했습니다: '+e.message));el.value=''}
+ if(el.dataset.pstf){const f=el.files[0];if(!f)return;const [a,b]=el.dataset.pstf.split('.').map(Number);const t=S.trainers[a],p=t&&t.pokemon[b];if(!p)return;uploadStand(p,f).then(u=>{const inp=$('#pstu-'+p.id);if(inp)inp.value=u;const l=$('#pstl-'+p.id);if(l&&!l.value)l.value=f.name.replace(/\.[^.]+$/,'');toast('올렸습니다 — 「추가」를 누르세요')}).catch(e=>toast('올리지 못했습니다: '+e.message));el.value='';return}
  if(el.dataset.pimg){const f=el.files[0];if(!f)return;const [a,b]=el.dataset.pimg.split('.').map(Number);setPokeImg(a,b,f)}});
 /* 스탠딩 그림을 공유 저장소(Supabase Storage, 버킷 oremas — 오레마스와 같은 프로젝트)에 올리고 공개 주소를 돌려준다 */
-async function uploadStand(t,f){const c=window.MKM_CONFIG||{};if(!c.supabaseUrl||!c.supabaseKey)throw new Error('공유 저장소 설정이 없습니다 (js/config.js)');if(!/^image\//.test(f.type))throw new Error('그림 파일만');if(f.size>5*1024*1024)throw new Error('5MB 이하만');
- const ext=f.type.includes('png')?'png':f.type.includes('webp')?'webp':f.type.includes('gif')?'gif':'jpg';const path=`stands/${t.id}_${Date.now().toString(36)}.${ext}`;
- const r=await fetch(`${c.supabaseUrl.replace(/\/$/,'')}/storage/v1/object/oremas/${path}`,{method:'POST',headers:{apikey:c.supabaseKey,Authorization:'Bearer '+c.supabaseKey,'Content-Type':f.type,'x-upsert':'true','cache-control':'3600'},body:f});
- if(!r.ok){let m='';try{m=(await r.json()).message||''}catch(e){}throw new Error(m||('HTTP '+r.status))}
- return `${c.supabaseUrl.replace(/\/$/,'')}/storage/v1/object/public/oremas/${path}`}
-function setPokeImg(a,b,f){const t=S.trainers[a],p=t&&t.pokemon[b];if(!p||!f||!/^image\//.test(f.type))return false;readImg(f,480,'image/webp',u=>{p.image=u;save();refreshTrainer(t);toast('이미지를 넣었습니다')});return true}
+async function putImg(path,blob){const c=window.MKM_CONFIG||{};if(!c.supabaseUrl||!c.supabaseKey)throw new Error('공유 저장소 설정이 없습니다 (js/config.js)');
+ const ty=blob.type||'image/png';const ext=ty.includes('png')?'png':ty.includes('webp')?'webp':ty.includes('gif')?'gif':'jpg';const full=`${path}.${ext}`;const base=c.supabaseUrl.replace(/\/$/,'');
+ const r=await fetch(`${base}/storage/v1/object/oremas/${full}`,{method:'POST',headers:{apikey:c.supabaseKey,Authorization:'Bearer '+c.supabaseKey,'Content-Type':ty,'x-upsert':'true','cache-control':'3600'},body:blob});
+ if(!r.ok){let m='';try{m=(await r.json()).message||''}catch(e){}if(/bucket not found/i.test(m))m='그림 저장소(버킷 oremas)가 없습니다 — supabase/schema.sql 을 다시 실행해 주세요';throw new Error(m||('HTTP '+r.status))}
+ return `${base}/storage/v1/object/public/oremas/${full}`}
+/* 스탠딩 그림(트레이너·포켓몬)을 공유 저장소(Supabase Storage, 버킷 oremas — 오레마스와 같은 프로젝트)에 원본 그대로 올리고 공개 주소를 돌려준다. 투명 배경이 그대로 남는다 */
+async function uploadStand(o,f){if(!/^image\//.test(f.type))throw new Error('그림 파일만');if(f.size>5*1024*1024)throw new Error('5MB 이하만');return putImg(`stands/${o.id}_${Date.now().toString(36)}`,f)}
+/* 시트 이미지(data URL)를 공유 저장소로: 문서가 1.5MB 를 넘지 않게 */
+async function hostImg(tag,id,dataUrl){const b=await (await fetch(dataUrl)).blob();return putImg(`maker/${tag}_${id}_${Date.now().toString(36)}`,b)}
+const shHostOn=()=>{try{return !!(SH.on&&SH.canWrite)}catch(e){return false}};
+function setImgOf(o,tag,u,t){o.image=u;save();refreshTrainer(t);if(!shHostOn())return;hostImg(tag,o.id,u).then(url=>{if(o.image!==u)return;o.image=url;save();refreshTrainer(t)}).catch(e=>toast('그림을 공유 저장소에 올리지 못해 시트 안에 넣었습니다 ('+e.message+')'))}
+function setPokeImg(a,b,f){const t=S.trainers[a],p=t&&t.pokemon[b];if(!p||!f||!/^image\//.test(f.type))return false;readImg(f,480,'image/webp',u=>{setImgOf(p,'p',u,t);toast('이미지를 넣었습니다')});return true}
 /* 끌어다 놓기 · 붙여넣기 (포켓몬 카드 위에서) */
 document.addEventListener('dragover',e=>{if(e.target.closest&&e.target.closest('[data-pdrop],.pk'))e.preventDefault()});
 document.addEventListener('drop',e=>{const z=e.target.closest&&(e.target.closest('[data-pdrop]')||e.target.closest('.pk'));if(!z)return;const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];if(!f)return;e.preventDefault();
@@ -1238,7 +1269,12 @@ document.addEventListener('drop',e=>{const z=e.target.closest&&(e.target.closest
 document.addEventListener('paste',e=>{const it=[...(e.clipboardData&&e.clipboardData.items||[])].find(x=>x.type.startsWith('image/'));if(!it)return;const ae=document.activeElement;if(ae&&ae.matches&&ae.matches('input,textarea,select')&&!ae.matches('[data-pdrop]'))return;
  const art=(ae&&ae.closest&&ae.closest('.pk'))||window.__hoverPk;if(!art)return;const pl=art.closest('.plist');if(!pl)return;const b=[...pl.querySelectorAll(':scope>.pk')].indexOf(art);if(b<0)return;e.preventDefault();setPokeImg(+pl.dataset.i,b,it.getAsFile())});
 document.addEventListener('mouseover',e=>{const art=e.target.closest&&e.target.closest('.pk');if(art)window.__hoverPk=art});
-function readImg(f,max,type,cb){const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,max/Math.max(im.width,im.height));c.width=Math.max(1,Math.round(im.width*s));c.height=Math.max(1,Math.round(im.height*s));const g=c.getContext('2d');if(type==='image/jpeg'){g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height)}g.drawImage(im,0,0,c.width,c.height);cb(c.toDataURL(type,.85))};im.onerror=()=>toast('이미지를 읽지 못했습니다');im.src=rd.result};rd.readAsDataURL(f)}
+/* 포켓몬 스탠딩 (오레마스 무대 · RP 에서 포켓몬이 말할 때) — 트레이너와 같은 모양 */
+function pStandsHtml(p,ti,pi){const st=p.stands||[],a=+p.standActive||0;const D=`data-i="${ti}" data-j="${pi}"`;
+ return `<div class="pstands"><div class="row" style="gap:6px;align-items:baseline"><b class="small">스탠딩</b><span class="small muted">오레마스 무대용 · 투명 PNG 그대로 · 없으면 위 이미지로 선다</span></div>
+ <div class="stands">${st.map((s,k)=>`<div class="stand ${k===a?'on':''}"><div class="sth" style="background-image:url('${esc(s.src)}')"></div><div class="stb"><b>${esc(s.label)}</b>${k===a?' <span class="tag">기본</span>':''}<div class="small muted" style="word-break:break-all">${esc(s.src.length>48?s.src.slice(0,46)+'…':s.src)}${s.point?' · 보정 '+s.point:''}</div></div><div class="row" style="flex-wrap:nowrap;gap:4px"><button type="button" class="btn sm ghost" data-act="pstkind" ${D} data-k="${k}" title="무대에 서는 모양 — 자동: 그림 비율로 정함 · 스탠딩: 틀 없이 전신 · 초상: 네모 틀">${s.kind==='stand'?'스탠딩':s.kind==='portrait'?'초상 틀':'모양: 자동'}</button><button type="button" class="btn sm ghost" data-act="pstdef" ${D} data-k="${k}">기본</button><button type="button" class="btn sm ghost" data-act="pstedit" ${D} data-k="${k}">수정</button><button type="button" class="btn sm ghost danger" data-act="pstdel" ${D} data-k="${k}">×</button></div></div>`).join('')}</div>
+ <div class="row" style="margin-top:6px;gap:4px"><input type="text" id="pstl-${p.id}" placeholder="라벨 (기본·화남…)" style="width:110px"><input type="text" id="pstu-${p.id}" placeholder="그림 주소 https://…" style="flex:1;min-width:120px"><label class="btn sm" for="pstf-${p.id}" tabindex="0" role="button" data-kbd title="공유 저장소(Supabase)에 원본 그대로 올리고 주소를 채운다">올리기</label><input type="file" id="pstf-${p.id}" accept="image/png,image/webp,image/gif,image/jpeg" data-pstf="${ti}.${pi}" hidden><button type="button" class="btn sm" data-act="pstadd" ${D}>추가</button></div></div>`}
+function readImg(f,max,type,cb){const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,max/Math.max(im.width,im.height));c.width=Math.max(1,Math.round(im.width*s));c.height=Math.max(1,Math.round(im.height*s));const g=c.getContext('2d');if(type==='image/jpeg'){g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height)}g.drawImage(im,0,0,c.width,c.height);let u=c.toDataURL(type,.85);if(type!=='image/jpeg'&&/^data:image\/jpeg/.test(u))u=c.toDataURL('image/png');cb(u)};im.onerror=()=>toast('이미지를 읽지 못했습니다');im.src=rd.result};rd.readAsDataURL(f)}
 $('#v-char').addEventListener('click',async e=>{
  if(Date.now()-dragEnd<300)return;
  const ft=e.target.closest('[data-ftog]');if(ft&&!e.target.closest('button,input,select,label,textarea')){S.ui.fclosed=S.ui.fclosed||{};const k=ft.dataset.ftog;S.ui.fclosed[k]=!S.ui.fclosed[k];save();renderChar();return}
@@ -1272,6 +1308,11 @@ $('#v-char').addEventListener('click',async e=>{
   case 'delP':if(await ask(`포켓몬 시트 「${esc(P.name||'이름 없음')}」을(를) 삭제할까요?`,'삭제')){T.pokemon.splice(j,1);rf()}break;
   case 'dupP':{const c=clone(P);c.id=uid();T.pokemon.splice(j+1,0,c);rf();break}
   case 'noPimg':P.image='';rf();break;
+  case 'pstadd':{const l=($('#pstl-'+P.id)||{}).value||'',u=(($('#pstu-'+P.id)||{}).value||'').trim();if(!/^https?:\/\//.test(u)){toast('그림 주소(https://…)가 필요합니다. 파일은 「올리기」로');break}P.stands=P.stands||[];P.stands.push({label:l.trim()||'기본',src:u,point:0});if(P.stands.length===1)P.standActive=0;rf();break}
+  case 'pstdef':P.standActive=+b.dataset.k;rf();break;
+  case 'pstkind':{const st=(P.stands||[])[+b.dataset.k];if(!st)break;const nx={'':'stand',stand:'portrait',portrait:''}[st.kind||''];if(nx)st.kind=nx;else delete st.kind;rf();break}
+  case 'pstedit':{const st=(P.stands||[])[+b.dataset.k];if(!st)break;const l=await askText('스탠딩 라벨','라벨',st.label);if(l==null)break;const u=await askText('그림 주소','주소',st.src);if(u==null||!/^https?:\/\//.test(u))break;const pt=await askText('보정 (위로 올릴 px, 음수면 내림)','보정',String(st.point||0));st.label=l.trim()||st.label;st.src=u.trim();st.point=+pt||0;rf();break}
+  case 'pstdel':{P.stands.splice(+b.dataset.k,1);if(P.standActive>=P.stands.length)P.standActive=Math.max(0,P.stands.length-1);rf();break}
   case 'privT':case 'privF':{const o=b.dataset.act==='privT'?T:S.folders.find(x=>x.id===b.dataset.f);if(!o)break;
    if(!ME.hash){toast('먼저 오른쪽 위 「서명」에 이름과 비밀구를 적어 주세요');openMe();break}
    if(!canEditPriv(o)){toast('만든 사람(또는 GM)만 바꿀 수 있습니다');break}
@@ -1379,11 +1420,12 @@ function dbResults(){const k=dbs.k,D=DBS[k];const rows=filterRows(k,dbs);
  ${rows.length>dbs.lim?`<div style="padding:8px"><button class="btn" data-dbmore>더 보기</button></div>`:''}</div>`}
 function renderDB(){const k=dbs.k;
  const head=`<div class="intro"><h1>DB 관리</h1><p>기술·특성·소지품·포텐셜·올드 타입·포인트 DB를 검색하고 추가·수정·삭제합니다. 바뀐 내용은 캐릭터 시트의 검색 창과 계산, 맵툴 토큰 갱신에 바로 반영됩니다.</p></div>
- <div class="subtabs">${Object.entries(DBS).map(([kk,d])=>`<button data-dbk="${kk}" class="${kk===k?'on':''}">${d.t} DB<span class="c">${S.db[kk].length}</span></button>`).join('')}<button data-dbk="mt" class="${k==='mt'?'on':''}">맵툴 DB 갱신</button></div>`;
+ <div class="subtabs">${Object.entries(DBS).map(([kk,d])=>`<button data-dbk="${kk}" class="${kk===k?'on':''}">${d.t} DB<span class="c">${kk==='rm'&&!rmLoaded()?(FXST==='fail'?'!':'…'):S.db[kk].length}</span></button>`).join('')}<button data-dbk="mt" class="${k==='mt'?'on':''}">맵툴 DB 갱신</button></div>`;
  if(k==='mt'){dbs.ex=mtStrings();$('#v-db').innerHTML=head+mtPanel();return}
  const D=DBS[k];
  $('#v-db').innerHTML=head+`
- ${k==='abil'||k==='items'||k==='old'||k==='moves'?`<div class="panel row" style="margin-bottom:10px"><span class="small muted" style="flex:1;min-width:200px">이 DB는 맵툴 라이브러리 토큰(${k==='abil'?'Lib:traits_multiple · Lib:pokemon':k==='items'?'Lib:item':k==='moves'?'Lib:move · 기술 목록 문자열':'Lib:pokemon 「list_oldtype」'})과 연동됩니다. 고친 뒤 「맵툴 DB 갱신」에서 토큰을 새로 받으세요.</span><button class="btn sm" data-dbk="mt">맵툴 DB 갱신 열기</button></div>`:''}
+ ${k==='rm'&&!rmLoaded()?`<div class="panel row" style="margin-bottom:10px"><span class="small ${FXST==='fail'?'warn':'muted'}" style="flex:1;min-width:200px">${FXST==='fail'?'레디메이드 기본 행(자동화 스크립트 js/fx/)을 불러오지 못했습니다. 아래에는 이 DB에서 직접 추가한 행만 보입니다.':'레디메이드 기본 행을 불러오는 중입니다…'}</span>${FXST==='fail'?'<button class="btn sm" data-fxretry>다시 불러오기</button>':''}</div>`:''}
+ ${k==='abil'||k==='items'||k==='old'||k==='moves'?`<div class="panel row" style="margin-bottom:10px"><span class="small muted" style="flex:1;min-width:200px">이 DB는 맵툴 라이브러리 토큰(${k==='abil'?'Lib:traits_multiple · Lib:pokemon':k==='items'?'Lib:item':k==='moves'?'Lib:skill · 기술 목록 문자열':'Lib:pokemon 「list_oldtype」'})과 연동됩니다. 고친 뒤 「맵툴 DB 갱신」에서 토큰을 새로 받으세요.</span><button class="btn sm" data-dbk="mt">맵툴 DB 갱신 열기</button></div>`:''}
  <div class="row dbbar"><input id="dbq" type="search" enterkeyhint="search" placeholder="${D.t} 검색" value="${esc(dbs.q)}" style="flex:1 1 220px"><button type="button" class="btn ftog" data-dbftog aria-expanded="${dbs.fopen}">필터<b class="fn">${fCount(k,dbs)?' '+fCount(k,dbs):''}</b></button><button class="btn pri" data-dbact="add">+ 새 항목</button></div>
  <div class="row xfrow fwrap ${dbs.fopen?'on':''}" style="margin-bottom:8px">
   ${k==='moves'?`<select id="dbtype"><option value="">모든 타입</option>${S.db.types.map(t=>`<option ${dbs.type===t[0]?'selected':''}>${esc(t[0])}</option>`).join('')}</select><select id="dbcat"><option value="">모든 분류</option>${['물리','특수','변화'].map(c=>`<option ${dbs.cat===c?'selected':''}>${c}</option>`).join('')}</select>`:''}
@@ -1513,6 +1555,16 @@ async function mtImport(kind){const T=MT[kind];if(!T)return;let rows=[],dk=kind=
  reindex();save(true);renderDB();toast(`DB에 추가 ${add} · 덮어쓰기 ${chg}`)}
 
 /* ---------- 렌더: 테이블 ---------- */
+function rulesPanels(){const R=RULES(),I=R.invest;const inp=(k,l,w,ph)=>`<label class="row small" style="gap:4px">${l}<input data-p="db.rules.invest.${k}" value="${esc(I[k]??'')}" style="width:${w||'56px'}" ${ph?`placeholder="${esc(ph)}"`:''}></label>`;
+ return `<div class="panel" style="grid-column:1/-1"><h3>룰 상수 · 자질 투자 규칙<span class="sp"></span><button class="btn sm" data-tact="ruInvReset">기본값</button></h3>
+  <p class="small muted" style="margin:0 0 6px">기본·능력치 탭 「자질」의 투자 점검에 쓰입니다. 자질 이름은 지시·육성·통솔·능력, 여러 개는 쉼표, 조합은 「+」로 적습니다.</p>
+  <div class="row" style="gap:14px;flex-wrap:wrap">${inp('allow','투자 횟수 (기본)')}${inp('allowD','「D」 조정 시 투자 횟수')}${inp('dMax','「D」로 내릴 수 있는 자질 수')}${inp('dPair','「D」 조정 시 합산 제한 자질','110px','육성+통솔')}${inp('dPairMax','그 합 상한')}${inp('banPair','「A」 이상 동시 금지 조합','150px','육성+능력')}${inp('banAA','「AA」 금지 자질','120px','육성,통솔')}</div></div>
+ <div class="panel" style="grid-column:1/-1"><h3>룰 상수 · 고유·전용 포텐셜 개수<span class="sp"></span><button class="btn sm" data-tact="ruAbilAdd">+ 행</button><button class="btn sm" data-tact="ruAbilReset">기본값</button></h3>
+  <p class="small muted" style="margin:0 0 6px">능력 랭크별 『고유 포텐셜』 칸 수와 전용 포텐셜 개수입니다. 「고유 칸 수」만큼 트레이너에 빈 고유 칸이 생기고, 전용 개수는 포켓몬 시트의 점검에 쓰입니다. 1인 기준 (2체) 트레이너는 오른쪽 두 칸을 씁니다.</p>
+  <div class="tw"><table><tr><th>능력 랭크</th><th class="n">고유 칸 수</th><th>고유 표시</th><th class="n">전용 개수</th><th>전용 설명</th><th class="n">1인 전용</th><th>1인 전용 설명</th><th></th></tr>${R.abil.map((r,i)=>`<tr>${[0,1,2,3,4,5,6].map(j=>`<td${j===1||j===3||j===5?' class="n"':''}><input data-p="db.rules.abil.${i}.${j}" value="${esc(r[j]??'')}" style="width:${j===0?'56px':j===1||j===3||j===5?'52px':'100%'};${j===4||j===6?'min-width:200px':j===2?'min-width:110px':''}"></td>`).join('')}<td><button class="btn sm ghost danger" data-tact="ruAbilDel" data-i="${i}">×</button></td></tr>`).join('')}</table></div></div>
+ <div class="panel" style="grid-column:1/-1"><h3>룰 상수 · 타입 상성표 (PT 일관성)<span class="sp"></span><button class="btn sm" data-tact="ruTyAdd">+ 타입</button><button class="btn sm" data-tact="ruTyReset">기본값</button></h3>
+  <p class="small muted" style="margin:0 0 6px">타입 배분 탭의 공통 약점 · 못 막는 타입 계산에만 쓰입니다. 공격 타입마다 효과가 굉장한 / 별로인 / 없는 방어 타입을 쉼표로 적습니다.</p>
+  <div class="tw" style="max-height:420px;overflow:auto"><table><tr><th>공격 타입</th><th>2배</th><th>1/2배</th><th>무효</th><th></th></tr>${R.ty.map((r,i)=>`<tr>${[0,1,2,3].map(j=>`<td><input data-p="db.rules.ty.${i}.${j}" value="${esc(r[j]??'')}" style="width:${j===0?'72px':'100%'};${j?'min-width:150px':''}"></td>`).join('')}<td><button class="btn sm ghost danger" data-tact="ruTyDel" data-i="${i}">×</button></td></tr>`).join('')}</table></div></div>`}
 function roTable(title,head,rows){return `<div class="panel"><h3>${title}</h3><div class="tw" style="max-height:360px;overflow:auto"><table><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(x=>`<td class="num">${esc(x)}</td>`).join('')}</tr>`).join('')}</table></div></div>`}
 function renderTbl(){$('#v-tbl').innerHTML=`<div class="intro"><h1>테이블·계산식</h1><p>시트 「테이블(더블)」의 계산 규칙과 랭크 템플릿, 포텐셜 태그 사전입니다. 템플릿과 태그 사전은 여기서 고치면 바로 적용됩니다.</p></div>
  <div class="cgrid">
@@ -1538,6 +1590,7 @@ function renderTbl(){$('#v-tbl').innerHTML=`<div class="intro"><h1>테이블·�
   <p class="small muted" style="margin:0 0 6px">새 포켓몬 시트를 만들 때와 「시트 템플릿 적용」을 누를 때 들어가는 포텐셜입니다. 자질이 「기본」인 행은 항상, 나머지는 트레이너의 해당 자질이 그 랭크일 때 추가됩니다. 랭크는 「B」라고 쓰면 B 이상, 「C~B」처럼 쓰면 그 범위만입니다. 같은 이름이 여러 행이면 아래 행이 이깁니다.<br><b>대상</b> · 「전원」 「파트너」 「N체」(트레이너 포켓몬 중 N체까지) 「파트너 N체」. 「2체/1체」처럼 「/」로 나누면 1인 기준(2체) 트레이너는 뒤쪽을 씁니다. 1인 기준에서는 2체 모두 파트너로 봅니다.<br>같은 큰 종류(역할·종족 등)가 이미 채워져 있으면 그만큼 빼고 넣습니다. 『전용』은 능력 랭크에 따라 「+ 전용 칸」으로 따로 넣습니다.</p>
   <div class="tw"><table><tr><th>자질</th><th>랭크</th><th>종류(순서)</th><th>포텐셜 이름</th><th>대상</th><th>비고</th><th></th></tr>${(S.db.stpl||[]).map((r,i)=>`<tr><td>${sel(`db.stpl.${i}.0`,r[0],['기본',...QUAL],{style:'width:76px'})}</td><td><input data-p="db.stpl.${i}.1" value="${esc(r[1])}" style="width:60px" ${r[0]==='기본'?'disabled placeholder="-"':'placeholder="B · C~B"'}></td><td><input data-p="db.stpl.${i}.2" value="${esc(r[2])}" list="L-stplk" style="width:120px"></td><td><input data-p="db.stpl.${i}.3" value="${esc(r[3])}" list="L-stpln"></td><td><input data-p="db.stpl.${i}.5" value="${esc(r[5]??'')}" list="L-stplt" placeholder="전원" style="width:92px"></td><td><input data-p="db.stpl.${i}.4" value="${esc(r[4])}"></td><td><button class="btn sm ghost danger" data-tact="stplDel" data-i="${i}" aria-label="삭제">✕</button></td></tr>`).join('')}</table></div>
   <datalist id="L-stplt">${['전원','파트너','1체','2체','파트너 1체','파트너 2체','2체/1체','4체/전원'].map(k=>`<option value="${k}">`).join('')}</datalist><datalist id="L-stplk">${[...new Set(S.db.pots.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist><datalist id="L-stpln">${S.db.pots.filter(r=>/포텐셜|○/.test(r[1])).map(r=>`<option value="${esc(r[1])}">`).join('')}</datalist></div>
+ ${rulesPanels()}
  <div class="panel" style="grid-column:1/-1"><h3>포텐셜 태그 사전<span class="sp"></span><button class="btn sm" data-tact="tagAdd">+ 태그</button><button class="btn sm" data-tact="tagReset">기본값</button></h3>
   <p class="small muted" style="margin:0 0 6px">포텐셜·특성 편집 창의 태그 버튼이 이 목록으로 만들어집니다. 변형은 「|」로 구분하면 버튼을 눌렀을 때 고를 수 있습니다.</p>
   <div class="tw"><table><tr><th>태그</th><th>설명</th><th>변형 (| 구분)</th><th></th></tr>${S.db.tags.map((r,i)=>`<tr><td><input data-p="db.tags.${i}.0" value="${esc(r[0])}" style="width:110px"></td><td><input data-p="db.tags.${i}.1" value="${esc(r[1])}" style="width:100%;min-width:260px"></td><td><input data-p="db.tags.${i}.2" value="${esc(r[2])}" style="min-width:200px"></td><td><button class="btn sm ghost danger" data-tact="tagDel" data-i="${i}" aria-label="삭제">✕</button></td></tr>`).join('')}</table></div></div>
@@ -1563,6 +1616,11 @@ $('#v-tbl').addEventListener('click',async e=>{const b=e.target.closest('[data-t
  if(a==='stplAdd')S.db.stpl.push(['육성','B','','','','전원']);
  if(a==='stplAll'){if(!await ask('모든 트레이너의 포켓몬 시트에 템플릿을 적용할까요? 빈 슬롯에 빠진 포텐셜만 넣고, 이미 적힌 포텐셜은 건드리지 않습니다. 와일드 역할 포켓몬은 건너뜁니다.','적용',false))return;const [n,k]=stplApplyAll();save(true);renderTbl();toast(n?`포켓몬 ${k}체에 포텐셜 ${n}개를 넣었습니다`:'더 넣을 템플릿 포텐셜이 없습니다');return}if(a==='stplDel')S.db.stpl.splice(i,1);
  if(a==='stplReset'){if(!await ask('포켓몬 시트 템플릿을 기본값으로 되돌릴까요?','되돌리기'))return;S.db.stpl=clone(STPL_DEF);S.db.stplV=STPL_V}
+ if(a==='ruInvReset'){if(!await ask('자질 투자 규칙을 기본값으로 되돌릴까요?','되돌리기'))return;RULES().invest=clone(INVEST_DEF)}
+ if(a==='ruAbilReset'){if(!await ask('고유·전용 포텐셜 개수를 기본값으로 되돌릴까요?','되돌리기'))return;RULES().abil=clone(ABIL_DEF)}
+ if(a==='ruTyReset'){if(!await ask('타입 상성표를 기본값으로 되돌릴까요?','되돌리기'))return;RULES().ty=rulesDef().ty}
+ if(a==='ruAbilAdd')RULES().abil.push(['','1','1','0','','0','']);if(a==='ruAbilDel')RULES().abil.splice(i,1);
+ if(a==='ruTyAdd')RULES().ty.push(['','','','']);if(a==='ruTyDel')RULES().ty.splice(i,1);
  if(a==='tagAdd')S.db.tags.push(['새 태그','','']);if(a==='tagDel')S.db.tags.splice(i,1);
  if(a==='tplReset'){if(!await ask('랭크 템플릿을 기본값으로 되돌릴까요?','되돌리기'))return;S.db.tpl=clone(TPL_DEF);S.db.tplV=TPL_V}
  if(a==='tagReset'){if(!await ask('태그 사전을 기본값으로 되돌릴까요?','되돌리기'))return;S.db.tags=clone(TAGS_DEF)}
@@ -1577,7 +1635,7 @@ function tyMonTypes(p,o){const ks=['t1','t2'];if(o.t3)ks.push('t3');if(o.tera)ks
 function tyFmt(n){return Math.abs(n-Math.round(n))<1e-9?String(Math.round(n)):n.toFixed(1)}
 function tyPct(n,d){return d?(n/d*100).toFixed(1)+'%':'-'}
 
-/* 원작 18타입 상성표 (공격 타입 → {2배 타입, 1/2배 타입, 무효 타입}). PT 일관성(공통 약점) 계산에만 쓴다 */
+/* 원작 18타입 상성표 기본값 (공격 타입 → {2배 타입, 1/2배 타입, 무효 타입}). PT 일관성(공통 약점) 계산에만 쓴다 · 고치는 곳은 테이블·계산식 탭 「룰 상수」 */
 const TY_CHART={
  '노말':[[],['바위','강철'],['고스트']],
  '불꽃':[['풀','얼음','벌레','강철'],['불꽃','물','바위','드래곤'],[]],
@@ -1598,9 +1656,10 @@ const TY_CHART={
  '강철':[['얼음','바위','페어리'],['불꽃','물','전기','강철'],[]],
  '페어리':[['격투','드래곤','악'],['불꽃','독','강철'],[]]};
 /* 방어 타입 목록(t1·t2)에 공격 타입 atk 가 들어갈 때의 배율 */
-function tyMult(atk,defs){const c=TY_CHART[atk];if(!c)return 1;let m=1;for(const d of defs){if(c[2].includes(d))return 0;if(c[0].includes(d))m*=2;else if(c[1].includes(d))m*=0.5}return m}
+let TYC=null,TYCK='';function tyChart(){const rows=RULES().ty;const k=JSON.stringify(rows);if(TYC&&TYCK===k)return TYC;const out={};for(const r of rows)if(r&&String(r[0]||'').trim())out[String(r[0]).trim()]=[ruleList(r[1]),ruleList(r[2]),ruleList(r[3])];TYC=out;TYCK=k;return out}
+function tyMult(atk,defs){const c=tyChart()[atk];if(!c)return 1;let m=1;for(const d of defs){if(c[2].includes(d))return 0;if(c[0].includes(d))m*=2;else if(c[1].includes(d))m*=0.5}return m}
 /* PT 한 벌의 타입 일관성: 구성·공통 약점·못 막는 타입 */
-function ptTypeReport(t){const ps=t.pokemon;const n=ps.length;const cnt={},who={};const atkTypes=Object.keys(TY_CHART);
+function ptTypeReport(t){const ps=t.pokemon;const n=ps.length;const cnt={},who={};const atkTypes=Object.keys(tyChart());
  const defs=ps.map(p=>[...tyParts(p.t1),...tyParts(p.t2)].filter((x,i,a)=>a.indexOf(x)===i));
  ps.forEach((p,i)=>{for(const x of defs[i]){cnt[x]=(cnt[x]||0)+1;(who[x]=who[x]||[]).push(p.name||'(이름 없음)')}});
  const comp=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]||KO.compare(a,b)).map(x=>({x,n:cnt[x],who:who[x]}));
@@ -1693,7 +1752,8 @@ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.tar
 
 /* ---------- 백업 · 엑셀 ---------- */
 function customDB(){const o={};for(const k in DBS)o[k]=S.db[k].filter(r=>S.custom[k].includes(r[DBS[k].key]));return o}
-function backupObj(){return {app:'mangketmon-maker',v:3,saved:new Date().toISOString(),trainers:S.trainers,folders:S.folders.map(f=>({id:f.id,name:f.name})),custom:S.custom,customRows:customDB(),dbEdits:[...dbEditDocs().values()],ban:S.db.ban??'',tpl:S.db.tpl,tplV:S.db.tplV||0,tags:S.db.tags,tagsV:S.db.tagsV||0,stpl:S.db.stpl,stplV:S.db.stplV||0,oldSock:S.db.oldSock,ptItems:S.db.ptItems,ptiV:S.db.ptiV||0,pride:S.db.pride,prideExV:S.db.prideExV||0,ilock:S.db.ilock||[]}}
+function backupObj(){return {app:'mangketmon-maker',v:3,saved:new Date().toISOString(),trainers:S.trainers,folders:S.folders.map(folderOut),custom:S.custom,customRows:customDB(),dbEdits:[...dbEditDocs().values()],ban:S.db.ban??'',tpl:S.db.tpl,tplV:S.db.tplV||0,tags:S.db.tags,tagsV:S.db.tagsV||0,stpl:S.db.stpl,stplV:S.db.stplV||0,oldSock:S.db.oldSock,ptItems:S.db.ptItems,ptiV:S.db.ptiV||0,pride:S.db.pride,prideExV:S.db.prideExV||0,ilock:S.db.ilock||[],soloSock:S.db.soloSock||clone(SOLO_SOCK_DEF),tplSoloV:S.db.tplSoloV||0,rules:RULES()}}
+const folderOut=f=>{const o={id:f.id,name:f.name||''};if(f.priv)o.priv=true;if(f.owner){o.owner=f.owner;o.ownerName=f.ownerName||''}return o};
 /* dbEdits: 원본 DB와 다른 행(수정·추가·삭제). 덮어쓰기는 원본에서 다시 짓고, 추가는 지금 DB 위에 얹는다 */
 function applyDbEdits(edits,fromDefault){for(const k in DBS){const eds=edits.filter(d=>d&&d.kind===k);if(!eds.length&&!fromDefault)continue;const K=DBS[k].key;
   let rows=fromDefault?clone(DEF[k]||[]):S.db[k];const cust=new Set(fromDefault?[]:S.custom[k]||[]);
@@ -1705,10 +1765,10 @@ const freshIds=list=>list.map(t=>{t.id=uid();(t.pokemon||[]).forEach(p=>{p.id=ui
 function restore(o,mode){if(!o||o.app!=='mangketmon-maker'){if(o&&o.db&&o.trainers){const tr=(o.trainers||[]).map(fixT);if(mode==='add'){S.trainers=S.trainers.concat(freshIds(tr))}else{S.db=o.db;for(const k in DEF)if(!S.db[k])S.db[k]=clone(DEF[k]);if(!S.db.tags)S.db.tags=clone(TAGS_DEF);if(!S.db.tpl)S.db.tpl=clone(TPL_DEF);S.trainers=tr}}else throw new Error('형식')}
  else{if(Array.isArray(o.dbEdits))applyDbEdits(o.dbEdits,mode!=='add');if(o.ban!=null&&mode!=='add')S.db.ban=o.ban;
   for(const k in DBS){for(const r of (o.customRows&&o.customRows[k])||[]){const key=r[DBS[k].key];const i=S.db[k].findIndex(x=>x[DBS[k].key]===key);if(i>=0)S.db[k][i]=r;else S.db[k].unshift(r);if(!S.custom[k].includes(key))S.custom[k].push(key)}}
-  if(o.tpl)S.db.tpl=o.tpl;if(o.tags)S.db.tags=o.tags;if(o.stpl){S.db.stpl=stplMigrate(o.stpl,o.stplV);S.db.stplV=STPL_V}if(o.oldSock!=null)S.db.oldSock=o.oldSock;if(o.ptItems)S.db.ptItems=o.ptItems;if(o.pride){S.db.pride=o.pride;S.db.prideExV=o.prideExV||0;prideMigrate(S.db)}if(Array.isArray(o.ilock))S.db.ilock=o.ilock;if(Array.isArray(o.folders)){const fs=o.folders.filter(f=>f&&f.id).map(f=>({id:String(f.id),name:String(f.name||'')}));if(mode==='add'){for(const f of fs)if(!S.folders.some(x=>x.id===f.id))S.folders.push(f)}else S.folders=fs}
-  const tr=(o.trainers||[]).map(fixT);S.trainers=mode==='add'?S.trainers.concat(freshIds(tr)):tr}
+  if(o.tpl){S.db.tpl=o.tpl;if(o.tplSoloV!=null)S.db.tplSoloV=+o.tplSoloV||0}if(o.soloSock&&typeof o.soloSock==='object')S.db.soloSock=o.soloSock;if(o.rules&&typeof o.rules==='object')S.db.rules=o.rules;if(o.tags)S.db.tags=o.tags;if(o.stpl){S.db.stpl=stplMigrate(o.stpl,o.stplV);S.db.stplV=STPL_V}if(o.oldSock!=null)S.db.oldSock=o.oldSock;if(o.ptItems)S.db.ptItems=o.ptItems;if(o.pride){S.db.pride=o.pride;S.db.prideExV=o.prideExV||0;prideMigrate(S.db)}if(Array.isArray(o.ilock))S.db.ilock=o.ilock;if(Array.isArray(o.folders)){const fs=o.folders.filter(f=>f&&f.id).map(f=>folderOut({id:String(f.id),name:String(f.name||''),priv:!!f.priv,owner:f.owner?String(f.owner):'',ownerName:String(f.ownerName||'')}));if(mode==='add'){for(const f of fs)if(!S.folders.some(x=>x.id===f.id))S.folders.push(f)}else S.folders=fs}
+  tplNormalize(S.db);const tr=(o.trainers||[]).map(fixT);S.trainers=mode==='add'?S.trainers.concat(freshIds(tr)):tr}
  S.trainers.forEach(fixT);dedupeIds();reindex();save(true);refreshAll()}
-/* 백업 불러오기 (2026-10-18 고침): 바뀌는 내용 미리보기 · 「지금 목록에 추가」가 빨간 기본 버튼 · 덮어쓰기는 두 번 눌러야 함 · 불러오기 전 지금 데이터 자동 백업 */
+/* 백업 불러오기: 바뀌는 내용 미리보기 · 「지금 목록에 추가」가 빨간 기본 버튼 · 덮어쓰기는 두 번 눌러야 함 · 불러오기 전 지금 데이터 자동 백업 */
 function impStamp(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`}
 async function impAutoBackup(){const j=JSON.stringify(backupObj());try{localStorage.setItem('mkm_auto_backup_before_import',j)}catch(e){}
  await saveFile(`망켓몬_제작기_자동백업_${impStamp()}.json`,j)}
@@ -1719,7 +1779,7 @@ function impDiff(o){const ft=(o&&Array.isArray(o.trainers))?o.trainers:[],cur=S.
  const fk=new Set(fe.map(d=>d.kind+'|'+d.key));
  const edl=(d,base)=>{const K=DBS[d.kind].key,has=(base[d.kind]||[]).some(r=>r[K]===d.key);return `<li>${esc(DBS[d.kind].t)} 「${esc(d.key)}」 <b>${d.deleted?'삭제':(has?'수정':'추가')}</b></li>`};
  const cr=[];if(o&&o.customRows)for(const k in DBS)for(const r of o.customRows[k]||[])cr.push(`<li>${esc(DBS[k].t)} 「${esc(r[DBS[k].key])}」 <b>직접 추가한 줄</b></li>`);
- const SETN={tpl:'능력치 템플릿',tags:'태그 목록',stpl:'소켓 템플릿',oldSock:'올드 소켓',ptItems:'포인트 항목',pride:'긍지 목록',ilock:'소지품 해금 표'};
+ const SETN={tpl:'랭크별 기초 템플릿',tags:'포텐셜 태그 사전',stpl:'포켓몬 시트 템플릿',oldSock:'『올드 타입』 PT 기술점',soloSock:'1인 기준 (2체) PT 기술점',ptItems:'트레이너 포인트 항목',pride:'프라이드 규칙',ilock:'소지품 해금 표',rules:'룰 상수 (자질 투자 · 포텐셜 개수 · 상성표)'};
  const sets=Object.keys(SETN).filter(k=>o&&o[k]!=null).map(k=>SETN[k]);
  const lost=[...dbEditDocs().values()].filter(d=>!fk.has(d.kind+'|'+d.key)&&DBS[d.kind]);
  const DEFB={};for(const k in DBS)DEFB[k]=DEF[k]||[];
@@ -1823,21 +1883,29 @@ const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)
 function fnv(s){let h=2166136261;for(const c of String(s)){h^=c.codePointAt(0);h=Math.imul(h,16777619)>>>0}return h.toString(16)}
 function keySeg(k){const h=[...new TextEncoder().encode(String(k))].map(b=>b.toString(16).padStart(2,'0')).join('');return h.length<=180?h:'h'+fnv(k)+h.slice(0,40)}
 function stripUI(o){const c={};for(const k in o){if(UIK.has(k)||k[0]==='_'||k==='pokemon')continue;c[k]=clone(o[k])}return c}
-let DEFJ=null;function defJ(){if(DEFJ)return DEFJ;DEFJ={};for(const k in DBS){const m=new Map();for(const r of DEF[k]||[]){const key=r[DBS[k].key];if(key!==''&&!m.has(key))m.set(key,JSON.stringify(r))}DEFJ[k]=m}return DEFJ}
+let DEFJ=null,DEFJN=-1;function defJ(){const rn=(DEF.rm||[]).length;if(DEFJ&&DEFJN===rn)return DEFJ;DEFJN=rn;DEFJ={};for(const k in DBS){const m=new Map();for(const r of DEF[k]||[]){const key=r[DBS[k].key];if(key!==''&&!m.has(key))m.set(key,JSON.stringify(r))}DEFJ[k]=m}return DEFJ}
 function dbEditDocs(out=new Map()){const dj=defJ();
- for(const k in DBS){const seen=new Set(),cust=new Set(S.custom[k]||[]);
+ for(const k in DBS){if(k==='rm'&&!rmLoaded())continue;/* 레디메이드 기본 행이 아직 없으면 비교하지 않는다 (915행이 전부 「바뀐 행」으로 잡히는 것 방지) */const seen=new Set(),cust=new Set(S.custom[k]||[]);
   S.db[k].forEach((r,ix)=>{const key=r[DBS[k].key];if(key===''||key==null||seen.has(key))return;seen.add(key);const d=dj[k].get(key);
    if(d===JSON.stringify(r))return;out.set('dbedit/'+k+'.'+keySeg(key),{kind:k,key,row:r,custom:cust.has(key),pos:d?-1:ix})});
   for(const key of dj[k].keys())if(!seen.has(key))out.set('dbedit/'+k+'.'+keySeg(key),{kind:k,key,deleted:true})}
  return out}
 function shDbDocs(){if(SH.dbDocs&&!SH.dbDirty)return SH.dbDocs;const out=dbEditDocs();
- out.set('meta/settings',{tpl:S.db.tpl||[],tplV:S.db.tplV||0,tags:S.db.tags||[],tagsV:S.db.tagsV||0,ban:S.db.ban??'',stpl:S.db.stpl||[],stplV:S.db.stplV||0,oldSock:S.db.oldSock??5.5,ptItems:S.db.ptItems||PTI_DEF,ptiV:S.db.ptiV||0,pride:S.db.pride||PRIDE_DEF,prideExV:S.db.prideExV||0,tplSoloV:S.db.tplSoloV||0,soloSock:S.db.soloSock||SOLO_SOCK_DEF,ilock:S.db.ilock||[]});
+ const st=shSettings();for(const g in META_G){const o={};for(const k of META_G[g])o[k]=st[k];out.set('meta/set.'+g,o)}
  SH.dbDocs=out;SH.dbDirty=false;return out}
+/* 테이블 탭 설정은 묶음마다 문서 하나(meta/set.tpl …). 두 사람이 서로 다른 표를 동시에 고쳐도 한쪽이 지워지지 않는다. 예전 문서 meta/settings 는 읽기만 하고 그대로 둔다 */
+const META_G={tpl:['tpl','tplV','tplSoloV'],tags:['tags','tagsV'],ban:['ban'],stpl:['stpl','stplV'],oldSock:['oldSock'],soloSock:['soloSock'],ptItems:['ptItems','ptiV'],pride:['pride','prideExV'],ilock:['ilock'],rules:['rules']};
+function shMetaGroups(){const st=shSettings(),out={};for(const g in META_G){const o={};for(const k of META_G[g])o[k]=st[k];out[g]=o}return out}
+function shMetaMerge(){const L=SH.metaL&&typeof SH.metaL==='object'?SH.metaL:null;const G=SH.metaG||{};if(!L&&!Object.keys(G).length)return null;const m=Object.assign({},L||{});for(const g in G)Object.assign(m,G[g]||{});return m}
+function shSettings(){return {tpl:S.db.tpl||[],tplV:S.db.tplV||0,tags:S.db.tags||[],tagsV:S.db.tagsV||0,ban:S.db.ban??'',stpl:S.db.stpl||[],stplV:S.db.stplV||0,oldSock:S.db.oldSock??5.5,ptItems:S.db.ptItems||PTI_DEF,ptiV:S.db.ptiV||0,pride:S.db.pride||PRIDE_DEF,prideExV:S.db.prideExV||0,tplSoloV:S.db.tplSoloV||0,soloSock:S.db.soloSock||SOLO_SOCK_DEF,ilock:S.db.ilock||[],rules:RULES()}}
 function shWant(){const out=new Map();
- S.folders.forEach((f,i)=>{f._ord=i;out.set('folders/'+f.id,{ord:i,name:f.name||''})});
+ S.folders.forEach((f,i)=>{f._ord=i;const d={ord:i,name:f.name||''};if(f.priv)d.priv=true;if(f.owner){d.owner=f.owner;d.ownerName=f.ownerName||''}out.set('folders/'+f.id,d)});
  S.trainers.forEach((t,i)=>{const d=stripUI(t);d.pids=t.pokemon.map(p=>p.id);out.set('trainers/'+t.id,{ord:i,data:d});
   t.pokemon.forEach(p=>out.set('pokemon/'+p.id,{tid:t.id,data:stripUI(p)}))});
- for(const [p,b] of shDbDocs())out.set(p,b);return out}
+ for(const [p,b] of shDbDocs())out.set(p,b);
+ /* 레디메이드 기본 행을 아직 못 읽었으면, 받아 둔 레디메이드 수정 행은 그대로 둔다 (지우지 않게) */
+ if(!rmLoaded())for(const [id,d] of SH.ed)if(d&&d.kind==='rm')out.set('dbedit/'+id,d);
+ if(SH.metaL)out.set('meta/settings',SH.metaL);return out}
 async function runPool(jobs,n){let i=0;const w=async()=>{while(i<jobs.length){const j=jobs[i++];await j()}};await Promise.all(Array.from({length:Math.min(n,jobs.length)},w))}
 const SH_ERR_KO={invalid_argument:'저장이 거부됨(권한 없음 또는 항목이 너무 큼)',resource_exhausted:'저장 요청이 너무 잦음',quota_exceeded:'공유 저장소 용량 초과',unavailable:'일시적인 연결 문제',revoked:'접근 권한이 바뀜',not_granted:'공유 저장소 사용이 허용되지 않음',capability_disabled:'공유 저장소를 쓸 수 없는 화면'};
 function shErr(e){const c=(e&&e.code)||'unknown';const m=SH_ERR_KO[c]||('알 수 없는 오류: '+((e&&e.message)||c));SH.lastErr=c;
@@ -1852,13 +1920,18 @@ async function shFlush(){if(!SH.on||!SH.ready)return;if(!SH.canWrite){shStatus('
  SH.flushing=true;shLastFlush=Date.now();let retry=false,hard=0;SH.bad=SH.bad||new Map();
  try{do{SH.again=false;const want=shWant();const jobs=[];
    for(const [p,b] of want){const j=canon(b);if(SH.synced.get(p)===j||SH.bad.get(p)===j)continue;
-    if(j.length>1500000){if(!SH.bigWarn){SH.bigWarn=true;toast('한 항목이 너무 커서(이미지 등) 공유 저장하지 못했습니다 · 이미지를 작게 바꿔 주세요')}SH.bad.set(p,j);continue}
+    if(j.length>1500000){if(shHostBig(p))continue;if(!SH.bigWarn){SH.bigWarn=true;toast('한 항목이 너무 커서 공유 저장하지 못했습니다 · 메모나 효과 글을 줄여 주세요')}SH.bad.set(p,j);continue}
     jobs.push(async()=>{try{await SH.db.doc(p).set(JSON.parse(j));SH.synced.set(p,j);SH.bad.delete(p)}catch(e){const c=shErr(e);if(c==='unavailable'||c==='resource_exhausted')retry=true;else{SH.bad.set(p,j);hard++}}})}
    for(const p of [...SH.synced.keys()])if(!want.has(p))jobs.push(async()=>{try{await SH.db.doc(p).delete();SH.synced.delete(p)}catch(e){const c=shErr(e);if(c==='unavailable'||c==='resource_exhausted')retry=true;else hard++}});
    if(jobs.length){shStatus(`저장 중… (${jobs.length})`);await runPool(jobs,2)}
   }while(SH.again&&!retry)}finally{SH.flushing=false}
  if(retry){shBack=Math.min(30000,(shBack||1500)*2);shStatus(`잠시 뒤 다시 저장합니다 (${SH_ERR_KO[SH.lastErr]||SH.lastErr})`);shSchedule(shBack);return}
  shBack=0;shStatus(hard?`저장 실패 ${hard}건 · ${SH_ERR_KO[SH.lastErr]||SH.lastErr}`:'저장됨 '+nowHM());if(SH.again)shSchedule(300)}
+/* 1.5MB 를 넘는 문서: 안에 든 그림(data URL)을 공유 저장소로 옮기고 주소만 남긴 뒤 다시 저장한다 */
+function shHostBig(path){SH.hosting=SH.hosting||new Set();if(SH.hosting.has(path))return true;const [kind,id]=[path.slice(0,path.indexOf('/')),path.slice(path.indexOf('/')+1)];
+ let o=null,tag='';if(kind==='trainers'){o=S.trainers.find(t=>t.id===id);tag='t'}else if(kind==='pokemon'){for(const t of S.trainers){o=t.pokemon.find(p=>p.id===id);if(o)break}tag='p'}
+ if(!o||!/^data:/.test(String(o.image||'')))return false;SH.hosting.add(path);toast('그림이 커서 공유 저장소로 옮기는 중…');
+ hostImg(tag,o.id,o.image).then(u=>{o.image=u;save();renderAll();toast('그림을 공유 저장소로 옮겼습니다')}).catch(e=>{toast('그림을 옮기지 못했습니다: '+e.message+' · 이미지를 작게 바꿔 주세요');SH.bad.set(path,canon(shWant().get(path)))}).finally(()=>SH.hosting.delete(path));return true}
 function replaceFields(o,d,keep){for(const k of Object.keys(o))if(!keep.has(k)&&k[0]!=='_'&&!(k in d))delete o[k];for(const k in d)if(!keep.has(k))o[k]=clone(d[k])}
 const KEEP_T=new Set(['open','pokemon']),KEEP_P=new Set(['open','tab']);
 function shPutTrainer(id,d){let t=S.trainers.find(x=>x.id===id);const data=clone(d.data||{});const pids=data.pids||[];delete data.pids;
@@ -1873,7 +1946,8 @@ function shPutPoke(id,d){let p=null,owner=null;for(const t of S.trainers){const 
  else SH.orph.set(id,p)}
 function shDelTrainer(id){S.trainers=S.trainers.filter(t=>t.id!==id)}
 function shDelPoke(id){for(const t of S.trainers)t.pokemon=t.pokemon.filter(p=>p.id!==id);SH.orph.delete(id)}
-function shRebuildDB(){const keepNonDb={};for(const k in DEF)if(!(k in DBS))keepNonDb[k]=clone(DEF[k]);
+function shRebuildDB(){/* 아직 올리지 않은 내 설정 묶음은 받은 값으로 덮지 않는다 */const keepG={};if(SH.ready){const loc=shMetaGroups();for(const g in loc){const p='meta/set.'+g;if(SH.synced.has(p)&&SH.synced.get(p)!==canon(loc[g]))keepG[g]=clone(loc[g])}}
+ const keepNonDb={};for(const k in DEF)if(!(k in DBS))keepNonDb[k]=clone(DEF[k]);
  const byKind={};for(const d of SH.ed.values()){(byKind[d.kind]=byKind[d.kind]||[]).push(d)}
  for(const k in DBS){const eds=byKind[k]||[];const mods=new Map(),del=new Set(),adds=[],cust=[];
   for(const d of eds){if(d.deleted)del.add(d.key);else if(Array.isArray(d.row)){if(d.pos>=0)adds.push(d);else mods.set(d.key,d.row)}if(d.custom&&!d.deleted)cust.push(d.key)}
@@ -1882,14 +1956,15 @@ function shRebuildDB(){const keepNonDb={};for(const k in DEF)if(!(k in DBS))keep
   S.db[k]=rows;S.custom[k]=cust}
  Object.assign(S.db,keepNonDb);const m=SH.meta;
  S.db.tpl=m&&m.tpl&&(m.tplV||0)>=TPL_V?clone(m.tpl):clone(TPL_DEF);S.db.tplV=TPL_V;S.db.tags=m&&m.tags&&(m.tagsV||0)>=TAGS_V?clone(m.tags):clone(TAGS_DEF);S.db.tagsV=TAGS_V;S.db.ban=m&&m.ban!=null?m.ban:DEF.ban;{const _sv=m&&m.stplV||0;S.db.stpl=stplMigrate(m&&m.stpl?clone(m.stpl):null,_sv);S.db.stplV=STPL_V;if(_sv<4&&_sv>0)SH.purge=true}S.db.oldSock=m&&m.oldSock!=null?m.oldSock:5.5;S.db.ptItems=m&&m.ptItems?clone(m.ptItems):clone(PTI_DEF);S.db.ptiV=m&&m.ptiV||0;ptiMigrate(S.db);S.db.pride=m&&m.pride?clone(m.pride):clone(PRIDE_DEF);S.db.prideExV=m&&m.prideExV||0;prideMigrate(S.db);
- S.db.tplSoloV=m&&m.tplSoloV||0;S.db.soloSock=m&&m.soloSock?clone(m.soloSock):null;S.db.ilock=m&&Array.isArray(m.ilock)?clone(m.ilock):[];tplNormalize(S.db);
+ S.db.tplSoloV=m&&m.tplSoloV||0;S.db.soloSock=m&&m.soloSock?clone(m.soloSock):null;S.db.ilock=m&&Array.isArray(m.ilock)?clone(m.ilock):[];S.db.rules=m&&m.rules&&typeof m.rules==='object'?clone(m.rules):null;tplNormalize(S.db);
+ for(const g in keepG)Object.assign(S.db,keepG[g]);
  SH.dbDirty=true;reindex()}
 function shApplyDoc(kind,id,d){
  if(kind==='trainers'){d?shPutTrainer(id,d):shDelTrainer(id);return 't'}
  if(kind==='pokemon'){d?shPutPoke(id,d):shDelPoke(id);return 't'}
  if(kind==='dbedit'){d?SH.ed.set(id,d):SH.ed.delete(id);return 'd'}
- if(kind==='meta'&&id==='settings'){SH.meta=d||null;return 'd'}
- if(kind==='folders'){if(d){let f=S.folders.find(x=>x.id===id);if(!f){f={id};S.folders.push(f)}f.name=String(d.name||'');f._ord=+d.ord||0}else{S.folders=S.folders.filter(x=>x.id!==id)}return 't'}}
+ if(kind==='meta'){if(id==='settings')SH.metaL=d||null;else if(id.startsWith('set.')){SH.metaG=SH.metaG||{};if(d)SH.metaG[id.slice(4)]=d;else delete SH.metaG[id.slice(4)]}else return '';SH.meta=shMetaMerge();return 'd'}
+ if(kind==='folders'){if(d){let f=S.folders.find(x=>x.id===id);if(!f){f={id};S.folders.push(f)}f.name=String(d.name||'');f._ord=+d.ord||0;f.priv=!!d.priv;if(d.owner){f.owner=String(d.owner);f.ownerName=String(d.ownerName||'')}else{delete f.owner;delete f.ownerName}}else{S.folders=S.folders.filter(x=>x.id!==id)}return 't'}}
 function shAfter(paths,what){
  if(what.t){S.trainers.forEach((t,i)=>{if(t._ord==null)t._ord=i});S.trainers.sort((a,b)=>a._ord-b._ord);S.folders.forEach((f,i)=>{if(f._ord==null)f._ord=i});S.folders.sort((a,b)=>a._ord-b._ord)}
  if(what.d)shRebuildDB();
@@ -1921,15 +1996,15 @@ async function shStart(){if(SH.ready||SH.starting)return;SH.starting=true;
  if(empty){const has=S.trainers.length||Object.keys(DBS).some(k=>(S.custom[k]||[]).length);
   let up=false;
   if(!up&&has){lsSet('mkm_local_before_share',JSON.stringify(backupObj()));saveFile('망켓몬_제작기_이_브라우저_백업.json',JSON.stringify(backupObj()))}
-  if(!up){S.trainers=SH.canWrite?[sampleTrainer()]:[];S.folders=[];SH.ed=new Map();SH.meta=null;shRebuildDB()}
+  if(!up){S.trainers=SH.canWrite?[sampleTrainer()]:[];S.folders=[];SH.ed=new Map();SH.meta=null;SH.metaL=null;SH.metaG={};shRebuildDB()}
   SH.synced=new Map();SH.ready=true;SH.dbDirty=true;renderAll();await shFlush();return}
- S.trainers=[];S.folders=[];SH.orph=new Map();SH.ed=new Map();SH.meta=null;
+ S.trainers=[];S.folders=[];SH.orph=new Map();SH.ed=new Map();SH.meta=null;SH.metaL=null;SH.metaG={};
  for(const [id,d] of B.folders||[])shApplyDoc('folders',id,clone(d));S.folders.sort((a,b)=>a._ord-b._ord);
  for(const [id,d] of B.meta||[])shApplyDoc('meta',id,d);for(const [id,d] of B.dbedit||[])shApplyDoc('dbedit',id,clone(d));
  for(const [id,d] of B.trainers||[])shApplyDoc('trainers',id,clone(d));for(const [id,d] of B.pokemon||[])shApplyDoc('pokemon',id,clone(d));
  for(const t of S.trainers){const u=ui.get(t.id);if(u)t.open=u.open;for(const p of t.pokemon){const v=ui.get(p.id);if(v){p.open=v.open;p.tab=v.tab}}}
  const paths=[];for(const k of SH_KINDS)for(const [id] of B[k]||[])paths.push(k+'/'+id);
- SH.synced=new Map();SH.ready=true;shAfter(paths,{t:true,d:true});if(SH.purge){SH.purge=false;SH.synced.delete('meta/settings');const n=stplPurge();if(n){SH.dbDirty=true;toast(`템플릿 『계제 포텐셜』 칸 ${n}개를 비웠습니다 (종족 포텐셜로 대체)`)}}renderAll();shStatus(SH.canWrite?'연결됨 · 함께 수정 중':'읽기 전용 · 보기만 가능합니다');
+ SH.synced=new Map();SH.ready=true;shAfter(paths,{t:true,d:true});if(SH.purge){SH.purge=false;SH.synced.delete('meta/set.stpl');const n=stplPurge();if(n){SH.dbDirty=true;toast(`템플릿 『계제 포텐셜』 칸 ${n}개를 비웠습니다 (종족 포텐셜로 대체)`)}}renderAll();shStatus(SH.canWrite?'연결됨 · 함께 수정 중':'읽기 전용 · 보기만 가능합니다');
  shFlush()}
 function renderAll(){if(S.ui.tab==='char')renderChar();else refreshAll()}
 

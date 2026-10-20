@@ -14,7 +14,7 @@ GitHub Pages에 올라가는 정적 사이트이고, 데이터는 Supabase 테�
 | `js/fx/` | 배틀 자동화 — `fx.js`(구문 해석·실행) · `fx_ui.js`(구문 편집기·생성기) · `readymade.js`(레디메이드 사전 915) · `states.js`(상태 변화 DB). **여기가 원본**이고 오레마스 웹툴은 이 파일들을 `https://mangryoung.github.io/mangketmon-maker/js/fx/` 에서 불러간다. 오레마스 저장소(26차) 기준 사본 + 제작기 「레디메이드」 DB 행을 기본 대신 쓰는 `MKM_RM` 훅. 수정은 **이 폴더에서만** — 오레마스 쪽 `data/states.js`·`data/readymade.js`·`js/engine/fx.js`·`js/fx_ui.js` 는 더 이상 쓰지 않는다 |
 | `js/config.js` | Supabase URL · anon 키 (**여기만 고치면 됨**) |
 | `data/db.js` | 기본 DB (기술·특성·소지품·포텐셜·테이블) |
-| `supabase/schema.sql` | DB 테이블·권한·실시간 설정 SQL |
+| `supabase/schema.sql` | DB 테이블·권한·실시간 설정 + 그림 저장소(Storage 버킷 `oremas`) SQL |
 | `supabase/seed.json`, `supabase/import.mjs` | 옛 세션 노트에서 옮겨 온 데이터와 넣는 스크립트 |
 
 ## 처음 설정 (한 번만)
@@ -35,9 +35,11 @@ GitHub Pages에 올라가는 정적 사이트이고, 데이터는 Supabase 테�
 |---|---|---|
 | `trainers` | 트레이너 | `{ord, data:{...트레이너, pids:[포켓몬 id 순서]}}` |
 | `pokemon` | 포켓몬 시트 | `{tid:트레이너 id, data:{...포켓몬}}` |
-| `folders` | 폴더 | `{ord, name}` |
+| `folders` | 폴더 | `{ord, name, priv?, owner?, ownerName?}` — 비공개 폴더도 공유된다 |
 | `dbedit` | 기본 DB와 달라진 행 하나 | `{kind, key, row, custom, pos}` 또는 `{kind, key, deleted:true}` |
-| `meta` | `settings` 하나 | 템플릿·태그·포인트 항목·프라이드 규칙 등 |
+| `meta` | 설정 묶음마다 하나: `set.tpl` · `set.tags` · `set.ban` · `set.stpl` · `set.oldSock` · `set.soloSock` · `set.ptItems` · `set.pride` · `set.ilock` · `set.rules` | 테이블·계산식 탭의 표. 묶음이 나뉘어 있어 두 사람이 서로 다른 표를 동시에 고쳐도 한쪽이 지워지지 않는다. 예전 한 덩어리 문서 `settings` 는 읽기만 한다 |
+
+**그림**: 스탠딩(트레이너·포켓몬)은 Storage 버킷 `oremas` 에 원본 그대로 올리고 주소만 저장한다(투명 배경 유지). 시트 이미지도 공유 모드에서는 버킷으로 올라가고, 예전 data URL 때문에 문서가 1.5MB 를 넘으면 그 그림을 버킷으로 옮긴 뒤 다시 저장한다. 버킷이 없으면 `supabase/schema.sql` 을 다시 실행한다.
 
 기본 DB(`data/db.js`) 자체는 저장소에 넣지 않고, 거기서 **바뀐 행만** `dbedit`로 저장한다. 그래서 기본 DB를 갱신해도 각자의 수정이 남는다.
 

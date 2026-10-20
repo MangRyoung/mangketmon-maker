@@ -1,5 +1,6 @@
 -- 망켓몬 제작기 공용 DB. Supabase 대시보드 → SQL Editor 에 통째로 붙여 넣고 Run.
 -- 문서 하나 = (kind, id, data). kind 는 trainers / pokemon / dbedit / meta / folders.
+-- 그림(스탠딩 · 큰 시트 이미지)은 아래 Storage 버킷 oremas 에 올린다 (오레마스와 같은 버킷 — 어느 쪽 schema.sql 을 실행해도 같다).
 
 create table if not exists public.docs (
   kind        text        not null,
@@ -33,3 +34,17 @@ do $$ begin
     alter publication supabase_realtime add table public.docs;
   end if;
 end $$;
+
+-- ---------- 그림 저장소 (Storage 버킷 oremas) ----------
+-- 스탠딩 그림과, 문서가 1.5MB 를 넘지 않게 옮긴 시트 이미지가 여기 들어간다. 공개 버킷, 링크를 아는 사람은 누구나 올릴 수 있다 ('전원 자유').
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  values ('oremas', 'oremas', true, 5242880, array['image/jpeg','image/png','image/webp','image/gif'])
+  on conflict (id) do update set public = true, file_size_limit = 5242880, allowed_mime_types = array['image/jpeg','image/png','image/webp','image/gif'];
+drop policy if exists "oremas img read"   on storage.objects;
+drop policy if exists "oremas img insert" on storage.objects;
+drop policy if exists "oremas img update" on storage.objects;
+drop policy if exists "oremas img delete" on storage.objects;
+create policy "oremas img read"   on storage.objects for select to anon, authenticated using (bucket_id = 'oremas');
+create policy "oremas img insert" on storage.objects for insert to anon, authenticated with check (bucket_id = 'oremas');
+create policy "oremas img update" on storage.objects for update to anon, authenticated using (bucket_id = 'oremas') with check (bucket_id = 'oremas');
+create policy "oremas img delete" on storage.objects for delete to anon, authenticated using (bucket_id = 'oremas');

@@ -20,7 +20,10 @@ window.OM_FX=(()=>{
  const ABN=['Poison','Toxic','Burn','Paralysis','Freeze','Sleep'];
  const stDB=()=>((DB().states||{}).st)||{};
  const stKo=k=>(stDB()[k]||{}).ko||k;
- function stEn(kor){kor=String(kor||'').trim();const st=stDB();if(st[kor])return kor;for(const k in st)if(st[k].ko===kor)return k;return ''}
+ const stKoW=k=>String(stKo(k)).replace(/\s+/g,'');/* 구문에 쓸 때는 띄어쓰기를 뺀다 */
+ function stEn(kor){kor=String(kor||'').trim();const st=stDB();if(st[kor])return kor;for(const k in st)if(st[k].ko===kor)return k;const nk=kor.replace(/\s+/g,'');if(nk)for(const k in st)if(String(st[k].ko||'').replace(/\s+/g,'')===nk)return k;return ''}
+ /* 띄어쓰기가 든 상태 이름(「구멍 안」 등)도 한 낱말로 읽도록, 앞 낱말들을 이어 붙여 가장 긴 상태 이름을 찾는다 */
+ function takeState(words){for(let n=Math.min(words.length,4);n>1;n--){const j=words.slice(0,n).join('');if(stEn(j)){words.splice(0,n);return stKo(stEn(j))}}return words.shift()}
  const typesOf=m=>(m.teraActive&&m.teraEn&&m.teraEn!=='-')?[m.teraEn]:(m.types||[]).filter(t=>t&&t!=='-');
  const frac=(base,v)=>{v=String(v||'').trim();const m=v.match(/^(\d+)\s*\/\s*(\d+)$/);if(m)return Math.max(1,Math.floor(base*+m[1]/+m[2]));const n=+v;return isNaN(n)?0:Math.floor(n)};
  const fx=m=>{m.fx=m.fx||{mods:[],noind:[],prio:[],immune:[],nodrop:[],roles:[]};for(const k of ['mods','noind','prio','immune','nodrop','roles','mults'])m.fx[k]=m.fx[k]||[];return m.fx};
@@ -52,7 +55,7 @@ window.OM_FX=(()=>{
      case 'confirm':{const ok=ctx.confirm?await ctx.confirm(op.q):true;if(!ok){L.push(`「${name}」 조건을 만족하지 않아 발동하지 않았다 (${op.q})`);stop=true}break}
      case 'cond':{let ok=true;if(op.c==='ally_fainted')ok=Object.values(b.mons||{}).some(m=>m.side===self.side&&m.id!==self.id&&m.hp.cur<=0);
        else if(op.c==='hp_le')ok=self.hp.cur<=frac(self.hp.max,op.frac);if(!ok){L.push(`「${name}」 조건(${op.c==='ally_fainted'?'빈사 상태인 아군':'HP '+op.frac+' 이하'})을 만족하지 않아 발동하지 않았다`);stop=true}break}
-     case 'choice':{let idx=[0];if(ctx.choose)idx=await ctx.choose(op.opts.map(o=>o.label),op.opts.some(o=>o.multi));if(!idx||!idx.length){stop=true;break}
+     case 'choice':{let idx=[0];if(ctx.choose)idx=await ctx.choose(op.opts.map(o=>o.label),!!(op.multi||op.opts.some(o=>o.multi)));if(!idx||!idx.length){stop=true;break}
        for(const i of idx){const o=op.opts[i];if(!o)continue;L.push(`▶ ${o.label}`);const r=await run(o.ops,ctx);L.push(...r.lines)}break}
      case 'rank':case 'mult':{const ts=await targets(b,self,op.tgt,ctx);for(const m of ts)L.push(...applyStats(m,op,self,name));break}
      case 'reset':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){if(op.what!=='mult'){m.rank={};delete m.tempRank}if(op.what!=='rank'){m.mod={};delete m.tempMod;if(m.fx)m.fx.mults=[]}L.push(`${m.name} ${op.what==='rank'?'랭크':op.what==='mult'?'배율':'랭크·배율'} 초기화`)}break}
@@ -188,8 +191,8 @@ window.OM_FX=(()=>{
     const tl=turns();if(tl!=null)op.tl=tl;const ui=words.findIndex(w=>/^\d+회$/.test(w));if(ui>=0){op.uses=+words[ui].replace('회','');words.splice(ui,1)}
     for(let i=words.length-1;i>=0;i--){const w=words[i];let m;if((m=w.match(/^태그[:：]?(.+)$/))){op.tg=m[1].split(/[,·]/).filter(Boolean);words.splice(i,1)}else if((m=w.match(/^역할[:：]?(.+)$/))){op.ro=m[1].split(/[,·]/).filter(Boolean);words.splice(i,1)}else if((m=w.match(/^위력[≥>=]+(\d+)$/))){op.pmin=+m[1];words.splice(i,1)}else if((m=w.match(/^위력[≤<=]+(\d+)$/))){op.pmax=+m[1];words.splice(i,1)}else if((m=w.match(/^급소방호(\d+)$/))){op.cg=+m[1];words.splice(i,1)}else if((m=w.match(/^급소\+(\d+)$/))){op.cr=+m[1];words.splice(i,1)}else if((m=w.match(/^알그룹[:：]?(.+)$/))){op.eg=m[1];words.splice(i,1)}}
     return op}
-   case '상태':{const state=words.shift();const forced=has('강제');const tl=turns();return {k:'state',state,tgt:tgtOf(words)||'enemy1',count:tl!=null?tl:-1,forced:forced?1:0}}
-   case '상태확률':{const state=words.shift();const ci=words.findIndex(w=>/^\d+%$/.test(w));const chance=ci>=0?+words.splice(ci,1)[0].replace('%',''):100;const pick=has('1체')?'one':'';return {k:'statefx',state,tgt:tgtOf(words)||'enemy1',chance,pick,ask:'',self:0}}
+   case '상태':{const state=takeState(words);const forced=has('강제');const tl=turns();return {k:'state',state,tgt:tgtOf(words)||'enemy1',count:tl!=null?tl:-1,forced:forced?1:0}}
+   case '상태확률':{const state=takeState(words);const ci=words.findIndex(w=>/^\d+%$/.test(w));const chance=ci>=0?+words.splice(ci,1)[0].replace('%',''):100;const pick=has('1체')?'one':'';return {k:'statefx',state,tgt:tgtOf(words)||'enemy1',chance,pick,ask:'',self:0}}
    case '치유':{const ci=words.findIndex(w=>/^\d+%$/.test(w));const chance=ci>=0?+words.splice(ci,1)[0].replace('%',''):100;const tgt=tgtOf(words)||'self';const rest=words.join(',').split(/[,·]/).map(x=>x.trim()).filter(Boolean);const states=(!rest.length||rest.includes('이상')||rest.includes('전부'))?'negative':rest.map(x=>stEn(x)||x);return {k:'cure',tgt,states,chance,self:0}}
    case '회복':{const v=words.find(w=>/^\d+\/\d+$|^\d+$|^전부$/.test(w))||'1/4';words.splice(words.indexOf(v),1);const ty=types();return Object.assign({k:'heal',tgt:tgtOf(words)||'self',value:v==='전부'?'full':v},ty.length?{ytype:ty[0]}:{})}
    case '피해':{const v=words.find(w=>/^\d+\/\d+$|^\d+$/.test(w))||'1/8';words.splice(words.indexOf(v),1);const op={k:'dmg',tgt:'enemy1',value:v,basis:'max'};if(has('현재'))op.basis='cur';if(has('직전'))op.basis='last';if(has('빈사없음'))op.nofaint=1;const ty=types();if(ty.length){op.basis='type';op.atype=ty[0]}const xi=words.findIndex(w=>/^제외[:：]?/.test(w));if(xi>=0){op.xtype=KO_TYPE[words[xi].replace(/^제외[:：]?/,'')]||'';words.splice(xi,1)}const si=words.findIndex(w=>/^상태[:：]/.test(w));if(si>=0){op.st=stEn(words[si].replace(/^상태[:：]/,''))||'';words.splice(si,1)}op.tgt=tgtOf(words)||'enemy1';return op}
@@ -214,12 +217,14 @@ window.OM_FX=(()=>{
    case '레이드':{const m=words.join(' ').match(/구간[:：]?(\d+)/);return {k:'raid',on:1,x:m?+m[1]:'',cond:'cap',floor:1,cure:1,cstat:1,rup:1,rmod:0}}
    default:return {k:'?',raw:line}}}
  /* 여러 줄 구문: 「선택:」 뒤의 「- 라벨 → 구문; 구문」 줄들은 선택지 */
+ /* 「선택:」 은 하나만, 「선택 여럿:」(복수 선택: · 다중 선택:) 은 여러 개를 고를 수 있다 */
+ const CHO=/^(선택|(복수|다중)\s*선택|선택\s*\(?(여럿|복수|다중)\)?)[:：]?$/,CHM=/복수|다중|여럿/;
  function parse(text){const ops=[];const errs=[];let choice=null;
   /* 「;」 는 줄바꿈과 같지만, 선택지 줄(「- 라벨 → …」) 안의 「;」 는 그 선택지의 명령 구분으로 남긴다 */
-  const lines=[];let inChoice=false;for(const row of String(text||'').split('\n')){const t=row.trim();if(/^선택[:：]?$/.test(t)){inChoice=true;lines.push(t);continue}if(inChoice&&/^[-·•]/.test(t)){lines.push(t);continue}inChoice=false;for(const part of row.split(';')){const pt=part.trim();if(/^선택[:：]?$/.test(pt))inChoice=true;lines.push(part)}}
+  const lines=[];let inChoice=false;for(const row of String(text||'').split('\n')){const t=row.trim();if(CHO.test(t)){inChoice=true;lines.push(t);continue}if(inChoice&&/^[-·•]/.test(t)){lines.push(t);continue}inChoice=false;for(const part of row.split(';')){const pt=part.trim();if(CHO.test(pt))inChoice=true;lines.push(part)}}
   for(const raw of lines){const line=raw.trim();if(!line)continue;
-   if(/^선택[:：]?$/.test(line)){choice={k:'choice',opts:[]};ops.push(choice);continue}
-   if(choice&&/^[-·•]/.test(line)){const t=line.replace(/^[-·•]\s*/,'');const ai=t.search(/→|->/);const label=(ai<0?t:t.slice(0,ai)).trim();const body=ai<0?'':t.slice(ai).replace(/^(→|->)/,'');const sub=[];for(const seg of body.split(/[;；]\s*|[,，]\s*(?=[가-힣]+\s)/)){const op=parseLine(seg);if(op&&op.k!=='?')sub.push(op);else if(op)errs.push(op.raw)}choice.opts.push({label,ops:sub,multi:/^①|②|③|\[.\]/.test(label)?0:0});continue}
+   if(CHO.test(line)){choice={k:'choice',opts:[]};if(CHM.test(line))choice.multi=1;ops.push(choice);continue}
+   if(choice&&/^[-·•]/.test(line)){const t=line.replace(/^[-·•]\s*/,'');const ai=t.search(/→|->/);const label=(ai<0?t:t.slice(0,ai)).trim();const body=ai<0?'':t.slice(ai).replace(/^(→|->)/,'');const sub=[];for(const seg of body.split(/[;；]\s*|[,，]\s*(?=[가-힣]+\s)/)){const op=parseLine(seg);if(op&&op.k!=='?')sub.push(op);else if(op)errs.push(op.raw)}choice.opts.push({label,ops:sub});continue}
    choice=null;const op=parseLine(line);if(!op)continue;if(op.k==='?')errs.push(op.raw);else ops.push(op)}
   return {ops,errs}}
  function unparse(ops){const L=[];const tg=t=>t&&t!=='self'?' '+(TGT_KO[t]||t).replace(/\s/g,''):'';const ty=ts=>ts&&ts.length?' 타입:'+ts.map(t=>TYPE_KO[t]||t).join(','):'';
@@ -228,9 +233,9 @@ window.OM_FX=(()=>{
    case 'rank':case 'mult':L.push((op.k==='rank'?'랭크':'배율')+tg(op.tgt)+' '+Object.entries(op.stats||{}).map(([k,v])=>STAT_KO[k]+(op.k==='rank'?(v>0?'+':'')+v:'×'+v)).join(' ')+(op.temp?' 임시':'')+(op.forced?' 강제':''));break;
    case 'reset':L.push('초기화 '+({rank:'랭크',mult:'배율'}[op.what]||'전부')+tg(op.tgt));break;
    case 'boost':case 'guard':{let s=(op.k==='boost'?'위력':'완화')+' ×'+op.v+tg(op.tgt)+ty(op.types);if(op.cat==='physical')s+=' 물리';if(op.cat==='special')s+=' 특수';if(op.eff==='super')s+=' 굉장';if(op.eff==='weak')s+=' 별로';if(op.eff==='normal')s+=' 보통';if(op.rng==='single')s+=' 단일';if(op.rng==='multi')s+=' 전체기';if(op.sb==='stab')s+=' 자속';if(op.sb==='nonstab')s+=' 비자속';if(op.tg&&op.tg.length)s+=' 태그:'+op.tg.join(',');if(op.pmin)s+=' 위력≥'+op.pmin;if(op.pmax)s+=' 위력≤'+op.pmax;if(op.ro&&op.ro.length)s+=' 역할:'+op.ro.join(',');if(op.st==='def')s+=' 수세';if(op.st==='off')s+=' 공세';if(op.cg)s+=' 급소방호'+op.cg;if(op.cr)s+=' 급소+'+op.cr;if(op.cx==='sure')s+=' 확정급소';if(op.cx==='none')s+=' 급소없음';if(op.eg)s+=' 알그룹:'+op.eg;if(op.uses>0)s+=' '+op.uses+'회';if(op.turn)s+=' 이번턴';if(op.tl>0)s+=' '+op.tl+'턴';if(op.remove)s+=' 해제';L.push(s);break}
-   case 'state':L.push('상태 '+stKo(op.state)+tga(op.tgt)+(op.count>0?' '+op.count+'턴':'')+(op.forced?' 강제':''));break;
-   case 'statefx':L.push('상태확률 '+stKo(op.state)+' '+op.chance+'%'+tga(op.tgt)+(op.pick==='one'?' 1체':''));break;
-   case 'cure':L.push('치유'+tg(op.tgt)+' '+(op.states==='negative'?'이상':op.states.map(stKo).join(','))+(op.chance&&op.chance<100?' '+op.chance+'%':''));break;
+   case 'state':L.push('상태 '+stKoW(op.state)+tga(op.tgt)+(op.count>0?' '+op.count+'턴':'')+(op.forced?' 강제':''));break;
+   case 'statefx':L.push('상태확률 '+stKoW(op.state)+' '+op.chance+'%'+tga(op.tgt)+(op.pick==='one'?' 1체':''));break;
+   case 'cure':L.push('치유'+tg(op.tgt)+' '+(op.states==='negative'?'이상':op.states.map(stKoW).join(','))+(op.chance&&op.chance<100?' '+op.chance+'%':''));break;
    case 'heal':L.push('회복 '+(op.value==='full'?'전부':op.value)+tg(op.tgt)+(op.ytype?ty([op.ytype]):''));break;
    case 'dmg':L.push('피해 '+op.value+tga(op.tgt)+(op.basis==='cur'?' 현재':op.basis==='last'?' 직전':op.basis==='type'?ty([op.atype]):'')+(op.xtype?' 제외:'+(TYPE_KO[op.xtype]||op.xtype):'')+(op.st?' 상태:'+stKo(op.st):'')+(op.nofaint?' 빈사없음':''));break;
    case 'weather':L.push(op.w?'날씨 '+(op.w==='random'?'무작위':op.w)+' '+(op.count>=1000?'계속':op.count):'날씨 해제');break;
@@ -241,7 +246,7 @@ window.OM_FX=(()=>{
    case 'trait':L.push('특성'+tga(op.tgt)+' '+(op.mode==='reset'?'원래':'변경 '+op.tn));break;
    case 'noind':L.push('비례무시'+tg(op.tgt)+({'':'',noko:' 빈사',hazard:' 설치기',hazdmg:' 설치기피해',recoil:' 반동'})[op.kind||'']+(op.turns>0?' '+op.turns+'턴':'')+(op.mode==='off'?' 해제':''));break;
    case 'prio':L.push('우선도 '+(op.mode==='set'?'=':(op.v>0?'+':''))+op.v+tg(op.tgt)+(op.type?ty([op.type]):'')+(op.cat&&op.cat!=='all'?' '+op.cat:'')+(op.tag?' 태그:'+op.tag:'')+(op.dur==='turn'?' 이번턴':'')+(op.mode==='off'?' 해제':''));break;
-   case 'immune':L.push('면역'+tg(op.tgt)+' '+(op.states||[]).map(s=>s==='abnormal'?'이상':stKo(s)).join(',')+(op.mode==='off'?' 해제':''));break;
+   case 'immune':L.push('면역'+tg(op.tgt)+' '+(op.states||[]).map(s=>s==='abnormal'?'이상':stKoW(s)).join(',')+(op.mode==='off'?' 해제':''));break;
    case 'nodrop':L.push('감소무시'+tg(op.tgt)+(op.st?' '+STAT_KO[op.st]:'')+(op.turns>0?' '+op.turns+'턴':'')+(op.mode==='off'?' 해제':''));break;
    case 'ignoreup':L.push('강화무시 '+(op.dir==='recv'?'받음':'공격시')+' '+({def:'방어',eva:'회피',atk:'공격',both:'양쪽'})[op.scope]+(op.ro&&op.ro.length?' 역할:'+op.ro.join(','):'')+(op.on?'':' 해제'));break;
    case 'float':L.push('하늘위'+tg(op.tgt)+(op.turns>0?' '+op.turns+'턴':'')+(op.mode==='off'?' 해제':''));break;
@@ -250,7 +255,7 @@ window.OM_FX=(()=>{
    case 'resetstates':L.push('상태초기화'+tg(op.tgt)+(op.group==='negative'?' 전부':''));break;
    case 'confirm':L.push('확인 "'+op.q+'"');break;
    case 'cond':L.push('조건 '+(op.c==='ally_fainted'?'아군빈사':'HP≤'+op.frac));break;
-   case 'choice':L.push('선택:');for(const o of op.opts)L.push('- '+o.label+' → '+unparse(o.ops).join('; '));break;
+   case 'choice':L.push(op.multi?'선택 여럿:':'선택:');for(const o of op.opts)L.push('- '+o.label+' → '+unparse(o.ops).join('; '));break;
    case 'raid':L.push('레이드'+(op.x?' 구간:'+op.x:''));break;case 'dex':L.push('해석');break;
    default:L.push('# '+JSON.stringify(op))}}
   return L}

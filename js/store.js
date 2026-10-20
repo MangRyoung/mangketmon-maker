@@ -44,7 +44,7 @@ window.MKM_STORE=(()=>{
     finally{st.resyncing=false}}
    async function onRow(payload){
     try{
-     if(payload.eventType==='DELETE'){const id=payload.old&&payload.old.id;if(id==null)return resync();const c=remove(id);if(c)emit([c]);return}
+     if(payload.eventType==='DELETE'){/* Realtime 은 DELETE 에 kind 필터를 걸지 않으므로 다른 kind 의 삭제는 여기서 거른다 (replica identity full 이라 old 에 kind 가 있다) */const o=payload.old||{};if(o.kind!=null&&o.kind!==kind)return;const id=o.id;if(id==null)return resync();const c=remove(id);if(c)emit([c]);return}
      const n=payload.new||{};let id=n.id,data=n.data;
      if(id==null)return resync();
      if(data===undefined||(payload.errors&&payload.errors.length)){const row=await fetchOne(kind,id);if(!row){const c=remove(id);if(c)emit([c]);return}data=row.data}

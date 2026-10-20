@@ -13,14 +13,14 @@ window.OM_FX_UI=(()=>{
 랭크 [대상] 공격+1 방어-1 … [임시] [강제]        배율 [대상] 공격×1.33 …        초기화 랭크|배율|전부
 위력 ×1.3 [대상] [타입:불꽃,물] [물리|특수] [굉장|별로|보통] [단일|전체기] [자속|비자속] [태그:소리,접촉] [위력≥150] [위력≤60] [역할:에이스] [수세|공세] [급소방호1] [급소+1] [확정급소|급소없음] [N회] [이번턴] [N턴] [해제]
 완화 ×0.75 … (위력과 같은 조건 — 받는 쪽)
-상태 화상 [대상] [N턴] [강제]        상태확률 화상 50% [대상] [1체]        치유 [대상] [독,맹독 | 이상] [N%]        상태초기화 [대상] [전부]
+상태 화상 [대상] [N턴] [강제] (항상 건다)        상태확률 화상 50% [대상] [1체]        치유 [대상] [독,맹독 | 이상] [N%]        상태초기화 [대상] [전부]
 회복 1/4 [대상] [전부] [타입:독]        피해 1/8 [대상] [현재|직전|타입:바위] [제외:독] [상태:잠듦] [빈사없음]
 날씨 비 5 · 날씨 해제        필드 그래스필드 5 · 룸 트릭룸 5 · 필드상태 중력 5        설치기 [아군|상대] 리플렉터 5
 타입 [대상] 추가|변경|원래 불꽃,비행        특성 [대상] 변경 X · 특성 원래        역할 추가|제거 에이스,블로커        추격 [숨김]
 비례무시 [대상] [빈사|설치기|설치기피해|반동] [N턴]        우선도 +1 [대상] [타입:X] [물리|특수|변화] [태그:회복] [이번턴]
 면역 [대상] 잠듦,마비 · 면역 이상        감소무시 [대상] [공격] [N턴]        강화무시 [공격시|받음] [방어|회피|공격|양쪽]        하늘위 [대상] [N턴]
 확인 "조건 문장"  (발동 때 물어본다)        조건 아군빈사 · 조건 HP≤1/2        레이드 구간:4
-선택:   (여러 효과 중 고르기)
+선택:   (여러 효과 중 하나 고르기 · 「선택 여럿:」 이면 여러 개를 고른다)
 - ① 라벨 → 랭크 공격+1
 - ② 라벨 → 회복 1/4
 효과 글의 표식: 【등장】 등장 때 자동 · 【상시】 처음 한 번 자동 · 【N/시】 횟수 · 드물게/저확률/중확률/고확률 확률 판정`;
@@ -70,8 +70,8 @@ window.OM_FX_UI=(()=>{
   switch(kind){
    case 'rank':case 'mult':{const parts=[];for(const k of STATS){const v=+g('st_'+k);if(kind==='rank'?v!==0:v!==1&&v>0)parts.push(K.STAT_KO[k]+(kind==='rank'?(v>0?'+':'')+v:'×'+v))}if(!parts.length)return '';return (kind==='rank'?'랭크':'배율')+tg(s('g_tgt'))+' '+parts.join(' ')+(g('temp')?' 임시':'')+(g('forced')?' 강제':'')}
    case 'boost':case 'guard':{let l=(kind==='boost'?'위력':'완화')+' ×'+(+g('v')||1)+tg(s('g_tgt'));if(tyK(g('types')))l+=' 타입:'+tyK(g('types'));const cat=s('g_cat');if(cat==='physical')l+=' 물리';if(cat==='special')l+=' 특수';const e=s('g_eff');if(e==='super')l+=' 굉장';if(e==='weak')l+=' 별로';if(e==='normal')l+=' 보통';const r=s('g_rng');if(r==='single')l+=' 단일';if(r==='multi')l+=' 전체기';const sb=s('g_sb');if(sb==='stab')l+=' 자속';if(sb==='nonstab')l+=' 비자속';if(tyK(g('tg')))l+=' 태그:'+tyK(g('tg'));if(+g('pmin'))l+=' 위력≥'+g('pmin');if(+g('pmax'))l+=' 위력≤'+g('pmax');if(tyK(g('ro')))l+=' 역할:'+tyK(g('ro'));const st=s('g_st');if(st==='def')l+=' 수세';if(st==='off')l+=' 공세';const cx=s('g_cx');if(cx==='sure')l+=' 확정급소';if(cx==='none')l+=' 급소없음';if(+g('cg'))l+=' 급소방호'+g('cg');if(+g('cr'))l+=' 급소+'+g('cr');if(+g('uses')>0)l+=' '+g('uses')+'회';if(g('turn'))l+=' 이번턴';if(+g('tl')>0)l+=' '+g('tl')+'턴';if(g('remove'))l+=' 해제';return l}
-   case 'state':return '상태 '+K.stKo(s('g_state'))+tga(s('g_tgt'))+(+g('count')>0?' '+g('count')+'턴':'')+(g('forced')?' 강제':'');
-   case 'statefx':return '상태확률 '+K.stKo(s('g_state'))+' '+(+g('chance')||100)+'%'+tga(s('g_tgt'))+(g('one')?' 1체':'');
+   case 'state':return '상태 '+String(K.stKo(s('g_state'))).replace(/\s+/g,'')+tga(s('g_tgt'))+(+g('count')>0?' '+g('count')+'턴':'')+(g('forced')?' 강제':'');
+   case 'statefx':return '상태확률 '+String(K.stKo(s('g_state'))).replace(/\s+/g,'')+' '+(+g('chance')||100)+'%'+tga(s('g_tgt'))+(g('one')?' 1체':'');
    case 'cure':return '치유'+tg(s('g_tgt'))+' '+(tyK(g('states'))||'이상')+(+g('chance')&&+g('chance')<100?' '+g('chance')+'%':'');
    case 'heal':return '회복 '+(g('value')||'1/4')+tg(s('g_tgt'))+(s('g_ytype')?' 타입:'+K.TYPE_KO[s('g_ytype')]:'');
    case 'dmg':{const b=s('g_basis');return '피해 '+(g('value')||'1/8')+tga(s('g_tgt'))+(b==='cur'?' 현재':b==='last'?' 직전':b==='type'?' 타입:'+K.TYPE_KO[s('g_atype')]:'')+(s('g_xtype')?' 제외:'+K.TYPE_KO[s('g_xtype')]:'')+(g('nofaint')?' 빈사없음':'')}
