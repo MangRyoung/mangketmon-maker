@@ -47,4 +47,45 @@ drop policy if exists "oremas img delete" on storage.objects;
 create policy "oremas img read"   on storage.objects for select to anon, authenticated using (bucket_id = 'oremas');
 create policy "oremas img insert" on storage.objects for insert to anon, authenticated with check (bucket_id = 'oremas');
 create policy "oremas img update" on storage.objects for update to anon, authenticated using (bucket_id = 'oremas') with check (bucket_id = 'oremas');
-create policy "oremas img delete" on storage.objects for delete to anon, authenticated using (bucket_id = 'oremas');
+-- (2026-10-20) 그림 지우기 정책은 두지 않는다 — 두 앱 모두 그림을 지우지 않고, 링크만 아는 사람이 남의 그림을 지우지 못하게. 위의 drop 이 예전 정책을 없앤다.
+
+-- ---------- 보호 (2026-10-20): 이력 · 한꺼번 삭제 막기 — 설명은 supabase/patch_2026-10-20_보호.sql ----------
+create table if not exists public.docs_history (
+  hid  bigserial primary key,
+  kind text not null,
+  id   text not null,
+  data jsonb,
+  op   text not null,
+  at   timestamptz not null default now()
+);
+create index if not exists docs_history_kind_id on public.docs_history (kind, id, at desc);
+create index if not exists docs_history_at on public.docs_history (at);
+alter table public.docs_history enable row level security;   -- 정책 없음 → anon 접근 불가
+
+create or replace function public.docs_audit() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'DELETE' or old.updated_at < now() - interval '5 minutes' then
+    insert into public.docs_history(kind, id, data, op) values (old.kind, old.id, old.data, tg_op);
+  end if;
+  if random() < 0.01 then delete from public.docs_history where at < now() - interval '30 days'; end if;
+  return null;
+end $$;
+drop trigger if exists docs_audit on public.docs;
+create trigger docs_audit after update or delete on public.docs
+  for each row execute function public.docs_audit();
+
+create or replace function public.docs_guard_bulk() returns trigger
+language plpgsql as $$
+begin
+  if (select count(*) from old_rows) > 20 then
+    raise exception '한 번에 20행 넘게 지우거나 고칠 수 없습니다 (제작기 보호)';
+  end if;
+  return null;
+end $$;
+drop trigger if exists docs_guard_bulk_d on public.docs;
+create trigger docs_guard_bulk_d after delete on public.docs
+  referencing old table as old_rows for each statement execute function public.docs_guard_bulk();
+drop trigger if exists docs_guard_bulk_u on public.docs;
+create trigger docs_guard_bulk_u after update on public.docs
+  referencing old table as old_rows for each statement execute function public.docs_guard_bulk();

@@ -143,7 +143,7 @@ function load(){
 }
 let dbDirty=false,svT=null;
 function save(dbToo){if(dbToo){dbDirty=true;SH.dbDirty=true}clearTimeout(svT);svT=setTimeout(()=>{
- mkmChanged();let ok=lsSet(K_T,JSON.stringify({trainers:S.trainers,folders:S.folders,ui:S.ui}));
+ mkmChanged();if(SH.failed)lsSet('mkm_unsynced','1');let ok=lsSet(K_T,JSON.stringify({trainers:S.trainers,folders:S.folders,ui:S.ui}));
  if(dbDirty){ok=lsSet(K_DB,JSON.stringify({db:S.db,custom:S.custom}))&&ok;dbDirty=false}
  if(SH.on){shFlush();return}
  $('#saved').textContent=ok?'자동 저장 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'브라우저 저장 실패 · 백업 저장을 눌러 파일로 보관하세요'},300)}
@@ -1979,7 +1979,7 @@ function shRender(what){shRW.t=shRW.t||what.t;shRW.d=shRW.d||what.d;clearTimeout
  else if(S.ui.tab==='type'){if((w.t||w.d)&&!layers.length)renderType()}
  else if(w.d&&!layers.length){if(S.ui.tab==='db'){const q=$('#dbq');const f=q&&document.activeElement===q;renderDB();if(f){const n=$('#dbq');n.focus();n.setSelectionRange(n.value.length,n.value.length)}}else if(!$('#v-tbl').contains(document.activeElement))renderTbl()}},120)}
 async function shInit(){let db=null;try{db=window.MKM_STORE?await MKM_STORE.connect():null}catch(e){console.warn('[공유 DB]',e);toast('공유 DB에 연결하지 못했습니다: '+(e&&e.message||e))}
- if(!db){const el=$('#saved');if(el)el.textContent=window.MKM_STORE&&MKM_STORE.configured()?'공유 DB 연결 실패 · 이 브라우저에만 저장':'이 브라우저에만 저장 (js/config.js에 공유 DB 설정 없음)';return}
+ if(!db){if(window.MKM_STORE&&MKM_STORE.configured())SH.failed=true;const el=$('#saved');if(el)el.textContent=window.MKM_STORE&&MKM_STORE.configured()?'공유 DB 연결 실패 · 이 브라우저에만 저장':'이 브라우저에만 저장 (js/config.js에 공유 DB 설정 없음)';return}
  SH.db=db;SH.on=true;SH.orph=new Map();shStatus('공유 저장소 연결 중…');
  SH.canWrite=db.canWrite!==false;
  for(const kind of SH_KINDS){SH.init[kind]=false;
@@ -1989,15 +1989,17 @@ async function shInit(){let db=null;try{db=window.MKM_STORE?await MKM_STORE.conn
     if(d){const dj=canon(d);if(SH.synced.get(p)===dj)continue;W=W||shWant();const w=W.get(p);if(w&&canon(w)===dj){SH.synced.set(p,dj);continue}}if(!d&&!SH.synced.has(p))continue;
     const w=shApplyDoc(kind,id,d?clone(d):null);if(w)what[w]=true;paths.push(p)}
    if(paths.length)shAfter(paths,what)},
-  e=>{shErr(e);if(!SH.ready){SH.buf[kind]=[];SH.init[kind]=true;if(SH_KINDS.every(k=>SH.init[k]))shStart()}})}}
-async function shStart(){if(SH.ready||SH.starting)return;SH.starting=true;
+  e=>{shErr(e);if(!SH.ready&&!SH.init[kind]){SH.initFail=true;SH.buf[kind]=[];SH.init[kind]=true;if(SH_KINDS.every(k=>SH.init[k]))shStart()}})}}   /* 처음 읽기에 실패한 종류가 있으면 읽기 전용으로 시작한다 — 빈 목록으로 보고 기본값을 올려 모두의 설정을 덮지 않게. 이미 읽은 종류의 실시간 오류는 받은 내용을 지우지 않는다 */
+async function shStart(){if(SH.ready||SH.starting)return;SH.starting=true;if(SH.initFail){SH.canWrite=false;toast('공유 DB를 다 읽지 못해 읽기 전용으로 열었습니다 · 새로고침해 주세요')}
  const B=SH.buf;const empty=SH_KINDS.every(k=>!(B[k]||[]).length);
  const ui=new Map();for(const t of S.trainers){ui.set(t.id,{open:t.open});for(const p of t.pokemon)ui.set(p.id,{open:p.open,tab:p.tab})}
  if(empty){const has=S.trainers.length||Object.keys(DBS).some(k=>(S.custom[k]||[]).length);
   let up=false;
-  if(!up&&has){lsSet('mkm_local_before_share',JSON.stringify(backupObj()));saveFile('망켓몬_제작기_이_브라우저_백업.json',JSON.stringify(backupObj()))}
-  if(!up){S.trainers=SH.canWrite?[sampleTrainer()]:[];S.folders=[];SH.ed=new Map();SH.meta=null;SH.metaL=null;SH.metaG={};shRebuildDB()}
+  if(!up&&has&&!SH.initFail){lsSet('mkm_local_before_share',JSON.stringify(backupObj()));saveFile('망켓몬_제작기_이_브라우저_백업.json',JSON.stringify(backupObj()))}
+  if(!up&&!SH.initFail){S.trainers=SH.canWrite?[sampleTrainer()]:[];S.folders=[];SH.ed=new Map();SH.meta=null;SH.metaL=null;SH.metaG={};shRebuildDB()}
   SH.synced=new Map();SH.ready=true;SH.dbDirty=true;renderAll();await shFlush();return}
+ /* 지난번 공유 DB 에 못 붙어 이 브라우저에만 저장한 수정이 있으면, 공유 DB 내용으로 바꾸기 전에 백업 파일로 남긴다 (백업 불러오기 「지금 목록에 추가」로 되살린다) */
+ if(lsGet('mkm_unsynced')&&S.trainers.length){const j=JSON.stringify(backupObj());lsSet('mkm_local_before_share',j);try{saveFile(`망켓몬_제작기_미전송_${impStamp()}.json`,j)}catch(e){}toast('지난번 공유 DB에 못 올린 수정을 백업 파일로 저장했습니다')}lsSet('mkm_unsynced','');
  S.trainers=[];S.folders=[];SH.orph=new Map();SH.ed=new Map();SH.meta=null;SH.metaL=null;SH.metaG={};
  for(const [id,d] of B.folders||[])shApplyDoc('folders',id,clone(d));S.folders.sort((a,b)=>a._ord-b._ord);
  for(const [id,d] of B.meta||[])shApplyDoc('meta',id,d);for(const [id,d] of B.dbedit||[])shApplyDoc('dbedit',id,clone(d));
@@ -2021,3 +2023,5 @@ showTab(S.ui.tab||'char');
 loadFx();
 meLoad();
 shInit();
+/* 아직 공유 DB 에 올라가지 않은 수정이 있으면 탭을 닫기 전에 한 번 묻는다 (그 사이 저장을 한 번 더 시도) */
+window.addEventListener('beforeunload',e=>{if(!SH.on||!SH.ready||!SH.canWrite)return;let dirty=!!SH.flushing;try{if(!dirty)for(const [p,b] of shWant()){const j=canon(b);if(SH.synced.get(p)!==j&&!(SH.bad&&SH.bad.get(p)===j)){dirty=true;break}}}catch(_){}if(dirty){try{shFlush()}catch(_){}e.preventDefault();e.returnValue=''}});
