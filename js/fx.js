@@ -27,7 +27,7 @@ window.OM_FX=(()=>{
  const alive=m=>m&&m.hp&&m.hp.cur>0;
 
  /* ===== 레디메이드 찾기: 방 덮어쓰기(dbx.rm) → 기본 ===== */
- function rmAll(){const base=DB().readymade||{};const ov=(((window.OM_APP||{}).ST||{}).state||{}).dbx;const o=(ov&&ov.rm)||{};return Object.assign({},base,o)}
+ function rmAll(){const base=DB().readymade||{};const ov=(((window.OM_APP||{}).ST||{}).state||{}).dbx;const o=(ov&&ov.rm)||{};const ed=typeof window.MKM_RM==='function'?window.MKM_RM():null;const all=Object.assign({},base,ed||{},o);for(const k in all)if(all[k]&&all[k].deleted)delete all[k];return all}
  function rm(name){if(!name)return null;const all=rmAll();name=String(name).replace(/『|』/g,'').trim();return all[name]||null}
  /* 포켓몬의 포텐셜/특성/소지품에 붙은 자동화: 개별 구문(m.auto[name]) → 레디메이드 */
  function autoOf(m,kind,name){name=String(name||'').replace(/『|』/g,'').trim();const own=(m&&m.auto||{})[name];if(own&&own.ops)return Object.assign({name,src:'own'},own);
