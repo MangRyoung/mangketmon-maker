@@ -370,3 +370,10 @@ html.modal-on #mk{overflow:hidden}
 #mk .pavb:hover .pav{filter:brightness(1.06)} #mk .pavb:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 #mk .pimg{cursor:pointer;text-align:center;line-height:1.35}
 #mk .pimg:hover{border-color:var(--blue);color:var(--blue)}
+
+/* 스탠딩 (오레마스 무대용) */
+#mk .stands{display:flex;flex-direction:column;gap:6px}
+#mk .stand{display:flex;align-items:center;gap:8px;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+#mk .stand.on{border-color:var(--acc,#e4b84a)}
+#mk .stand .sth{width:46px;height:64px;flex:none;background:#0d0f16 center/contain no-repeat;border-radius:6px;border:1px solid var(--line)}
+#mk .stand .stb{flex:1;min-width:0}

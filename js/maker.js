@@ -69,21 +69,23 @@ function tplNormalize(db){const strip0=r=>String(r||'').replace(/[+-]/g,'');
 /* 포켓몬 시트 템플릿: 자질 '기본'은 항상, 그 밖에는 트레이너 자질이 해당 랭크 이상일 때 추가 */
 const STPL_DEF=[
  ['기본','','00. 역할','역할 포텐셜','기본','전원'],['기본','','01.0. 분류','현대종','기본','전원'],['기본','','04.1. 종족','종족 포텐셜①','기본','전원'],['기본','','04.2. 종족','종족 포텐셜②','기본','전원'],['기본','','05. 속별','속별 포텐셜','기본','전원'],
- ['육성','D','05.1. 계제','계제 포텐셜①','룰북: 육성 D · 전원 『계제』『속별』 중 2개','전원'],
- ['육성','C~C','05.1. 계제','계제 포텐셜②','룰북: 육성 C · 『계제』『속별』 3개 습득 개체 +2 (1인 기준 1체)','2체/1체'],
- ['육성','B~B','05.1. 계제','계제 포텐셜②','룰북: 육성 B · 3개 습득 개체 +4 (1인 기준 전원)','4체/전원'],
  ['육성','A','08.1. 회피','약점회피','룰북: 육성 A · 전원 『계제』『속별』『회피+내성』 중 3개','전원'],['육성','A','09.1. 내성','약점내성','룰북: 육성 A · 전원 『계제』『속별』『회피+내성』 중 3개','전원'],
  ['지시','A','12.1. 전술','전술 포텐셜①','룰북: 지시 A · 파트너 전원 『전술』','파트너'],
  ['통솔','C','06. 유대','유대 포텐셜','룰북: 통솔 C · 파트너 『유대』 1체','파트너 1체'],
  ['통솔','B','14. 특권','익스펜션 : ○○','룰북: 통솔 B · PT 전원 『익스펜션』','전원'],
  ['통솔','A','06. 유대','유대 포텐셜','룰북: 통솔 A · 『영혼의 유대』 1체 추가 (1인 기준 2체 모두)','파트너 2체']
 ];
-const STPL_V=3;
-/* v2 → v3: 기본값은 새 표로, 사용자가 더한 행은 뒤에 남긴다. 대상 칸(6번째)이 없으면 「전원」 */
+const STPL_V=4;
+/* v2 → v3: 기본값은 새 표로, 사용자가 더한 행은 뒤에 남긴다. 대상 칸(6번째)이 없으면 「전원」. v3 → v4: 『계제』 행 제거(종족 포텐셜로 대체, 2026-10-20 망령) */
 const STPL_V2=[['기본','','00. 역할','역할 포텐셜'],['기본','','01.0. 분류','현대종'],['기본','','04.1. 종족','종족 포텐셜①'],['기본','','04.2. 종족','종족 포텐셜②'],['기본','','05. 속별','속별 포텐셜'],['육성','A','08.1. 회피','약점회피'],['육성','A','09.1. 내성','약점내성'],['지시','A','12.1. 전술','전술 포텐셜①'],['통솔','B','14. 특권','익스펜션 : ○○']];
+const stplIsGyeje=r=>r&&(/계제 포텐셜/.test(String(r[3]||''))||/^05\.1\./.test(String(r[2]||'')));
 function stplMigrate(old,v){if(!Array.isArray(old))return clone(STPL_DEF);if((v||0)>=STPL_V)return old.map(r=>{const x=r.slice();if(x[5]==null)x[5]='전원';return x});
+ if((v||0)>=3)return old.filter(r=>!stplIsGyeje(r)).map(r=>{const x=r.slice();if(x[5]==null)x[5]='전원';return x});
  const key=r=>[r[0],r[1],r[2],r[3]].join('|');const base=new Set(STPL_V2.map(key)),now=new Set(STPL_DEF.map(key));
- return [...clone(STPL_DEF),...old.filter(r=>r&&!base.has(key(r))&&!now.has(key(r))).map(r=>{const x=r.slice();if(x[5]==null)x[5]='전원';return x})]}
+ return [...clone(STPL_DEF),...old.filter(r=>r&&!base.has(key(r))&&!now.has(key(r))&&!stplIsGyeje(r)).map(r=>{const x=r.slice();if(x[5]==null)x[5]='전원';return x})]}
+/* 템플릿으로 자동 삽입됐던 『계제 포텐셜』 슬롯 비우기 (효과를 직접 쓴 칸은 남긴다) */
+const STPL_PURGE=['계제 포텐셜①','계제 포텐셜②','계제 포텐셜③'];
+function stplPurge(){let n=0;for(const t of S.trainers)for(const p of t.pokemon||[])(p.pots||[]).forEach((x,i)=>{if(STPL_PURGE.includes(x)&&!(p.potEff&&p.potEff[i])){p.pots[i]='';if(p.potKind)p.potKind[i]='';n++}});return n}
 const STATS=['HP','공격','방어','특공','특방','스피드'];
 const RANKS=['S','AAA+','AAA','AAA-','AA+','AA','AA-','A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','E+','E','E-'];
 const QUAL=['지시','육성','통솔','능력'];
@@ -119,7 +121,7 @@ function load(){
  if(!S.db.pride)S.db.pride=clone(PRIDE_DEF);prideMigrate(S.db);ptiMigrate(S.db);
  if(!S.db.tpl||(S.db.tplV||0)<TPL_V){S.db.tpl=clone(TPL_DEF);S.db.tplV=TPL_V}
  tplNormalize(S.db);
- S.db.stpl=stplMigrate(S.db.stpl,S.db.stplV);S.db.stplV=STPL_V;
+ {const _sv=S.db.stplV||0;S.db.stpl=stplMigrate(S.db.stpl,S.db.stplV);S.db.stplV=STPL_V;if(_sv<4&&_sv>0)stplPurge()}
  reindex();
  S.trainers.forEach(fixT);dedupeIds();
  if(!S.trainers.length)S.trainers.push(sampleTrainer());
@@ -1778,7 +1780,7 @@ function shRebuildDB(){const keepNonDb={};for(const k in DEF)if(!(k in DBS))keep
   adds.sort((a,b)=>a.pos-b.pos);for(const a of adds)rows.splice(Math.min(a.pos,rows.length),0,clone(a.row));
   S.db[k]=rows;S.custom[k]=cust}
  Object.assign(S.db,keepNonDb);const m=SH.meta;
- S.db.tpl=m&&m.tpl&&(m.tplV||0)>=TPL_V?clone(m.tpl):clone(TPL_DEF);S.db.tplV=TPL_V;S.db.tags=m&&m.tags&&(m.tagsV||0)>=TAGS_V?clone(m.tags):clone(TAGS_DEF);S.db.tagsV=TAGS_V;S.db.ban=m&&m.ban!=null?m.ban:DEF.ban;S.db.stpl=stplMigrate(m&&m.stpl?clone(m.stpl):null,m&&m.stplV);S.db.stplV=STPL_V;S.db.oldSock=m&&m.oldSock!=null?m.oldSock:5.5;S.db.ptItems=m&&m.ptItems?clone(m.ptItems):clone(PTI_DEF);S.db.ptiV=m&&m.ptiV||0;ptiMigrate(S.db);S.db.pride=m&&m.pride?clone(m.pride):clone(PRIDE_DEF);S.db.prideExV=m&&m.prideExV||0;prideMigrate(S.db);
+ S.db.tpl=m&&m.tpl&&(m.tplV||0)>=TPL_V?clone(m.tpl):clone(TPL_DEF);S.db.tplV=TPL_V;S.db.tags=m&&m.tags&&(m.tagsV||0)>=TAGS_V?clone(m.tags):clone(TAGS_DEF);S.db.tagsV=TAGS_V;S.db.ban=m&&m.ban!=null?m.ban:DEF.ban;{const _sv=m&&m.stplV||0;S.db.stpl=stplMigrate(m&&m.stpl?clone(m.stpl):null,_sv);S.db.stplV=STPL_V;if(_sv<4&&_sv>0)SH.purge=true}S.db.oldSock=m&&m.oldSock!=null?m.oldSock:5.5;S.db.ptItems=m&&m.ptItems?clone(m.ptItems):clone(PTI_DEF);S.db.ptiV=m&&m.ptiV||0;ptiMigrate(S.db);S.db.pride=m&&m.pride?clone(m.pride):clone(PRIDE_DEF);S.db.prideExV=m&&m.prideExV||0;prideMigrate(S.db);
  S.db.tplSoloV=m&&m.tplSoloV||0;S.db.soloSock=m&&m.soloSock?clone(m.soloSock):null;S.db.ilock=m&&Array.isArray(m.ilock)?clone(m.ilock):[];tplNormalize(S.db);
  SH.dbDirty=true;reindex()}
 function shApplyDoc(kind,id,d){
@@ -1826,7 +1828,7 @@ async function shStart(){if(SH.ready||SH.starting)return;SH.starting=true;
  for(const [id,d] of B.trainers||[])shApplyDoc('trainers',id,clone(d));for(const [id,d] of B.pokemon||[])shApplyDoc('pokemon',id,clone(d));
  for(const t of S.trainers){const u=ui.get(t.id);if(u)t.open=u.open;for(const p of t.pokemon){const v=ui.get(p.id);if(v){p.open=v.open;p.tab=v.tab}}}
  const paths=[];for(const k of SH_KINDS)for(const [id] of B[k]||[])paths.push(k+'/'+id);
- SH.synced=new Map();SH.ready=true;shAfter(paths,{t:true,d:true});renderAll();shStatus(SH.canWrite?'연결됨 · 함께 수정 중':'읽기 전용 · 보기만 가능합니다');
+ SH.synced=new Map();SH.ready=true;shAfter(paths,{t:true,d:true});if(SH.purge){SH.purge=false;SH.synced.delete('meta/settings');const n=stplPurge();if(n){SH.dbDirty=true;toast(`템플릿 『계제 포텐셜』 칸 ${n}개를 비웠습니다 (종족 포텐셜로 대체)`)}}renderAll();shStatus(SH.canWrite?'연결됨 · 함께 수정 중':'읽기 전용 · 보기만 가능합니다');
  shFlush()}
 function renderAll(){if(S.ui.tab==='char')renderChar();else refreshAll()}
 
