@@ -57,6 +57,9 @@ window.OM_MOVEAUTO=(()=>{
   mv=mv||{};const name=String(mv.name||'').trim();
   const R=FX()&&FX().rm?FX().rm('기술 : '+name):null;
   if(R&&R.ops&&R.ops.length)return {groups:[{n:10,label:'레디메이드 「기술 : '+name+'」',who:'once',ops:R.ops,when:'hit'}],recoil:null,drain:null,notes:[],src:'rm'};
+  /* 예고 공격(「지연」 기술: 미래예지 계열): 쓸 때는 대미지 없이 대상에게 예고 상태만 걸고, 다음 턴 종료 때 터진다 */
+  {const fut=FX()&&FX().FUTURE||[];const en=FX()&&FX().stEn?FX().stEn(name):'';if(en&&fut.includes(en)||(mv.tag==='지연'&&/다음 턴 가장 마지막/.test(String(mv.eff||'')))){const st=en||((String(mv.eff||'').match(/대상을 「([^」]+)」 상태로/)||[])[1]||'FutureSight');
+   return {groups:[{n:10,label:'예고 「'+name+'」',who:'target',ops:[{k:'future',state:st,mv:name,tgt:'target'}],when:'hit'}],recoil:null,drain:null,notes:[],src:'parse',delay:1}}}
   const txt=String(mv.eff||'').replace(/\r/g,'').replace(/\n+/g,' ');
   const sents=txt.split(/[.。](?!\d)/).map(x=>x.trim()).filter(Boolean);
   const groups=[],notes=[],FL={};let recoil=null,drain=null,critSure=false,selfFaint=false;

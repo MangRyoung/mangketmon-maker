@@ -22,6 +22,21 @@ function rmInit(){if(!(window.OM_DB&&window.OM_DB.readymade&&window.OM_FX))retur
  let shr=false;try{shr=SH.ready}catch(e){}if(shr){shRebuildDB();return true}
  if(S.db&&(!S.db.rm||!S.db.rm.length)){S.db.rm=clone(DEF.rm);if(!S.custom.rm)S.custom.rm=[];reindex()}return true}
 const rmLoaded=()=>!!(DEF.rm&&DEF.rm.length);
+/* 상태 변화 DB: js/fx/states.js ({v,groups,hidden,st}) 를 행으로. 맵툴 「상태 변화 DB」의 백업 JSON 과 같은 꼴이라 그대로 불러오고 내보낼 수 있다.
+   수정은 dbedit/st.* 로 공유되고, 오레마스가 「제작기 새로고침」으로 가져간다. 제작기 안의 구문 엔진도 고친 표를 바로 쓴다 */
+if(!Array.isArray(DEF.st))DEF.st=[];let ST_BASE=null;const ST_HIDE='(숨김)';
+function stRowsOf(o){o=o||{};const st=o.st||{};const gOf={};(o.groups||[]).forEach(g=>(g.s||[]).forEach(k=>{if(!gOf[k])gOf[k]=g.l}));const hid=new Set(o.hidden||[]);const ord=[];(o.groups||[]).forEach(g=>(g.s||[]).forEach(k=>{if(st[k]&&!ord.includes(k))ord.push(k)}));for(const k in st)if(!ord.includes(k))ord.push(k);
+ return ord.map(k=>{const e=st[k]||{};return [k,String(e.ko||''),gOf[k]||(hid.has(k)?ST_HIDE:''),String(e.min??''),String(e.max??''),String(e.roll||''),String(e.prog||''),e.abn?'O':'',e.neg?'O':'',e.bat?'O':'',(Array.isArray(e.desc)?e.desc:String(e.desc||'').split('\n')).join('\n'),String(e.memo||'')]})}
+function stObjOf(rows){const st={},groups=[],gi={},hidden=[];const num=v=>{const n=+v;return v===''||isNaN(n)?0:n};
+ for(const r of rows||[]){const k=String(r[0]||'').trim();if(!k)continue;st[k]={ko:r[1]||k,min:num(r[3]),max:num(r[4]),roll:r[5]||'',abn:r[7]==='O'?1:0,neg:r[8]==='O'?1:0,bat:r[9]==='O'?1:0,prog:r[6]||'turn',desc:String(r[10]||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean),memo:r[11]||''};
+  const g=String(r[2]||'').trim();if(g===ST_HIDE||!g){hidden.push(k);continue}if(gi[g]==null){gi[g]=groups.length;groups.push({l:g,s:[]})}groups[gi[g]].s.push(k)}
+ return {v:1,groups,hidden,st}}
+function stInit(){const o=window.OM_DB&&window.OM_DB.states;if(!o||!o.st)return false;if(!ST_BASE)ST_BASE=clone(o);if(!DEF.st||!DEF.st.length){DEFJ=null;DEF.st=stRowsOf(ST_BASE)}
+ let shr=false;try{shr=SH.ready}catch(e){}if(shr){shRebuildDB();stApply();return true}
+ if(S.db&&(!S.db.st||!S.db.st.length)){S.db.st=clone(DEF.st);if(!S.custom.st)S.custom.st=[];reindex()}stApply();return true}
+const stLoaded=()=>!!(DEF.st&&DEF.st.length);
+function stApply(){if(!stLoaded()||!S.db||!S.db.st||!S.db.st.length||!window.OM_DB)return;window.OM_DB.states=stObjOf(S.db.st)}
+const lazyOk=k=>k==='rm'?rmLoaded():k==='st'?stLoaded():true;
 
 /* ---------- 기본 보조 데이터 ---------- */
 const TAGS_DEF=[
@@ -111,7 +126,8 @@ const DBS={
  pots:{t:'포텐셜',key:1,cols:['종류(순서)','이름','효과','비고'],show:[1,0,2,3],eff:2},
  old:{t:'올드 타입',key:1,cols:['지역','포켓몬','Name','타입1','타입2','특성1','특성2','숨겨진 특성','알그룹1','알그룹2','메가','HP','공격','방어','특공','특방','스피드'],show:[1,0,3,4,5,6,7,8,9,11,12,13,14,15,16],eff:-1},
  points:{t:'포인트',key:4,cols:['번호','분류','세부','소모 항목','이름','효과','소모 포인트','상시 공개'],show:[4,1,2,3,6,5,7],eff:5},
- rm:{t:'레디메이드',key:0,cols:['이름','효과 글','구문','손으로'],show:[0,1,2,3],eff:1}
+ rm:{t:'레디메이드',key:0,cols:['이름','효과 글','구문','손으로'],show:[0,1,2,3],eff:1},
+ st:{t:'상태 변화',key:0,cols:['키(영문)','이름','그룹','기본 턴','최대 턴','턴 굴림','진행','상태 이상','불리','배턴','설명','메모'],show:[1,0,2,3,4,6,7,8,9,10],eff:10}
 };
 
 /* ---------- 상태 ---------- */
@@ -361,7 +377,7 @@ window.OM_APP=window.OM_APP||{openModal:h=>openModal(h,{wide:true}),closeModal:(
 let fxLoadP=null,FXST='';/* '' 불러오는 중 · ok · fail */
 function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
  const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src;s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
- FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');FXST='ok';rmInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
+ FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');FXST='ok';rmInit();stInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
 function fxRetry(){if(fxReady())return;fxLoadP=null;toast('구문 스크립트를 다시 불러옵니다…');loadFx();if(S.ui&&S.ui.tab)refreshAll()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fxretry]');if(!b)return;e.preventDefault();e.stopPropagation();fxRetry()},true);
 const fxRetryBtn=()=>FXST==='fail'?'<button type="button" class="btn sm ghost" data-fxretry title="자동화 구문 스크립트를 불러오지 못했습니다 — 눌러서 다시 시도">구문 ⟳</button>':'';
@@ -584,6 +600,9 @@ function openPicker(kind,{title,multi,chosen,onPick,onRemove}={}){
 /* ---------- DB 항목 편집 ---------- */
 function fieldHTML(kind,n,v){const c=DBS[kind].cols[n];const id=`f-${kind}-${n}`;
  if(kind==='rm'&&n===2)return `<label class="lbl" for="${id}" style="grid-column:1/-1">${c} <span class="small muted">한 줄에 명령 하나 · 오레마스 자동화</span><textarea id="${id}" data-f="${n}" rows="5" style="font-family:var(--mono,monospace);font-size:12.5px">${esc(v||'')}</textarea><span class="small" data-rmprev></span><details><summary class="small">구문 도움말</summary><pre class="small" style="white-space:pre-wrap">${esc(typeof AUTO_HELP==='string'?AUTO_HELP:'')}</pre></details></label>`;
+ if(kind==='st'&&n===6)return `<label class="lbl" for="${id}">${c} <span class="small muted">turn 턴 끝마다 · move 기술 낼 때 · once 한 번</span><select id="${id}" data-f="${n}">${['turn','move','once'].concat(v&&!['turn','move','once'].includes(v)?[v]:[]).map(t=>`<option ${t===v?'selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
+ if(kind==='st'&&n>=7&&n<=9)return `<label class="lbl" for="${id}">${c}<select id="${id}" data-f="${n}">${['','O'].map(t=>`<option value="${t}" ${t===v?'selected':''}>${t||'아니오'}</option>`).join('')}</select></label>`;
+ if(kind==='st'&&n===2)return `<label class="lbl" for="${id}">${c}<input id="${id}" data-f="${n}" value="${esc(v??'')}" list="L-stg"><datalist id="L-stg">${[...new Set(S.db.st.map(r=>r[2]).concat([ST_HIDE]))].filter(Boolean).map(g=>`<option value="${esc(g)}">`).join('')}</datalist></label>`;
  if(kind==='rm'&&n===3)return `<label class="lbl" for="${id}">${c} <span class="small muted">(O 면 자동화 미지원 — 손으로 처리)</span><select id="${id}" data-f="${n}">${['','O'].map(t=>`<option value="${t}" ${t===v?'selected':''}>${t||'(자동)'}</option>`).join('')}</select></label>`;
  if(n===DBS[kind].eff)return `<label class="lbl" for="${id}" style="grid-column:1/-1">${c}${tagbarHTML()}<textarea id="${id}" data-f="${n}" rows="4">${esc(brN(v))}</textarea><span class="small" data-banwarn></span></label>`;
  if(kind==='moves'&&n===5)return `<label class="lbl" for="${id}">${c}<select id="${id}" data-f="${n}">${S.db.types.map(t=>`<option value="${esc(t[0])}" ${t[0]===v?'selected':''}>${esc(t[0])}</option>`).join('')}${v&&!S.db.types.some(t=>t[0]===v)?`<option value="${esc(v)}" selected>${esc(v)}</option>`:''}</select></label>`;
@@ -1250,7 +1269,7 @@ function withFocus(fn){const f=document.activeElement;const key=focusKey(f);let 
  fn();if(!key)return;const n=document.querySelector(key);if(n&&n!==document.activeElement){n.focus({preventScroll:true});try{if(ss!=null)n.setSelectionRange(ss,se)}catch(e){}}}
 function refreshTrainer(t){if(rfBusy)return;const ti=S.trainers.indexOf(t);const el=$('#tr-'+t.id);if(!el||!el.parentNode||ti<0)return renderChar();
  rfBusy=true;try{withFocus(()=>{try{el.outerHTML=trainerHTML(t,ti)}catch(e){renderChar()}})}finally{rfBusy=false}}
-function refreshAll(){if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
+function refreshAll(){stApply();if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
 let rT=null;
 let composing=false;
 $('#v-char').addEventListener('compositionstart',()=>{composing=true;clearTimeout(rT)});
@@ -1442,12 +1461,13 @@ function dbResults(){const k=dbs.k,D=DBS[k];const rows=filterRows(k,dbs);
  ${rows.slice(0,dbs.lim).map(r=>{const i=S.db[k].indexOf(r);return `<tr data-dbedit="${i}" tabindex="0" data-kbd style="cursor:pointer">${D.show.map(c=>c===D.eff?`<td class="ef"><div class="efc">${rich(r[c])}</div></td>`:c===D.key?`<td class="b">${esc(r[c])}${S.custom[k].includes(r[c])?' <span class="kindb">오리지널</span>':''}</td>`:(k==='moves'&&c===5)||(k==='old'&&(c===3||c===4))?`<td>${tchip(r[c])}</td>`:`<td>${esc(r[c])}</td>`).join('')}</tr>`}).join('')}</table>
  ${rows.length>dbs.lim?`<div style="padding:8px"><button class="btn" data-dbmore>더 보기</button></div>`:''}</div>`}
 function renderDB(){const k=dbs.k;
- const head=`<div class="intro"><h1>DB 관리</h1><p>기술·특성·소지품·포텐셜·올드 타입·포인트 DB를 검색하고 추가·수정·삭제합니다. 바뀐 내용은 캐릭터 시트의 검색 창과 계산, 맵툴 토큰 갱신에 바로 반영됩니다.</p></div>
- <div class="subtabs">${Object.entries(DBS).map(([kk,d])=>`<button data-dbk="${kk}" class="${kk===k?'on':''}">${d.t} DB<span class="c">${kk==='rm'&&!rmLoaded()?(FXST==='fail'?'!':'…'):S.db[kk].length}</span></button>`).join('')}<button data-dbk="mt" class="${k==='mt'?'on':''}">맵툴 DB 갱신</button></div>`;
+ const head=`<div class="intro"><h1>DB 관리</h1><p>기술·특성·소지품·포텐셜·올드 타입·포인트·레디메이드·상태 변화 DB를 검색하고 추가·수정·삭제합니다. 바뀐 내용은 캐릭터 시트의 검색 창과 계산, 맵툴 토큰 갱신에 바로 반영됩니다.</p></div>
+ <div class="subtabs">${Object.entries(DBS).map(([kk,d])=>`<button data-dbk="${kk}" class="${kk===k?'on':''}">${d.t} DB<span class="c">${(kk==='rm'||kk==='st')&&!lazyOk(kk)?(FXST==='fail'?'!':'…'):S.db[kk].length}</span></button>`).join('')}<button data-dbk="mt" class="${k==='mt'?'on':''}">맵툴 DB 갱신</button></div>`;
  if(k==='mt'){dbs.ex=mtStrings();$('#v-db').innerHTML=head+mtPanel();return}
  const D=DBS[k];
  $('#v-db').innerHTML=head+`
  ${k==='rm'&&!rmLoaded()?`<div class="panel row" style="margin-bottom:10px"><span class="small ${FXST==='fail'?'warn':'muted'}" style="flex:1;min-width:200px">${FXST==='fail'?'레디메이드 기본 행(자동화 스크립트 js/fx/)을 불러오지 못했습니다. 아래에는 이 DB에서 직접 추가한 행만 보입니다.':'레디메이드 기본 행을 불러오는 중입니다…'}</span>${FXST==='fail'?'<button class="btn sm" data-fxretry>다시 불러오기</button>':''}</div>`:''}
+ ${k==='st'?`<div class="panel row" style="margin-bottom:10px;gap:6px;flex-wrap:wrap"><span class="small muted" style="flex:1;min-width:220px">${stLoaded()?'오레마스는 배틀 화면 DB 창의 「제작기 새로고침」으로 고친 상태를 가져갑니다. 맵툴 「상태 변화 DB」의 「백업 · 불러오기」 JSON 과 같은 꼴이에요.':FXST==='fail'?'<span class="warn">상태 변화 기본 표(js/fx/states.js)를 불러오지 못했습니다.</span>':'상태 변화 기본 표를 불러오는 중입니다…'}</span><button class="btn sm" data-dbact="stimp">맵툴 JSON 불러오기</button><button class="btn sm" data-dbact="stexp">JSON 내보내기</button></div>`:''}
  ${k==='abil'||k==='items'||k==='old'||k==='moves'?`<div class="panel row" style="margin-bottom:10px"><span class="small muted" style="flex:1;min-width:200px">이 DB는 맵툴 라이브러리 토큰(${k==='abil'?'Lib:traits_multiple · Lib:pokemon':k==='items'?'Lib:item':k==='moves'?'Lib:skill · 기술 목록 문자열':'Lib:pokemon 「list_oldtype」'})과 연동됩니다. 고친 뒤 「맵툴 DB 갱신」에서 토큰을 새로 받으세요.</span><button class="btn sm" data-dbk="mt">맵툴 DB 갱신 열기</button></div>`:''}
  <div class="row dbbar"><input id="dbq" type="search" enterkeyhint="search" placeholder="${D.t} 검색" value="${esc(dbs.q)}" style="flex:1 1 220px"><button type="button" class="btn ftog" data-dbftog aria-expanded="${dbs.fopen}">필터<b class="fn">${fCount(k,dbs)?' '+fCount(k,dbs):''}</b></button><button class="btn pri" data-dbact="add">+ 새 항목</button></div>
  <div class="row xfrow fwrap ${dbs.fopen?'on':''}" style="margin-bottom:8px">
@@ -1467,6 +1487,15 @@ $('#v-db').addEventListener('click',async e=>{const t=e.target;
  const mb=t.closest('[data-mt]');if(mb){mb.dataset.mt==='build'?mtDownload(mb.dataset.k):mtImport(mb.dataset.k);return}
  const a=t.closest('[data-dbact]');if(!a)return;const k=dbs.k;
  if(a.dataset.dbact==='add')openEdit(k,-1);
+ if(a.dataset.dbact==='stexp'){const o=stObjOf(S.db.st);const txt=JSON.stringify(o);try{await navigator.clipboard.writeText(txt)}catch(err){}const u=URL.createObjectURL(new Blob([JSON.stringify(o,null,1)],{type:'application/json'}));const el=document.createElement('a');el.href=u;el.download='상태변화DB.json';document.body.appendChild(el);el.click();el.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);toast(`상태 ${Object.keys(o.st).length}개를 내보냈습니다 (클립보드에도 복사)`);return}
+ if(a.dataset.dbact==='stimp'){const l=openModal(`<div class="mhead"><h2>맵툴 상태 변화 DB 불러오기</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
+  <div class="mbody"><p class="small muted" style="margin:0 0 6px">맵툴 「상태 변화 DB」 창의 「백업 · 불러오기」에서 내보낸 JSON 을 붙여 넣거나 파일을 고르세요. 지금 표를 통째로 바꿉니다 (모두에게 공유).</p><input type="file" accept=".json,.txt,application/json" data-stf><textarea data-stt rows="10" placeholder='{"v":1,"groups":[…],"st":{…}}' style="width:100%;font-family:var(--mono,monospace);font-size:12px"></textarea><div class="small" data-stmsg></div></div>
+  <div class="mfoot"><span class="sp"></span><button class="btn" data-x>취소</button><button class="btn pri" data-stgo>불러오기</button></div>`,{wide:true});
+  const ta=$('[data-stt]',l),msg=$('[data-stmsg]',l);
+  const chk=()=>{try{let o=JSON.parse(ta.value);if(o&&o.db&&o.db.st)o=o.db;if(!o||!o.st||typeof o.st!=='object')throw new Error('st 칸이 없습니다');const n=Object.keys(o.st).length;const old=new Set(S.db.st.map(r=>r[0]));const add=Object.keys(o.st).filter(k=>!old.has(k)).length;const gone=[...old].filter(k=>!o.st[k]).length;msg.innerHTML=`상태 ${n}개 · 새로 ${add}${gone?` · JSON 에 없는 ${gone}개는 그대로 둠`:''}`;return o}catch(err){msg.innerHTML=ta.value.trim()?`<span class="warn">읽지 못했습니다: ${esc(err.message)}</span>`:'';return null}};
+  ta.addEventListener('input',chk);$('[data-stf]',l).addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;ta.value=await f.text();chk()});
+  l.addEventListener('click',async e=>{if(e.target.closest('[data-x]'))return closeModal();if(!e.target.closest('[data-stgo]'))return;const o=chk();if(!o)return toast('JSON 을 확인해 주세요');
+   const keep=S.db.st.filter(r=>r[0]&&!o.st[r[0]]);S.db.st=stRowsOf(o).concat(keep);const base=new Set((DEF.st||[]).map(r=>r[0]));S.custom.st=S.db.st.map(r=>r[0]).filter(k=>!base.has(k));reindex();save(true);stApply();closeModal();renderDB();toast(`상태 변화 DB 를 불러왔습니다 (${S.db.st.length}개)`)});return}
  if(a.dataset.dbact==='reset'&&await ask(`${DBS[k].t} DB를 원본 시트 값으로 되돌릴까요? 추가하거나 고친 내용(오리지널 ${S.custom[k].length}건 포함)이 사라집니다.`,'되돌리기')){S.db[k]=clone(DEF[k]);S.custom[k]=[];reindex();save(true);renderDB();toast('원본으로 되돌렸습니다')}});
 let dqT;$('#v-db').addEventListener('input',e=>{if(e.target.id==='dbq'){clearTimeout(dqT);dqT=setTimeout(()=>{dbs.q=e.target.value;dbs.lim=150;const r=$('#dbres');if(r)r.innerHTML=dbResults()},220)}
  else if(e.target.dataset.pr){clearTimeout(dqT);dqT=setTimeout(()=>{dbs[e.target.dataset.pr]=e.target.value.trim();dbs.lim=150;const r=$('#dbres');if(r)r.innerHTML=dbResults();const fb=$('[data-dbftog] .fn');if(fb)fb.textContent=fCount(dbs.k,dbs)?' '+fCount(dbs.k,dbs):''},300)}});
@@ -1906,9 +1935,9 @@ const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)
 function fnv(s){let h=2166136261;for(const c of String(s)){h^=c.codePointAt(0);h=Math.imul(h,16777619)>>>0}return h.toString(16)}
 function keySeg(k){const h=[...new TextEncoder().encode(String(k))].map(b=>b.toString(16).padStart(2,'0')).join('');return h.length<=180?h:'h'+fnv(k)+h.slice(0,40)}
 function stripUI(o){const c={};for(const k in o){if(UIK.has(k)||k[0]==='_'||k==='pokemon')continue;c[k]=clone(o[k])}return c}
-let DEFJ=null,DEFJN=-1;function defJ(){const rn=(DEF.rm||[]).length;if(DEFJ&&DEFJN===rn)return DEFJ;DEFJN=rn;DEFJ={};for(const k in DBS){const m=new Map();for(const r of DEF[k]||[]){const key=r[DBS[k].key];if(key!==''&&!m.has(key))m.set(key,JSON.stringify(r))}DEFJ[k]=m}return DEFJ}
+let DEFJ=null,DEFJN=-1;function defJ(){const rn=(DEF.rm||[]).length*100000+(DEF.st||[]).length;if(DEFJ&&DEFJN===rn)return DEFJ;DEFJN=rn;DEFJ={};for(const k in DBS){const m=new Map();for(const r of DEF[k]||[]){const key=r[DBS[k].key];if(key!==''&&!m.has(key))m.set(key,JSON.stringify(r))}DEFJ[k]=m}return DEFJ}
 function dbEditDocs(out=new Map()){const dj=defJ();
- for(const k in DBS){if(k==='rm'&&!rmLoaded())continue;/* 레디메이드 기본 행이 아직 없으면 비교하지 않는다 (915행이 전부 「바뀐 행」으로 잡히는 것 방지) */const seen=new Set(),cust=new Set(S.custom[k]||[]);
+ for(const k in DBS){if(!lazyOk(k))continue;/* 레디메이드 기본 행이 아직 없으면 비교하지 않는다 (915행이 전부 「바뀐 행」으로 잡히는 것 방지) */const seen=new Set(),cust=new Set(S.custom[k]||[]);
   S.db[k].forEach((r,ix)=>{const key=r[DBS[k].key];if(key===''||key==null||seen.has(key))return;seen.add(key);const d=dj[k].get(key);
    if(d===JSON.stringify(r))return;out.set('dbedit/'+k+'.'+keySeg(key),{kind:k,key,row:r,custom:cust.has(key),pos:d?-1:ix})});
   for(const key of dj[k].keys())if(!seen.has(key))out.set('dbedit/'+k+'.'+keySeg(key),{kind:k,key,deleted:true})}
@@ -1927,7 +1956,7 @@ function shWant(){const out=new Map();
   t.pokemon.forEach(p=>out.set('pokemon/'+p.id,{tid:t.id,data:stripUI(p)}))});
  for(const [p,b] of shDbDocs())out.set(p,b);
  /* 레디메이드 기본 행을 아직 못 읽었으면, 받아 둔 레디메이드 수정 행은 그대로 둔다 (지우지 않게) */
- if(!rmLoaded())for(const [id,d] of SH.ed)if(d&&d.kind==='rm')out.set('dbedit/'+id,d);
+ for(const lk of ['rm','st'])if(!lazyOk(lk))for(const [id,d] of SH.ed)if(d&&d.kind===lk)out.set('dbedit/'+id,d);
  if(SH.metaL)out.set('meta/settings',SH.metaL);return out}
 async function runPool(jobs,n){let i=0;const w=async()=>{while(i<jobs.length){const j=jobs[i++];await j()}};await Promise.all(Array.from({length:Math.min(n,jobs.length)},w))}
 const SH_ERR_KO={invalid_argument:'저장이 거부됨(권한 없음 또는 항목이 너무 큼)',resource_exhausted:'저장 요청이 너무 잦음',quota_exceeded:'공유 저장소 용량 초과',unavailable:'일시적인 연결 문제',revoked:'접근 권한이 바뀜',not_granted:'공유 저장소 사용이 허용되지 않음',capability_disabled:'공유 저장소를 쓸 수 없는 화면'};
