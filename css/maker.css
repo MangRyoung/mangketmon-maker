@@ -426,3 +426,8 @@ html.modal-on #mk{overflow:hidden}
 #mk .fmst label{display:flex;flex-direction:column;font-size:11px;color:var(--muted);gap:2px}
 #mk .fmst input{width:100%;min-width:0;text-align:center}
 @media (max-width:560px){#mk .fmgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#mk .fmst{grid-template-columns:repeat(3,minmax(0,1fr))}}
+#mk .fmpots{display:flex;flex-direction:column;gap:5px;border-top:1px dashed var(--line);padding-top:6px}
+#mk .fmpot{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1.2fr) auto;gap:5px;align-items:center}
+#mk .fmpot select{min-width:0}
+#mk .fmpeff{grid-column:1/-1;padding-left:4px}
+@media (max-width:560px){#mk .fmpot{grid-template-columns:minmax(0,1fr) auto}#mk .fmpot .faint{display:none}}
