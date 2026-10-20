@@ -370,19 +370,12 @@ html.modal-on #mk{overflow:hidden}
 #mk .pavb:hover .pav{filter:brightness(1.06)} #mk .pavb:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 #mk .pimg{cursor:pointer;text-align:center;line-height:1.35}
 #mk .pimg:hover{border-color:var(--blue);color:var(--blue)}
-/* 자동화 구문 (오레마스 편집기) */
-#mk .kindb.fx-rm{background:var(--blue-soft);color:var(--blue)}
-#mk .fxb.pri{background:var(--blue);border-color:var(--blue);color:#fff}
-#mk .fxrow{display:inline-flex;margin-left:8px;vertical-align:middle}
-#mk .layer .card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px;background:var(--surface)}
-#mk .layer .sec{font-weight:700;font-size:13px;margin:0 0 6px;display:flex;align-items:center;gap:8px}
-#mk .layer .sec .note,#mk .layer .note{font-weight:400;color:var(--muted);font-size:11.5px}
-#mk .layer .pm{background:var(--sunk);border-radius:8px;padding:8px 10px;font:12.5px/1.5 var(--mono);white-space:pre-wrap;margin:0 0 6px;overflow:auto}
-#mk .layer .adv{margin-top:6px;font-size:12.5px} #mk .layer .adv summary{cursor:pointer;color:var(--muted)}
-#mk .layer .dim{color:var(--muted)} #mk .layer .btn.xs{height:22px;padding:0 7px;font-size:11.5px}
-#mk .layer #fxdsl{width:100%;font-family:var(--mono);font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
-#mk .layer #fxform{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-#mk .layer #fxform input,#mk .layer #fxform select{height:28px}
-#mk #mebtn.on{border-color:var(--blue);color:var(--blue)}
-#mk .privchip{background:var(--warn-soft);color:var(--warn)}
-#mk .tfold.priv>.tfh{background:color-mix(in srgb,var(--warn) 8%,var(--sunk))}
+
+/* 스탠딩 (오레마스 무대용) */
+#mk .stands{display:flex;flex-direction:column;gap:6px}
+#mk .stand{display:flex;align-items:center;gap:8px;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+#mk .stand.on{border-color:var(--acc,#e4b84a)}
+#mk .stand .sth{width:46px;height:64px;flex:none;background:#0d0f16 center/contain no-repeat;border-radius:6px;border:1px solid var(--line)}
+#mk .stand .stb{flex:1;min-width:0}
+
+#mk .autobox{border:1px dashed var(--line,#cfd3da);border-radius:8px;padding:6px 10px;margin-top:4px}#mk .autobox summary{cursor:pointer;font-weight:600}
