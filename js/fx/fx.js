@@ -49,7 +49,7 @@ window.OM_FX=(()=>{
  /* ===== 실행 ===== */
  /* ctx: {b(사본), self(포켓몬), name(효과 이름), area?, pick(list,label)->mon, confirm(q)->bool, choose(labels,multi)->idx[]} */
  async function run(ops,ctx){const L=[];const b=ctx.b;const self=ctx.self;const name=ctx.name||'효과';let stop=false;
-  for(const op of ops||[]){if(stop)break;
+  for(let op of ops||[]){if(stop)break;/* let: 「날씨 무작위」가 op 를 바꿔 끼운다 */
    try{
     switch(op.k){
      case 'confirm':{const ok=ctx.confirm?await ctx.confirm(op.q):true;if(!ok){L.push(`「${name}」 조건을 만족하지 않아 발동하지 않았다 (${op.q})`);stop=true}break}

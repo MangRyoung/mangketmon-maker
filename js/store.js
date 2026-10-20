@@ -54,7 +54,7 @@ window.MKM_STORE=(()=>{
     st.chan=client.channel('docs:'+kind)
      .on('postgres_changes',{event:'*',schema:'public',table:TABLE(),filter:'kind=eq.'+kind},onRow)
      .subscribe(status=>{
-      if(status==='SUBSCRIBED'){st.subs++;if(st.subs>1)resync()}
+      if(status==='SUBSCRIBED'){st.subs++;resync()}   /* 처음 읽은 뒤 구독이 붙기까지 사이의 남의 변경도 잡는다 (점검 6-5) */
       else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){if(st.err)st.err(Object.assign(new Error('realtime '+status),{code:'unavailable'}))}})}
    const col={onSnapshot(cb,err){st.cb=cb;st.err=err||null;
      (async()=>{try{const rows=await fetchAll(kind);for(const r of rows)st.cache.set(r.id,r.data||{});st.ready=true;
