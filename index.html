@@ -14,7 +14,7 @@
 <div id="mk">
 <header class="top">
   <div class="brand"><span class="ball" aria-hidden="true"></span><span class="bt">망켓몬 제작기</span></div>
-  <nav class="tabs" id="tabs"><button data-tab="char" class="on">캐릭터<span class="wide-only"> 제작</span></button><button data-tab="type">타입<span class="wide-only"> 배분</span></button><button data-tab="db">DB<span class="wide-only"> 관리</span></button><button data-tab="tbl"><span class="wide-only">테이블·</span>계산식</button></nav>
+  <nav class="tabs" id="tabs"><button data-tab="char" class="on">캐릭터<span class="wide-only"> 제작</span></button><button data-tab="type">타입<span class="wide-only"> 배분</span></button><button data-tab="db">DB<span class="wide-only"> 관리</span></button><button data-tab="tbl"><span class="wide-only">테이블·</span>계산식</button><button data-tab="notes">업뎃<span class="wide-only"> 노트</span></button></nav>
   <button class="btn sm toolsbtn" type="button" data-toolsbtn aria-expanded="false" aria-controls="tools">파일 <span aria-hidden="true">▾</span></button>
   <div class="tools" id="tools">
     <button class="btn sm" data-act="xlsxOut">엑셀로 내보내기</button>
@@ -30,6 +30,7 @@
   <section id="v-type" hidden></section>
   <section id="v-db" hidden></section>
   <section id="v-tbl" hidden></section>
+  <section id="v-notes" hidden></section>
 </main>
 <div id="toast" role="status"></div>
   </div>
@@ -38,6 +39,7 @@
 <script src="js/store.js"></script>
 <script src="data/db.js"></script>
 <script src="js/vendor/jszip.min.js"></script>
+<script src="js/notes.js"></script>
 <script src="js/maker.js"></script>
 </body>
 </html>
