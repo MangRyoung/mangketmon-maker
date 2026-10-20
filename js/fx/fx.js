@@ -91,7 +91,7 @@ window.OM_FX=(()=>{
      case 'ignoreup':{const F=fx(self);F.ignoreUp=op.on?{dir:op.dir||'atk',scope:op.scope||'both',ro:op.ro||[],name}:null;L.push(`${self.name} ${op.dir==='recv'?'받을 때 상대의':'공격할 때 상대의'} ${({def:'방어',eva:'회피',atk:'공격',both:'방어·회피'})[op.scope]||'능력'} 상승 무시${op.on?'':' 해제'}`);break}
      case 'float':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){const F=fx(m);F.float=op.mode==='off'?null:{until:op.turns>0?(+b.turn||0)+op.turns-1:-1,name};L.push(`${m.name} 하늘 위${op.mode==='off'?' 해제':''}`)}break}
      case 'role':{const F=fx(self);if(op.mode==='clear')F.roles=[];else if(op.mode==='remove')F.roles=F.roles.filter(r=>!(op.roles||[]).includes(r));else F.roles=[...new Set([...F.roles,...(op.roles||[])])];F.rolesBy=F.roles.length?name:'';L.push(`${self.name} 역할 취급: ${F.roles.join('·')||'없음'}`);break}
-     case 'pursuit':{self.flags=self.flags||{};self.flags.pursuit=!!op.on;if(op.on)self.flags.pursuitBy=name;else delete self.flags.pursuitBy;L.push(`${self.name} 다음 기술에 「따라가때리기」${op.on?'':' 해제'}`);break}
+     case 'pursuit':{if(op.immune){self.flags=self.flags||{};self.flags.pursuitImmune=!!op.on;if(op.on)self.flags.pursuitImmuneBy=name;else delete self.flags.pursuitImmuneBy;L.push(`${self.name} 이번 턴 상대의 「따라가때리기」를 받지 않는다${op.on?'':' — 해제'}`);break}self.flags=self.flags||{};self.flags.pursuit=!!op.on;if(op.on)self.flags.pursuitBy=name;else delete self.flags.pursuitBy;L.push(`${self.name} 다음 기술에 「따라가때리기」${op.on?'':' 해제'}`);break}
      case 'resetstates':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){const list=op.group==='condition_abnormal'?ABN:NEG;const c=[];for(const k of list)if((m.states||{})[k]){delete m.states[k];c.push(stKo(k))}L.push(`${m.name} ${c.length?'「'+c.join('」「')+'」 해제':'해제할 상태 없음'}`)}break}
      case 'raid':{self.raid=Object.assign({},self.raid||{},{segments:+op.x||(self.raid||{}).segments||0,floor:op.floor,cure:op.cure,cstat:op.cstat,rup:op.rup});L.push(`${self.name} 레이드 배틀 설정 (구간 ${self.raid.segments||'?'})`);break}
      case 'dex':{const ts=await targets(b,self,'enemy1',ctx);const tg=ts[0];L.push(`「${name}」 데이터 해석${tg?' → '+tg.name:''}`);if(tg&&window.OM_DEX_UI&&ctx.viewer!==undefined)setTimeout(()=>window.OM_DEX_UI.analyze(ctx.viewer||self.tid,tg.id,{forced:true,free:true}),400);break}
@@ -160,6 +160,7 @@ window.OM_FX=(()=>{
   for(const e of (m.fx&&m.fx.nodrop)||[])out.push({t:(e.st?STAT_KO[e.st]+' ':'')+'감소 무시',title:e.name,id:'nodrop:'+e.key,name:e.name});for(const e of (m.fx&&m.fx.mults)||[])out.push({t:'배율 '+multLabel(e.stats),title:e.name+' — '+Object.entries(e.stats).map(([k,v])=>(STAT_KO[k]||k)+' ×'+v).join(' · ')+(e.temp?' (턴 종료까지)':''),id:'mults:'+e.key,name:e.name});
   if(m.fx&&m.fx.ignoreUp)out.push({t:'강화 무시',title:(m.fx.ignoreUp.name||'')+' — 상대의 능력 상승 무시',id:'ignoreUp',name:m.fx.ignoreUp.name||'강화 무시'});if(floating(m))out.push({t:'하늘 위',title:((m.fx&&m.fx.float&&m.fx.float.name)||'')+' — 땅 위 효과를 받지 않는다',id:'float',name:(m.fx&&m.fx.float&&m.fx.float.name)||'하늘 위'});
   if(m.fx&&m.fx.roles&&m.fx.roles.length)out.push({t:'역할 '+m.fx.roles.join('·'),title:(m.fx.rolesBy||'')+' 역할 취급',id:'roles',name:m.fx.rolesBy||'역할 취급'});if(m.typesOrig)out.push({t:'타입 변경',title:(m.typesBy||'')+' — 원래 '+m.typesOrig.map(t=>TYPE_KO[t]||t).join('/'),id:'types',name:m.typesBy||'타입 변경'});if(m.abilityOrig!=null)out.push({t:'특성 변경',title:(m.abilityBy||'')+' — 원래 '+(m.abilityOrig||'없음'),id:'ability',name:m.abilityBy||'특성 변경'});
+  if(m.flags&&m.flags.pursuitImmune)out.push({t:'추격 무시',title:(m.flags.pursuitImmuneBy||'')+' — 이번 턴 교대해도 상대의 「따라가때리기」를 받지 않는다. 턴 종료에 풀린다',id:'pursuitImmune',name:m.flags.pursuitImmuneBy||''});
   if(m.flags&&m.flags.pursuit)out.push({t:'추격',title:(m.flags.pursuitBy||'')+' — 따라가때리기(Pursuit): 다음 기술에서 상대가 교대하려 하면 교대 전에 먼저 때린다. 턴 종료에 풀린다',id:'pursuit',name:m.flags.pursuitBy||'추격'});return out}
  /* 배율 칩 짧은 글: 5능력이 같은 값이면 「능력 ×1.33」, 나머지는 따로 */
  function multLabel(st){const five=['attack','defense','specialattack','specialdefense','speed'];const out=[];const v5=five.map(k=>st[k]);if(v5.every(v=>v!=null)&&v5.every(v=>v===v5[0])){out.push('능력 ×'+v5[0]);for(const k in st)if(!five.includes(k))out.push((STAT_KO[k]||k)+' ×'+st[k])}else{const by={};for(const k in st)(by[st[k]]=by[st[k]]||[]).push(STAT_KO[k]||k);for(const v in by)out.push(by[v].map(x=>x.replace('스피드','스')).join('·')+' ×'+v)}return out.join(' ')}
@@ -168,13 +169,13 @@ window.OM_FX=(()=>{
   for(const e of F.mults.filter(e=>e.name===name)){unmult(m,e);n++}F.mults=F.mults.filter(e=>e.name!==name);
   if(F.ignoreUp&&F.ignoreUp.name===name){F.ignoreUp=null;n++}if(F.float&&F.float.name===name){F.float=null;n++}if(F.roles.length&&F.rolesBy===name){F.roles=[];F.rolesBy='';n++}
   if(m.typesOrig&&m.typesBy===name){m.types=m.typesOrig;delete m.typesOrig;delete m.typesBy;n++}if(m.abilityOrig!=null&&m.abilityBy===name){m.ability=m.abilityOrig;delete m.abilityOrig;delete m.abilityBy;n++}
-  if(m.flags&&m.flags.pursuit&&m.flags.pursuitBy===name){delete m.flags.pursuit;delete m.flags.pursuitBy;n++}return n}
+  if(m.flags&&m.flags.pursuit&&m.flags.pursuitBy===name){delete m.flags.pursuit;delete m.flags.pursuitBy;n++}if(m.flags&&m.flags.pursuitImmune&&m.flags.pursuitImmuneBy===name){delete m.flags.pursuitImmune;delete m.flags.pursuitImmuneBy;n++}return n}
  function unmult(m,e){m.mod=m.mod||{};for(const k in e.stats){const v=+e.stats[k]||1;m.mod[k]=Math.round(((+m.mod[k]||1)/v)*1000)/1000;if(Math.abs(m.mod[k]-1)<0.002)delete m.mod[k];if(e.temp&&m.tempMod&&m.tempMod[k]!=null){m.tempMod[k]=Math.round(((+m.tempMod[k]||1)/v)*1000)/1000;if(Math.abs(m.tempMod[k]-1)<0.002)delete m.tempMod[k]}}}
  /* 효과 하나 해제 (id 는 chips 의 id) */
  function remove(m,id){const F=fx(m);const [kind,key]=id.split(/:(.+)/);if(['mods','noind','prio','immune','nodrop'].includes(kind)){F[kind]=F[kind].filter(e=>e.key!==key);return true}
   if(kind==='mults'){const e=F.mults.find(x=>x.key===key);if(e)unmult(m,e);F.mults=F.mults.filter(x=>x.key!==key);return true}
-  if(kind==='ignoreUp'){F.ignoreUp=null;return true}if(kind==='float'){F.float=null;return true}if(kind==='roles'){F.roles=[];return true}if(kind==='types'){if(m.typesOrig){m.types=m.typesOrig;delete m.typesOrig}return true}if(kind==='ability'){if(m.abilityOrig!=null){m.ability=m.abilityOrig;delete m.abilityOrig}return true}if(kind==='pursuit'){if(m.flags)delete m.flags.pursuit;return true}return false}
- function removeAll(m){const F=fx(m);for(const e of F.mults)unmult(m,e);F.mults=[];F.mods=[];F.noind=[];F.prio=[];F.immune=[];F.nodrop=[];F.ignoreUp=null;F.float=null;F.roles=[];if(m.typesOrig){m.types=m.typesOrig;delete m.typesOrig}if(m.abilityOrig!=null){m.ability=m.abilityOrig;delete m.abilityOrig}if(m.flags){delete m.flags.pursuit;delete m.flags.pursuitBy}if(m.typesBy)delete m.typesBy;if(m.abilityBy)delete m.abilityBy;F.rolesBy=''}
+  if(kind==='ignoreUp'){F.ignoreUp=null;return true}if(kind==='float'){F.float=null;return true}if(kind==='roles'){F.roles=[];return true}if(kind==='types'){if(m.typesOrig){m.types=m.typesOrig;delete m.typesOrig}return true}if(kind==='ability'){if(m.abilityOrig!=null){m.ability=m.abilityOrig;delete m.abilityOrig}return true}if(kind==='pursuit'){if(m.flags)delete m.flags.pursuit;return true}if(kind==='pursuitImmune'){if(m.flags){delete m.flags.pursuitImmune;delete m.flags.pursuitImmuneBy}return true}return false}
+ function removeAll(m){const F=fx(m);for(const e of F.mults)unmult(m,e);F.mults=[];F.mods=[];F.noind=[];F.prio=[];F.immune=[];F.nodrop=[];F.ignoreUp=null;F.float=null;F.roles=[];if(m.typesOrig){m.types=m.typesOrig;delete m.typesOrig}if(m.abilityOrig!=null){m.ability=m.abilityOrig;delete m.abilityOrig}if(m.flags){delete m.flags.pursuit;delete m.flags.pursuitBy;delete m.flags.pursuitImmune;delete m.flags.pursuitImmuneBy}if(m.typesBy)delete m.typesBy;if(m.abilityBy)delete m.abilityBy;F.rolesBy=''}
 
  /* ===== 발동 시점·확률 (효과 글의 표식) ===== */
  function timing(text){const t=String(text||'');const out={entry:/【등장】/.test(t),passive:/【상시】/.test(t),turnEnd:/【턴 종료】|턴 종료 시/.test(t),pre:/【선행】/.test(t),uses:(t.match(/【(\d+)\/시】/)||[])[1]||'',percent:''};
@@ -217,7 +218,8 @@ window.OM_FX=(()=>{
    case '강화무시':{const dir=has('받음')||has('받을때')?'recv':'atk';has('공격시');let scope='both';if(has('방어'))scope='def';if(has('회피'))scope='eva';if(has('공격'))scope='atk';if(has('양쪽'))scope='both';const ri=words.findIndex(w=>/^역할[:：]?/.test(w));const ro=ri>=0?words.splice(ri,1)[0].replace(/^역할[:：]?/,'').split(',').filter(Boolean):[];return {k:'ignoreup',dir,scope,on:has('해제')?0:1,mode:0,ro}}
    case '하늘위':{const tgt=tgtOf(words)||'self';const tl=turns();return {k:'float',tgt,mode:has('해제')?'off':'on',turns:tl!=null?tl:-1}}
    case '역할':{let mode='add';if(has('제거'))mode='remove';if(has('초기화'))mode='clear';has('추가');return {k:'role',mode,roles:words.join(',').split(/[,·]/).map(x=>x.trim()).filter(Boolean)}}
-   case '추격':return {k:'pursuit',on:has('해제')?0:1,hide:has('숨김')?1:0,tgt:'self'};
+   case '추격':return {k:'pursuit',on:has('해제')?0:1,hide:has('숨김')?1:0,immune:has('무시')?1:0,tgt:'self'};
+   case '추격무시':return {k:'pursuit',on:has('해제')?0:1,hide:has('숨김')?1:0,immune:1,tgt:'self'};
    case '상태초기화':return {k:'resetstates',tgt:tgtOf(words)||'self',group:has('전부')?'negative':'condition_abnormal'};
    case '확인':return {k:'confirm',q:words.join(' ').replace(/^["“]|["”]$/g,'')};
    case '조건':{const w=words.join('');if(/아군빈사/.test(w))return {k:'cond',c:'ally_fainted'};const m=w.match(/HP[≤<=]+(\d+\/\d+)/);if(m)return {k:'cond',c:'hp_le',frac:m[1]};return {k:'confirm',q:words.join(' ')}}
@@ -260,7 +262,7 @@ window.OM_FX=(()=>{
    case 'ignoreup':L.push('강화무시 '+(op.dir==='recv'?'받음':'공격시')+' '+({def:'방어',eva:'회피',atk:'공격',both:'양쪽'})[op.scope]+(op.ro&&op.ro.length?' 역할:'+op.ro.join(','):'')+(op.on?'':' 해제'));break;
    case 'float':L.push('하늘위'+tg(op.tgt)+(op.turns>0?' '+op.turns+'턴':'')+(op.mode==='off'?' 해제':''));break;
    case 'role':L.push('역할 '+({add:'추가',remove:'제거',clear:'초기화'})[op.mode]+' '+(op.roles||[]).join(','));break;
-   case 'pursuit':L.push('추격'+(op.on?'':' 해제')+(op.hide?' 숨김':''));break;
+   case 'pursuit':L.push('추격'+(op.immune?' 무시':'')+(op.on?'':' 해제')+(op.hide?' 숨김':''));break;
    case 'resetstates':L.push('상태초기화'+tg(op.tgt)+(op.group==='negative'?' 전부':''));break;
    case 'confirm':L.push('확인 "'+op.q+'"');break;
    case 'cond':L.push('조건 '+(op.c==='ally_fainted'?'아군빈사':'HP≤'+op.frac));break;
