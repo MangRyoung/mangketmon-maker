@@ -398,10 +398,22 @@ function stplApplyAll(){let n=0,k=0;for(const t of S.trainers)for(const p of t.p
 
 /* ---------- 모델 ---------- */
 function newPoke(){return{id:uid(),open:true,tab:'base',name:'',gender:'-',pride:'',egg1:'-',egg2:'-',t1:'-',t2:'-',t3:'-',tera:'-',ability:'',item:'',dist:0,
- base:Array(6).fill(''),ev:Array(6).fill(''),pots:Array(20).fill(''),potEff:Array(20).fill(''),potKind:Array(20).fill(''),excl:{name:'',eff:''},exclX:[],moves:[],sockMax:'',memo:'',image:'',stands:[],standActive:0,partner:false,auto:{}}}
+ base:Array(6).fill(''),ev:Array(6).fill(''),pots:Array(20).fill(''),potEff:Array(20).fill(''),potKind:Array(20).fill(''),excl:{name:'',eff:''},exclX:[],moves:[],sockMax:'',memo:'',image:'',stands:[],standActive:0,partner:false,auto:{},forms:[]}}
 function fixP(p){const n=newPoke();for(const k in n)if(p[k]==null)p[k]=n[k];
  for(const k of ['pots','potEff','potKind'])while(p[k].length<20)p[k].push('');
- p.moves=(p.moves||[]).filter(m=>m&&m.name);p.exclX=(Array.isArray(p.exclX)?p.exclX:[]).filter(x=>x&&typeof x==='object').map(x=>({name:String(x.name||''),eff:String(x.eff||'')}));delete p.iv;delete p.nature;p.image=safeImg(p.image);p.stands=standsFix(p.stands);if(!(+p.standActive>=0)||+p.standActive>=p.stands.length)p.standActive=0;p.potKind=p.potKind.map(k=>k?normKind(k):'');if(!p.auto||typeof p.auto!=='object')p.auto={};if(!p.id)p.id=uid();return p}
+ p.moves=(p.moves||[]).filter(m=>m&&m.name);p.exclX=(Array.isArray(p.exclX)?p.exclX:[]).filter(x=>x&&typeof x==='object').map(x=>({name:String(x.name||''),eff:String(x.eff||'')}));delete p.iv;delete p.nature;p.image=safeImg(p.image);p.stands=standsFix(p.stands);if(!(+p.standActive>=0)||+p.standActive>=p.stands.length)p.standActive=0;p.potKind=p.potKind.map(k=>k?normKind(k):'');if(!p.auto||typeof p.auto!=='object')p.auto={};p.forms=(Array.isArray(p.forms)?p.forms:[]).filter(f=>f&&typeof f==='object').map(fixForm);if(!p.id)p.id=uid();return p}
+/* 폼체인지·메가진화: 오레마스 배틀에서 바꿔 들어갈 모습 (이름·타입·특성·종족치·그림) */
+const FORM_KINDS=['폼체인지','메가진화','원시회귀','기타'];
+function newForm(){return {name:'',kind:'폼체인지',t1:'-',t2:'-',ability:'',base:Array(6).fill(''),image:'',cond:'',revert:true}}
+function fixForm(f){const n=newForm();for(const k in n)if(f[k]==null)f[k]=n[k];f.base=Array.from({length:6},(_,i)=>String((f.base||[])[i]??''));f.image=safeImg(f.image);f.revert=!!f.revert;return f}
+function formFromOld(r){const mega=r[10]==='O';return fixForm({name:r[1],kind:mega?'메가진화':'폼체인지',t1:r[3]||'-',t2:r[4]||'-',ability:abilName(r[5]),base:r.slice(11,17).map(v=>String(v??'')),revert:!mega})}
+function formsHtml(t,ti,p,pi,P){const fs=p.forms||[];const types=S.db.types.map(x=>x[0]);const A=(act,k)=>`data-act="${act}" data-i="${ti}" data-j="${pi}"${k!=null?` data-k="${k}"`:''}`;
+ return `<div class="panel fmp"><h3>폼체인지 · 메가진화<span class="sp"></span><button class="btn sm" ${A('addFormOld')} title="올드 타입 일람(메가진화·리전 폼 등)의 타입·특성·종족치를 채웁니다">+ 일람에서</button><button class="btn sm" ${A('addForm')}>+ 빈 폼</button></h3>
+ ${fs.length?fs.map((f,k)=>{const F=`${P}.forms.${k}`;const ab=idx.abil.get(f.ability);const tot=f.base.reduce((a,b)=>a+(+b||0),0);return `<div class="fmrow"><div class="fmhd">${safeImg(f.image)?`<img class="fmimg" src="${safeImg(f.image)}" alt="">`:''}${inp(F+'.name',f.name,{ph:'폼 이름 (예: 메가 리자몽 X)'})}${sel(F+'.kind',f.kind,FORM_KINDS)}<button class="btn sm ghost" ${A('delForm',k)} title="이 폼 지우기">✕</button></div>
+  <div class="fmgrid"><label class="lbl">타입1${sel(F+'.t1',f.t1,types)}</label><label class="lbl">타입2${sel(F+'.t2',f.t2,types)}</label><div class="lbl" style="grid-column:span 2">특성<button class="pickbtn" ${A('pickFormAbil',k)}>${f.ability?`<b>${esc(f.ability)}</b>${ab?'':'<span class="sp"></span><span class="faint small">DB에 없음</span>'}`:'<span class="ph0">그대로 (원래 특성)</span>'}</button></div></div>
+  <div class="fmst">${STATS.map((sn,i)=>`<label><span>${sn}</span>${inp(`${F}.base.${i}`,f.base[i],{num:1,ph:String(p.base[i]||'')})}</label>`).join('')}<span class="small muted">합 <b class="num">${tot}</b></span></div>
+  <div class="fmgrid"><label class="lbl" style="grid-column:span 2">조건 · 메모${inp(F+'.cond',f.cond,{ph:'예: 메가스톤 지니고 1회 / HP 절반 이하'})}</label><label class="lbl" style="grid-column:span 2">그림 주소${inp(F+'.image',f.image,{ph:'https://… (비우면 원래 그림)'})}</label></div>
+  <label class="row small"><input type="checkbox" data-p="${F}.revert" ${f.revert?'checked':''}> 교대(퇴장)하면 원래 모습으로 돌아온다 (메가진화는 보통 끔)</label></div>`}).join(''):'<div class="small muted">배틀에서 바꿀 모습을 적어 두면 오레마스 배틀에서 폼체인지·메가진화했다가 돌아올 수 있습니다. 비운 종족치·특성·그림은 원래 것을 씁니다.</div>'}</div>`}
 const standsFix=a=>(Array.isArray(a)?a:[]).filter(x=>x&&typeof x==='object'&&/^https?:\/\//.test(String(x.src||''))).map(x=>Object.assign({label:String(x.label||'기본').slice(0,40),src:String(x.src),point:+x.point||0},x.kind==='stand'||x.kind==='portrait'?{kind:x.kind}:{}));
 function newTrainer(){const t={id:uid(),open:true,name:'새 트레이너',kind:'pc',pl:'',folder:'',image:'',ranks:{지시:'C',육성:'C',통솔:'C',능력:'C'},detail:{지시:'',육성:'',통솔:'',능력:''},solo:false,
  pts:[],extra:{},base:Object.fromEntries(ptItems().map(([n,d])=>[n,+d||0])),unique:[{name:'',eff:''}],ptMax:'',pokemon:[]};applyTpl(t);return t}
@@ -1202,6 +1214,7 @@ function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=idx.items.get(
   </div>
   ${ab?`<div class="effbox"><b>${esc(p.ability)}</b> ${rich(ab[2])}<span class="fxrow">${fxAutoBtn(p,'trait',p.ability,ti,pi)}</span></div>`:p.ability?`<div class="effbox">DB에 없는 특성입니다. <button class="btn sm" data-act="newAbil" data-i="${ti}" data-j="${pi}">이 이름으로 오리지널 특성 만들기</button><span class="fxrow">${fxAutoBtn(p,'trait',p.ability,ti,pi)}</span></div>`:''}
   ${it?`<div class="effbox"><b>${esc(p.item)}</b> ${rich(it[4])} ${it[6]&&it[6]!=='-'?`<span class="faint">· ${esc(it[6])}</span>`:''}<span class="fxrow">${fxAutoBtn(p,'item',p.item,ti,pi)}</span></div>`:p.item?`<div class="effbox"><b>${esc(p.item)}</b><span class="fxrow">${fxAutoBtn(p,'item',p.item,ti,pi)}</span></div>`:''}
+  ${formsHtml(t,ti,p,pi,P)}
  </div>
  <div class="panel" style="min-width:0"><h3>능력치<span class="sp"></span><span class="small muted">종족치 합 <b class="num">${tot}</b>${(()=>{const pl=planRange(p);if(!pl)return '';const ok=tot>=pl.lo&&tot<=pl.hi;return ` · 예정 <b class="num${ok?'':' warn'}">${pl.lo}${pl.hi!==pl.lo?'~'+pl.hi:''}</b>${pl.alt?' <span class="faint">(괄호 값)</span>':''}`})()}</span></h3>
   <div class="stats">${STATS.map((s,i)=>{const g=grade(p.base[i]);const v=+p.base[i]||0;return `<div class="st s${i}"><span class="k">${s}</span>${inp(`${P}.base.${i}`,p.base[i],{num:1,ph:'종족치'})}<div class="bar"><i style="width:${Math.min(100,v/200*100)}%;background:${gcol(g)}"></i></div><span class="v">${stat(t,p,i)}</span><span class="gb" style="background:${gcol(g)}">${esc(g)}</span></div>`}).join('')}</div>
@@ -1321,6 +1334,10 @@ $('#v-char').addEventListener('click',async e=>{
   case 'fx':{e.stopPropagation();const sl=b.dataset.slot;fxOpen(T,P,b.dataset.kind,b.dataset.name,sl===''?null:/^\d+$/.test(sl)?+sl:sl);break}
   case 'pimgPick':{e.stopPropagation();let inp=$('#pimg-any');if(!inp){inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.id='pimg-any';inp.hidden=true;inp.addEventListener('change',()=>{const f=inp.files[0];if(!f)return;const [a,b]=String(inp.dataset.pimg).split('.').map(Number);setPokeImg(a,b,f)});MKROOT().appendChild(inp)}inp.dataset.pimg=`${i}.${j}`;inp.value='';inp.click();break}
   case 'pickOld':openOldFill(T,P);break;
+  case 'addForm':P.forms=P.forms||[];P.forms.push(newForm());rf();break;
+  case 'addFormOld':openPicker('old',{title:'올드 타입 일람에서 폼 고르기',onPick:n=>{const r=idx.old.get(n);if(!r)return;P.forms=P.forms||[];P.forms.push(formFromOld(r));rf();toast(`「${r[1]}」 폼을 넣었습니다`)}});break;
+  case 'delForm':{const k=+b.dataset.k;const f=(P.forms||[])[k];if(!f)break;if(await ask(`폼 「${esc(f.name||'이름 없음')}」을(를) 지울까요?`,'삭제')){P.forms.splice(k,1);rf()}break}
+  case 'pickFormAbil':{const f=(P.forms||[])[+b.dataset.k];if(!f)break;openPicker('abil',{onPick:n=>{f.ability=n;rf()}});break}
   case 'addOld':openOldFill(T,null);break;
   case 'copy':copyStr(copyText(T,P));break;
   case 'sessT':copySession([T]);break;
