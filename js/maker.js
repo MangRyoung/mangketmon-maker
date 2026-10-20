@@ -26,14 +26,18 @@ const rmLoaded=()=>!!(DEF.rm&&DEF.rm.length);
    수정은 dbedit/st.* 로 공유되고, 오레마스가 「제작기 새로고침」으로 가져간다. 제작기 안의 구문 엔진도 고친 표를 바로 쓴다 */
 if(!Array.isArray(DEF.st))DEF.st=[];let ST_BASE=null;const ST_HIDE='(숨김)';
 function stRowsOf(o){o=o||{};const st=o.st||{};const gOf={};(o.groups||[]).forEach(g=>(g.s||[]).forEach(k=>{if(!gOf[k])gOf[k]=g.l}));const hid=new Set(o.hidden||[]);const ord=[];(o.groups||[]).forEach(g=>(g.s||[]).forEach(k=>{if(st[k]&&!ord.includes(k))ord.push(k)}));for(const k in st)if(!ord.includes(k))ord.push(k);
- return ord.map(k=>{const e=st[k]||{};return [k,String(e.ko||''),gOf[k]||(hid.has(k)?ST_HIDE:''),String(e.min??''),String(e.max??''),String(e.roll||''),String(e.prog||''),e.abn?'O':'',e.neg?'O':'',e.bat?'O':'',(Array.isArray(e.desc)?e.desc:String(e.desc||'').split('\n')).join('\n'),String(e.memo||'')]})}
+ return ord.map(k=>{const e=st[k]||{};return [k,String(e.ko||''),gOf[k]||(hid.has(k)?ST_HIDE:''),String(e.min??''),String(e.max??''),String(e.roll||''),String(e.prog||''),e.abn?'O':'',e.neg?'O':'',e.bat?'O':'',(Array.isArray(e.desc)?e.desc:String(e.desc||'').split('\n')).join('\n'),String(e.memo||''),String(e.img||'')]})}
 function stObjOf(rows){const st={},groups=[],gi={},hidden=[];const num=v=>{const n=+v;return v===''||isNaN(n)?0:n};
- for(const r of rows||[]){const k=String(r[0]||'').trim();if(!k)continue;st[k]={ko:r[1]||k,min:num(r[3]),max:num(r[4]),roll:r[5]||'',abn:r[7]==='O'?1:0,neg:r[8]==='O'?1:0,bat:r[9]==='O'?1:0,prog:r[6]||'turn',desc:String(r[10]||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean),memo:r[11]||''};
+ for(const r of rows||[]){const k=String(r[0]||'').trim();if(!k)continue;st[k]={ko:r[1]||k,min:num(r[3]),max:num(r[4]),roll:r[5]||'',abn:r[7]==='O'?1:0,neg:r[8]==='O'?1:0,bat:r[9]==='O'?1:0,prog:r[6]||'turn',desc:String(r[10]||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean),memo:r[11]||''};if(r[12])st[k].img=r[12];
   const g=String(r[2]||'').trim();if(g===ST_HIDE||!g){hidden.push(k);continue}if(gi[g]==null){gi[g]=groups.length;groups.push({l:g,s:[]})}groups[gi[g]].s.push(k)}
  return {v:1,groups,hidden,st}}
 function stInit(){const o=window.OM_DB&&window.OM_DB.states;if(!o||!o.st)return false;if(!ST_BASE)ST_BASE=clone(o);if(!DEF.st||!DEF.st.length){DEFJ=null;DEF.st=stRowsOf(ST_BASE)}
  let shr=false;try{shr=SH.ready}catch(e){}if(shr){shRebuildDB();stApply();return true}
- if(S.db&&(!S.db.st||!S.db.st.length)){S.db.st=clone(DEF.st);if(!S.custom.st)S.custom.st=[];reindex()}stApply();return true}
+ if(S.db&&(!S.db.st||!S.db.st.length)){S.db.st=clone(DEF.st);if(!S.custom.st)S.custom.st=[];reindex()}
+ /* 아이콘 칸이 생기기 전에 저장된 행: 기본 아이콘을 채운다 (안 채우면 모든 행이 「바뀐 행」이 된다) */
+ for(const r of (S.db&&S.db.st)||[])if(r.length<13){const d=DEF.st.find(x=>x[0]===r[0]);r[12]=d?d[12]:''}stApply();return true}
+/* 아이콘: 파일 이름이면 오레마스 img/state/ 의 것, 주소(https:·data:)면 그대로 */
+const stIcon=v=>!v?'':/^(https?:|data:image\/)/.test(v)?v:'https://mangryoung.github.io/oremas/img/state/'+encodeURIComponent(v);
 const stLoaded=()=>!!(DEF.st&&DEF.st.length);
 function stApply(){if(!stLoaded()||!S.db||!S.db.st||!S.db.st.length||!window.OM_DB)return;window.OM_DB.states=stObjOf(S.db.st)}
 const lazyOk=k=>k==='rm'?rmLoaded():k==='st'?stLoaded():true;
@@ -127,7 +131,7 @@ const DBS={
  old:{t:'올드 타입',key:1,cols:['지역','포켓몬','Name','타입1','타입2','특성1','특성2','숨겨진 특성','알그룹1','알그룹2','메가','HP','공격','방어','특공','특방','스피드'],show:[1,0,3,4,5,6,7,8,9,11,12,13,14,15,16],eff:-1},
  points:{t:'포인트',key:4,cols:['번호','분류','세부','소모 항목','이름','효과','소모 포인트','상시 공개'],show:[4,1,2,3,6,5,7],eff:5},
  rm:{t:'레디메이드',key:0,cols:['이름','효과 글','구문','손으로'],show:[0,1,2,3],eff:1},
- st:{t:'상태 변화',key:0,cols:['키(영문)','이름','그룹','기본 턴','최대 턴','턴 굴림','진행','상태 이상','불리','배턴','설명','메모'],show:[1,0,2,3,4,6,7,8,9,10],eff:10}
+ st:{t:'상태 변화',key:0,cols:['키(영문)','이름','그룹','기본 턴','최대 턴','턴 굴림','진행','상태 이상','불리','배턴','설명','메모','아이콘'],show:[12,1,0,2,3,4,6,7,8,9,10],eff:10}
 };
 
 /* ---------- 상태 ---------- */
@@ -600,6 +604,7 @@ function openPicker(kind,{title,multi,chosen,onPick,onRemove}={}){
 /* ---------- DB 항목 편집 ---------- */
 function fieldHTML(kind,n,v){const c=DBS[kind].cols[n];const id=`f-${kind}-${n}`;
  if(kind==='rm'&&n===2)return `<label class="lbl" for="${id}" style="grid-column:1/-1">${c} <span class="small muted">한 줄에 명령 하나 · 오레마스 자동화</span><textarea id="${id}" data-f="${n}" rows="5" style="font-family:var(--mono,monospace);font-size:12.5px">${esc(v||'')}</textarea><span class="small" data-rmprev></span><details><summary class="small">구문 도움말</summary><pre class="small" style="white-space:pre-wrap">${esc(typeof AUTO_HELP==='string'?AUTO_HELP:'')}</pre></details></label>`;
+ if(kind==='st'&&n===12)return `<label class="lbl" for="${id}" style="grid-column:span 2">${c} <span class="small muted">파일 이름(오레마스 img/state) 또는 그림 주소 · 그림 파일을 고르면 작게 줄여 넣습니다</span><span class="row" style="gap:6px;flex-wrap:nowrap;align-items:center"><img data-sticon src="${esc(stIcon(v))}" alt="" style="width:40px;height:40px;object-fit:contain;border:1px solid var(--line,#ccc);border-radius:6px;${v?'':'visibility:hidden'}"><input id="${id}" data-f="${n}" value="${esc(v??'')}" style="flex:1;min-width:0"><input type="file" accept="image/*" data-sticonf hidden><button type="button" class="btn sm" data-sticonpick>그림 고르기</button></span></label>`;
  if(kind==='st'&&n===6)return `<label class="lbl" for="${id}">${c} <span class="small muted">turn 턴 끝마다 · move 기술 낼 때 · once 한 번</span><select id="${id}" data-f="${n}">${['turn','move','once'].concat(v&&!['turn','move','once'].includes(v)?[v]:[]).map(t=>`<option ${t===v?'selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
  if(kind==='st'&&n>=7&&n<=9)return `<label class="lbl" for="${id}">${c}<select id="${id}" data-f="${n}">${['','O'].map(t=>`<option value="${t}" ${t===v?'selected':''}>${t||'아니오'}</option>`).join('')}</select></label>`;
  if(kind==='st'&&n===2)return `<label class="lbl" for="${id}">${c}<input id="${id}" data-f="${n}" value="${esc(v??'')}" list="L-stg"><datalist id="L-stg">${[...new Set(S.db.st.map(r=>r[2]).concat([ST_HIDE]))].filter(Boolean).map(g=>`<option value="${esc(g)}">`).join('')}</datalist></label>`;
@@ -620,6 +625,9 @@ function openEdit(kind,i,{preset={},onSaved}={}){const D=DBS[kind];
  <div class="fgrid">${order.map(n=>fieldHTML(kind,n,r[n])).join('')}</div><div class="preview" data-prev></div></div>
  <div class="mfoot">${i>=0?'<button class="btn danger" data-del>삭제</button>':''}<span class="sp"></span><button class="btn" data-x>취소</button><button class="btn pri" data-save>저장</button></div>`,{wide:true});
  const rgi=kind==='moves'?$('[data-f="9"]',l):null;if(rgi)rgi.addEventListener('input',()=>{$('[data-rg]',l).innerHTML=rangeGrid(rgi.value)});
+ if(kind==='st'){const inp=$('[data-f="12"]',l),im=$('[data-sticon]',l),fi=$('[data-sticonf]',l);const show=()=>{im.src=stIcon(inp.value.trim());im.style.visibility=inp.value.trim()?'visible':'hidden'};inp.addEventListener('input',show);
+  $('[data-sticonpick]',l).addEventListener('click',()=>fi.click());
+  fi.addEventListener('change',async()=>{const f=fi.files[0];if(!f)return;try{const bmp=await createImageBitmap(f);const S2=64,sc=Math.min(1,S2/Math.max(bmp.width,bmp.height));const cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(bmp.width*sc));cv.height=Math.max(1,Math.round(bmp.height*sc));cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);let u=cv.toDataURL('image/webp',0.85);if(!u.startsWith('data:image/webp'))u=cv.toDataURL('image/png');inp.value=u;show()}catch(err){toast('그림을 읽지 못했습니다')}})}
  if(kind==='rm'&&window.OM_FX){const ds=$('[data-f="2"]',l),pv=$('[data-rmprev]',l);const up=()=>{const r=window.OM_FX.parse(ds.value);pv.innerHTML=(r.ops.length?'미리보기: '+esc(window.OM_FX.unparse(r.ops).join(' / ')):'<span class="muted">구문 없음</span>')+(r.errs&&r.errs.length?` <span class="warn">모르는 줄: ${esc(r.errs.join(' / '))}</span>`:'')};ds.addEventListener('input',up);up()}
  const ta=D.eff>=0?$(`[data-f="${D.eff}"]`,l):null;
  if(ta){bindTagbar(l,()=>ta);
@@ -1458,7 +1466,7 @@ const dbs={k:'moves',q:'',type:'',cat:'',kind:'',mine:false,lim:150,f:{},pmin:''
 function dbResults(){const k=dbs.k,D=DBS[k];const rows=filterRows(k,dbs);
  return `<p class="small muted" style="margin:0 0 6px">${rows.length}건${rows.length>dbs.lim?` · 앞 ${dbs.lim}건 표시`:''} · 행을 누르면 수정 창이 열립니다</p>
  <div class="dbt"><table><tr>${D.show.map(c=>`<th>${esc(D.cols[c])}</th>`).join('')}</tr>
- ${rows.slice(0,dbs.lim).map(r=>{const i=S.db[k].indexOf(r);return `<tr data-dbedit="${i}" tabindex="0" data-kbd style="cursor:pointer">${D.show.map(c=>c===D.eff?`<td class="ef"><div class="efc">${rich(r[c])}</div></td>`:c===D.key?`<td class="b">${esc(r[c])}${S.custom[k].includes(r[c])?' <span class="kindb">오리지널</span>':''}</td>`:(k==='moves'&&c===5)||(k==='old'&&(c===3||c===4))?`<td>${tchip(r[c])}</td>`:`<td>${esc(r[c])}</td>`).join('')}</tr>`}).join('')}</table>
+ ${rows.slice(0,dbs.lim).map(r=>{const i=S.db[k].indexOf(r);return `<tr data-dbedit="${i}" tabindex="0" data-kbd style="cursor:pointer">${D.show.map(c=>c===D.eff?`<td class="ef"><div class="efc">${rich(r[c])}</div></td>`:c===D.key?`<td class="b">${esc(r[c])}${S.custom[k].includes(r[c])?' <span class="kindb">오리지널</span>':''}</td>`:k==='st'&&c===12?`<td style="width:40px">${r[c]?`<img src="${esc(stIcon(r[c]))}" alt="" loading="lazy" style="width:32px;height:32px;object-fit:contain;display:block">`:''}</td>`:(k==='moves'&&c===5)||(k==='old'&&(c===3||c===4))?`<td>${tchip(r[c])}</td>`:`<td>${esc(r[c])}</td>`).join('')}</tr>`}).join('')}</table>
  ${rows.length>dbs.lim?`<div style="padding:8px"><button class="btn" data-dbmore>더 보기</button></div>`:''}</div>`}
 function renderDB(){const k=dbs.k;
  const head=`<div class="intro"><h1>DB 관리</h1><p>기술·특성·소지품·포텐셜·올드 타입·포인트·레디메이드·상태 변화 DB를 검색하고 추가·수정·삭제합니다. 바뀐 내용은 캐릭터 시트의 검색 창과 계산, 맵툴 토큰 갱신에 바로 반영됩니다.</p></div>
@@ -1495,7 +1503,7 @@ $('#v-db').addEventListener('click',async e=>{const t=e.target;
   const chk=()=>{try{let o=JSON.parse(ta.value);if(o&&o.db&&o.db.st)o=o.db;if(!o||!o.st||typeof o.st!=='object')throw new Error('st 칸이 없습니다');const n=Object.keys(o.st).length;const old=new Set(S.db.st.map(r=>r[0]));const add=Object.keys(o.st).filter(k=>!old.has(k)).length;const gone=[...old].filter(k=>!o.st[k]).length;msg.innerHTML=`상태 ${n}개 · 새로 ${add}${gone?` · JSON 에 없는 ${gone}개는 그대로 둠`:''}`;return o}catch(err){msg.innerHTML=ta.value.trim()?`<span class="warn">읽지 못했습니다: ${esc(err.message)}</span>`:'';return null}};
   ta.addEventListener('input',chk);$('[data-stf]',l).addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;ta.value=await f.text();chk()});
   l.addEventListener('click',async e=>{if(e.target.closest('[data-x]'))return closeModal();if(!e.target.closest('[data-stgo]'))return;const o=chk();if(!o)return toast('JSON 을 확인해 주세요');
-   const keep=S.db.st.filter(r=>r[0]&&!o.st[r[0]]);S.db.st=stRowsOf(o).concat(keep);const base=new Set((DEF.st||[]).map(r=>r[0]));S.custom.st=S.db.st.map(r=>r[0]).filter(k=>!base.has(k));reindex();save(true);stApply();closeModal();renderDB();toast(`상태 변화 DB 를 불러왔습니다 (${S.db.st.length}개)`)});return}
+   const keep=S.db.st.filter(r=>r[0]&&!o.st[r[0]]);const icon=new Map(S.db.st.map(r=>[r[0],r[12]||'']));S.db.st=stRowsOf(o).map(r=>{if(!r[12]&&icon.get(r[0]))r[12]=icon.get(r[0]);return r}).concat(keep);const base=new Set((DEF.st||[]).map(r=>r[0]));S.custom.st=S.db.st.map(r=>r[0]).filter(k=>!base.has(k));reindex();save(true);stApply();closeModal();renderDB();toast(`상태 변화 DB 를 불러왔습니다 (${S.db.st.length}개)`)});return}
  if(a.dataset.dbact==='reset'&&await ask(`${DBS[k].t} DB를 원본 시트 값으로 되돌릴까요? 추가하거나 고친 내용(오리지널 ${S.custom[k].length}건 포함)이 사라집니다.`,'되돌리기')){S.db[k]=clone(DEF[k]);S.custom[k]=[];reindex();save(true);renderDB();toast('원본으로 되돌렸습니다')}});
 let dqT;$('#v-db').addEventListener('input',e=>{if(e.target.id==='dbq'){clearTimeout(dqT);dqT=setTimeout(()=>{dbs.q=e.target.value;dbs.lim=150;const r=$('#dbres');if(r)r.innerHTML=dbResults()},220)}
  else if(e.target.dataset.pr){clearTimeout(dqT);dqT=setTimeout(()=>{dbs[e.target.dataset.pr]=e.target.value.trim();dbs.lim=150;const r=$('#dbres');if(r)r.innerHTML=dbResults();const fb=$('[data-dbftog] .fn');if(fb)fb.textContent=fCount(dbs.k,dbs)?' '+fCount(dbs.k,dbs):''},300)}});
