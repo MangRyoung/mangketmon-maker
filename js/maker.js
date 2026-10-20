@@ -1959,6 +1959,10 @@ function shRebuildDB(){/* 아직 올리지 않은 내 설정 묶음은 받은 �
  S.db.tplSoloV=m&&m.tplSoloV||0;S.db.soloSock=m&&m.soloSock?clone(m.soloSock):null;S.db.ilock=m&&Array.isArray(m.ilock)?clone(m.ilock):[];S.db.rules=m&&m.rules&&typeof m.rules==='object'?clone(m.rules):null;tplNormalize(S.db);
  for(const g in keepG)Object.assign(S.db,keepG[g]);
  SH.dbDirty=true;reindex()}
+/* base = 마지막으로 맞춘 문서, mine = 지금 내 화면의 문서, theirs = 방금 받은 남의 문서. 문서 칸과 data 안의 칸 하나하나를 비교해 내가 바꾼 칸만 내 값으로. 바꾼 칸이 없으면 null */
+function shMerge(base,mine,theirs){const out=clone(theirs);let any=false;
+ const M=(o,b,m,top)=>{b=b||{};m=m||{};for(const k of new Set([...Object.keys(m),...Object.keys(b)])){if(top&&k==='data')continue;if(canon(m[k])===canon(b[k]))continue;any=true;if(m[k]===undefined)delete o[k];else o[k]=clone(m[k])}};
+ M(out,base,mine,true);out.data=out.data||{};M(out.data,base.data,mine.data,false);return any?out:null}
 function shApplyDoc(kind,id,d){
  if(kind==='trainers'){d?shPutTrainer(id,d):shDelTrainer(id);return 't'}
  if(kind==='pokemon'){d?shPutPoke(id,d):shDelPoke(id);return 't'}
@@ -1969,6 +1973,8 @@ function shAfter(paths,what){
  if(what.t){S.trainers.forEach((t,i)=>{if(t._ord==null)t._ord=i});S.trainers.sort((a,b)=>a._ord-b._ord);S.folders.forEach((f,i)=>{if(f._ord==null)f._ord=i});S.folders.sort((a,b)=>a._ord-b._ord)}
  if(what.d)shRebuildDB();
  const want=shWant();for(const p of paths){if(want.has(p))SH.synced.set(p,canon(want.get(p)));else SH.synced.delete(p)}
+ /* 병합한 문서는 「받은 그대로」를 올라간 값으로 적어 둔다 → 합친 결과가 다음 저장 때 올라간다 */
+ if(SH.mergeBase&&SH.mergeBase.size){for(const [p,j] of SH.mergeBase)SH.synced.set(p,j);SH.mergeBase.clear();shSchedule(300)}
  try{lsSet(K_T,JSON.stringify({trainers:S.trainers,folders:S.folders,ui:S.ui}));if(what.d)lsSet(K_DB,JSON.stringify({db:S.db,custom:S.custom}))}catch(e){}
  shRender(what);mkmChanged()}
 let shRT=null,shRW={};
@@ -1985,8 +1991,11 @@ async function shInit(){let db=null;try{db=window.MKM_STORE?await MKM_STORE.conn
  for(const kind of SH_KINDS){SH.init[kind]=false;
   db.collection(kind).onSnapshot(snap=>{
    if(!SH.ready){SH.buf[kind]=snap.docs.map(d=>[d.id,d.data()]);SH.init[kind]=true;if(SH_KINDS.every(k=>SH.init[k]))shStart();return}
-   const paths=[],what={};let W=null;for(const ch of snap.docChanges()){const id=ch.doc.id,p=kind+'/'+id;const d=ch.type==='removed'?null:ch.doc.data();
+   const paths=[],what={};let W=null;for(const ch of snap.docChanges()){const id=ch.doc.id,p=kind+'/'+id;let d=ch.type==='removed'?null:ch.doc.data();
     if(d){const dj=canon(d);if(SH.synced.get(p)===dj)continue;W=W||shWant();const w=W.get(p);if(w&&canon(w)===dj){SH.synced.set(p,dj);continue}}if(!d&&!SH.synced.has(p))continue;
+    /* 칸 단위 3-way 병합 (점검 6-3): 아직 못 올린 내 수정이 있는 시트에 남의 저장이 오면, 내가 바꾼 칸은 내 것으로 두고 나머지 칸만 받는다. 합친 결과는 shAfter 뒤에 다시 올린다 */
+    if(d&&(kind==='trainers'||kind==='pokemon')){W=W||shWant();const mine=W.get(p),bj=SH.synced.get(p);
+     if(mine&&bj&&canon(mine)!==bj){const theirs=canon(d);const mg=shMerge(JSON.parse(bj),mine,d);if(mg){d=mg;(SH.mergeBase=SH.mergeBase||new Map()).set(p,theirs)}}}
     const w=shApplyDoc(kind,id,d?clone(d):null);if(w)what[w]=true;paths.push(p)}
    if(paths.length)shAfter(paths,what)},
   e=>{shErr(e);if(!SH.ready&&!SH.init[kind]){SH.initFail=true;SH.buf[kind]=[];SH.init[kind]=true;if(SH_KINDS.every(k=>SH.init[k]))shStart()}})}}   /* 처음 읽기에 실패한 종류가 있으면 읽기 전용으로 시작한다 — 빈 목록으로 보고 기본값을 올려 모두의 설정을 덮지 않게. 이미 읽은 종류의 실시간 오류는 받은 내용을 지우지 않는다 */
