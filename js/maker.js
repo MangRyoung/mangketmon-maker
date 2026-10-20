@@ -600,7 +600,7 @@ function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전�
   <div class="preview" data-prev></div><div class="small" data-ban></div>
   ${isEx||isU?'':`<label class="row small"><input type="checkbox" id="pe-db">포텐셜 DB에도 저장 (같은 이름이 있으면 덮어씀)</label>`}
   ${window.OM_FX?`<details class="autobox" ${(isU?String((t.unique[slot.unique]||{}).auto||''):autoDsl(p,cur.name))?'open':''}><summary>⚙ 자동화 구문 <span class="small muted" data-autohint></span></summary>
-   <div class="small muted" style="margin:4px 0">오레마스(배틀 웹툴)에서 이 포텐셜을 쓸 때 자동으로 처리할 내용. 같은 이름의 레디메이드가 있으면 비워 둬도 그것이 돈다. 한 줄에 명령 하나 — 예: <code>랭크 공격+1 임시</code> · <code>위력 ×1.3 타입:불꽃 물리</code> · <code>상태 화상 상대1체 30%</code></div>
+   <div class="small muted" style="margin:4px 0">오레마스(배틀 웹툴)에서 이 포텐셜을 쓸 때 자동으로 처리할 내용. 같은 이름의 레디메이드가 있으면 비워 둬도 그것이 돈다. 한 줄에 명령 하나 — 예: <code>랭크 공격+1 임시</code> · <code>위력 ×1.3 타입:불꽃 물리</code> · <code>상태확률 화상 30% 상대1체</code></div>
    <pre class="small" data-autorm style="white-space:pre-wrap;background:var(--bg2,#f4f4f6);padding:6px;border-radius:6px;margin:0 0 6px"></pre>
    <textarea id="pe-auto" rows="4" style="width:100%;font-family:var(--mono,monospace);font-size:12.5px" placeholder="(비우면 레디메이드 자동)">${esc(isU?String((t.unique[slot.unique]||{}).auto||''):autoDsl(p,cur.name))}</textarea>
    <div class="small" data-autoprev style="white-space:pre-wrap;margin-top:4px"></div>

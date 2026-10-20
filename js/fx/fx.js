@@ -13,7 +13,7 @@ window.OM_FX=(()=>{
  const STAT_KO={attack:'공격',defense:'방어',specialattack:'특공',specialdefense:'특방',speed:'스피드',accuracy:'명중',evasion:'회피',critical:'급소',critical_buff:'급소방호'};
  const KO_STAT={};for(const k in STAT_KO)KO_STAT[STAT_KO[k]]=k;KO_STAT['특수공격']='specialattack';KO_STAT['특수방어']='specialdefense';KO_STAT['민첩']='speed';KO_STAT['속도']='speed';
  const TGT_KO={self:'자신',ally:'아군 전체',enemy:'상대 전체',others:'자신 이외',all:'전체',ally1:'아군 1체',enemy1:'상대 1체',randother:'자신 이외 무작위 1체',randenemy:'상대 무작위 1체',randall:'전원 무작위 1체',area:'지정 에리어'};
- const KO_TGT={자신:'self',아군전체:'ally',아군:'ally',상대전체:'enemy',상대:'enemy',자신이외:'others',전체:'all',아군1체:'ally1',아군1:'ally1',상대1체:'enemy1',상대1:'enemy1',무작위1:'randother',자신이외무작위:'randother',상대무작위:'randenemy',전원무작위:'randall',에리어:'area',지정에리어:'area'};
+ const KO_TGT={자신:'self',아군전체:'ally',아군:'ally',상대전체:'enemy',상대:'enemy',자신이외:'others',전체:'all',아군1체:'ally1',아군1:'ally1',상대1체:'enemy1',상대1:'enemy1',무작위1:'randother',자신이외무작위:'randother',상대무작위:'randenemy',전원무작위:'randall',무작위1체:'randother',자신이외무작위1체:'randother',자신이외무작위1:'randother',상대무작위1체:'randenemy',상대무작위1:'randenemy',전원무작위1체:'randall',전원무작위1:'randall',에리어:'area',지정에리어:'area'};
  const TYPE_KO={Normal:'노말',Fire:'불꽃',Water:'물',Electric:'전기',Grass:'풀',Ice:'얼음',Fighting:'격투',Poison:'독',Ground:'땅',Flying:'비행',Psychic:'에스퍼',Bug:'벌레',Rock:'바위',Ghost:'고스트',Dragon:'드래곤',Dark:'악',Steel:'강철',Fairy:'페어리',God:'신',Shadow:'그림자',Wild:'야생'};
  const KO_TYPE={};for(const k in TYPE_KO)KO_TYPE[TYPE_KO[k]]=k;
  const NEG=['Poison','Toxic','Burn','Paralysis','Freeze','Sleep','SyrupBomb','Confusion','Flinch','Embrago','Silence','Seal','Powder','Oblivion','TraitBroken','Taunt','Encore','Attract','HealBlock','Disable','Torrment','MeanLook','Bind','OctoLock','Block','Curse','LeechSeed','SaltCure','Nightmare','Yawn','DeathCount','LockOn','Telekinesis'];
@@ -215,9 +215,11 @@ window.OM_FX=(()=>{
    default:return {k:'?',raw:line}}}
  /* 여러 줄 구문: 「선택:」 뒤의 「- 라벨 → 구문; 구문」 줄들은 선택지 */
  function parse(text){const ops=[];const errs=[];let choice=null;
-  for(const raw of String(text||'').split(/\n|;/)){const line=raw.trim();if(!line)continue;
+  /* 「;」 는 줄바꿈과 같지만, 선택지 줄(「- 라벨 → …」) 안의 「;」 는 그 선택지의 명령 구분으로 남긴다 */
+  const lines=[];let inChoice=false;for(const row of String(text||'').split('\n')){const t=row.trim();if(/^선택[:：]?$/.test(t)){inChoice=true;lines.push(t);continue}if(inChoice&&/^[-·•]/.test(t)){lines.push(t);continue}inChoice=false;for(const part of row.split(';')){const pt=part.trim();if(/^선택[:：]?$/.test(pt))inChoice=true;lines.push(part)}}
+  for(const raw of lines){const line=raw.trim();if(!line)continue;
    if(/^선택[:：]?$/.test(line)){choice={k:'choice',opts:[]};ops.push(choice);continue}
-   if(choice&&/^[-·•]/.test(line)){const t=line.replace(/^[-·•]\s*/,'');const ai=t.search(/→|->/);const label=(ai<0?t:t.slice(0,ai)).trim();const body=ai<0?'':t.slice(ai).replace(/^(→|->)/,'');const sub=[];for(const seg of body.split(/[,，]\s*(?=[가-힣]+\s)/)){const op=parseLine(seg);if(op&&op.k!=='?')sub.push(op);else if(op)errs.push(op.raw)}choice.opts.push({label,ops:sub,multi:/^①|②|③|\[.\]/.test(label)?0:0});continue}
+   if(choice&&/^[-·•]/.test(line)){const t=line.replace(/^[-·•]\s*/,'');const ai=t.search(/→|->/);const label=(ai<0?t:t.slice(0,ai)).trim();const body=ai<0?'':t.slice(ai).replace(/^(→|->)/,'');const sub=[];for(const seg of body.split(/[;；]\s*|[,，]\s*(?=[가-힣]+\s)/)){const op=parseLine(seg);if(op&&op.k!=='?')sub.push(op);else if(op)errs.push(op.raw)}choice.opts.push({label,ops:sub,multi:/^①|②|③|\[.\]/.test(label)?0:0});continue}
    choice=null;const op=parseLine(line);if(!op)continue;if(op.k==='?')errs.push(op.raw);else ops.push(op)}
   return {ops,errs}}
  function unparse(ops){const L=[];const tg=t=>t&&t!=='self'?' '+(TGT_KO[t]||t).replace(/\s/g,''):'';const ty=ts=>ts&&ts.length?' 타입:'+ts.map(t=>TYPE_KO[t]||t).join(','):'';
