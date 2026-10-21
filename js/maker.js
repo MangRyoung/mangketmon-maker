@@ -126,7 +126,7 @@ const SLOTS=['역할','분류','주인','이명','종족①','종족②','종족
 const DBS={
  moves:{t:'기술',key:2,cols:['소켓','기술 태그','기술명','일명','영명','타입','분류','위력','명중','범위','접촉','우선도','분류(태그)','추가 효과','공격 스탯','방어 스탯','비고','등장 시기','최소 공격 횟수','최대 공격 횟수'],show:[2,5,6,7,8,9,10,11,0,13],eff:13},
  abil:{t:'특성',key:1,cols:['소켓','특성','효과','틀깨기','방호 특성'],show:[1,0,3,4,2],eff:2},
- items:{t:'소지품',key:1,cols:['종류','도구','별칭','소모(O)','효과','소켓','비고'],show:[1,0,2,3,5,4,6],eff:4},
+ items:{t:'소지품',key:1,cols:['종류','도구','별칭','소모(O)','효과','소켓','비고','구문'],show:[1,0,2,3,5,4,7,6],eff:4},   /* 구문 = 오레마스 소지품 자동화 (js/fx/itemrule.js, 10-24 망령) */
  pots:{t:'포텐셜',key:1,cols:['종류(순서)','이름','효과','비고'],show:[1,0,2,3],eff:2},
  old:{t:'올드 타입',key:1,cols:['지역','포켓몬','Name','타입1','타입2','특성1','특성2','숨겨진 특성','알그룹1','알그룹2','메가','HP','공격','방어','특공','특방','스피드'],show:[1,0,3,4,5,6,7,8,9,11,12,13,14,15,16],eff:-1},
  points:{t:'포인트',key:4,cols:['번호','분류','세부','소모 항목','이름','효과','소모 포인트','상시 공개'],show:[4,1,2,3,6,5,7],eff:5},
@@ -382,7 +382,7 @@ window.OM_APP=window.OM_APP||{openModal:h=>openModal(h,{wide:true}),closeModal:(
 let fxLoadP=null,FXST='';/* '' 불러오는 중 · ok · fail */
 function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
  const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src;s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
- FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');FXST='ok';rmInit();stInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
+ FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');await one('itemrule.js');FXST='ok';rmInit();stInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
 function fxRetry(){if(fxReady())return;fxLoadP=null;toast('구문 스크립트를 다시 불러옵니다…');loadFx();if(S.ui&&S.ui.tab)refreshAll()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fxretry]');if(!b)return;e.preventDefault();e.stopPropagation();fxRetry()},true);
 const fxRetryBtn=()=>FXST==='fail'?'<button type="button" class="btn sm ghost" data-fxretry title="자동화 구문 스크립트를 불러오지 못했습니다 — 눌러서 다시 시도">구문 ⟳</button>':'';
@@ -652,7 +652,20 @@ function openPicker(kind,{title,multi,chosen,onPick,onRemove}={}){
   if(e.target.closest('[data-orig]'))openEdit(kind,-1,{preset:{[DBS[kind].key]:st.q},onSaved:n=>{onPick(n);if(multi)redraw();else closeModal()}})})}
 
 /* ---------- DB 항목 편집 ---------- */
+const IR_HELP=`전용 피카츄/라이츄 · 소모품
+공격 강화 ×1.2 · 공격 강화 물리기 ×1.5 · 공격 강화 타입 불꽃/물 ×1.2 · 공격 강화 단일기 불꽃 ×1.3
+받는 대미지 ×0.67 · 받는 대미지 특수기 ×0.67 · 급소 +1 · 급소 방호 1
+무효 타입 땅 · 반감 타입 불꽃 · 반감 타입 불꽃 효과 굉장 · 반감 물리기 HP 가득 · 반감 전체기
+버티기 HP 가득 · 버티기 10%
+HP 1/4 이하: 회복 1/4, 공격 +1, 무작위 +2   (회복 20 처럼 수도)
+치유 마비/독 · 필드 일렉트릭필드: 방어 +1 · 룸 트릭룸: 스피드 -1 · 날씨 해제 · 필드 철거 · 하락 되돌리기
+맞으면: 공격 +1 · 맞으면 (효과 굉장): 공격 +2, 특공 +2 · 맞으면 (타입 물): 특공 +1 · 맞으면 (물리기): 반사 1/8
+맞으면 (접촉기): 타입 바꾸기 벌레 / 특성 바꾸기 미라 / 옮겨붙는다 · 맞으면: 가장 높은 능력 -1 · 맞으면: 터진다 · 맞으면: 메모 (글)
+턴 종료: 회복 1/16 · 턴 종료: 대미지 1/8 · 턴 종료: 상태 화상 · 턴 종료: 독 타입이면 회복 1/16 아니면 대미지 1/8
+명중하면: 회복 1/8 · 명중하면 (태그 소리): 특공 +1 · 빗나가면: 스피드 +2 · 풀죽음 10%
+(발동 버튼으로 쓰는 효과는 레디메이드 「소지품 : 이름」에 적는다)`;
 function fieldHTML(kind,n,v){const c=DBS[kind].cols[n];const id=`f-${kind}-${n}`;
+ if(kind==='items'&&n===7)return `<label class="lbl" for="${id}" style="grid-column:1/-1">${c} <span class="small muted">오레마스 배틀이 이 소지품을 자동으로 처리하는 법 · 한 줄에 하나 · 비우면 효과 글을 읽는다</span><textarea id="${id}" data-f="${n}" rows="4" style="font-family:var(--mono,monospace);font-size:12.5px" placeholder="예) 공격 강화 타입 불꽃 ×1.2">${esc(v||'')}</textarea><span class="row" style="gap:6px;align-items:center;flex-wrap:wrap"><button type="button" class="btn sm" data-irgen>효과 글에서 만들기</button><span class="small" data-irprev></span></span><details><summary class="small">구문 도움말</summary><pre class="small" style="white-space:pre-wrap">${esc(IR_HELP)}</pre></details></label>`;
  if(kind==='rm'&&n===2)return `<label class="lbl" for="${id}" style="grid-column:1/-1">${c} <span class="small muted">한 줄에 명령 하나 · 오레마스 자동화</span><textarea id="${id}" data-f="${n}" rows="5" style="font-family:var(--mono,monospace);font-size:12.5px">${esc(v||'')}</textarea><span class="small" data-rmprev></span><details><summary class="small">구문 도움말</summary><pre class="small" style="white-space:pre-wrap">${esc(typeof AUTO_HELP==='string'?AUTO_HELP:'')}</pre></details></label>`;
  if(kind==='st'&&n===12)return `<label class="lbl" for="${id}" style="grid-column:span 2">${c} <span class="small muted">파일 이름(오레마스 img/state) 또는 그림 주소 · 그림 파일을 고르면 작게 줄여 넣습니다</span><span class="row" style="gap:6px;flex-wrap:nowrap;align-items:center"><img data-sticon src="${esc(stIcon(v))}" alt="" style="width:40px;height:40px;object-fit:contain;border:1px solid var(--line,#ccc);border-radius:6px;${v?'':'visibility:hidden'}"><input id="${id}" data-f="${n}" value="${esc(v??'')}" style="flex:1;min-width:0"><input type="file" accept="image/*" data-sticonf hidden><button type="button" class="btn sm" data-sticonpick>그림 고르기</button></span></label>`;
  if(kind==='st'&&n===6)return `<label class="lbl" for="${id}">${c} <span class="small muted">turn 턴 끝마다 · move 기술 낼 때 · once 한 번</span><select id="${id}" data-f="${n}">${['turn','move','once'].concat(v&&!['turn','move','once'].includes(v)?[v]:[]).map(t=>`<option ${t===v?'selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
@@ -679,6 +692,12 @@ function openEdit(kind,i,{preset={},onSaved}={}){const D=DBS[kind];
   $('[data-sticonpick]',l).addEventListener('click',()=>fi.click());
   fi.addEventListener('change',async()=>{const f=fi.files[0];if(!f)return;try{const bmp=await createImageBitmap(f);const S2=64,sc=Math.min(1,S2/Math.max(bmp.width,bmp.height));const cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(bmp.width*sc));cv.height=Math.max(1,Math.round(bmp.height*sc));cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);let u=cv.toDataURL('image/webp',0.85);if(!u.startsWith('data:image/webp'))u=cv.toDataURL('image/png');inp.value=u;show()}catch(err){toast('그림을 읽지 못했습니다')}})}
  if(kind==='rm'&&window.OM_FX){const ds=$('[data-f="2"]',l),pv=$('[data-rmprev]',l);const up=()=>{const r=window.OM_FX.parse(ds.value);pv.innerHTML=(r.ops.length?'미리보기: '+esc(window.OM_FX.unparse(r.ops).join(' / ')):'<span class="muted">구문 없음</span>')+(r.errs&&r.errs.length?` <span class="warn">모르는 줄: ${esc(r.errs.join(' / '))}</span>`:'')};ds.addEventListener('input',up);up()}
+ if(kind==='items'){const ds=$('[data-f="7"]',l),pv=$('[data-irprev]',l);const IR=()=>window.OM_ITEMRULE;
+  const up=()=>{if(!IR()){pv.innerHTML='<span class="muted">구문 스크립트를 불러오는 중…</span>';return}const t=ds.value.trim();if(!t){const g=IR().fromEff($('[data-f="1"]',l).value,($('[data-f="3"]',l).value==='O'?'소모품/':'')+$('[data-f="4"]',l).value);pv.innerHTML=IR().has(g)?'<span class="muted">비어 있음 — 효과 글로 자동 처리 (「효과 글에서 만들기」로 꺼내 볼 수 있다)</span>':'<span class="muted">자동 처리 없음 — 손으로</span>';return}
+   const r=IR().parse(t);pv.innerHTML=(IR().has(r.rule)?'<span class="ok">✓ 읽었다</span>':'<span class="muted">자동으로 하는 일이 없다</span>')+(r.errs.length?` <span class="warn">모르는 줄: ${esc(r.errs.join(' / '))}</span>`:'')};
+  ds.addEventListener('input',up);l.addEventListener('input',e=>{if(e.target.matches('[data-f="1"],[data-f="3"],[data-f="4"]'))up()});
+  $('[data-irgen]',l).addEventListener('click',()=>{if(!IR())return toast('구문 스크립트를 아직 불러오는 중입니다');const g=IR().fromEff($('[data-f="1"]',l).value,($('[data-f="3"]',l).value==='O'?'소모품/':'')+$('[data-f="4"]',l).value);if(!IR().has(g))return toast('효과 글에서 자동으로 읽을 수 있는 것이 없습니다 — 도움말을 보고 직접 써 주세요');ds.value=IR().toText(g);up()});
+  up();loadFx().then(up)}
  const ta=D.eff>=0?$(`[data-f="${D.eff}"]`,l):null;
  if(ta){bindTagbar(l,()=>ta);
  const upd=()=>{$('[data-prev]',l).innerHTML='<span class="small faint">미리보기</span><br>'+rich(ta.value);const h=banHits(ta.value);$('[data-banwarn]',l).innerHTML=(h.length?`<span class="warn">금지 키워드: ${h.map(esc).join(', ')}</span>`:'')+lintHTML(ta.value)};
@@ -1589,7 +1608,7 @@ const dbs={k:'moves',q:'',type:'',cat:'',kind:'',mine:false,lim:150,f:{},pmin:''
 function dbResults(){const k=dbs.k,D=DBS[k];const rows=filterRows(k,dbs);
  return `<p class="small muted" style="margin:0 0 6px">${rows.length}건${rows.length>dbs.lim?` · 앞 ${dbs.lim}건 표시`:''} · 행을 누르면 수정 창이 열립니다</p>
  <div class="dbt"><table><tr>${D.show.map(c=>`<th>${esc(D.cols[c])}</th>`).join('')}</tr>
- ${rows.slice(0,dbs.lim).map(r=>{const i=S.db[k].indexOf(r);return `<tr data-dbedit="${i}" tabindex="0" data-kbd style="cursor:pointer">${D.show.map(c=>c===D.eff?`<td class="ef"><div class="efc">${rich(r[c])}</div></td>`:c===D.key?`<td class="b">${esc(r[c])}${S.custom[k].includes(r[c])?' <span class="kindb">오리지널</span>':''}</td>`:k==='st'&&c===12?`<td style="width:40px">${r[c]?`<img src="${esc(stIcon(r[c]))}" alt="" loading="lazy" style="width:32px;height:32px;object-fit:contain;display:block">`:''}</td>`:(k==='moves'&&c===5)||(k==='old'&&(c===3||c===4))?`<td>${tchip(r[c])}</td>`:`<td>${esc(r[c])}</td>`).join('')}</tr>`}).join('')}</table>
+ ${rows.slice(0,dbs.lim).map(r=>{const i=S.db[k].indexOf(r);return `<tr data-dbedit="${i}" tabindex="0" data-kbd style="cursor:pointer">${D.show.map(c=>c===D.eff?`<td class="ef"><div class="efc">${rich(r[c])}</div></td>`:c===D.key?`<td class="b">${esc(r[c])}${S.custom[k].includes(r[c])?' <span class="kindb">오리지널</span>':''}</td>`:k==='st'&&c===12?`<td style="width:40px">${r[c]?`<img src="${esc(stIcon(r[c]))}" alt="" loading="lazy" style="width:32px;height:32px;object-fit:contain;display:block">`:''}</td>`:k==='items'&&c===7?`<td class="ef"><div class="efc" style="white-space:pre-line;font-size:12px">${r[c]?esc(r[c]):'<span class="faint">—</span>'}</div></td>`:(k==='moves'&&c===5)||(k==='old'&&(c===3||c===4))?`<td>${tchip(r[c])}</td>`:`<td>${esc(r[c])}</td>`).join('')}</tr>`}).join('')}</table>
  ${rows.length>dbs.lim?`<div style="padding:8px"><button class="btn" data-dbmore>더 보기</button></div>`:''}</div>`}
 function renderDB(){const k=dbs.k;
  const head=`<div class="intro"><h1>DB 관리</h1><p>기술·특성·소지품·포텐셜·올드 타입·포인트·레디메이드·상태 변화 DB를 검색하고 추가·수정·삭제합니다. 바뀐 내용은 캐릭터 시트의 검색 창과 계산, 맵툴 토큰 갱신에 바로 반영됩니다.</p></div>
