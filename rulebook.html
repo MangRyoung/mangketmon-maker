@@ -279,6 +279,7 @@ var main=$("main"),toc=$("toc"),q=$("q"),statusEl=$("status");
 var editBtn=$("editBtn"),saveBtn=$("saveBtn"),cancelBtn=$("cancelBtn");
 var editing=false,draft=null,dirty=false,art=null,canSave=true,saving=false;
 var STASH="rb-draft-v1";
+var BASE=DATA,host=null,rev=0;  /* host: 제작기 안에서 열리면 parent.MKM_RULEBOOK (공유 DB rulebook/main) */
 
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 function pad(n){return n<10?"0"+n:""+n}
@@ -531,7 +532,7 @@ function startEdit(from){
 function stopEdit(){
   editing=false;draft=null;dirty=false;
   $("searchBox").hidden=false;
-  editBtn.hidden=!art||!canSave;saveBtn.hidden=true;cancelBtn.hidden=true;cancelBtn.textContent="취소";
+  editBtn.hidden=!(art||host)||!canSave;saveBtn.hidden=true;cancelBtn.hidden=true;cancelBtn.textContent="취소";
   setStatus("");renderRead();
 }
 var HELP=[
@@ -589,9 +590,9 @@ main.addEventListener("input",function(e){
   if(t.dataset.k==="body"){
     grow(t);
     clearTimeout(pvTimers[c.id]);
-    pvTimers[c.id]=setTimeout(function(){var pv=sec.querySelector(".ed-preview .ch-body");if(pv)pv.innerHTML=render(c.body,"pv-"+c.id);buildToc(draft)},180);
+    pvTimers[c.id]=setTimeout(function(){var pv=sec.querySelector(".ed-preview .ch-body");if(!draft)return;if(pv)pv.innerHTML=render(c.body,"pv-"+c.id);buildToc(draft)},180);
   }
-  if(t.dataset.k==="title"||t.dataset.k==="group"){clearTimeout(pvTimers._toc);pvTimers._toc=setTimeout(function(){buildToc(draft)},250)}
+  if(t.dataset.k==="title"||t.dataset.k==="group"){clearTimeout(pvTimers._toc);pvTimers._toc=setTimeout(function(){if(draft)buildToc(draft)},250)}
 });
 main.addEventListener("click",function(e){
   if(!editing)return;
@@ -637,13 +638,15 @@ function buildDoc(d){
     '<script id="rb-app">'+SRC.app+S+"\n</body></html>";
 }
 saveBtn.addEventListener("click",function(){
-  if(!art||saving)return;
+  if(!(art||host)||saving)return;
   if(!dirty){stopEdit();return}
   saving=true;saveBtn.disabled=true;cancelBtn.disabled=true;setStatus("저장 중…");
   draft.updated=today();
   writeStash(draft);
-  art.publish(buildDoc(draft)).then(function(){
-    clearStash();setStatus("저장됨");
+  (host?host.save(JSON.parse(JSON.stringify(draft)),rev):art.publish(buildDoc(draft))).then(function(r){
+    clearStash();
+    if(host){rev=r;DATA=JSON.parse(JSON.stringify(draft));saving=false;saveBtn.disabled=false;cancelBtn.disabled=false;stopEdit();setStatus("저장됨");return}
+    setStatus("저장됨");
   }).catch(function(err){
     saving=false;saveBtn.disabled=false;cancelBtn.disabled=false;
     var c=err&&err.code;
@@ -658,7 +661,22 @@ saveBtn.addEventListener("click",function(){
 /* ---------- boot ---------- */
 renderRead();
 if(location.hash){var tgt=document.getElementById(location.hash.slice(1));if(tgt)setTimeout(function(){tgt.scrollIntoView()},50)}
+function useRemote(d){
+  if(d&&d.chapters&&d.chapters.length){rev=d.rev||0;DATA={title:d.title||BASE.title,subtitle:d.subtitle||"",updated:d.updated||"",chapters:d.chapters}}
+  else{rev=0;DATA=BASE}
+  if(!editing)renderRead();
+}
 (function connect(){
+  var h=null;try{if(window.parent!==window&&window.parent.MKM_RULEBOOK)h=window.parent.MKM_RULEBOOK}catch(e){}
+  if(h){
+    host=h;setStatus("불러오는 중…");
+    h.load().then(function(d){useRemote(d);setStatus("");canSave=h.canEdit()!==false;if(!editing)editBtn.hidden=!canSave}).catch(function(){setStatus("룰북을 불러오지 못했어요")});
+    h.onChange(function(d){
+      if(!editing){useRemote(d);canSave=h.canEdit()!==false;editBtn.hidden=!canSave;return}
+      if((d&&d.rev||0)!==rev)setStatus("다른 사람이 룰북을 저장했어요 · 지금 저장하면 충돌로 막혀요");
+    });
+    return;
+  }
   var c=window.claude;
   if(!c||!c.use)return;
   Promise.all([c.use("artifact"),c.use("user")]).then(function(r){
