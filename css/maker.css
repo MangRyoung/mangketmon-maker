@@ -609,3 +609,6 @@ html.modal-on #mk{overflow:hidden}
 #mk .wordbox .wrow{display:flex;align-items:center;gap:6px;margin:4px 0}#mk .wordbox .sp{flex:1}
 #mk .wlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px}#mk .wlist li{font-size:13px;line-height:1.5}#mk .wlist code{background:var(--sunk);padding:1px 4px;border-radius:4px;font-size:12.5px;white-space:pre-wrap}
 #mk .wdsl{margin:2px 0 4px;background:var(--sunk);padding:6px 8px;border-radius:6px;font-size:12.5px;white-space:pre-wrap}
+/* 10-24 망령: 워딩 도우미 — 고칠 곳 · 추천 구문 줄마다 체크해서 골라 반영 */
+#mk .wordbox .wck{display:inline-flex;align-items:flex-start;gap:6px;cursor:pointer}#mk .wordbox .wck input{margin:2px 0 0;flex:none}
+#mk .wdsl{white-space:normal}#mk .wdsl .wck{display:flex;padding:1px 0}#mk .wdsl code{white-space:pre-wrap;background:none;padding:0}
