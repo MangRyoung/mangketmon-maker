@@ -81,6 +81,16 @@ window.OM_MOVEAUTO=(()=>{
    m=s.match(/^「HP」를 (\d+\/\d+)만큼 소비하여\s*(.+)$/);if(m){groups.push({n:10,label:'HP '+m[1]+' 소비',who:'once',ops:[{k:'dmg',tgt:'self',value:m[1],nofaint:1}],when:'use'});s=m[2]}
    m=s.match(/^(대상|상대 전체)의 「얼음」을 치유한다$/);if(m){groups.push({n:10,label:s,who:m[1]==='대상'?'target':'once',ops:[{k:'cure',tgt:m[1]==='대상'?'target':'enemy',states:['Freeze']}],when:'hit'});continue}
    m=s.match(/^대상에게 「현재 HP」의 (\d+\/\d+)만큼의 비례 대미지를 입힌다$/);if(m){groups.push({n:10,label:s,who:'target',ops:[{k:'dmg',tgt:'target',basis:'cur',value:m[1]}],when:'hit'});continue}
+   /* 10-23 망령 「상태변화를 거는 기술」: 「대상을 (N턴 동안) 「X」 상태로 만들어 (설명)」 — 상태만 걸고 뒷말(설명)은 상태 DB 가 맡는다. 앞의 N할 · 이성 조건도 읽는다 */
+   {const sm=s.replace(/^\d+\/시\/\s*/,'').replace(/^다음 자신의 행동 시까지\s*/,'').replace(/^자신을 제외한 포켓몬 하나를/,'대상을').match(/^(?:(\d+)할(?:의 확률)?로\s*)?(?:(\d+)(?:~(\d+))?턴 동안\s*)?(대상|상대 전체|상대|자신|아군|이성인 상대 전체|이성)(?:을|를)\s*(?:(\d+)(?:~(\d+))?턴 동안\s*|\d+번 행동할 동안\s*|(?:다음 )?턴 종료 시\s*까지\s*)?「([^」]+)」\s*상태로 만(?:들어|들고|들며|든다)\s*(.*)$/);
+    const en=sm?stEn(sm[7]):'';
+    if(sm&&en){const rest=sm[8]||'';
+     const n2=sm[1]?+sm[1]:10;const lo=+(sm[2]||sm[5]||0),hi=+(sm[3]||sm[6]||lo);const cnt=lo?lo+Math.floor(Math.random()*(hi-lo+1)):undefined;
+     const W=sm[4];const all=/상대 전체/.test(W);const self=W==='자신';const who=self||all?'once':'target';const tgt=self?'self':all?'enemy':'target';
+     const op={k:'state',tgt,state:en};if(cnt)op.count=cnt;groups.push({n:n2,label:(n2<10?n2+'할 ':'')+'「'+sm[7]+'」',who,ops:[op],when:'hit'});
+     if(/이성/.test(W))notes.push('「'+sm[7]+'」은 이성일 때만 — 동성이면 적용 전에 체크를 끈다');
+     if(/다음에 내보낼 기술|지정한|직전에 사용한 기술/.test(rest))notes.push(s);
+     continue}}
    if(COND.test(s)&&!/^(\d+)할/.test(s)){notes.push(s);continue}
    /* 확률: 맨 앞 N할 (한 문장에 하나) */
    let n=10;const cm=s.match(/^(\d+)할\s*(?:의\s*확률로\s*)?/);if(cm){n=+cm[1];s=s.slice(cm[0].length)}
