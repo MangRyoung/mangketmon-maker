@@ -74,6 +74,9 @@ window.OM_MOVEAUTO=(()=>{
    if(/^반드시 급소에 맞는다$/.test(s)){critSure=true;continue}
    {const once=[];const fr=fieldSent(s,mv,op=>once.push(op),FL);if(fr){if(once.length)groups.push({n:10,label:s,who:'once',ops:once,when:'hit'});if(fr==='partial')notes.push(s);continue}}
    if(/^사용 후 「빈사」 상태가 된다$/.test(s)){selfFaint=true;continue}
+   /* 「충전」 상태가 되어 …(설명) — 자기에게 상태만 걸고 뒷말은 상태 DB 가 맡는다 (충전·도우미류). 기간은 상태 DB 기본값 */
+   m=s.match(/^(?:(?:다음|이번) 턴 종료 시까지\s*|\d+턴 동안\s*)?(?:자신(?:은|이)\s*)?「([^」]+)」\s*상태가 되(?:어|며|고|어서)\s+(.+)$/);
+   if(m&&stEn(m[1])&&!COND.test(m[2].replace(/만큼 오른|비례해/g,''))){const who='self';groups.push({n:10,label:s,who:'once',ops:[{k:'state',tgt:who,state:stEn(m[1])}],when:'hit'});if(/회복|치유|올린다|내린다|입힌다/.test(m[2]))notes.push(s);continue}
    if(/^사용자와 대상의 「얼음」을 치유한다$/.test(s)){groups.push({n:10,label:s,who:'once',ops:[{k:'cure',tgt:'self',states:['Freeze']}],when:'hit'},{n:10,label:s,who:'target',ops:[{k:'cure',tgt:'target',states:['Freeze']}],when:'hit'});continue}
    m=s.match(/^「HP」를 (\d+\/\d+)만큼 소비하여\s*(.+)$/);if(m){groups.push({n:10,label:'HP '+m[1]+' 소비',who:'once',ops:[{k:'dmg',tgt:'self',value:m[1],nofaint:1}],when:'use'});s=m[2]}
    m=s.match(/^(대상|상대 전체)의 「얼음」을 치유한다$/);if(m){groups.push({n:10,label:s,who:m[1]==='대상'?'target':'once',ops:[{k:'cure',tgt:m[1]==='대상'?'target':'enemy',states:['Freeze']}],when:'hit'});continue}
