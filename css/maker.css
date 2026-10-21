@@ -518,3 +518,40 @@ html.modal-on #mk{overflow:hidden}
 #mk .mkfform .wide{grid-column:1/-1}
 #mk .mkfform textarea{width:100%}
 #mk .panel>.mkflds{margin-top:0;padding:0;border:0}
+/* 스탠딩 (끌어 놓기 · 카드에서 바로 고치기) */
+#mk .stdw{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+#mk .stdz{border:2px dashed var(--line);border-radius:10px;padding:10px 12px;background:var(--sunk);display:flex;flex-direction:column;gap:6px;transition:border-color .15s,background .15s}
+#mk .stdw.over .stdz{border-color:var(--blue);background:var(--blue-soft)}
+#mk .stdzt{display:flex;flex-direction:column;gap:1px}#mk .stdzt b{font-size:13px}
+#mk .stgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+#mk .stc{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:5px;display:flex;flex-direction:column;gap:4px;min-width:0}
+#mk .stc.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+#mk .stcp{position:relative;height:140px;border-radius:7px;cursor:pointer;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;background:repeating-conic-gradient(var(--sunk2) 0 25%,var(--sunk) 0 50%) 0 0/14px 14px}
+#mk .stcp:hover{outline:2px solid var(--blue);outline-offset:-2px}
+#mk .stcp img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+#mk .stcon{position:absolute;top:5px;left:5px;background:var(--accent);color:var(--accent-ink);font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px}
+#mk .stcf{display:flex;gap:3px;align-items:center;min-width:0}
+#mk .stcf input[type=text]{flex:1;min-width:0;font-weight:700;font-size:12.5px;padding:3px 6px}
+#mk .stcf input[type=number]{width:46px;flex:none;font-size:12px;padding:3px 4px}
+#mk .stcf select{flex:1;min-width:0;font-size:11.5px;padding:3px 4px}
+#mk .stcf .btn{padding-inline:6px}
+#mk .stmore summary{cursor:pointer}
+/* 『고유 포텐셜』 카드 */
+#mk .uql{display:flex;flex-direction:column;gap:10px}
+#mk .uqc{position:relative;border-radius:12px;padding:12px 14px 12px 18px;cursor:pointer;background:linear-gradient(135deg,color-mix(in srgb,var(--uc) 16%,var(--surface)) 0%,var(--surface) 70%);border:1px solid color-mix(in srgb,var(--uc) 45%,var(--line));overflow:hidden}
+#mk .uqc::before{content:"";position:absolute;inset:0 auto 0 0;width:6px;background:linear-gradient(180deg,var(--uc),color-mix(in srgb,var(--uc) 40%,#fff))}
+#mk .uqc:hover{box-shadow:0 0 0 2px color-mix(in srgb,var(--uc) 55%,transparent)}
+#mk .uqc.vac{background:var(--sunk);border-style:dashed}
+#mk .uqh{display:flex;align-items:center;gap:10px;min-width:0}
+#mk .uqs{font-size:10px;font-weight:800;letter-spacing:.12em;color:#fff;background:var(--uc);padding:2px 7px;border-radius:4px;flex:none}
+#mk .uqi{font-size:24px;line-height:1;width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--uc) 22%,var(--surface));border:2px solid var(--uc)}
+#mk .uqt{display:flex;flex-direction:column;min-width:0}
+#mk .uqn{font-size:18px;line-height:1.25;color:color-mix(in srgb,var(--uc) 70%,var(--ink));overflow-wrap:anywhere}
+#mk .uqc.vac .uqn{font-size:14px;font-weight:400;color:var(--faint)}
+#mk .uqsub{font-size:12px;color:var(--muted);font-style:italic}
+#mk .uqe{margin-top:8px;font-size:13px;line-height:1.65;color:var(--ink);white-space:normal}
+#mk .uqe .tg{background:color-mix(in srgb,var(--uc) 18%,transparent);color:color-mix(in srgb,var(--uc) 75%,var(--ink))}
+#mk .uqprev .uqc{cursor:default}
+#mk .uqsw1{width:26px;height:26px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+#mk .uqsw1.on{box-shadow:0 0 0 2px var(--ink)}
+@media(max-width:700px){#mk .uqh{flex-wrap:wrap}#mk .uqn{font-size:16px}#mk .stgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}

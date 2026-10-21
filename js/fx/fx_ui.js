@@ -61,7 +61,7 @@ window.OM_FX_UI=(()=>{
    case 'noind':return `<div class="row">대상 ${tgSel('g_tgt')} ${sel('g_kind',[['','비례 대미지를 받지 않는다'],['noko','비례 대미지로는 빈사가 되지 않는다'],['hazard','설치기를 무시한다'],['hazdmg','설치기의 비례 대미지를 받지 않는다'],['recoil','반동 비례 대미지를 받지 않는다'],['switch','강제 교대를 받지 않는다']],'')} <label>턴 <input type="number" class="n xs" data-g="turns" value="-1"></label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
    case 'float':return `<div class="row">대상 ${tgSel('g_tgt')} <label>턴 <input type="number" class="n xs" data-g="turns" value="-1"></label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
    case 'role':return `<div class="row">${sel('g_mode',[['add','추가'],['remove','제거'],['clear','초기화']],'add')} <label>역할 (쉼표) <input type="text" data-g="roles" placeholder="에이스,블로커"></label></div>`;
-   case 'pursuit':return `<div class="row"><label><input type="checkbox" data-g="imm"> 추격 무시 (교대해도 상대의 추격을 받지 않는다)</label> <label><input type="checkbox" data-g="hide"> 숨김</label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
+   case 'pursuit':return `<div class="row"><label><input type="checkbox" data-g="imm"> 추격 무시 (교대해도 상대의 추격을 받지 않는다)</label> <label>대상 ${tgSel('g_tgt')}</label> <label><input type="checkbox" data-g="hide"> 숨김</label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
    case 'confirm':return `<div class="row"><label>조건 문장 <input type="text" data-g="q" placeholder="자신이 「특성 : ○○오라」일 때" style="width:360px"></label></div>`;
    case 'cond':return `<div class="row">${sel('g_c',[['ally_fainted','「빈사」 상태인 아군이 있을 때'],['hp_le','HP 가 비율 이하일 때']],'ally_fainted')} <label>비율 <input type="text" class="n xs" data-g="frac" value="1/2"></label></div>`;
   }return ''}
@@ -88,7 +88,7 @@ window.OM_FX_UI=(()=>{
    case 'noind':if(s('g_kind')==='switch')return '교대무시'+tg(s('g_tgt'))+(+g('turns')>0?' '+g('turns')+'턴':'')+(g('off')?' 해제':'');return '비례무시'+tg(s('g_tgt'))+({'':'',noko:' 빈사',hazard:' 설치기',hazdmg:' 설치기피해',recoil:' 반동'})[s('g_kind')]+(+g('turns')>0?' '+g('turns')+'턴':'')+(g('off')?' 해제':'');
    case 'float':return '하늘위'+tg(s('g_tgt'))+(+g('turns')>0?' '+g('turns')+'턴':'')+(g('off')?' 해제':'');
    case 'role':return '역할 '+({add:'추가',remove:'제거',clear:'초기화'})[s('g_mode')]+' '+tyK(g('roles'));
-   case 'pursuit':return '추격'+(g('imm')?' 무시':'')+(g('off')?' 해제':'')+(g('hide')?' 숨김':'');
+   case 'pursuit':return '추격'+(g('imm')?' 무시'+tg(s('g_tgt')):'')+(g('off')?' 해제':'')+(g('hide')?' 숨김':'');
    case 'confirm':return '확인 "'+g('q')+'"';
    case 'cond':return s('g_c')==='hp_le'?'조건 HP≤'+(g('frac')||'1/2'):'조건 아군빈사'}return ''}
 
