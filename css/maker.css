@@ -603,3 +603,9 @@ html.modal-on #mk{overflow:hidden}
 #mk .banhits li{margin:3px 0}
 #mk .bantest{margin-top:4px;padding:6px 8px;border:1px dashed var(--line);border-radius:6px;line-height:1.6}
 #mk #v-tbl mark{background:#ffd23f;color:#111;border-radius:2px;padding:0 1px}
+
+/* 10-24 포텐셜 워딩 도우미 */
+#mk .wordbox{border:1px dashed var(--line);border-radius:8px;padding:6px 10px}#mk .wordbox summary{cursor:pointer;font-weight:600}#mk .wordbox.has summary [data-wcount]{color:var(--warn)}
+#mk .wordbox .wrow{display:flex;align-items:center;gap:6px;margin:4px 0}#mk .wordbox .sp{flex:1}
+#mk .wlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px}#mk .wlist li{font-size:13px;line-height:1.5}#mk .wlist code{background:var(--sunk);padding:1px 4px;border-radius:4px;font-size:12.5px;white-space:pre-wrap}
+#mk .wdsl{margin:2px 0 4px;background:var(--sunk);padding:6px 8px;border-radius:6px;font-size:12.5px;white-space:pre-wrap}

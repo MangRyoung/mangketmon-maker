@@ -732,6 +732,7 @@ function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전�
   <label class="lbl" for="pe-name">이름<input id="pe-name" value="${esc(cur.name)}"></label></div>
   <label class="lbl" for="pe-eff">효과${tagbarHTML()}<textarea id="pe-eff" rows="6">${esc(brN(cur.eff))}</textarea></label>
   <div class="preview" data-prev></div><div class="small" data-ban></div>
+  ${window.MKM_POTLINT?`<details class="wordbox" data-wordbox><summary>✍ 워딩 도우미 <span class="small muted" data-wcount></span></summary><div data-wbody></div></details>`:''}
   ${isEx||isU?'':`<label class="row small"><input type="checkbox" id="pe-db">포텐셜 DB에도 저장 (같은 이름이 있으면 덮어씀)</label>`}
   ${window.OM_FX?`<details class="autobox" ${(isU?String((t.unique[slot.unique]||{}).auto||''):autoDsl(p,cur.name))?'open':''}><summary>⚙ 자동화 구문 <span class="small muted" data-autohint></span></summary>
    <div class="small muted" style="margin:4px 0">오레마스(배틀 웹툴)에서 이 포텐셜을 쓸 때 자동으로 처리할 내용. 같은 이름의 레디메이드가 있으면 비워 둬도 그것이 돈다. 한 줄에 명령 하나 — 예: <code>랭크 공격+1 임시</code> · <code>위력 ×1.3 타입:불꽃 물리</code> · <code>상태확률 화상 30% 상대1체</code></div>
@@ -746,7 +747,20 @@ function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전�
   const r=K.parse(ta2.value);pv.innerHTML=(r.ops.length?'미리보기: '+esc(K.unparse(r.ops).join(' / ')):'')+(r.errs.length?` <span class="warn">모르는 줄: ${esc(r.errs.join(' / '))}</span>`:'');hint.textContent=r.ops.length?'구문 있음':(base&&base.ops&&base.ops.length&&!base.manual?'레디메이드 자동':'없음')};
  autoUpd();l.addEventListener('input',e=>{if(e.target.id==='pe-auto'||e.target.id==='pe-name')autoUpd()});
  const fill=o=>{$('#pe-name',l).value=o.name||'';ta.value=o.eff||'';const k=$('#pe-kind',l);if(k&&o.kind)k.value=o.kind;upd();seg('edit')};
- const upd=()=>{$('[data-prev]',l).innerHTML=`<b>${esc($('#pe-name',l).value||'(이름 없음)')}</b><br>`+rich(ta.value);const h=banHits(ta.value);$('[data-ban]',l).innerHTML=(h.length?`<span class="warn">금지 키워드 감지: ${h.map(esc).join(', ')}</span>`:'<span class="okc">금지 키워드 없음</span>')+lintHTML(ta.value)};
+ const upd=()=>{$('[data-prev]',l).innerHTML=`<b>${esc($('#pe-name',l).value||'(이름 없음)')}</b><br>`+rich(ta.value);const h=banHits(ta.value);$('[data-ban]',l).innerHTML=(h.length?`<span class="warn">금지 키워드 감지: ${h.map(esc).join(', ')}</span>`:'<span class="okc">금지 키워드 없음</span>')+lintHTML(ta.value);wordUpd()};
+ /* 10-24 망령: 뉴비 워딩 도우미 — DB 문장 꼴로 고칠 곳 · 자동화 구문 추천 (js/potlint.js) */
+ let wFind=[],wDsl=[];
+ const wordUpd=()=>{const W=window.MKM_POTLINT,box=$('[data-wordbox]',l);if(!W||!box)return;const txt=ta.value;wFind=txt.trim()?W.check(txt):[];const fx=txt.trim()?W.fixAll(txt):'';const sg=fx?W.suggest(fx):{lines:[],why:[],timing:''};wDsl=sg.lines;const left=fx?banHits(fx):[];
+  $('[data-wcount]',l).textContent=!txt.trim()?'':(wFind.length?`고칠 곳 ${wFind.length}`:'문장 꼴 OK')+(wDsl.length?` · 추천 구문 ${wDsl.length}줄`:'');box.classList.toggle('has',!!wFind.length);
+  const sh=v=>v===''?'(없음)':v.replace(/\n/g,'↵');
+  $('[data-wbody]',l).innerHTML=(!txt.trim()?'<div class="small muted">효과를 쓰면 포텐셜 DB 문장 꼴(【1/시】/ · 「공격 : +1」한다 · 강화(1.5배) · 턴 종료 시까지 …)과 비교해 고칠 곳을 알려 준다.</div>':
+   (wFind.length?`<div class="wrow"><b class="small">고칠 곳</b><span class="sp"></span><button type="button" class="btn sm" data-wfixall>모두 고치기</button></div><ul class="wlist">${wFind.map((f,i)=>`<li><span class="small">${esc(f.msg)}</span><br><code>${esc(sh(f.from))}</code> → <code>${esc(sh(f.to))}</code> <button type="button" class="btn sm ghost" data-wfix="${i}">고치기</button></li>`).join('')}</ul>`:'<div class="small okc">DB 문장 꼴과 어긋나는 곳을 못 찾았다</div>')+
+   (left.length?`<div class="small warn" style="margin-top:4px">고쳐도 남는 금지 키워드: ${left.map(esc).join(', ')} · 이건 손으로 바꿔야 한다 (표 탭 「금지어」 참고)</div>`:'')+
+   (wDsl.length?`<div class="wrow" style="margin-top:6px"><b class="small">추천 자동화 구문</b>${wFind.length?'<span class="small muted">(고친 문장 기준)</span>':''}<span class="sp"></span>${$('#pe-auto',l)?'<button type="button" class="btn sm" data-wdsl>구문 칸에 넣기</button>':''}</div><pre class="wdsl">${esc(wDsl.join('\n'))}</pre><div class="small muted">${esc(sg.timing)} · 넣은 뒤 아래 ⚙ 자동화 구문 미리보기로 확인</div>`:'<div class="small muted" style="margin-top:6px">자동화 구문으로 옮길 만한 효과는 못 찾았다 (조건 · 특수 효과는 GM이 손으로)</div>'))};
+ l.addEventListener('click',e=>{const W=window.MKM_POTLINT;if(!W)return;let b;
+  if((b=e.target.closest('[data-wfix]'))){ta.value=W.fixOne(ta.value,wFind[+b.dataset.wfix]);upd();return}
+  if(e.target.closest('[data-wfixall]')){ta.value=W.fixAll(ta.value);upd();toast('DB 문장 꼴로 고쳤습니다 · 뜻이 바뀌지 않았는지 한 번 읽어 보세요');return}
+  if(e.target.closest('[data-wdsl]')){const a=$('#pe-auto',l);if(!a)return;const old=a.value.trim();if(old&&old!==wDsl.join('\n')&&!confirm('구문 칸에 이미 쓴 내용이 있습니다. 추천 구문으로 바꿀까요?'))return;a.value=wDsl.join('\n');const d=a.closest('details');if(d)d.open=true;autoUpd();toast('추천 구문을 넣었습니다');return}});
  l.addEventListener('input',e=>{if(e.target.id==='pe-eff'||e.target.id==='pe-name')upd()});upd();
  const seg=v=>{$('.split',l).dataset.seg=v;$$('[data-seg]',l).forEach(b=>{if(b.tagName==='BUTTON')b.classList.toggle('on',b.dataset.seg===v)})};
  l.addEventListener('click',e=>{const b=e.target.closest('button[data-seg]');if(b)seg(b.dataset.seg)});
