@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>트레이너 룰북</title>
+<!-- 원본: claude.ai 아티팩트 「트레이너 룰북」(2026-10-20). 제작기 「룰북」 탭이 iframe 으로 연다. 읽기 전용 — 고칠 땐 rb-data 의 chapters(markdown) 를 바꾼다 -->
+</head><body>
+<link id="rb-fonts" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style id="rb-style">
+/* Layout: sticky top bar, left chapter rail, one 760px reading column; potentials read as definition rows, not cards. */
+:root{
+  --bg:#EEF1F5; --surface:#FFFFFF; --sunk:#E4E8EE; --ink:#151B26; --muted:#5A6476; --faint:#8A93A3; --line:#D6DCE4;
+  --accent:#C9302C; --accent-soft:#F8E3E1;
+  --tag-bg:#E3EAF5; --tag-ink:#25446F;
+  --note-bg:#E9EEF3;
+  --rk-d:#8A93A3; --rk-c:#1F8A70; --rk-b:#2E63B8; --rk-a:#C9302C; --rk-aa:#151B26; --rk-on:#FFFFFF;
+  --mark:#FFE58A;
+  --ok:#1F8A70; --ok-bg:#E2F3EC; --warn:#A86A00; --warn-bg:#FBF0D9; --bad:#C9302C; --bad-bg:#F8E3E1; --info:#2E63B8; --info-bg:#E3EAF5;
+  --display:"Do Hyeon","IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --bar:56px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F131A; --surface:#161C25; --sunk:#1E2530; --ink:#E7EBF1; --muted:#9AA4B4; --faint:#6E7889; --line:#283140;
+  --accent:#FF6A60; --accent-soft:#3A1C1B;
+  --tag-bg:#1F2E45; --tag-ink:#A9C6F2;
+  --note-bg:#1A222D;
+  --rk-d:#6E7889; --rk-c:#3DBA97; --rk-b:#6E9BEA; --rk-a:#FF6A60; --rk-aa:#E7EBF1; --rk-on:#0F131A;
+  --mark:#6B5A12;
+  --ok:#3DBA97; --ok-bg:#15302A; --warn:#E3A93A; --warn-bg:#33270F; --bad:#FF6A60; --bad-bg:#3A1C1B; --info:#6E9BEA; --info-bg:#1F2E45;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0F131A; --surface:#161C25; --sunk:#1E2530; --ink:#E7EBF1; --muted:#9AA4B4; --faint:#6E7889; --line:#283140;
+  --accent:#FF6A60; --accent-soft:#3A1C1B;
+  --tag-bg:#1F2E45; --tag-ink:#A9C6F2;
+  --note-bg:#1A222D;
+  --rk-d:#6E7889; --rk-c:#3DBA97; --rk-b:#6E9BEA; --rk-a:#FF6A60; --rk-aa:#E7EBF1; --rk-on:#0F131A;
+  --mark:#6B5A12;
+  --ok:#3DBA97; --ok-bg:#15302A; --warn:#E3A93A; --warn-bg:#33270F; --bad:#FF6A60; --bad-bg:#3A1C1B; --info:#6E9BEA; --info-bg:#1F2E45;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:calc(var(--bar) + 16px)}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* top bar */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;height:var(--bar);display:flex;align-items:center;gap:12px;padding-inline:16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;min-width:0}
+.brand-mark{width:22px;height:22px;border-radius:50%;border:3px solid var(--ink);position:relative;flex:none}
+.brand-mark::after{content:"";position:absolute;inset:6px 0 auto;height:3px;margin-top:-1.5px;top:50%;background:var(--accent)}
+.brand-name{font-family:var(--display);font-size:21px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search{flex:1;max-width:420px;margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--sunk);border-radius:8px;padding:0 10px;height:36px;min-width:0}
+.search svg{flex:none;color:var(--faint)}
+.search input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:14px}
+.search kbd{font-family:var(--mono);font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:4px;padding:0 5px}
+.actions{display:flex;align-items:center;gap:8px;flex:none}
+.status{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.btn{height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--sunk)}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.btn.primary:hover{opacity:.9}
+.btn.danger{color:var(--accent);border-color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.icon-btn{width:36px;height:36px;border-radius:8px;border:0;background:transparent;display:none;place-items:center;cursor:pointer;flex:none}
+.icon-btn:hover{background:var(--sunk)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:232px minmax(0,1fr)}
+.toc{position:sticky;top:calc(var(--bar) + env(safe-area-inset-top,0px));height:calc(100vh - var(--bar));overflow:auto;padding:24px 10px 40px 12px;border-right:1px solid var(--line);font-size:14px}
+.toc-group{margin-bottom:18px}
+.toc-group-name{font-size:11.5px;font-weight:600;letter-spacing:.06em;color:var(--faint);padding:0 10px 6px}
+.toc a{display:flex;gap:10px;align-items:baseline;padding:5px 10px;border-radius:6px;text-decoration:none;color:var(--muted);line-height:1.4}
+.toc a:hover{background:var(--sunk);color:var(--ink)}
+.toc a .n{font-family:var(--mono);font-size:11px;color:var(--faint);flex:none;width:18px}
+.toc a.active{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:inset 0 0 0 1px var(--line)}
+.toc a.active .n{color:var(--accent)}
+.toc .subs{display:none;margin:2px 0 6px 28px;border-left:1px solid var(--line)}
+.toc .subs a{font-size:13px;padding:3px 10px;border-radius:0 6px 6px 0}
+.toc .ch.active-ch .subs{display:block}
+.toc .ch.hidden{display:none}
+
+main{min-width:0;padding:32px clamp(16px,2.5vw,32px) 120px}
+.col{max-width:860px}
+
+/* hero */
+.hero{padding-bottom:28px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.hero-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--accent);margin-bottom:10px}
+.hero h1{font-family:var(--display);font-weight:400;font-size:clamp(38px,6vw,56px);line-height:1.05;margin:0 0 12px;text-wrap:balance}
+.hero p{margin:0;color:var(--muted);max-width:56ch}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:16px;font-family:var(--mono);font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:20px;font-size:13px;color:var(--muted)}
+.legend span.k{display:inline-flex;align-items:center;gap:8px}
+
+/* chapter */
+.chapter{padding-top:56px}
+.ch-head{margin-bottom:22px}
+.ch-eyebrow{display:flex;gap:10px;align-items:center;font-size:12.5px;font-weight:600;letter-spacing:.04em;color:var(--muted)}
+.ch-eyebrow .num{font-family:var(--mono);font-weight:500;color:var(--accent)}
+.ch-head h2{font-family:var(--display);font-weight:400;font-size:36px;line-height:1.15;margin:6px 0 6px;text-wrap:balance}
+.ch-desc{margin:0;color:var(--muted);font-size:14.5px}
+
+.ch-body{display:flex;flex-direction:column;gap:14px}
+.ch-body h3{font-size:19px;font-weight:700;margin:26px 0 0;padding-bottom:8px;border-bottom:1px solid var(--line);text-wrap:balance;line-height:1.4}
+.ch-body h4{font-size:16px;font-weight:700;margin:14px 0 -4px;line-height:1.45}
+.ch-body h5{font-size:15px;font-weight:600;margin:8px 0 -6px;color:var(--muted)}
+.ch-body p{margin:0}
+.ch-body ul,.ch-body ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:5px}
+.ch-body li::marker{color:var(--faint)}
+.ch-body ol li::marker{font-family:var(--mono);font-size:.85em;color:var(--accent)}
+.ch-body ul.compact{display:block;columns:3 150px;column-gap:24px}
+.ch-body ul.compact li{break-inside:avoid;margin-bottom:4px}
+.ch-body code{font-family:var(--mono);font-size:.82em;color:var(--muted);background:var(--sunk);padding:1px 5px;border-radius:4px}
+.ch-body a{color:var(--tag-ink);text-underline-offset:3px}
+.ch-body hr{border:0;border-top:1px solid var(--line);margin:8px 0;width:100%}
+.note{background:var(--note-bg);border-radius:8px;padding:12px 16px 12px 40px;position:relative;font-size:14.5px;color:var(--ink)}
+.note::before{content:"※";position:absolute;left:16px;top:12px;color:var(--accent);font-weight:700}
+
+/* notation */
+.tg{display:inline-block;font-family:var(--mono);font-size:.78em;font-weight:500;line-height:1.5;padding:0 6px;margin:0 1px;border-radius:4px;background:var(--tag-bg);color:var(--tag-ink);vertical-align:.08em;white-space:nowrap}
+.pt{color:var(--accent);font-weight:600}
+.pt i,.tm i,.fd i{font-style:normal;color:var(--faint);font-weight:400}
+.fd{font-weight:600}
+.num{font-family:var(--mono);color:var(--accent);margin-right:4px}
+
+/* definitions (potentials) */
+.defs{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.def{display:grid;grid-template-columns:minmax(9rem,12rem) minmax(0,1fr);gap:4px 20px;padding:12px 4px;border-bottom:1px solid var(--line)}
+.def-name{font-weight:700;line-height:1.5;color:var(--ink)}
+.def-name::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:8px;vertical-align:.2em}
+.def-main{min-width:0;display:flex;flex-direction:column;gap:3px}
+.def-tags{display:flex;flex-wrap:wrap;gap:4px}
+.def-tags .tg{margin:0}
+.def-cont{color:var(--ink)}
+.def-cont.sub{color:var(--muted);font-size:14px}
+
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;font-variant-numeric:tabular-nums}
+th{text-align:left;font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--muted);background:var(--sunk);padding:9px 14px;white-space:nowrap}
+td{padding:10px 14px;border-top:1px solid var(--line);vertical-align:top;line-height:1.6}
+td:first-child{white-space:nowrap;font-weight:600}
+.rk{display:inline-grid;place-items:center;min-width:30px;height:24px;padding:0 6px;border-radius:5px;font-family:var(--mono);font-size:13px;font-weight:500;color:var(--rk-on);background:var(--rk-d)}
+.rk-C{background:var(--rk-c)} .rk-B,.rk-Bm{background:var(--rk-b)} .rk-Bm{opacity:.75} .rk-A{background:var(--rk-a)} .rk-AA{background:var(--rk-aa)}
+
+mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
+.empty{padding:60px 0;color:var(--muted)}
+.hidden-blk{display:none!important}
+.chapter.hidden-ch{display:none}
+
+/* banner */
+.banner{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;background:var(--accent-soft);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:14px}
+.banner .grow{flex:1;min-width:200px}
+
+/* editor */
+.ed-intro{display:flex;flex-direction:column;gap:12px;margin-bottom:8px}
+.field{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted);font-weight:500;min-width:0}
+.field input{height:38px;border:1px solid var(--line);border-radius:7px;background:var(--surface);padding:0 10px;font-size:15px;color:var(--ink);width:100%}
+.field input.big{height:50px;font-family:var(--display);font-size:28px}
+.row{display:flex;flex-wrap:wrap;gap:12px}
+.row>.field{flex:1 1 200px}
+.help{background:var(--surface);border:1px solid var(--line);border-radius:8px;font-size:14px}
+.help summary{cursor:pointer;padding:10px 14px;font-weight:600}
+.help .help-body{padding:0 14px 14px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 18px}
+.help code{font-family:var(--mono);font-size:12.5px;background:var(--sunk);padding:1px 5px;border-radius:4px;white-space:pre-wrap}
+.chapter.editing{padding-top:40px}
+.ed-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.ed-top{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.ed-toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ed-toolbar .num{font-size:12px}
+.ed-toolbar .sp{flex:1}
+.ed-toolbar .btn{height:30px;padding:0 10px;font-size:13px}
+.ed-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.ed-split textarea{width:100%;min-height:260px;border:0;border-right:1px solid var(--line);resize:none;padding:14px 16px;font-family:var(--mono);font-size:13px;line-height:1.65;background:var(--surface);color:var(--ink);outline:none;overflow:hidden}
+.ed-split textarea:focus{background:var(--bg)}
+.ed-preview{padding:14px 18px;min-width:0;font-size:14.5px}
+.ed-preview-label{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.06em;margin-bottom:6px}
+.add-ch{margin-top:28px;width:100%;height:52px;border:1.5px dashed var(--line);border-radius:10px;background:transparent;color:var(--muted);font-size:15px;cursor:pointer}
+.add-ch:hover{border-color:var(--ink);color:var(--ink)}
+.scrim{display:none}
+
+@media (max-width:980px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .icon-btn{display:grid}
+  .toc{position:fixed;left:0;top:calc(var(--bar) + env(safe-area-inset-top,0px));bottom:0;height:auto;width:min(300px,86vw);background:var(--surface);z-index:40;transform:translateX(-102%);transition:transform .2s ease;box-shadow:0 10px 40px rgba(0,0,0,.18)}
+  body.toc-open .toc{transform:none}
+  body.toc-open .scrim{display:block;position:fixed;inset:0;top:var(--bar);background:rgba(10,14,20,.35);z-index:35}
+  .ed-split{grid-template-columns:minmax(0,1fr)}
+  .ed-split textarea{border-right:0;border-bottom:1px solid var(--line)}
+}
+@media (max-width:640px){
+  body{font-size:15px}
+  .search kbd,.brand-name{display:none}
+  .status{display:none}
+  main{padding-top:28px}
+  .ch-head h2{font-size:30px}
+  .def{grid-template-columns:minmax(0,1fr);padding:12px 2px}
+  .help .help-body{grid-template-columns:minmax(0,1fr)}
+  .tbl.stack{border:0;background:transparent;overflow:visible}
+  .tbl.stack table,.tbl.stack tbody,.tbl.stack tr,.tbl.stack td{display:block;width:100%}
+  .tbl.stack thead{display:none}
+  .tbl.stack tr{background:var(--surface);border:1px solid var(--line);border-radius:8px;margin-bottom:8px;padding:6px 0}
+  .tbl.stack td{border:0;padding:4px 14px;white-space:normal}
+  .tbl.stack td[data-label]:not(:first-child)::before{content:attr(data-label);display:block;font-size:11.5px;font-weight:600;color:var(--faint);letter-spacing:.04em}
+}
+
+/* visual blocks (::: steps / cards / ladder / scale / flow / heat) */
+.vx{min-width:0}
+.vx-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.vx-step{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.vx-step .vx-k{font-family:var(--mono);font-size:11.5px;color:var(--accent);letter-spacing:.04em}
+.vx-step b{display:block;font-size:15.5px;margin:2px 0 4px;line-height:1.35}
+.vx-step span.vx-d{display:block;font-size:13.5px;color:var(--muted);line-height:1.55}
+.vx-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.vx-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px 12px 18px;box-shadow:inset 4px 0 0 var(--line)}
+.vx-card>b{display:block;font-size:15px;line-height:1.4;margin-bottom:5px}
+.vx-card .vx-d{font-size:14px;line-height:1.65}
+.vx-card.t-good,.vx-card.t-best{box-shadow:inset 4px 0 0 var(--ok)} .vx-card.t-good>b,.vx-card.t-best>b{color:var(--ok)}
+.vx-card.t-warn{box-shadow:inset 4px 0 0 var(--warn)} .vx-card.t-warn>b{color:var(--warn)}
+.vx-card.t-bad,.vx-card.t-x{box-shadow:inset 4px 0 0 var(--bad)} .vx-card.t-bad>b,.vx-card.t-x>b{color:var(--bad)}
+.vx-card.t-info{box-shadow:inset 4px 0 0 var(--info)} .vx-card.t-info>b{color:var(--info)}
+.vx-card.t-best{background:var(--ok-bg)} .vx-card.t-x{background:var(--bad-bg)}
+.vx-ladder{display:flex;gap:8px;align-items:flex-end;max-width:520px}
+.vx-rung{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.vx-bar{width:100%;border-radius:6px 6px 3px 3px;background:var(--info-bg);color:var(--info);display:flex;justify-content:center;padding-top:6px;font-family:var(--mono);font-size:14px;font-weight:500}
+.vx-lab{font-size:13px;color:var(--muted);text-align:center;line-height:1.3}
+.vx-scale{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.vx-seg{flex:1;min-width:0;padding:10px 12px;border-left:1px solid var(--line)}
+.vx-seg:first-child{border-left:0}
+.vx-seg b{display:block;font-size:14.5px;line-height:1.35;margin-bottom:3px}
+.vx-seg .vx-d{display:block;font-size:12.5px;line-height:1.5;color:var(--ink)}
+.vx-seg.t-x{background:color-mix(in srgb,var(--bad) 26%,var(--surface))} .vx-seg.t-bad{background:var(--bad-bg)}
+.vx-seg.t-warn{background:var(--warn-bg)} .vx-seg.t-good{background:var(--ok-bg)}
+.vx-seg.t-best{background:color-mix(in srgb,var(--ok) 26%,var(--surface))} .vx-seg.t-info{background:var(--info-bg)}
+.vx-flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 4px}
+.vx-node{padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:14px;white-space:nowrap}
+.vx-node.t-good{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.vx-node.t-best{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.vx-node.t-warn{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
+.vx-node.t-bad{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}
+.vx-node.t-x{background:var(--bad);border-color:var(--bad);color:var(--surface)}
+.vx-node.t-info{background:var(--info-bg);border-color:var(--info);color:var(--info)}
+.vx-arrow{color:var(--faint);font-size:14px;padding:0 2px}
+.vx-heat td.vx-h{background:color-mix(in srgb,var(--ok) var(--p),transparent);font-family:var(--mono);font-size:13.5px}
+@media (max-width:640px){
+  .vx-scale{flex-direction:column}
+  .vx-seg{border-left:0;border-top:1px solid var(--line)}
+  .vx-seg:first-child{border-top:0}
+  .vx-ladder{max-width:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+<template id="rb-shell"><header class="topbar">
+<button class="icon-btn" id="menuBtn" aria-label="목차 열기"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 5h14M3 10h14M3 15h14"></path></svg></button>
+<a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"></span><span class="brand-name" id="brandName"></span></a>
+<label class="search" id="searchBox"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"></circle><path d="M11 11l3.5 3.5" stroke-linecap="round"></path></svg><input id="q" type="search" placeholder="포텐셜 · 태그 · 규칙 검색" autocomplete="off"><kbd>/</kbd></label>
+<div class="actions"><span class="status" id="status"></span><button class="btn" id="editBtn" hidden="">편집</button><button class="btn" id="cancelBtn" hidden="">취소</button><button class="btn primary" id="saveBtn" hidden="">저장</button></div>
+</header>
+<div class="layout"><nav class="toc" id="toc" aria-label="목차"></nav><main id="main"></main></div>
+<div class="scrim" id="scrim"></div></template>
+<div id="app"></div>
+<script type="application/json" id="rb-data">{"title":"트레이너 룰북","subtitle":"캐릭터 메이킹부터 배틀 재정, 태그 사전까지 한곳에 정리한 룰북입니다.","updated":"2026-10-20","chapters":[{"id":"basics","group":"캐릭터 메이킹","title":"기초 메이킹 룰","desc":"트레이너 자질 투자 방식과 자질별 기본·특화 요약","body":"## 자질 투자\n모든 트레이너는 「지시 / 육성 / 통솔 / 능력」 네 자질이 **C/C/C/C**인 상태에서 시작합니다. 자질은 최대 **3회** 올릴 수 있습니다.\n\n- 특정 자질 1개를 「D」로 내리면 투자 횟수를 **4회**로 조정할 수 있습니다.\n- 이 경우 「육성」「통솔」 두 자질에는 합쳐서 최대 **2회**까지만 투자할 수 있습니다.\n- 「육성」「능력」 두 자질이 모두 「A」인 조합은 금지합니다.\n\n> 「파트너」 : 캐릭터 메이킹 단계에서 작성하는 포켓몬 2체를 말합니다.\n\n## 자질별 기본 · 특화 요약\n| 자질 | 기본 | 특화 |\n|---|---|---|\n| 지시 | 『4식 6령』(단순)\u003cbr>「소지품 소켓 : 9」 | 『4식 6령』(숙달) 또는 『십계』(영창)\u003cbr>「소지품 소켓 : 11」 · 「묘수」 1회\u003cbr>「지시 : A」에 의한 「C +1」, 파트너 전원 『전술』 부여 가능 |\n| 육성 | 전원 「LV : 100」\u003cbr>『2계제』 사용 가능 · 알까기 5회 | 파트너 「LV : 110」 · 『3계제』 사용 가능\u003cbr>전원 『회피』『내성』 발동 가능 · 알까기 15회 |\n| 통솔 | 파트너 【프라이드 : B】 + 【프라이드 : C】\u003cbr>『유대』 1체 | 파트너 【프라이드 : A】 + 【프라이드 : B】 · 선후공 결정권 우선 획득\u003cbr>「통솔 : A」에 의한 「명중」 강화(1.05배) · 『고유종』 1체\u003cbr>파트너 전원 『익스펜션』『유대』 부여 가능\u003cbr>파트너 『상위 역할』『파생 역할』 부여 가능 |\n| 능력 | 『1 고유 포텐셜』 + 『전용 포텐셜』 2개\u003cbr>(템플릿만. 파트너 1, 공용기물 1) | 아래 중 1택\u003cbr>『2 고유 포텐셜』(1상시 1단발) + 『전용 포텐셜』 4개\u003cbr>『2 고유 포텐셜』(2상시) + 『전용 포텐셜』 3개\u003cbr>「파트너」 전원 독자적인 전용 습득 가능 |\n\n> 『고유종』은 독자적인 전용을 습득할 수 있습니다. 단, 전용의 개수가 늘어나지는 않습니다."},{"id":"direct","group":"트레이너 자질","title":"지시","desc":"지령·영창과 소지품 소켓을 결정하는 자질","body":"## 랭크별 효과\n| 랭크 | 효과 | 소지품 소켓 |\n|---|---|---|\n| D | 『4식』 사용 가능 | -2 |\n| C | 『단순 지령』 사용 가능 | 9 |\n| B | 『숙달 지령』 또는 『교회식 : 영창』 사용 가능 | +1 |\n| A | 『추가 지령』 사용 가능 · 『전술』 포텐셜 부여 가능 · 「C」 +1 · 「묘수」 1회\u003cbr>『데이터 해석』/「소지품 해석」 +1회 | +2 |\n| AA | 『맞춰라!』 · 『파계』 사용 가능 · 「C」 +2 · 「묘수」 2회\u003cbr>『데이터 해석』/「소지품 해석」 +2회 | +3 |\n\n> B → A 접근권 : 『전술』 / 『데이터 해석』\n\n지시 포텐셜의 전체 목록은 「지시 포텐셜」 장에, 『전술』 목록은 「전술 포텐셜」 장에 있습니다."},{"id":"breed","group":"트레이너 자질","title":"육성","desc":"레벨, 계제·속별, 기술 소켓을 결정하는 자질","body":"## 랭크별 효과\n| 랭크 | 계제 · 속별 | LV | 분배 LV | 알까기 | 기술 소켓 |\n|---|---|---|---|---|---|\n| D | 전원 『계제』『속별』 중 2개 습득 | 95/105 | +5 | 3회 | 32 |\n| C | 『계제』『속별』 3개 습득 개체 +2 | 100/110 | +10 | 5회 | 34 |\n| B | 『계제』『속별』 3개 습득 개체 +4 | 105/115 | +15 | 10회 | 35.5 |\n| A | 전원 『계제』『속별』『회피+내성』 중 3개 습득 | 110/120 | +20 | 15회 | 37 |\n| AA | 사용 금지 | - | - | - | - |\n\n> B → A 접근권 : 『약점회피』『약점내성』\n\n## 기술 소켓 규칙\n- 자속기에 해당하면 「기술할인」에 체크해 소켓에 0.5 할인을 받습니다. 기본적으로 모든 PT에 「6점」이 지급됩니다.\n- 「공격(특공)」이 각각 「B-(95)」 이상인 개체는 PT 「기술 소켓 : +1」.\n- 『올드타입』은 「기술할인」에 체크해 교배기/유전기를 1개 습득할 수 있습니다. 개인 상한치 제한을 받지 않는 대신 「4개」의 기술만 익힐 수 있고, PT 전체의 「기술 소켓」에서 고정적으로 「5.5점」을 소모합니다.\n\n## 『회피』 『내성』\n『약점회피』 【육성 : A】/「상성 : 2배~8배」인 기술에 대한 「회피」를 강화(1.1배)한다.\n『약점내성』 【방호】【육성 : A】/「상성 : 2배~8배」인 기술로 받을 대미지를 완화(0.85배)한다."},{"id":"lead","group":"트레이너 자질","title":"통솔","desc":"역할과 통솔점, 유대를 결정하는 자질","body":"## 랭크별 효과\n| 랭크 | 역할 | 통솔점 | 추가 효과 |\n|---|---|---|---|\n| D | 『에이스』 사용 가능 | 6 | 『고대종』 최대 1체 · 『현대종』의 종족치 -15 |\n| C | 『기본 역할』 사용 가능 | 6 | 『파트너』는 할인 1점 |\n| B | 『파생 역할』 사용 가능 | 8 | 『파트너』는 할인 1점 · PT 전원에게 『익스펜션』 부여 가능 |\n| A | 『상위 역할』 사용 가능 | 10 | 『파트너』는 할인 1점 · 『영혼의 유대』 추가로 1체 부여 가능 · 「명중」 강화(1.05배) |\n| AA | 사용 금지 | - | - |\n\n> B → A 접근권 : 『유대』\n\n## 『유대』\n『사랑의 유대』 【탈진】/저확률로 기술 대미지로 「빈사」 상태가 되지 않는다.\n『영혼의 유대』 【탈진】/저확률로 기술 대미지로 「빈사」 상태가 되지 않는다.\n\n통솔점과 프라이드 표는 「포켓몬 제작」 장에 있습니다."},{"id":"power","group":"트레이너 자질","title":"능력","desc":"고유·전용 포텐셜의 개수를 결정하는 자질","body":"『전체관통』『삼점방호』 등 일부 전용 템플릿은 능력형 전용으로 바뀌었습니다. 기본적으로 「템플릿 전용」 안에서만 부여할 수 있지만, 「능력」 랭크나 『고유종』 등의 요소에 따라 자유로운 『커스텀 전용』을 부여할 수 있습니다.\n\n- 이때도 『전용 포텐셜』의 개수 자체가 늘어나지는 않습니다.\n- 횟수 제한이 없는 상시형 『고유』『전용』은 아래 표의 개수를 넘을 수 없습니다.\n\n## 랭크별 효과\n| 랭크 | 고유 포텐셜 | 전용 포텐셜 |\n|---|---|---|\n| D | 1 | 0 |\n| C | 1 | 2 (템플릿 전용만 허가 · 상시 제한 1개) |\n| B | 아래 중 1택\u003cbr>2 (상시 2)\u003cbr>2 (상시 1 + 단발 1) | 아래 중 1택\u003cbr>2 (템플릿 전용만 허가 · 상시 제한 1개)\u003cbr>4 (커스텀 전용 2개 · 상시 제한 2개) |\n| A | 2 (상시 2) | 6 (상시 제한 3개) |\n| AA | 3 (상시 2 + 단발 1) | 8 (상시 제한 4개 · 1개체에게 2전용 가능, 이때 1상시 1단발 구성) |\n\n> B → A 접근권 : 커스텀 『전용』\n\n## 능력형 전용\n『특성 계약』 자신을 「특성 : OO」으로 한다.\n※ 「특성 TO : +1」. 『어룡장화』 등과 같은 TO로 취급한다."},{"id":"faction","group":"캐릭터 메이킹","title":"팩션 · 프리랜서","desc":"소속에 따른 제한과 이득","body":"## 팩션\n**제한** · PT에 해당 소속 팩션의 「타입」을 2(4)체 이상 엔트리한다.\n\n**이득** · 해당 소속 팩션의 『PT 포텐셜』을 1(2)체에게 부여할 수 있다.\n\n## 프리랜서\n**제한**\n- PT에 「타입」을 중복하여 엔트리할 수 없다.\n- PT에 「날씨, 필드」의 요소를 도입할 수 없다.\n\n**이득**\n- 1체의 「특성 소켓 : +0.5」 한다. (최대 2까지)\n- 『템플릿』 외 『전용 포텐셜』을 1체에게 부여할 수 있다. 「능력형」의 경우 『단발 전용』을 『상시 전용』으로 교체할 수 있다.\n\n> 전용의 개수가 늘어나는 것은 아닙니다."},{"id":"principles","group":"캐릭터 메이킹","title":"파티 메이킹 대원칙","desc":"포텐셜을 설계할 때 지켜야 할 기준","body":"1. 다른 멤버와 포텐셜의 트리거가 겹치지 않는다.\n2. 다른 멤버와 포텐셜의 효과가 겹치지 않는다. ※ 「특성」『전용』은 비교적 별도 판정\n3. 다른 『역할』의 성능을 침해하지 않는다. ※ 위력 강화 = 어태커, 능력 강화/상승 = 에이스/러너/블로커 등\n4. 다른 「자질」의 성능을 과도하게 침해하지 않는다. ※ 『전술 포텐셜』과 유사한 성능의 『포텐셜』\n5. 「소켓 : 2」 이상의 「소지품」에 필적하는 효과는 삼간다.\n6. 둘 이상의 「기술」에 동시에 적용 가능한 효과는 육성형이 아닌 한 삼간다.\n7. 어떤 방식으로든 「전체기」를 「C : +3」 이상으로 만들 수 없다."},{"id":"pokemon","group":"캐릭터 메이킹","title":"포켓몬 제작","desc":"프라이드, 통솔점, 종족치 기준과 적응종·랜덤 뽑기","body":"## 프라이드와 통솔점\n| 프라이드 | 종족치 합 | 통솔점 | 특성 TO | 최소종족치 | 화력균형 |\n|---|---|---|---|---|---|\n| C | 480 (525) | 1 | 1 (0.5) | D- (40) | D (50) |\n| B | 525 (480) | 2 | 1 (1.5) | D (45) | D+ (55) |\n| A | 570 (525) | 3 | 1.5 (2) | D (50) | C- (60) |\n\n- 『올드 타입』의 경우 내림합니다. 프라이드 A의 경우 570~600까지.\n- 『포켓 파워』 속별은 금지입니다.\n- 종족치 범위가 프라이드 C의 +5~6 이하일 때 아래 포텐셜을 취득할 수 있습니다.\n\n『프렌들리 몬스터』 『올드 타입』일 때 【프라이드】 계산을 반올림 대신 버림으로 계산한다.\n기술폭은 「4」개로 고정되며, 배울 수 있는 LV 이하의 기술만 습득할 수 있다.\n\n## 종족치 용어\n**최소종족치** · 포켓몬이 각 종족치별로 투자해야 하는 최소 수치입니다. 최소종족치는 포켓몬 1체당 1개만 배정할 수 있습니다. 추가로 「공격/특공/스피드」에 합쳐서 최소 「150」점을 분배합니다. D가 2개 이상인 포켓몬을 파티에 여러 체 넣지 않습니다.\n\n**화력균형** · 「공격(특공) : A-(110)」 이상인 포켓몬은 고화력으로 취급합니다. 그래서 반대쪽 「특공(공격)」에 최소종족치보다 조금 높은 기준을 요구하는데, 이것을 화력균형이라 부릅니다.\n\n**쌍두형** · 「공격, 특공 : B(95)」 이상을 충족하고 「물리기, 특수기」를 각각 1개 이상 습득한 포켓몬. 「기술점 : 1」 이하의 기술을 무료로 1개 습득합니다.\n\n## 『적응종』 규칙\n- 종족치를 +20 하고, 추가로 기존 종족치에서 최대 20점까지 재분배할 수 있다. 이로 인한 요구 통솔점(프라이드)은 변하지 않는다.\n- 특성 소켓을 기존 요구 통솔점(프라이드)보다 한 단계 높은 것으로 취급할 수 있다. 『올드 타입』이 기존에 사용하던 특성의 소켓이 기준이 아니다.\n- 「능력 : A」가 아니어도 『전용 포텐셜』을 템플릿 이외로 부여할 수 있다. 「능력 : A」 이상이면 단발형 TO를 상시형으로 바꿀 수 있다.\n- 『올드 타입』은 기술폭 4칸을 유지하되, 그중 1개를 교배기/기술머신으로 습득할 수 있는 기술로 배치할 수 있다.\n- 『현대종』은 기존 기술폭에서 「기술 소켓 : 1.5」 이하의 기술을 하나 추가로 습득한다.\n\n> PVP 환경에서는 1PT당 최대 1체로 제한합니다.\n\n## 랜덤 뽑기\n『역할』과 【프라이드】, 「특성 TO」를 지정해 랜덤 포켓몬을 작성합니다. 「특성」은 제시되는 후보 2개 중 1택합니다. 각 종족치마다 2+1d6 (3~8)을 굴려 총합에 비율을 맞춥니다. 트레이너의 「통솔」에 따라 + 또는 - 보정을 가할 수 있습니다 (C = 1, B = 2, A = 3).\n\n작성된 포켓몬은 후보에서 선택한 뒤 「기술」과 『속별』을 추가해 파티에 넣습니다. 뽑기 중 단 1회에 한해 종족치 최소값 이하의 『고대종』을 확정으로 영입할 수 있습니다.\n\n| 프라이드 | 종족치 범위 |\n|---|---|\n| C | 480~520 (항목마다 ±3) |\n| B | 520~560 (항목마다 ±3) |\n| A | 560~600 (항목마다 ±3) |\n\n### 역할별 랜덤 보너스\n| 역할 | 보너스 (하나가 랜덤으로 부여) |\n|---|---|\n| 『어태커』 | 공격/방어 +1 · 특공/특방 +1 · 공격/특공 +1 |\n| 『블로커』 | 방어 +2 · 특방 +2 · HP +2 |\n| 『러너』 | 스피드 +2 · 특공/스피드 +1 · 공격/스피드 +1 |\n| 『킬러』 | 공격 +2 · 특공 +2 |\n| 『어시스트』 | 방어/스피드 +1 · 특방/스피드 +1 |"},{"id":"solo2","group":"캐릭터 메이킹","title":"1인 기준 (2체)","desc":"트레이너 한 명이 2체만 데리고 다닐 때의 자원 환산 (시안)","body":"> **시안 (2026-10-14)** · 아직 확정 전입니다. 숫자는 6체 기준의 1/3을 바탕으로 잡았고, 끝에 정해야 할 것을 적어 두었습니다.\n\n트레이너 한 명이 포켓몬 **2체**만 데리고 다닐 때의 제작 기준입니다. 기본 룰북은 6체 파티 기준이라, PT 단위로 주던 자원을 2체 기준으로 줄입니다. 무진에서는 주요 인물마다 소지 포켓몬이 2체이고, 편 배틀은 두 인물의 2+2 = 4체로 치릅니다.\n\n## 원칙\n- **트레이너에게 붙는 것은 그대로** · 자질 랭크, 『고유 포텐셜』 개수, 「묘수」, 『데이터 해석』, 「명중」 강화(통솔 A), 선후공 결정권, 지령·영창의 종류는 6체 기준과 같습니다.\n- **PT에 나눠 주던 것은 1/3로** · 통솔점, 기술 소켓, 소지품 소켓, 분배 LV, 『전용 포텐셜』, 팩션 조건은 2체 기준으로 줄입니다. 알까기 횟수는 줄이지 않습니다. 나누어떨어지지 않으면 0.5 단위로 올림합니다.\n- **2체는 둘 다 「파트너」** · 캐릭터 메이킹 때 작성하는 2체가 곧 소지 전부입니다. 「파트너」에게만 주던 이득(『유대』, 『죽마고우(통)』, 프라이드 할인 등)은 2체 모두 받습니다.\n- **합체 배틀은 각자 자원** · 두 트레이너가 2+2로 싸울 때 자원은 섞지 않습니다. 각자 자기 2체를 자기 자질로 만들고, 자질 효과(명중 강화, 『전술』 등)도 자기 포켓몬에게만 미칩니다. 『유대』『익스펜션』도 상대 트레이너의 포켓몬에게는 붙지 않습니다.\n\n## 자질별 자원 환산\n| 자원 | 6체 기준 (D / C / B / A / AA) | 2체 기준 (D / C / B / A / AA) |\n|---|---|---|\n| 소지품 소켓 (지시) | 7 / 9 / 10 / 11 / 12 | 2.5 / 3 / 3.5 / 4 / 4.5 |\n| 기술 소켓 (육성) | 32 / 34 / 35.5 / 37 / - | 11 / 11.5 / 12 / 12.5 / - |\n| 기술 소켓 기본 지급 (「기술 할인점」) | PT에 6점 | 3점 |\n| 분배 LV (육성) | +5 / +10 / +15 / +20 / - | +2 / +4 / +5 / +7 / - |\n| 알까기 (육성) | 3 / 5 / 10 / 15 / - | 그대로 (3 / 5 / 10 / 15) |\n| 『계제』『속별』 습득 (육성) | 전원 2개 / 3개 개체 +2 / 3개 개체 +4 / 전원 3개 | 전원 2개 / 1체 3개 / 전원 3개 / 전원 『계제』『속별』『회피+내성』 중 3개 |\n| 통솔점 (통솔) | 6 / 6 / 8 / 10 / - | 3 / 3 / 4 / 5 / - |\n\n- 「지시 : D」의 소지품 소켓 -2는 2체 기준에서 -0.5로 읽습니다.\n- 「육성」 표의 LV(95/105 ~ 110/120)와 「기술 상한」은 개체 단위라 그대로입니다.\n\n## 『전용 포텐셜』 (능력)\n「능력」 랭크마다 PT에 줄 수 있는 『전용 포텐셜』의 개수와 그중 상시형의 상한입니다. 「B」는 a)·b) 중 **1택**입니다.\n\n| 능력 | 6체 기준 · 개수 (상시 제한) | 2체 기준 · 개수 (상시 제한) |\n|---|---|---|\n| D | 0 | 0 |\n| C | 2 (상시 1) · 템플릿 전용만 | 1 (상시 1) · 템플릿 전용만 |\n| B · a) | 2 (상시 1) · 템플릿 전용만 | 1 (상시 1) · 템플릿 전용만 |\n| B · b) | 4 (상시 2) · 그중 커스텀 전용 2개 | 2 (상시 1) · 그중 커스텀 전용 1개 |\n| A | 6 (상시 3) | 2 (상시 1) |\n| AA | 8 (상시 4) · 1개체에게 2전용 가능 (1상시 1단발) | 3 (상시 2) · 1개체에게 2전용 가능 (1상시 1단발) |\n\n- 『고유 포텐셜』 개수(D 1 / C 1 / B 2 / A 2 / AA 3)는 트레이너의 것이라 바꾸지 않습니다.\n\n## 프라이드와 통솔점\n2체 모두 「파트너」라 할인 1점을 받습니다. 통솔점 3이면 【프라이드 : B】 + 【프라이드 : C】, 4면 【A】 + 【C】 또는 【B】 + 【B】, 5면 【A】 + 【B】입니다. 6체 기준의 \"파트너 B + C (기본) / A + B (특화)\"와 같은 결과가 나오도록 맞췄습니다.\n\n| 통솔 | 통솔점 | 가능한 조합 |\n|---|---|---|\n| D | 3 | 【B】+【C】 (『고대종』 최대 1체 · 『현대종』 종족치 -15) |\n| C | 3 | 【B】+【C】 |\n| B | 4 | 【A】+【C】 또는 【B】+【B】 |\n| A | 5 | 【A】+【B】 |\n\n- 『유대』는 통솔 C부터 1체, 통솔 A는 2체 모두에게 줄 수 있습니다.\n- 『익스펜션』은 통솔 B부터 2체 모두에게 줄 수 있습니다.\n- 『전설 강림』(통솔점 4 지불)은 2체 기준에서는 통솔 A만 쓸 수 있고, 나머지 1체는 【프라이드 : C】가 됩니다.\n\n## 파티 제약의 환산\n| 항목 | 6체 기준 | 2체 기준 |\n|---|---|---|\n| 역할 중복 | 불가 | 불가 (2체가 다른 『역할』) |\n| 팩션 제한 · 이득 | 「타입」 2(4)체 이상 · 『PT 포텐셜』 1(2)체 | 「타입」 1(2)체 이상 · 『PT 포텐셜』 1체 |\n| 프리랜서 이득 | 1체 「특성 소켓 : +0.5」 · 『템플릿』 외 『전용』 1체 | 그대로 (1체) |\n| 종족치 D 2개 이상인 포켓몬 | 여러 체 넣지 않음 | 최대 1체 |\n| 「속이기」 계열 | PT에 대체로 1체 | 1체 |\n| 「방어」류 | PT에 3체 정도 | 1체 |\n| 『적응종』 (PVP) | 1PT당 최대 1체 | 1체 |\n\n## 배틀 진행\n- **밴픽 없음** · 2체 트레이너는 소지 전부가 출전합니다. 2+2 배틀도 4체 전원 출전이고, 밴픽은 하지 않습니다. 선후공은 밴픽 룰과 같이 1d100으로 정하고, 「통솔」 특화는 결정권을 우선 가집니다.\n- **2+2 배틀의 자리** · 한 트레이너의 2체가 선발 1체 + 교대 1체가 아니라, 두 트레이너가 각자 1체씩 선발로 내고 남은 1체씩이 교대 요원입니다. 교대는 자기 포켓몬끼리만 할 수 있습니다.\n- **합류와 지원** · 배틀 도중 세 번째 트레이너가 합류하면 그 사람의 2체가 그대로 더해집니다. 편 배틀에서 \"지지한 편이 지원\"할 때는 그 편 인물 한 명의 2체가 아군으로 들어옵니다.\n- **은열쇠** · 은열쇠는 무언가의 사념·정보가 담긴 매개체를 자기 정신력으로 소환하는 것이라 한 사람이 2체까지만 부릴 수 있습니다. 안개 속 괴물은 이렇게 불러낸 각성체가 아니면 타격을 줄 수 없습니다.\n\n## 정해야 할 것\n- PC도 2체 기준을 쓸지, PC는 6체 그대로 두고 NPC만 2체로 할지.\n- 분배 LV를 1/3로 줄이는 것이 맞는지, 개체 수가 적은 만큼 조금 넉넉히 줄지. (알까기는 줄이지 않기로 함)\n- 하이라이트 6체 배틀(상대 파티 하나)과 2+2 배틀의 난이도를 어떻게 맞출지.\n- 2+2 배틀에서 『에이스』 같은 \"아군 빈사\" 조건 포텐셜이 상대 트레이너의 포켓몬 빈사에도 발동하는지.\n- 「스킬 체크」의 지침·돌봄도 2체 기준이면 포켓몬이 금방 지칩니다. 지침 회복 규칙을 손볼지."},{"id":"class","group":"포텐셜","title":"분류 포텐셜","desc":"포켓몬의 분류에 따라 붙는 포텐셜","body":"『현대종』 최근에 발견된 새로운 종.\n\n『올드타입』\n① 자신의 기술이 『올드 타입』『역할 포텐셜』 이외의 포텐셜의 【방호】를 무시한다.\n② 『고유』『역할』을 제외한 『트레이너 포텐셜』을 받을 수 없다.\n\n『적응종』 고대종 「○○」 종의 진화계. 『올드 타입』의 효과를 받지 않는다.\n\n『고유종』 『유대』가 부여되어 있을 때 독자적인 『전용 포텐셜』을 갖는다.\n\n『공명종』\n① 트레이너와 깊은 연결로 「메가진화」한 『올드 타입』.\n② 『트레이너 포텐셜』을 받을 수 있다.\n\n『전설종』\n① 전승이 남을 정도의 격을 지닌 『올드 타입』.\n② 필드 위에 있는 한 『전설종』 이외의 『올드 타입』의 ①을 무효화한다.\n\n『차원종』\n① 필드 위에 있는 한 필드 전체에 독자적인 《이계》를 전개한다.\n② 『차원의 특권』을 부여할 수 있다."},{"id":"orders","group":"포텐셜","title":"지시 포텐셜","desc":"4식, 6령, 숙달 지령, 십계","body":"## 『4식』\n『물러나!』 【1/시】【선행】/아군이 「물리기」를 받을 때 아래의 효과를 적용한다.\n① 턴 종료 시까지 아군이 「물리기」를 회피한다.\n② 「물리기」에 대해 아군을 「회피율 : 0」으로 만든다.\n\n『피해라!』 【1/시】【선행】/아군이 「특수기」를 받을 때 아래의 효과를 적용한다.\n① 턴 종료 시까지 아군이 「특수기」를 회피한다.\n② 「특수기」에 대해 아군을 「회피율 : 0」으로 만든다.\n\n『버텨라!』 【1/시】【선행】/아군이 공격받을 때 아래의 효과를 적용한다.\n① 턴 종료 시까지 아군을 「회피율 : 0」으로 만든다.\n② 【방호】/턴 종료 시까지 기술 대미지를 반감한다.\n③ 【방호】/다음 기술로 「빈사」 상태가 되지 않는다.\n\n『바꿔라!』 【1/시】【선행】/아군이 공격의 대상이 되었을 때 「방어」 상태가 아닌 아군과 에리어를 이동한다.\n\n『맞춰라!』 【1/시】【선행】【임의】/아군의 기술을 필중시킨다. 「단일기」에 대해 「반동 : 행동 불능」을 부여하고 임의의 타이밍에 사용할 수도 있다. (지시 : AA)\n\n## 『6령』\n『공격지령』 【1/시】【선행】/턴 종료 시까지 아군에게 「공격 : +1」한다.\n『방어지령』 【1/시】【선행】/턴 종료 시까지 아군에게 「방어 : +1」한다.\n『특공지령』 【1/시】【선행】/턴 종료 시까지 아군에게 「특공 : +1」한다.\n『특방지령』 【1/시】【선행】/턴 종료 시까지 아군에게 「특방 : +1」한다.\n『민첩지령』 【1/시】【선행】/턴 종료 시까지 아군에게 「스피드 : +1」한다.\n『회복지령』 【1/시】【선행】/턴 개시 시 아군의 「HP」를 1/4만큼 회복시킨다.\n\n## 『숙달 지령』 (지시 : A)\n『숙달공격지령』 【1/시】【선행】\n① 턴 종료 시까지 아군에게 「공격 : +1」한다.\n② 【공유 (『지령』)】/아군의 명중굴림 전 이 포텐셜에 【임의】를 부여한다.\n\n『숙달방어지령』 【1/시】【선행】\n① 턴 종료 시까지 아군에게 「방어 : +1」한다.\n② 【공유 (『지령』)】/상대의 명중굴림 전 이 포텐셜에 【임의】를 부여한다.\n\n『숙달특공지령』 【1/시】【선행】\n① 턴 종료 시까지 아군에게 「특공 : +1」한다.\n② 【공유 (『지령』)】/아군의 명중굴림 전 이 포텐셜에 【임의】를 부여한다.\n\n『숙달특방지령』 【1/시】【선행】\n① 턴 종료 시까지 아군에게 「특방 : +1」한다.\n② 【공유 (『지령』)】/상대의 명중굴림 전 이 포텐셜에 【임의】를 부여한다.\n\n『숙달민첩지령』 【1/시】【선행】\n① 턴 종료 시까지 아군에게 「스피드 : +1」한다.\n② 【공유 (『지령』)】/행동순서 공개 시 이 포텐셜에 【임의】를 부여한다.\n\n『숙달회복지령』 【1/시】【선행】\n① 턴 개시 시 아군의 「HP」를 1/4만큼 회복시킨다.\n② 【공유 (『지령』)】/턴 종료 시 이 포텐셜에 【임의】를 부여한다.\n\n『숙달저격지령』 【1/시】【선행】\n① 턴 종료 시까지 아군에게 「명중 : +1」한다.\n② 【공유 (『지령』)】/아군의 명중굴림 전 이 포텐셜에 【임의】를 부여한다.\n\n『숙달회피지령』 【1/시】【선행】\n① 턴 종료 시까지 아군에게 「회피 : +1」한다.\n② 【공유 (『지령』)】/상대의 명중굴림 전 이 포텐셜에 【임의】를 부여한다.\n\n## 『십계』\n『물리결계』 【1/시】【선행】【유일 (『결계』)】\n① 자진에 3턴 동안 「리플렉터」를 전개한다.\n② 이 「리플렉터」는 해제(교체)되지 않는다.\n\n『특수결계』 【1/시】【선행】【유일 (『결계』)】\n① 자진에 3턴 동안 「빛의장막」을 전개한다.\n② 이 「빛의장막」은 해제(교체)되지 않는다.\n\n『치유의 법계』 【1/시】【선행】/아군 전체의 「HP」를 1/4만큼 회복한다.\n『정화의 대계』 【1/시】【선행】/아군 전체의 「혼란」 상태를 포함한 모든 상태 이상을 치유한다.\n\n『윤회의 연계』 【1/시】【선행】【임의】\n① 턴 개시 시 아군을 「따라가때리기」 효과를 받지 않고 임의 교대시킨다.\n② 「방어」 상태가 아닌 아군에 대하여 턴 종료 시에 이 포텐셜에 【임의】를 부여한다.\n\n『파계』 【1/시】【선행】/턴 종료 시까지 『고유』『전용』을 제외한 상대 트레이너의 포텐셜을 무효화한다. (지시 : AA)\n\n### 영창\n『검의 영창』 【1/시】【선행】/턴 종료 시까지 아군 전체에게 「공격 : +1」한다.\n『방패의 영창』 【1/시】【선행】/턴 종료 시까지 아군 전체에게 「방어 : +1」한다.\n『관의 영창』 【1/시】【선행】/턴 종료 시까지 아군 전체에게 「특공 : +1」한다.\n『잔의 영창』 【1/시】【선행】/턴 종료 시까지 아군 전체에게 「특방 : +1」한다.\n『날개의 영창』 【1/시】【선행】/턴 종료 시까지 아군 전체에게 「스피드 : +1」한다.\n『촛불의 영창』 【1/시】【선행】/턴 종료 시까지 아군 전체에게 「명중 : +1」한다. (지시 : A)\n『장막의 영창』 【1/시】【선행】/턴 종료 시까지 아군 전체에게 「회피 : +1」한다. (지시 : A)"},{"id":"tactics","group":"포텐셜","title":"전술 포텐셜","desc":"지시 A 이상에서 부여하는 전술 (중복 불가)","body":"## 상시형\n『진법술』 【유일 (「소지품」)】/자신이 「기술」「특성」으로 발생시킨 「날씨」「필드」「장벽」의 지속 턴에 +1 한다.\n『보법술』 【유일】/에리어를 이동한 턴 종료 시까지 자신의 「회피」를 강화(1.33배)한다.\n『병법술』 【방호】【수세】/상대의 「전체기」의 위력을 저하(0.8배)시킨다.\n『변환술』 【보급】/『지령(영창)』으로 상승하는 능력치를 임의로 변경할 수 있다.\n『풍작술』\n① 시합 준비 시 「소지품 : 나무열매」를 추가로 착용할 수 있다.\n② ①의 효과로 착용한 「나무열매」를 「소지품 소켓 : 0」으로 변경한다.\n\n## 단발형\n『유인술』 【1/시】【등장 (통상 교대)】/「날따름」「분노가루」에 의한 추가 행동을 얻는다.\n『후퇴술』 【1/시】【자동】/자신의 기술이 명중 판정에 의해서 명중하지 않았을 때 임의 교대할 수 있다.\n『탈착술』 【1/시】/턴 종료 시 자신의 랭크 변화를 초기화한다.\n『조준술』 【1/시】【사전】/이번 턴 아군이 내보내는 기술이 「기술의 대상을 변경하는 효과」를 무시한다.\n『항법술』\n① 【1/시】/「기능 확장 : 안개제거」를 내보낸다.\n② 이 포텐셜은 PT의 전원이 사용할 수 있다.\n\n## 『망령 급소 세대』\n| 급소 랭크 | 확률 |\n|---|---|\n| C 0 | 6.25% |\n| C 1 | 12.5% |\n| C 2 | 25.0% |\n| C 3 | 50.0% |\n| C 4 | 100% |\n\n급소 대미지 배율은 **x1.5배**입니다."},{"id":"roles","group":"포텐셜","title":"역할 포텐셜","desc":"기본·파생·상위·특수 역할","body":"## 기본 역할 (요구 통솔 : C)\n『에이스』 【방호】/「빈사」 상태인 아군이 있을 때 모든 능력치를 강화(1.33배)하고 「명중/회피」를 강화(1.15배)한다.\n\n『어시스트』 【탈진】/기술 배치에 「도우미」「감싸기」「쉬프트업」을 추가한다.\n\n『킬러』\n① 자신의 기술이 『에이스』의 「회피」의 상승(강화)를 무시하고 주는 대미지를 강화(1.33배)한다.\n② ①이 발동했을 때 대상의 『에이스』 포텐셜의 【방호】 효과를 무시한다.\n\n『어태커』 자신의 기술의 대미지를 강화(1.25배)한다.\n\n『블로커』 【방호】【수세】/자신이 기술로 받을 대미지를 완화(0.75배)한다.\n\n『러너』 자신의 「스피드」를 강화(1.33배)한다.\n\n## 파생 역할 (요구 통솔 : B)\n『링크 에이스』 『에이스』 계열\n① 【방호】【등장】/2턴 동안 자신이 기술로 받을 대미지를 완화(0.85배)한다.\n② 턴 종료 이후 아군과 임의 교대할 수 있다.\n\n『옵저버』 『어시스트』 계열\n【방호】【유일】/아군의 모든 능력치를 강화(1.15배)한다.\n\n『퀄러』 『킬러』 계열\n① 【지연 (2턴)】/필드 위에 있는 한 적진의 『에이스』를 무효화한다.\n② 【등장 (죽어내밀기)】/①이 즉시 발동한다.\n\n『어쌔신』 『어태커』 파생\n① 【공세】/자신의 「단일기」의 대미지를 강화(1.5배)한다.\n② 자신의 「단일기」가 급소에 맞기 쉬워진다(C+1).\n\n『바운서』 『블로커』 파생\n【등장 (통상 교대)】/턴 종료 시까지 자신이 기술로 받을 대미지를 반감한다.\n\n『닌자』 『러너』 파생\n자신보다 느리게 행동한 상대의 기술에 대한 「회피」를 강화(1.33배)한다.\n\n## 상위 역할 (요구 통솔 : A)\n『킬링 에이스』 『에이스』 계열\n① 【등장】/다음 자신의 기술에 「따라가때리기」 효과를 부여한다.\n② 【함성 (「단일기」)】【보급】/「HP」를 1/4만큼 회복한다.\n\n『커맨더』\n① 【탈진】/기술 배치에 「도우미」「감싸기」「쉬프트업」을 추가한다.\n② 【방호】【유일】/아군의 모든 능력치를 강화(1.15배)한다.\n\n『디스럽터』\n① 자신의 기술이 『에이스』의 「회피」의 상승(강화)를 무시하고 주는 대미지를 강화(1.33배)한다.\n② ①이 발동했을 때 대상의 『에이스』 포텐셜의 【방호】 효과를 무시한다.\n③ 【지연 (2턴)】/필드 위에 있는 한 적진의 『에이스』를 무효화한다.\n④ 【등장 (죽어내밀기)】/③이 즉시 발동한다.\n\n『하이 어태커』\n① 자신의 기술의 대미지를 강화(1.33배)하고 「명중」이 강화(1.25배)된다.\n② 자신의 기술이 급소에 맞기 쉬워진다(C+1).\n\n『하이 블로커』\n① 【방호】【수세】/자신이 기술로 받을 대미지를 완화(0.75배)한다.\n② 【등장 (통상 교대)】/턴 종료 시까지 ①의 배율을 변경(0.75배→0.5배)한다.\n\n『하이 러너』 자신의 「스피드」를 강화(1.5배)하고 「회피」를 강화(1.2배)한다.\n\n## 특수 역할\n『타이트엔드』\n① 자신의 기술의 위력을 강화(1.25배)한다.\n② 【방호】【수세】/자신이 기술로 받을 대미지를 완화(0.75배)한다.\n③ 이 포텐셜을 『어태커』『블로커』로 취급한다."},{"id":"expansion","group":"포텐셜","title":"익스펜션","desc":"통솔 B 이상에서 부여하는 타입별 강화","body":"『익스펜션 : 노말』 【탈진】/타입 비일치 기술의 대미지를 강화(1.5배)한다.\n『익스펜션 : 물』 턴 개시 시 중확률로 자신의 상태 이상을 치유한다.\n『익스펜션 : 벌레』 자신의 「벌레」 기술이 상대의 급소에 맞기 쉬워진다(C+1).\n『익스펜션 : 바위』 【방호】/「위력 : 40」 이하의 기술을 무효화한다.\n『익스펜션 : 고스트』 자신의 「타입 : 고스트」가 반드시 유지된다.\n『익스펜션 : 드래곤』 「HP」의 종족치를 1랭크 상승시킨다.\n『익스펜션 : 악』 자신이 받을 기술의 「따라가때리기」 효과를 무시한다.\n『익스펜션 : 강철』 【방호】/기술이 자신의 급소에 맞기 어려워진다(C-2).\n『익스펜션 : 격투』 자신의 「단일기 : 격투」가 적진의 「장벽」을 무시한다.\n『익스펜션 : 독』 「정면」의 「HP」가 회복되지 않는다.\n『익스펜션 : 땅』 「설치물」에 의한 비례 대미지를 받지 않는다.\n\n『익스펜션 : 풀』\n① 자신의 「공격기 : 풀」이 명중한 상대를 드물게 「씨뿌리기」 상태로 만든다.\n② 「도발」 상태가 되지 않는다.\n\n『익스펜션 : 불꽃』\n① 자신의 「공격기 : 불꽃」이 명중한 상대를 드물게 2턴 동안 「화상」 상태로 만든다.\n② 상대에 의해 「얼음」「동면」 상태가 되지 않는다.\n\n『익스펜션 : 전기』\n① 자신의 「공격기 : 전기」가 명중한 상대를 드물게 2턴 동안 「마비」 상태로 만든다.\n② 「조이기」「금제」 상태가 되지 않는다.\n\n『익스펜션 : 얼음』\n① 자신의 「공격기 : 얼음」이 명중한 상대를 드물게 2턴 동안 「얼음」 상태로 만든다.\n② 「화상」 상태가 되지 않는다.\n\n『익스펜션 : 비행』\n① 자신의 「공격기 : 비행」이 명중한 상대를 드물게 「풀죽음」 상태로 만든다.\n② 「날씨」에 의한 디메리트를 받지 않는다.\n\n『익스펜션 : 에스퍼』\n① 자신의 「공격기 : 에스퍼」가 명중한 상대를 드물게 「혼란」 상태로 만든다.\n② 「혼란」 상태가 되지 않는다.\n\n『익스펜션 : 페어리』\n① 자신의 「공격기 : 페어리」가 명중한 상대를 드물게 2턴 동안 「잠듦」 상태로 만든다.\n② 상대에 의해 「잠듦」「하품」 상태가 되지 않는다."},{"id":"contract","group":"포텐셜","title":"계약의 특권","desc":"타입별 피해 반감 (분류 : 특수)","body":"18개 타입 모두 같은 형식입니다. (타입) 자리에 해당 타입을 넣어 읽습니다.\n\n『계약의 특권 : (타입)』 【방호】/「(타입)」 기술로 받는 대미지를 반감한다.\n\n- 강철\n- 격투\n- 고스트\n- 노말\n- 독\n- 드래곤\n- 땅\n- 물\n- 바위\n- 벌레\n- 불꽃\n- 비행\n- 악\n- 얼음\n- 에스퍼\n- 전기\n- 페어리\n- 풀"},{"id":"templates","group":"포텐셜","title":"템플릿 전용","desc":"능력 자질로 부여하는 기본 전용과 계제 예시","body":"『필중추미』 【1/시】【선행】/「단일기 : ○」에 「따라가때리기」 효과를 부여하고 상대에게 【필중】시킨다.\n『선행유턴』 【1/시】【선행】/「단일기 : ○」에 「유턴」 효과를 부여하고 「우선도 : +1」한다.\n『일격돌파』 【1/시】【선행】/「단일기 : ○」가 상대의 「특성」을 무시하고 「방어」 등의 기술을 관통한다.\n『강화조준』 【1/시】【선행】/「단일기 : ○」의 위력을 강화(1.5배)하고 상대의 기술을 끌어당기는 효과를 무시한다.\n『광역확산』 【1/시】【선행】/「단일기 : ○」를 「범위 : 상대 2체」로 만든다.\n『절대인내』 【1/시】【선행】/다음 기술로 받을 대미지를 반감하고 「빈사」 상태가 되지 않는다.\n『긴급구호』 【1/시】【선행】/턴 개시 시 아군의 「HP」를 1/2만큼 회복시키고 상태 이상을 치유한다.\n『협동연계(선)』 【1/시】【선행】/이번 턴 아군이 자신의 공격 뒤에 이어서 행동하게 한다.\n『협동연계(후)』 【1/시】【선행】/이번 턴 자신이 아군의 공격 뒤에 이어서 행동한다.\n『죽마고우(육)』 자신의 「LV : +5」. 『3계제』를 습득한다.\n특별 : 파트너가 아닌 포켓몬에게도 부여할 수 있다.\n『죽마고우(통)』 자신에게 『상위 역할』『파생 역할』을 임명할 수 있고 『익스펜션』을 부여한다.\n『전설 강림』 「통솔점 : 4」를 지불하는 것으로 PT에 참가한다.\n\n> 『협동연계』『죽마고우』는 같은 TO입니다. 『죽마고우(통)』은 「파트너」에게만 부여할 수 있고, 『서브 에이스』의 임명은 불가능합니다.\n\n> 원본 문서 앞쪽에 있던 이전 버전과 다른 점 · 『절대인내』가 \"아군이 다음 기술로 받을 대미지\"였고, 『죽마고우(육)』이 \"『3계제』『회피』『내성』을 발동할 수 있다\"였습니다. 이 페이지는 뒤쪽(최신으로 보이는) 버전을 따릅니다.\n\n## 『계제 포텐셜』 예시\n『OO의 습득(비전, 재주)』 기술 「OO」를 습득한다.\n※ 「기술 상한」에서 +1까지 향상 가능 (「기술할인」과 중첩되지 않는다).\n『OO의 선회』 【1/시】【지연 (2턴)】/하늘 위에 떠 있을 때 턴 종료 이후 임의 교대할 수 있다.\n『OO의 윤회』 【1/시】【등장 (죽어내밀기)】/턴 종료 이후 임의 교대할 수 있다.\n『OO의 기교』 【보급】/타입 비일치 기술의 대미지를 강화(1.5배)한다.\n『OO의 강타』 「상성 : 2~8배」인 타입 비일치 「단일기 : O」의 대미지를 강화(1.33배)한다."},{"id":"wild","group":"포텐셜","title":"야생 · 레이드","desc":"심도별 야생 트레이너 규칙, 야생 포텐셜, 레이드","body":"## 심도별 자질\n| 자질 | 심도 3 | 심도 4 |\n|---|---|---|\n| 지시 | 『야생의 호령』『야생의 칙령』 각각 3회\u003cbr>「소지품 소켓 : -3」 | 『야생의 호령』『야생의 칙령』 각각 4회\u003cbr>「소지품 소켓 : -1」 |\n| 육성 | 『2계제』『선』 사용 가능 · 「LV : 100/110」 · 분배 「LV : +10」\u003cbr>『두목』은 『3계제』 + 최대 레벨\u003cbr>알까기 5회 · 「기술 TO」 33 · 「기술 상한」 1.5 | 『3계제』 사용 가능 · 「LV : 110/125」 · 분배 「LV : +15」\u003cbr>『두목』은 최대 레벨\u003cbr>알까기 20회 · 「기술 TO」 36 · 「기술 상한」 2.5 |\n| 통솔 | 「통솔점 : 7」 + (『두목』은 할인 1점) + 『야생의 특권』 | 「통솔점 : 10」 + (『두목』은 할인 1점) + 『디멘션 보스』 |\n| 능력 | 『야생 포텐셜』 1 · 『야생 포텐셜』 3 (커스텀 전용 3개 · 상시 제한 1개)\u003cbr>전용 《필드》 | 『미궁 포텐셜』 2 · 『야생 포텐셜』 6 (커스텀 전용 6개 · 상시 제한 3개)\u003cbr>전용 《이계》 |\n\n## 『야생』\n『와일드』 【야생】【방호】/모든 능력치를 강화(1.25배)한다.\n\n『와일드 보스』\n① 【야생】【방호】/모든 능력치를 강화(1.5배)한다.\n② 「HP」의 종족치가 1랭크 상승한다.\n\n『디멘션 보스』\n① 【야생】【방호】/모든 능력치를 강화(1.5배)한다.\n② 「HP」의 종족치가 1랭크 상승한다.\n③ 『분류』가 『차원종』이 된다.\n\n## 『야생의 특권』\n『야생의 특권』\n① 【야생】/「HP」의 종족치를 1랭크 상승시키고, 「HP」의 종족치 범위를 최대화한다.\n\n『두목의 특권』\n① 【야생】/「HP」의 종족치를 1랭크 상승시키고, 「HP」의 종족치 범위를 최대화한다.\n② 【야생】【방호】/저확률로 자신에 대한 공격을 무효화한다.\n\n『차원의 특권』\n① 【야생】/「HP」의 종족치를 1랭크 상승시키고, 「HP」의 종족치 범위를 최대화한다.\n② 【야생】【방호】/저확률로 자신에 대한 공격을 무효화한다.\n③ 【야생】/상태 이상이 되지 않는다.\n\n### 이전 버전 (확인 필요)\n원본의 심도 표 아래에는 다른 버전이 적혀 있었습니다. 어느 쪽이 최신인지 확인 후 하나를 지워 주세요.\n\n『두목의 특권 (이전)』\n① 【야생】/「HP」의 종족치를 1랭크 상승시키고, 「HP」의 종족치 범위를 최대화한다.\n② 【야생】/자신이 받는 비례 대미지(회복)을 반감한다.\n\n『차원의 특권 (이전)』\n① 【야생】/「HP」의 종족치를 1랭크 상승시키고, 「HP」의 종족치 범위를 최대화한다.\n② 【야생】/자신이 받는 비례 대미지(회복)을 반감한다.\n③ 【지연 (3턴)】【사전】/턴 가장 마지막에 선언한 추가 행동을 얻는다.\n④ 「트리거 : 페이즈체인지」가 발동했을 때 ③의 【지연】을 초기화한다.\n\n## 『호령 / 칙령』\n『야생의 칙령』 【N/시】【사전】/이번 턴 아군 전체가 상대의 공격을 1번만 회피한다.\n『야생의 호령』 【N/시】【선행】/『보스』 이외의 아군에게 아래의 효과 중 하나를 적용한다.\n・ 턴 종료 시까지 「공격/방어/특공/특방/스피드」를 강화(1.5배)한다.\n・ 「HP」를 1/3만큼 회복하고 상태 이상을 치유한다.\n\n## 레이드\n『레이드 배틀』\n① 【야생】/「HP : 1/4」를 초과하여 HP가 감소하지 않고 「트리거 : 페이즈 체인지」를 발동한다.\n② 【야생】/「3」 배수 턴의 가장 마지막에 추가 행동을 얻는다.\n③ 【야생】/「트리거 : 페이즈체인지」가 발동했을 때 자신의 모든 능력치 감소를 초기화시킨다.\n④ 【야생】/「트리거 : 페이즈체인지」가 발동했을 때 적진 전체의 모든 능력치 상승을 초기화시킨다.\n\n『레이드 배틀 : X』 특수 레이드\n① 【야생】/턴 중 「HP : 1/X」를 초과하는 피해를 받지 않고 턴 종료 이후 「트리거 : 페이즈 체인지」를 발동한다.\n② 【야생】/「트리거 : 페이즈체인지」가 발동했을 때 자신의 상태를 초기화한다.\n③ 【야생】/「트리거 : 페이즈체인지」가 발동했을 때 적진 전체의 모든 능력치 상승을 초기화시킨다."},{"id":"moves","group":"제작 규칙","title":"기술 습득","desc":"기술을 배울 때 적용하는 제작 룰","body":"## 일반 제작 룰\n- 자속기에 해당하면 기술 옆에 체크해 소켓 0.5 할인을 받는다. 「육성」에 따라 PT 전체에 부여할 수 있는 개수가 달라진다.\n- 「공격(특공)」이 각각 「B-」 이상일 때 「물리기(특수기)」에 「기술할인」을 체크하면 반대쪽 분류에도 「기술할인」을 적용한다.\n- 「날따름」과 「와이드가드」는 연속으로 사용하면 실패하기 쉬운 기술이며, 1체의 포켓몬이 동시에 들 수 없다.\n- 「날따름」「분노가루」 등 「날따름」 상태가 되는 기술을 습득하려면 「HP/방어/특방 : B+ 이상」인 종족치가 1개 이하여야 한다.\n- 「방어 계산기」와 「스피드 계산기」의 성능이 실기에 가깝게 변경되었다.\n- 사신의낫, 분노의앞니, 용의분노, 나이트헤드 등 비례 대미지를 입히는 기술도 익히려면 「화력 : C(70)」을 요구한다.\n- 「선제기」를 배우려면 일반적으로 「스피드 : C-(60)」을 요구한다.\n- 「속이기」 계열은 PT에 대체로 1체. 「방어」류는 「와이드가드」 등을 포함해 PT에 3체 정도가 기준선이다.\n- 「안개제거」는 구작 사양으로, 필드 전체의 상태(날씨/설치물/필드/장벽 등)를 완전히 초기화한다.\n\n## 『고대종』 룰\n- 『고대종』은 기술 소켓과 상관없이 기술폭이 반드시 4개로 고정된다.\n- 최신 사양을 기준으로 자신의 레벨 이하에서 습득하는 기술만 배울 수 있다.\n- 「기술할인」에 체크하는 것으로 교배기/유전기를 1개 습득시킬 수 있다.\n- 종족치 범위가 프라이드 C의 +5~6 이하일 때 『프렌들리 몬스터』를 취득할 수 있다."},{"id":"items","group":"제작 규칙","title":"소지품","desc":"소지품 제약과 착용 룰","body":"## 소지품 제약\n- 모든 포켓몬은 반드시 「소켓 : 0.5」 이상의 소지품을 착용해야 한다.\n- PT 내에 【같은 TO】 소지품은 중복시킬 수 없다.\n\n## 공통 1 · 기본 사항\n- 동일한 「소지품」을 지니게 하는 것을 금한다. (고유로 복수 착용이 전제된 경우는 예외)\n- 동일한 효과를 지닌 「소지품」은 동일한 「소지품」으로 취급한다.\n- 위력 강화 도구, 「쥬얼」 등은 기술의 타입 종류를 통틀어 1개의 「소지품」으로 취급한다.\n- 모든 사항은 「특성」, 『포텐셜』, 《필드 효과》 등에 의해 예외 처리가 발생할 수 있다.\n- 각 포켓몬에게 개별적으로 제한이 적용될 수 있다.\n- 소지품 합계 소켓 TO를 초과할 수 없다.\n- 「생명의구슬」「구애머리띠」「구애안경」「구애스카프」「돌격조끼」를 지니게 하는 것을 금한다.\n\n## 공통 2 · 특수\n- 『포텐셜』 등으로 착용 가능해진 경우에도, 『올드 타입』 이외의 「변화기」를 2개 이상 습득하지 않은 포켓몬에게 「돌격조끼」를 지니게 하는 것을 금한다.\n- 『포텐셜』 등으로 착용 가능해진 경우에도, 「전체기」를 습득하고 있거나 「특성」『포텐셜』 등의 효과로 내보낼 수 있을 때는 「생명의구슬」「구애머리띠」「구애안경」을 지니게 하는 것을 금한다.\n\n## 역할별 제한\n| 역할 | 금지 소지품 |\n|---|---|\n| 『에이스』 | 「생명의구슬」「구애머리띠」「구애안경」「진화의휘석」「마제망토」 |\n| 『블로커』 | 「무화열매」「마제망토」「진화의휘석」 |\n| 『서포터』 | 「돌격조끼」 |\n| 『러너』 · 『어태커』 · 『킬러』 | 해당 사항 없음 |"},{"id":"rulings","group":"배틀","title":"배틀 재정","desc":"기술 처리와 헷갈리기 쉬운 재정","body":"## 기재되지 않은 재정\n1. 기본적으로 최신 세대의 '포켓몬스터' 게임 재정을 따릅니다.\n2. 원작(오레마스)에서 별도 재정이 있었을 경우 1보다 우선합니다.\n\n## 기술 처리\n- 「잠듦」은 시합 중 상대에게 2회까지 걸 수 있습니다.\n- 「봉인」은 상대에게 거는 상태변화로, 기술폭을 공개한 뒤 1개를 지정해 사용 불가로 만듭니다. 교대로 풀리지 않습니다.\n- 「와이드가드」는 상대의 「전체기」인 「변화기술」도 막을 수 있습니다. (단, 「멸망의노래」 등 방어를 관통하는 기술도 있습니다.)\n- 「타입 : 고스트」가 내보내는 「저주」는 「방어」 등의 기술을 관통합니다.\n- 「전체기」에는 「유턴」「추격」 효과가 적용되지 않습니다.\n- 「방어」 등의 기술을 연속으로 사용하면 2/3 확률로 실패합니다. 이후로도 연속 성공을 노리면 성공 확률이 1/3씩 계속 줄어듭니다. 『방어술』 등으로 실패하지 않았어도 실패 확률은 누적됩니다.\n- 「난동부리기」, 「~안」 상태 등 지시 입력을 못 하는 상황에서는 「지령」 등 선행입력을 아무것도 할 수 없습니다.\n\n## 「날따름」\n- 기술 자체의 사양이 「범위 : 자신」「범위 : 아군」인 기술이라면 끌려가지 않는다.\n- 「따라가때리기」 효과가 발동했을 때는 「날따름」에 의해 끌려가지 않는다.\n- 다만 「범위 : 1체」를 아군에게 쓴 경우에는 「날따름」에 의해 끌어당겨진다.\n- 기술을 끌어오는 특성이 있더라도 「날따름」의 당김이 우선된다.\n- 자진에 이미 「날따름」 상태인 포켓몬이 있으면 다른 포켓몬은 「날따름」 상태가 될 수 없다.\n- 「날따름」 상태인 포켓몬에게 『4식』을 발동할 수 없다.\n- 일반적인 경우 「방어」 상태인 포켓몬을 「날따름」 상태로 만들 수 없다.\n\n## 「미래예지」\n| 용어 | 뜻 |\n|---|---|\n| 「미래예지 : 기술」 | 「미래예지」를 턴 중에 기술로 내보낼 때 |\n| 「미래예지 : 상태」 | 「미래예지」가 명중하거나 『포텐셜』 등의 영향으로 공격이 예고된 상태변화 |\n| 「미래예지 : 공격」 | 「미래예지」를 통한 피해를 동반한 실제 공격 판정 |\n\n- 「공격 스탯」은 「미래예지 : 상태」를 유발한 포켓몬의 것을 씁니다.\n- 「미래예지 : 공격」 시 공격자의 능력 상승·강화·감소·저하와 기술의 위력 강화를 무시합니다. (방어측은 전부 적용)\n- 「미래예지 : 기술」 시에 명중 판정을 실시합니다. 「방어」 등의 기술도 무시하며, 이때 급소에 맞지는 않습니다.\n- 「미래예지 : 공격」은 항상 「명중 : 100」으로 취급합니다. (일격기의 「명중 : 30」 고정과 같음)\n- 「미래예지 : 기술」 시에는 행동 방해 효과를 무시할 수 없습니다.\n- 『포텐셜』 등을 통해 「미래예지」 계열의 상태 변화를 거는 것은 「미래예지 : 기술」이 아닙니다.\n- 「미래예지 : 기술」「미래예지 : 공격」에 대해서 『포텐셜』의 발동 타이밍이 주어지지 않습니다.\n- 「미래예지 : 공격」은 「~안」 상태일 때에도 명중합니다.\n- 「미래예지 : 공격」을 하는 것은 「미래예지 : 상태」를 유발한 포켓몬입니다. 타입 일치 보정은 해당 포켓몬의 「타입」을 참조합니다.\n- 따라서 유발한 측의 모든 에리어에 포켓몬이 없어도 「미래예지 : 공격」은 처리됩니다.\n- 「미래예지 : 공격」으로 상대를 쓰러뜨리면 해당 트리거를 가진 『포텐셜』 등은 일절 발동하지 않습니다.\n- 「미래예지 : 공격」은 상대의 기술 「타입」을 변경하는 「특성」『포텐셜』의 효과를 무시합니다.\n- 「미래예지 : 공격」은 「리플렉터」「빛의장막」「날씨」 등의 영향을 받습니다. (「필드」는 땅 위에 있어야 한다는 조건이 있어 영향을 받지 않습니다.)\n\n## 「하품」 「동면」\n- 상태 이상에 걸려 있으면 「하품」「동면」 상태가 되지 않습니다.\n- 「잠들지 않는다」이면 「하품」 상태가, 「얼지 않는다」이면 「동면」 상태가 되지 않습니다.\n- 「상태 이상이 되지 않는다」이면 「하품」「동면」 상태가 될 수 있습니다.\n\n## 헷갈리기 쉬운 재정\n### 「행동불능」 상태\n교대 / 『지령』 / 『고유』의 대상 / 『전용』의 발동 모두 불가능합니다. 마찬가지로 『방어술』 등의 『포텐셜』도 모두 작동하지 않습니다. (「행동불능」이 트리거라면 예외)\n\n### 아군 뒤에 이어서 행동하는 효과\n연결된 아군이 「유턴」「레드카드」 등으로 공격 후 필드를 벗어나면 대상이 달라져 후속 행동을 쓸 수 없습니다.\n\n### 『방어술』\n해당 포텐셜은 실패 확률이 정상적으로 누적됩니다. 예: 방어 1회 100% → 방어 2회 33% (방어술로 확정 성공) → 방어 3회 11%\n\n### 『영혼의 유대』\n1턴에 1번만 발동 체크를 시도할 수 있습니다. 한 번 발동했다면 시합 중 해당 개체의 『영혼의 유대』는 더 이상 발동하지 않습니다.\n\n### 기술 사용에 따른 효과 적용 타이밍\n| 표현 | 적용 시점 |\n|---|---|\n| 내보낼 때 | 해당 기술을 지시에 입력했다면 그 턴 개시 시부터 |\n| 내보냈을 때 | 행동 순서가 되어 해당 기술을 내보내려 할 때, 명중 판정 직전부터 |\n| 명중했을 때 | 명중 판정 직후 명중이 확정되고 피해를 비롯한 기술의 효과를 줄 때 |\n| 받았을 때 | 명중했을 때와 같지만 피격 시를 지칭하는 수동적인 용어 |\n\n### 「탁쳐서떨구기」 발동 타이밍\n실기와 다르게 오레마스 원작대로 처리합니다. 「탁쳐서떨구기」 효과 → 「반감열매」 발동 → 공격자의 '명중했을 때/명중 후' 효과 → 그 외 「소지품」 효과 순서입니다.\n\n### 『익스펜션 : 독』과 「회복봉인」의 차이\n『익스펜션 : 독』은 처리상 발생한 회복량을 「0」으로 만듭니다. 따라서 『회복지령』「자뭉열매」 등에 대해 '아군이 『지령』을 받았을 때', '「나무열매」를 먹었을 때' 등의 트리거를 만족시킵니다.\n\n「회복봉인」 상태는 회복 자체가 발생하지 않게 처리합니다. 『회복지령』에 대해 '아군이 『지령』을 받았을 때' 트리거를 발동시키지 않고, 「HP : 1/2 이하」일 때 「자뭉열매」를 먹지 않습니다.\n\n### 「버티기」와 방어 관통 기술\n「방어」 등의 상태를 관통(해제)하는 기술은 「버티기」도 관통(해제)합니다.\n\n### 『돌아와!』에 대한 『파계』\n통상 교대에 의한 『돌아와!』 발동 후에 『파계』가 발동하므로, 『돌아와!』를 무효화시키지 못합니다.\n\n### 『선 포텐셜』의 발동 타이밍\n통상 교대 → 『지령』『영창』 → 그 외 턴 개시 시의 처리 → 행동 순서 공개 후 『선 포텐셜』의 발동 여부를 체크합니다. 이때 『대의 선』에 의해 결과적으로 「우선도 : +1」 이상이 된 기술이 있다면 이에 대응해 『선의 선』을 발동시킬 수 있습니다.\n\n> 통상 교대나 행동 순서 공개 전의 에리어 교대 효과로 『대의 선』의 조건을 만족시켰어도, 행동 순서가 공개되었을 때 조건을 만족하고 있다면 문제없이 발동합니다.\n\n### 「특성(타입)」 변화와 메가진화\n- 상대에 의해 변화된 특성/타입은 필드를 벗어나기 전까지 자신이 유발한 효과로 덮어씌울 수 없습니다.\n- 등장 시 특성은 변화되었다가 본래대로 되돌아올 때 발동하지 않습니다.\n- 폼체인지는 대부분 특성이 변경되지 않으며, 포텐셜 등으로 폼체인지했을 때 변경된 특성은 폼체인지에 따라 바뀌지 않습니다.\n- 메가진화는 원작/실기에서 등장 시 특성이 발동하고 실질적으로 단발 고유가 전제인 점을 감안해, 정상적으로 특성이 변동·발동합니다.\n- 메가진화는 변동되어 있는 「타입」도 진화 시의 타입으로 바꿉니다. (맵툴 매크로 처리 편의 포함)\n- 타입이나 특성이 변동된 상태에서 메가진화 후 턴 경과로 본래대로 돌아오면, 본래의 타입/특성으로 되돌아옵니다."},{"id":"turn","group":"배틀","title":"턴 처리 순서","desc":"턴 종료부터 다음 턴 개시까지의 순서","body":"## 이번 턴 종료 시\n1. 가장 마지막에 (「미래예지」 등)\n2. 『돌아와!』로 인한 등장\n3. 슬립 대미지 (「독」 등)\n4. 드레인 (「씨뿌리기」 등)\n5. 회복 (「먹다남은음식」 등)\n6. 장벽, 날씨 등의 턴 카운트 감소 · 「맹독구슬」 등의 처리\n7. 턴 종료 · 필드에 등장하여 n번째 턴 종료 시\n\n## 다음 턴 취급\n1. 턴 종료 교대 포텐셜\n2. 죽어내밀기\n3. 지시 입력\n4. 교대\n5. 턴 개시 시 · 필드에 등장하여 n번째 턴 개시 시\n\n## 특수한 처리\n### 아군과 교대하여 필드에 등장한 턴\n턴 종료 시 발생하는 「HP」 회복과 비례 대미지를 처리하지 않습니다. 이미 지속되고 있는 「모래바람」「싸라기눈」 등의 처리도 하지 않습니다.\n\n> 교대로 등장한 포켓몬에게 「상태 이상(상태 변화)」가 발생했다면, 턴 종료 시 「HP」 회복과 비례 대미지를 처리합니다. 등장 턴에 발생한 「모래바람」「싸라기눈」 등의 처리도 합니다. 즉, 교대 등장 턴에 「HP」 변동의 원인이 발생하면 처리합니다.\n\n### 「맹독구슬」「불꽃구슬」\n교대하여 필드에 등장한 턴 종료 시에 발동해 「상태 이상」이 됩니다. 발동 타이밍이 회복 이후이므로 대미지는 받지 않습니다.\n\n### 같은 타이밍의 발동 순서\n- 역할 등 상시계 효과가 먼저 발동하고, 고유 → 전용 → 특성(소지품) → 포텐셜 순서로 처리합니다. 같은 타이밍이면 스피드를 비교합니다.\n- 선발(죽어내밀기) 시 발동하는 효과는 등장 시 발동하는 효과보다 먼저 처리합니다.\n- 설치기에 의한 대미지 등은 언제나 가장 먼저 처리합니다.\n\n### 동시 교대\n교대 타이밍은 기본적으로 전원 동일하며 동시에 교대 처리합니다. 전부 교대한 뒤에 등장 시 포텐셜 등을 처리합니다. 이를 이용해 에리어 A의 포켓몬을 들여보내고 에리어 B에 바로 내보낼 수 있습니다.\n\n> 에리어 간 완전히 교차하는 교대는 순서상 불가능합니다. 『돌아와!』로 지정된 포켓몬은 들어간 쪽과 나오는 쪽 모두 그 턴에 다른 형태로 나올 수 없습니다."},{"id":"temprank","group":"배틀","title":"임시 랭크 변화","desc":"턴 종료 시까지 유지되는 랭크 변화의 처리","body":"## 일반 판정\n- 턴 종료 시까지 능력이 변화하는 경우는 대출과 비슷하게 판정한다.\n- 턴 진행 중 해당 능력치가 초기화되거나 반전되어도, 종료 시에는 변화한 만큼 원래대로 되돌린다.\n- 단, 임시 랭크가 원래대로 돌아가는 과정은 리셋으로 취급하며 능력 변화가 아니다. (「흑안개」 등과 동일)\n- 따라서 특성 「심술꾸러기」「보증서기」, 소지품 「하양허브」 등과 상호작용하지 않는다.\n- 되돌아가는 과정에서 능력이 상승한 것처럼 보여도 상승이 아니므로, 특성 「편승」, 기술 「질투의불꽃」 등이 반응하지 않는다.\n\n## 특정 기술과의 상호작용\n- 「자기암시」는 대상의 능력 변화가 임시인지와 상관없이, 그 순간의 능력 변화 수치만 영구적으로 복사한다.\n- 「자기암시」「뒤집어엎기」 등으로 능력치가 조정되어도, 턴 종료 시 되돌아가는 보정은 정상 적용된다.\n- 예: 임시로 「공격 : +1」인 상태에서 「뒤집어엎기」를 맞으면, 턴 종료 시 「공격 : -2」가 되는 것이 올바른 처리이다.\n- 단, 「클리어스모그」「흰안개」 등으로 랭크가 초기화되면 임시 여부까지 모두 초기화되어 턴 종료 시에도 「±0」으로 유지된다."},{"id":"skillcheck","group":"배틀 밖","title":"스킬 체크","desc":"배틀 밖 판정 : 자질 주사위 + 동료 주사위 · 결과 다섯 칸 · 지침 · 커버 · 이능 · 부상","body":"> **한 줄 요약** · 배틀 밖에서 무언가를 해내려 할 때 **자질 주사위 + 동료 주사위 ≥ 목표치**. 포켓몬은 함께할 때 주사위를 보태고, 사람은 결과를 받쳐 줍니다. 판정 실력은 트레이너 자질 하나로만 정해집니다.\n\n## 판정 순서\n::: steps\n자질 고르기 | 하려는 일에 맞는 자질 하나. 랭크가 곧 주사위\n동료 고르기 | 상황에 맞는 포켓몬이면 d6, 없으면 혼자 d4\n보정 걸기 | 주사위 단계 ±1, 두 번 굴리기. 종류마다 최대 하나\n굴리기 | 합을 목표치와 비교해 다섯 결과 중 하나\n커버 | 다른 트레이너가 부상을 지고 결과를 한 칸 올림\n:::\n\n## 주사위\n### 자질 주사위\n::: ladder\nD | d4\nC | d6\nB | d8\nA | d10\nAA | d12\n:::\n\n### 동료 주사위\n::: cards\n포켓몬과 함께 · d6 | 「타입」「특성」「기술」이 상황에 맞는 포켓몬. 프라이드와 무관합니다.\u003cbr>다른 트레이너의 포켓몬도 동료가 될 수 있고, 그 포켓몬도 똑같이 지칩니다. | good\n혼자 · d4 | 상황에 맞는 포켓몬이 없거나, 쓸 수 있는 포켓몬이 모두 지쳤을 때. | bad\n:::\n- 동료 주사위는 판정마다 **1개**뿐입니다.\n\n> 동료 주사위를 프라이드로 올리지 않는 이유 : 프라이드 A 포켓몬을 많이 가진 통솔형이 모든 판정에서 유리해지기 때문입니다.\n\n## 목표치와 결과\n### 목표치\n::: ladder\n쉬움 | 5\n보통 | 7\n어려움 | 9\n매우 어려움 | 11\n:::\n\n### 결과 다섯 칸\n::: scale\n대실패 | 두 주사위가 모두 1. 상황이 한 단계 나빠집니다. A 이상 자질은 그냥 실패 | x\n실패 | 3 이상 모자람. 원하는 결과를 얻지 못합니다 | bad\n대가를 치르고 성공 | 1~2 모자람. GM이 대가를 고르고, 플레이어는 듣고 실패를 택할 수 있습니다 | warn\n성공 | 목표치 이상. 원하는 결과를 얻습니다 | good\n대성공 | 목표치보다 5 이상 높음. 이득을 하나 더 얻습니다 | best\n:::\n\n::: cards\n대성공 이득 예시 | 시간 절약 · 정보 하나 더 · 다음 판정에서 자질 주사위 한 단계 상승 · 포켓몬과의 유대 연출 | good\n대가 예시 | 시간이 걸림 · 「소지품」 하나 소모 · 들킴 · 동료나 포켓몬이 불리해짐 | warn\n:::\n\n### 보통(7) 성공률\n칸마다 \"성공 / 대가 포함\" 확률입니다. 색이 진할수록 잘 됩니다.\n\n::: heat\n| 트레이너 | 혼자 (d4) | 포켓몬과 (d6) |\n|---|---|---|\n| D | 19 / 62% | 42 / 75% |\n| C | 42 / 75% | 58 / 83% |\n| B | 56 / 81% | 69 / 88% |\n| A | 65 / 85% | 75 / 90% |\n| AA | 71 / 88% | 79 / 92% |\n:::\n\n> 혼자인 D는 어려움(9) 이상을 성공할 수 없습니다. 평범한 사람도 포켓몬과 함께라면 해낼 수 있다는 설정을 숫자로 보여 줍니다.\n\n## 상황 보정\n::: cards\n주사위 단계 · 한계를 바꾼다 | **유리** 한 단계 상승 (d6 → d8)\u003cbr>**불리** 한 단계 하강 (d6 → d4)\u003cbr>도구·「소지품」, 환경, 상대와의 힘 차이처럼 결과의 상한이 달라질 때 | info\n두 번 굴리기 · 안정성을 바꾼다 | **유리** 두 번 굴려 높은 값\u003cbr>**불리** 두 번 굴려 낮은 값\u003cbr>시간 여유·사전 정보·집중 / 서두름·방해·긴장처럼 실수할 가능성이 달라질 때 | info\n:::\n\n- 둘 다 **자질 주사위에만** 적용합니다.\n- 종류마다 유리·불리는 최대 하나씩. 같은 종류의 유리와 불리는 상쇄됩니다.\n- 두 종류는 함께 걸릴 수 있습니다. 예 : d8로 올라간 주사위를 두 번 굴려 높은 값.\n- 두 번 굴릴 때 대실패는 고른 값이 1이고 동료 주사위도 1일 때입니다.\n- 부상·중상에 의한 하강은 상황 보정의 불리와 별개로 겹칩니다.\n\n::: flow\n굴리지 않고 실패 {x} > d4 > d6 > d8 > d10 > d12 > d12+1 {best}\n:::\n\n### C 트레이너 + 포켓몬(d6) 성공률\n::: heat\n| 보정 | 보통 7 | 매우 어려움 11 |\n|---|---|---|\n| 둘 다 유리 | 86% | 34% |\n| 두 번 굴려 높은 값 | 75% | 14% |\n| 한 단계 상승 (d8) | 69% | 21% |\n| 없음 (d6) | 58% | 8% |\n| 두 번 굴려 낮은 값 | 42% | 2% |\n| 한 단계 하강 (d4) | 42% | 0% |\n:::\n\n> 두 번 굴리기는 보통 난이도에서, 단계 상승은 어려운 난이도에서 더 효과가 큽니다.\n\n## 지침과 휴식\n::: cards\n지침 | 판정에 동료로 쓴 포켓몬은 지칩니다. 휴식 단계 전까지 다시 동료가 될 수 없습니다.\u003cbr>스킬 체크에만 해당하고, 배틀 참가에는 영향이 없습니다. | warn\n휴식 단계 | 캠프, 포켓몬센터, 하룻밤 등 GM이 선언하는 장면 전환. 모든 포켓몬의 지침이 풀립니다. | good\n모두 지쳤다면 | 쓸 수 있는 포켓몬이 모두 지쳤으면 혼자(d4)로 굴립니다. | bad\n:::\n\n## 동료의 커버\n사람은 주사위를 보태는 대신 결과를 받쳐 줍니다. 결과가 나온 뒤 같은 장면의 다른 트레이너가 **\"내가 받칠게\"** 하면 결과가 한 칸 오르고, 커버한 트레이너가 **부상**을 입습니다.\n\n::: flow\n대실패 {x} > 실패 {bad} > 대가를 치르고 성공 {warn} > 성공 {good}\n:::\n\n::: cards\n실패를 받치면 | \"대가를 치르고 성공\"이 됩니다. GM이 고르는 대가는 그대로 남습니다. | warn\n대가를 받치면 | 대가 없이 성공합니다. 대성공으로는 올릴 수 없습니다. | good\n이능 실패를 받치면 | \"대가를 치르고 성공\"이 되어 반동이 없습니다. 부상은 커버한 사람이 대신 입습니다. | info\n:::\n\n- 한 판정에 커버는 **1번**뿐입니다.\n- 부상 중에 커버하면 중상이 됩니다. 중상인 트레이너는 커버할 수 없습니다.\n- 커버는 포켓몬을 쓰지 않으므로 지침과 상관없습니다.\n\n## 자질별 판정과 특색\n각 자질의 특색은 그 자질 판정 안에서만 작동합니다. 한 자질에 투자해서 다른 자질 판정까지 강해지는 일은 없습니다.\n\n::: cards\n지시 · 상황 판단, 정보 분석, 논리 | **묘수** : 지시 판정 후 주사위 하나를 다시 굴립니다. A는 세션당 1회, AA는 2회 | info\n육성 · 포켓몬 지식·돌봄, 신체 활동, 생존 | **돌봄** : 육성 B 이상은 휴식 단계 사이 1회, 원하는 때 지친 포켓몬 1체를 회복시킵니다. 자기 포켓몬이든 동료의 포켓몬이든 됩니다 | info\n통솔 · 카리스마, 유대, 감정 | **유대** : 『유대』 포켓몬과 함께하는 통솔 판정은 동료 주사위가 d6에서 d8로 오릅니다 | info\n능력 · 『고유』와 연결된 개인의 힘 | C~B는 **기교**, A부터는 **이능**. 이능은 포켓몬을 쓰지 않아 지침과 무관하지만 휴식 단계 사이 2회로 제한됩니다 | info\n:::\n\n### 포켓몬이 직접 하는 행동\n::: cards\n훈련된 동작 → 육성 | 기술을 정확하게 쓰는 일, 익숙한 동작 | good\n무리한 부탁 → 통솔 | 겁먹거나 흥분한 포켓몬을 움직이는 일, 무리한 부탁 | warn\n할 수 없는 일 → 판정 없이 실패 | 기술·종족 범위를 벗어난 일 | bad\n:::\n\n### 프라이드의 고집\n> 【프라이드 : A】 포켓몬이 동료일 때 동료 주사위가 1이 나오면, 결과와 상관없이 **대가가 하나** 생깁니다. 『유대』가 있는 포켓몬은 고집을 부리지 않습니다. 프라이드는 판정에서 이득이 아니라 위험으로만 작용합니다.\n\n## 능력 : 기교와 이능\n| 랭크 | 성격 | 할 수 있는 판정 |\n|---|---|---|\n| D | 평범한 사람 | 기교 판정 |\n| C ~ B | 기교 | 기교 판정 |\n| A ~ AA | 이능력자 | 기교 판정 + 이능 판정 |\n\n::: cards\n기교 판정 | 손재주, 전문 기술, 정밀 작업, 트릭처럼 훈련으로 도달할 수 있는 일. 다른 판정과 같이 자질 주사위 + 동료 주사위로 굴립니다. | info\n이능 판정 (A 이상) | 동료 주사위 대신 자기 능력 주사위를 하나 더 (A **2d10**, AA **2d12**).\u003cbr>『고유』 설정 범위 안의 행동만. 세션 전에 GM과 \"이 고유로 할 수 있는 일\"을 한두 줄로 합의합니다. | warn\n횟수와 반동 | 휴식 단계 사이 **2회**. 성공과 실패 모두 1회로 셉니다.\u003cbr>실패하면 트레이너가 **부상**. | bad\nAA 특권 | 세션당 1회, 목표치 9 이하인 이능 판정을 굴리지 않고 성공. 이것도 횟수 1회로 셉니다. | best\n:::\n\n::: heat\n| 이능 | 보통 7 | 어려움 9 | 매우 어려움 11 |\n|---|---|---|---|\n| AA (2d12) | 90% | 81% | 69% |\n| A (2d10) | 85% | 72% | 55% |\n| AA 부상 (2d10) | 85% | 72% | 55% |\n| A 부상 (2d8) | 77% | 56% | 33% |\n:::\n\n## 부상과 중상\n::: flow\n멀쩡 {good} > 부상 {warn} > 중상 {x}\n:::\n\n::: cards\n부상 | **되는 때** 이능 판정 실패, 커버\u003cbr>**효과** 모든 판정의 자질 주사위 한 단계 하강 (이능은 두 주사위 모두, 2d10 → 2d8) · 소지 포켓몬 1체(플레이어가 고름)의 「HP」 최대치의 1/4 감소\u003cbr>**회복** 휴식 단계에서 풀림 | warn\n중상 | **되는 때** 부상 중에 다시 부상\u003cbr>**효과** 이능 사용 불가 · 자질 주사위 두 단계 하강 · 소지 포켓몬 1체의 「HP」 최대치의 1/4 감소\u003cbr>**회복** 휴식 단계에서 부상으로 한 단계만 | x\n:::\n\n- 자질 주사위 하강은 스킬 체크에만 적용합니다. 줄어든 포켓몬 「HP」는 배틀에 그대로 이어지고, 회복은 배틀 룰을 따릅니다.\n- 부상은 이능뿐 아니라 다른 판정도 같이 약하게 만듭니다. C 자질 + 포켓몬의 보통(7) 성공률은 58%에서 42%로 떨어집니다.\n\n> 부상이 세션에서 너무 자주 나오면 매우 어려움(11)에서의 이능 사용을 재검토하세요.\n\n## 공통 원칙\n::: cards\n굴리지 않는 경우 | 실패해도 재미없는 일은 판정 없이 성공, 불가능한 일은 판정 없이 실패. | info\n재시도 | 같은 방법으로는 다시 굴릴 수 없습니다. 자질, 동료, 접근 방식 중 하나를 바꿔야 합니다. | warn\n대항 판정 | 양쪽이 굴려 높은 쪽이 이깁니다. 동점이면 막는 쪽이 이깁니다. | info\n배틀 중에는 판정하지 않음 | 『4식』『지령』과 포텐셜을 판정으로 대신할 수 없습니다. 판정은 배틀 밖 이야기와 배틀 시작 조건에만 영향을 줍니다. | bad\n:::\n\n### NPC의 굴림\n| NPC | 굴림 |\n|---|---|\n| 일반인 | d4 + d4 |\n| 일반 트레이너 | d6 + d6 |\n| 숙련 트레이너 | d8 + d6 |\n| 『두목』 | d10 + d6 |\n\n## 예시\n| PC | 지시 | 육성 | 통솔 | 능력 |\n|---|---|---|---|---|\n| 카이 | A (d10) | B (d8) | B (d8) | D (d4) |\n| 미오 | C (d6) | A (d10) | C (d6) | B (d8) |\n| 레온 | C (d6) | C (d6) | C (d6) | AA (d12) |\n\n::: cards\n① 겁먹은 야생 무리를 진정시킨다 · 통솔, 어려움 9 | 카이가 『유대』 포켓몬과 함께해 동료 주사위가 d8로 오릅니다. **d8+d8, 성공 56%** | info\n② 쓰러진 포켓몬 응급처치 · 육성, 보통 7 | 미오는 도울 포켓몬이 없어 혼자(d4)지만, 「나무열매」가 있어 유리 상황으로 d10이 d12가 됩니다. **d12+d4, 성공 71%** | info\n③ 무너지는 다리를 붙잡는다 · 레온의 이능, 매우 어려움 11 | 고유가 \"염동\"이라 범위 안. 목표치 11이라 AA 특권은 못 씁니다. **2d12, 성공 69%**. 실패하면 부상을 입어 다음 휴식 단계까지 모든 자질 주사위가 한 단계 내려갑니다. | warn\n④ 바위를 부수게 한다 · 육성, 보통 7 | 카이가 【프라이드 : A】 격투 포켓몬에게 「바위깨기」를 시킵니다. **d8+d6, 성공 69%**. 동료 주사위가 1이면 고집이 발동해 성공해도 대가가 따릅니다. | warn\n⑤ 지친 파티 · 육성의 돌봄 | 카이는 ①과 ④에서 포켓몬 2체를 써서 둘 다 지쳤습니다. 육성 A인 미오가 돌봄으로 격투 포켓몬을 회복시키고, 다음 휴식 단계까지 돌봄을 다시 쓸 수 없습니다. | good\n⑥ 서두르며 단서를 찾는다 · 지시, 어려움 9 | 카이(지시 A, d10). 사전 정보로 \"높은 값\" 유리, 서두르는 중이라 \"낮은 값\" 불리가 걸려 상쇄됩니다. 맞는 포켓몬이 없어 혼자(d4) → **d10+d4** | info\n⑦ 잠긴 철문을 비튼다 · 레온의 이능, 어려움 9 | ③에서 실패해 부상 중, 이능이 1회 남았습니다. 부상 상태로 굴리면 2d10, 성공 72%이고 또 실패하면 중상. 레온은 AA 특권으로 굴리지 않고 성공시킵니다. 이번 휴식 단계의 이능 2회를 다 썼습니다. | best\n⑧ 커버 | ⑥에서 카이가 실패. 같은 장면의 미오가 \"내가 받칠게\" → 결과가 \"대가를 치르고 성공\"으로 오르고 미오가 부상. GM이 고른 대가(추격대에게 들킴)는 그대로 남습니다. | warn\n:::\n\n## 남은 질문\n- 「묘수」를 지시 판정 재굴림에 쓰는 것이 원래 묘수의 용도와 충돌하지 않나요?\n- 돌봄 횟수를 육성 A는 2회로 늘릴까요?\n- 돌봄이나 다른 수단으로 트레이너의 부상을 회복할 수 있게 할까요?"},{"id":"tags","group":"레퍼런스","title":"태그 사전","desc":"【태그】의 순서, 입력 규칙, 키워드 뜻","body":"【태그】는 효과의 발동 조건 중 범용적인 것을 기호화한 것입니다. 「특성」『포텐셜』 효과의 앞부분에 대응하며, 기입 규칙이 있습니다.\n\n1. 태그의 순서에 따라 기입합니다.\n2. 태그끼리는 공백 없이 연속해서 입력합니다.\n3. 마지막 태그와 효과 사이에는 공백 없이 '/ (슬래시)'를 입력합니다.\n\n> 예시 · 【1/시】【자동】【방호】/자신에 대한 기술을 무효화한다.\n\n## 태그의 순서\n복합 효과일 때만 [①, ②]를 붙입니다. (동시 효과와는 구분합니다)\n\n1. 【N/시】【자동】【선행】【강제】【임의】\n2. 【사전】\n3. 【야생】\n4. 【방호】\n5. 【동조】\n6. 【등장】【퇴장】【지연】\n7. 【지원】\n8. 【수세】【공세】\n9. 【함성】\n10. 【자질】\n11. 【유일】【소진】【탈진】【보급】【공유】【중첩】【연동】\n12. / (슬래시)\n13. 그 외 조건, 효과\n\n## 발동 횟수 · 방식\n| 키워드 | 설명 |\n|---|---|\n| 【N/시】 | 조건을 채웠을 때 시합에 N번까지 사용할 수 있는 효과. 발동을 시도했으나 무효화되어도 횟수를 소모한다. 【1/시】처럼 나타낸다. |\n| 【자동】 | 【N/시】와 함께 쓰며 조건을 채우면 자동으로 사용되는 효과. 발동 여부를 조절할 수 있는 효과라도 조건을 채운 시점에 반드시 횟수를 소모한다. |\n| 【선행】 | 지시 입력 시점에 사용 여부를 미리 입력해 두고, 조건을 만족하면 반드시 발동하는 효과.\u003cbr>선행 입력은 포텐셜 종류별로 1개까지. 고유 + 전용, 지령 + 종족은 조합할 수 있지만 고유1 + 고유2 등은 조합할 수 없다. |\n| 【강제】 | 모든 발동 조건을 무시하고 효과를 강제로 발동시켰을 때 붙는 태그. 발동 횟수를 소모하지 않는다. |\n| 【임의】 | 모든 발동 조건을 무시하고 임의의 타이밍에 발동시킬 수 있는 효과. 발동 횟수를 소모한다. |\n| 【사전】 | 트레이너의 지시 전에 해당하는 효과. 일반적으로 『포켓몬 도감』『스카우터』와 선언계 『고유』 정도로 제한된다. |\n| 【야생】 | 『야생』일 때만 발동하는 효과. 일반적으로 포획될 때 제거된다. |\n\n## 방호 · 동조\n| 키워드 | 설명 |\n|---|---|\n| 【방호】 | 기술의 대미지를 낮게 받기 위한 모든 효과에 대응한다. |\n| 【방호 (조건)】 | 능력 강화 등 대미지를 덜 받게 될 수도 있는 효과는 그러할 때만 방호 효과로 취급한다. |\n| 【동조】 | 적진의 같은 『역할』의 포켓몬에 대한 효과. S2 환경에서 역할 대면은 적진에 같은 『역할』이 있으면 발동한다. |\n| 【동조 (아군)】 | 아군의 기술 등의 대상이 같은 『역할』인 상대일 때 발동하는 효과. 일반적으로 필중 등의 단발형. |\n| 【동조 (상대)】 | 아군과 같은 『역할』의 상대에게 작용하는 상시 효과. 일반적으로 「특성」을 덮어쓰는 등의 효과. |\n\n## 등장 · 퇴장 · 지연\n| 키워드 | 설명 |\n|---|---|\n| 【등장】 | 필드에 등장했을 때 작동하는 효과. 특정 조건이 필요하면 【등장 (통상 교대)】처럼 표기한다. 【턴 종료 시】 효과는 등장한 턴에는 발동하지 않는다. |\n| 【퇴장】 | 필드를 떠날 때 작동하는 효과. 【퇴장 (통상 교대)】【퇴장 (빈사)】처럼 표기한다. 강제 교대는 【퇴장 (강제 교대)】 이외의 【퇴장】을 발동하지 않는다. |\n| 【지연 (N턴)】 | 필드에 등장하여 N번째 턴에 대응하는 효과. N은 기본적으로 2 이상.\u003cbr>예: 『선회』 = 【지연 (2턴)】/턴 종료 시 임의 교대할 수 있다.\u003cbr>어떻게 등장했는지는 관여하지 않는다. 【지연 (1턴)】/턴 종료 시까지~ 는 등장하여 2번째 턴, 턴 종료 시까지에 대응한다. (드문 케이스) |\n| 【지연 (아군, N턴)】 | 아군이 필드에 등장하여 N번째 턴에 대응하는 효과. 『역선회』 등. |\n| 【지연 (N턴 동안)】 | 필드에 등장하여 N턴 동안에 대응하는 효과. 『텔레포트』 정도에서만 쓰인다. |\n\n### 【등장】에 관한 첨언\n태그 적용 후 【등장】은 '필드에 등장했을 때 발동하는 효과'와 '등장하여 최초로 내보내는 기술에 적용되는 효과'를 함께 관리합니다. 후자를 두 예시로 설명합니다.\n\n**【등장】/다음 기술의 위력을 2배로 만든다.** 구식 텍스트의 \"필드에 등장하여 최초로 내보내는 기술의 위력을 2배로 만든다\"에 대응합니다. 교대로 등장했다면 그다음 턴 첫 기술까지 효과가 지속됩니다. 태그 적용 후에는 \"다음 기술\"이라는 표현으로 타이밍을 확정합니다.\n\n**【등장】/턴 종료 시까지 기술에 추가 효과로써 「3할 : 화상」을 부여한다.** 구식 텍스트의 \"필드에 등장했을 때 턴 종료 시까지 자신의 기술에 「3할 : 화상」을 부여한다\"에 대응합니다. 교대로 등장하면 보통 기술을 내보낼 수 없어 효과가 사라지고, 선발(죽어내밀기)나 링커로 등장했을 때만 의미가 있습니다. 단, \"턴 종료 시까지\"라고 명시되어 있으므로 「특성 : ○○난무」 등으로 한 턴에 기술을 2번 이상 내보내면 모든 기술에 적용됩니다.\n\n## 지원 · 수세 · 공세 · 함성 · 자질\n| 키워드 | 설명 |\n|---|---|\n| 【지원】 | PT에 참여하고 있을 때에 대응하는 효과. 「빈사」 상태면 작동하지 않는다. 소지(벤치)에 있을 때 발동할 수 있는 효과라면 반드시 붙어야 한다. 『텔레포트』 등. |\n| 【지원 (빈사)】 | 『계약의 특권』이 부여되어 있을 때 등에 대응. 「빈사」 상태일 때도 발동하는 지원 효과라면 반드시 붙어야 하며, 이 태그 여부로 빈사 시 발동을 판단한다. |\n| 【수세】 | 자신이 공격하지 않았을 때에 대응. 지시 입력 시점에 조건 달성 여부가 정해진다. 자신의 기술 위력을 의미할 일은 없다. |\n| 【공세】 | 상대가 공격하지 않았을 때에 대응. 지시 입력 시점에 조건 달성 여부가 정해진다. 상대의 기술 위력을 의미할 일은 없다. |\n| 【함성】 | 포켓몬을 쓰러뜨렸을 때에 대응. 2마리 이상을 동시에 쓰러뜨리면 그만큼 발동한다. 【함성 (「알그룹 : 인간형」)】처럼 조건을 붙일 수 있다. |\n| 【자질 : 랭크】 | 트레이너의 특정 자질이 지정 랭크 이상일 때 작동. 【육성 : A】처럼 표기하며, 다른 범위는 【지시 : C 이하】처럼 표기한다. |\n\n## 횟수 제한 · 중첩\n| 키워드 | 설명 |\n|---|---|\n| 【유일】 | 같은 이름 및 파생 계열 효과와 중첩되지 않는 고유한 효과. 중첩되면 가장 높은 것만 적용되지만, 맹세 효과를 발생시킨다면 모든 페널티를 적용한다. |\n| 【소진】 | 1턴에 1번에 대응. 교대로 소지에 들어갔다 다시 나와도 이 제한은 유지된다. |\n| 【탈진】 | 연속한 턴에 사용할 수 없다 등에 대응. 이번 턴에 사용했다면 다음 턴까지 사용할 수 없다. |\n| 【보급】 | 필드에 등장하여 1번까지만 발동에 대응. 다시 발동하려면 소지에 들어갔다 나와야 한다. 실기의 「특성 : 변환자재」 등. |\n| 【공유】 | 발동한 턴 종료 시까지 다른 【공유】 효과를 발동할 수 없게 되는 효과. |\n| 【연동】 | 자신이 특정 조건을 충족했을 때 연동해서 발동하는 효과. 예: 【연동 (「특성 : 위협」)】. 【연동 (아군)】은 아군에게, 【연동 (상대)】는 상대에게 조건을 달성시켰을 때. |\n| 【중첩 (N회)】 | 조건을 달성할 때마다 동일한 효과가 누적. 최대 횟수를 【중첩 (2회)】처럼 기입한다. 풀스택은 강하되 1스택일 때는 크게 신경 쓰지 않아도 되는 정도가 좋다. |\n| 명칭 지정 (○○) | 이름에 「○○」을 포함하는 「특성」 등을 간략히 표기. 실제 글자 수와 상관없이 「○」를 2개 써서 「특성 : ○○사격」처럼 표기한다. |\n\n## 방어 상태\n| 키워드 | 설명 |\n|---|---|\n| 기술 방어 | 「방어」 등으로 자신에 대한 모든 기술을 무효화하는 「방어」 상태. |\n| 공격 방어 | 「킹실드」 등으로 자신에 대한 모든 공격을 무효화하는 「방어」 상태. |\n| 전체기 방어 | 「와이드가드」로 자진 모든 포켓몬에 대한 「전체기」를 무효화하는 「방어」 상태. |\n| 선제기 방어 | 「패스트가드」로 자진 모든 포켓몬에 대한 「선공기」를 무효화하는 「방어」 상태. |\n| 변화기 방어 | 「트릭가드」로 자진 모든 포켓몬에 대한 「변화기」를 무효화하는 「방어」 상태. |\n| 유사 방어 | 「버티기」「감싸기」 등으로 유발되는 상태. 기술을 무효화하지는 않지만 「방어」 상태의 카운트를 공유하고 이를 무시하는 효과에 대응한다. |\n\n## 반동 · 연속 제한\n| 키워드 | 설명 |\n|---|---|\n| 반동 비례 대미지 | 명중했을 때 대상에게 입힌 대미지에 비례하는 대미지를 입는다. 「무릎차기」 등의 특수 반동은 조건이 함께 적혀 있다. |\n| 반동 : 행동불능 | 명중 후 다음 턴 반동으로 움직일 수 없다. 이 '다음 턴'은 정확히 행동 1번이므로 추가 행동으로 미리 해제할 수 있다. |\n| 반동 (능력치) : N | 「인파이트」 등 명중 후 자신의 능력치를 감소시키는 효과. 「반동 (방어/특방) : -1」처럼 표기. |\n| 반동 : 상태 이상(상태 변화) | 명중 후 자신에게 지정된 상태 이상(상태 변화)을 유발한다. |\n| 반동 : 효과 참조 | 위 반동에 포함되지 않는 특수 처리를 기술 효과에 명시한 것. |\n| 연속 제한 : 실패 확률 증가 | 「방어」 등의 \"연속으로 내보내면 실패하기 쉽다\". 성공할 때마다 카운트를 공유하는 기술의 성공 확률이 1/3이 되며, 실패하거나 다른 기술을 쓸 때까지 누적된다. 괄호로 세부 사항이 지정되면 같은 연속 제한끼리 카운트를 공유한다. |\n| 연속 제한 : 확정 실패 | 「길동무」 등의 \"연속으로 내보내면 실패한다\". |\n| 연속 제한 : 지시 불가 | 「거대해머」 등의 \"연속으로 지시할 수 없다\". |\n\n## 연속기 · 난동 · 트리거\n| 키워드 | 설명 |\n|---|---|\n| 연속기 : N회 | 2회 연속으로 공격한다 등. 공격마다 별도로 명중 굴림을 하며, 명중하지 않으면 후속 공격이 즉시 종료된다. 공격마다 피격 시 효과를 작동시킨다. |\n| 연속기 : N~M회 | 2~5회 연속으로 공격한다 등. 1번의 명중 굴림 후 몇 번 명중했는지 판정한다. 급소 판정은 각각 하고, 모든 공격이 끝난 뒤 피격 시 효과를 작동시킨다. |\n| 종합 위력 | 「위력 : 40」 이하 등을 조건으로 하는 효과에서 「연속기」를 제외하기 위한 키워드. 연속기의 종합 위력은 낼 수 있는 위력의 합산 최대치이다. |\n| 난동부리기 : N~M턴 | 「역린」 등 여러 행동에 걸쳐 같은 기술을 내보내는 효과. |\n| 난동부리기 (혼란) : N~M턴 | 난동부리기가 끝난 뒤 괄호에 지정된 상태 이상이 되는 효과. |\n| 트리거 : ○ | ○로 지정한 항목과 연계해 발동하는 효과. 예: 「트리거 : 단일기」인 『종족』을 발동했을 때처럼 간접 조건을 나타낼 때 쓴다. |\n\n## 기술 분류\n| 키워드 | 설명 |\n|---|---|\n| 단일기 | 「범위 : 1체, 아군, 정면, 대각」인 기술. 「범위 : 아군」 기술은 「트리거 : 단일기」의 일반 효과를 발동시키지 않는 경우가 많다. 기본적으로 공격이나 해로운 변화기를 가리킨다. |\n| 전체기 | 「범위 : 상대 2체, 상대 전체, 자신 이외, 전체」. 「에리어 A, 에리어 B, 아군 전체, 자진, 적진, 필드 전체」와 필드를 대상으로 하는 기술은 해당하지 않는다. |\n| 선공기 | 「우선도 : +1」 이상의 기술. 「범위 : 자신, 아군, 아군 전체」 등은 대상 외. |\n| 후공기 | 「우선도 : -1」 이하의 기술. 「범위 : 자신, 아군, 아군 전체」 등은 대상 외. |\n| 단일기 : 공격, 단일기 : 불꽃 | 콜론 뒤에 세부 사항을 간단히 입력할 수 있다. |\n\n참고 시트 · [기술 데이터 시트 열기](https://docs.google.com/spreadsheets/d/16p6CmtMCIkiTWPQj7tlmRdYdaHPdcXN8XcJuhf_VkEQ/edit?gid=1164427641#gid=1164427641)"},{"id":"grammar","group":"레퍼런스","title":"표기 문법","desc":"포텐셜 텍스트를 쓸 때의 표기 규칙","body":"| 항목 | 표기 |\n|---|---|\n| 모든 상태 이상 | 상태 이상 (따옴표 없이, 띄어쓰기) |\n| 특정 상태 이상 | 「화상」 · 여러 개는 「화상」「마비」 (OR 조건) |\n| 상태 변화 | 「혼란」 · 동시에는 「혼란/조이기」 (AND) · 각각은 「혼란」「조이기」 (OR) |\n| 능력의 상승 | 「공격 : +1」 · 여러 능력은 「공격/방어/스피드 : +1」 |\n| 능력의 감소 | 「방어 : -1」 |\n| 능력의 강화 | 「공격」을 강화(1.2배)한다 |\n| 능력의 저하 | 「방어」를 저하(0.8배)시킨다 |\n| 급소 | 급소에 맞기 쉬워진다(C+1). · 급소에 맞기 어려워진다(C-1). |\n| 특성 | 「특성 : 대운」 |\n| 타입 | 「타입 : 불꽃」 · 순서 지정은 「타입1」 |\n| 포텐셜 | 『대의 선』 |\n| 프라이드 | 【프라이드 : A】 |\n| 소지품 | 「소지품 : 자뭉열매」 · 분류는 「나무열매」 · 없음은 「소지품 : -」 |\n| 기술의 범위 | 「범위 : 1체」 |\n\n## 포텐셜의 범위\n| 표현 | 뜻 |\n|---|---|\n| 같은 에리어 | 자신과 같은 에리어에 있는 상대 |\n| 반대 에리어 | 대상과 다른 에리어에 있는 포켓몬 (아군이라면 그냥 '아군'이 낫다) |\n| 다른 에리어 | 자신과 다른 에리어에 있는 상대 |\n| 에리어를 뒤바꾼다 | 아군과 에리어를 뒤바꿀 때 |"},{"id":"status","group":"레퍼런스","title":"상태변화 목록","desc":"분류별 상태변화와 영문 키","body":"## 피해 증가\n- 가열 `Heat`\n- 냉각 `Cool`\n- 충전 `Charge`\n- 장전 `Load`\n- 도우미 `HelpingHand`\n- 예민해지기 `LaserFocus`\n- 대검돌격 `GlaiveRush`\n\n## 자신\n- 대타출동 `Substitute`\n- 분노 `Rage`\n- 아쿠아링 `AquaRing`\n- 환희의노래 `Chant`\n- 근성 `Guts`\n- 길동무 `DestinyBond`\n- 기충전 `FocusEnergy`\n- 웅크리기 `DefenseCurl`\n- 작아지기 `Minimize`\n- 전자부유 `MagnetRise`\n- 퍼지 `Purge`\n- 유리구두 `GlassShoes`\n- 자세잡기 `Positioning`\n- 희망사항 `Wish`\n- 물엿범벅 `Syrup`\n- 비축하기 `Stockpile`\n- 몽유 `Comatose`\n- 분투 `FinalFight`\n- 엄폐 `Cover` (미실장)\n\n## 행동 방해\n- 혼란 `Confusion`\n- 난동부리기 `Thrash`\n- 날따름 `FollowMe`\n- 풀죽음 `Flinch`\n- 금제 `Embrago`\n- 침묵 `Silence`\n- 봉인 `Seal`\n- 분진 `Powder`\n- 망각 `Oblivion`\n- 원념 `Grudge`\n- 특성 파괴 `TraitBroken`\n\n## 멘탈 효과\n- 도발 `Taunt`\n- 앙코르 `Encore`\n- 헤롱헤롱 `Attract`\n- 회복봉인 `HealBlock`\n- 사슬묶기 `Disable`\n- 트집 `Torrment`\n\n## 교대 관련\n- 검은눈빛 `MeanLook`\n- 조이기 `Bind`\n- 썬더프리즌 `ThunderCage`\n- 뿌리박기 `Ingrain`\n- 문어굳히기 `OctoLock`\n- 배수의진 `NoRetreat`\n- 블록 `Block`\n\n## 비례 대미지\n- 저주 `Curse`\n- 씨뿌리기 `LeechSeed`\n- 요격 `Reflect`\n- 폭탄 `Boom`\n- 악몽 `Nightmare`\n- 먹이물기 `GulpMissile`\n- 소금절이 `SaltCure`\n\n## 기술 타입 변화\n- 송전 `Electrify`\n- 악인 `Knave`\n- 침수 `Flooding`\n\n## 지연 발생\n- 죽음의카운트 `DeathCount`\n- 동면 `Hibernation`\n- 하품 `Yawn`\n\n## 필중\n- 마음의눈 `Gaze`\n- 록온 `LockOn`\n- 텔레키네시스 `Telekinesis`\n\n## 미래예지\n- 미래예지 `FutureSight`\n- 종언의어둠 `DarknessOfTheEnd`\n- 파멸의소원 `DoomDesire`\n- 낙석주의 `Rockfallism`\n- 자연발화 `SpontaneousCombustion`\n- 폭풍경보 `StormWarning`\n- 번개구름 `ThunderClouds`\n- 산성폭격 `meltedshell`\n- 무리습격 `SwarmAttack`\n\n## 내성 변화\n- 꿰뚫어보기 `Foresight`\n- 미라클아이 `MiracleEye`\n- 냄새구별 `OdorSleuth`\n- 떨어뜨리기 `SmackDown`\n- 타르샷 `TarShot`\n\n## 반무적\n- 하늘 위 `Fly`\n- 어둠 안 `VanishToDark`\n- 불꽃 안 `VanishToFire`\n- 구멍 안 `VanishToHole`\n- 운석 안 `VanishToMeteor`\n- 햇살 안 `VanishToSun`\n- 물 안 `VanishToWater`"},{"id":"banpick","group":"진행","title":"밴픽 룰","desc":"선후공 결정과 턴별 픽·밴 순서","body":"## 선후공 결정\n1d100을 굴려 높은 쪽이 선공/후공 결정권을 가집니다. 「통솔」 특화는 같은 상대가 아니라면 결정권을 확정으로 가집니다.\n\n## 픽 · 밴 순서\n| 턴 | 선공 | 후공 |\n|---|---|---|\n| 1턴 | 1픽 1밴 | 2픽 2밴 |\n| 2턴 | 2픽 1밴 | 1픽 1밴 |\n| 3턴 | 1픽 | 1픽 |\n\n## 제한\n- 2픽 시에 프라이드 A를 2개 고르는 것은 불가능\n- 2밴 시에 같은 역할 2개를 밴하는 것은 불가능\n- 파티 내에 역할은 중복될 수 없다."},{"id":"patch","group":"진행","title":"패치노트","desc":"밸런스 조정과 변경 내역","body":"## 2026.10.14\n### 스킬 체크 장 신설\n- 「스킬 체크 룰 v3」를 룰북 안으로 옮겨 「진행 · 스킬 체크」 장으로 정리했습니다. 배틀 밖 판정은 모두 이 장을 따릅니다.\n- 쓰지 않는 「러닝 룰」(방화벽 돌파형 진행) 장을 삭제했습니다.\n\n### 「1인 기준 (2체)」 장 신설 (시안)\n- 6체 파티 기준 자원을 트레이너 한 명 = 2체 기준으로 줄인 환산표를 「캐릭터 메이킹 · 1인 기준 (2체)」 장에 넣었습니다. 아직 시안이라 확정 전입니다. 캐릭터 제작기에도 「1인 기준 (2체)」 체크와 테이블·계산식 탭의 1인 템플릿을 넣었습니다.\n\n### 「B-」 랭크 제외\n- 「지시」「육성」「통솔」 랭크표에서 「B-」 줄을 뺐습니다. 트레이너 자질은 D / C / B / A / AA 다섯 단계만 씁니다. (포켓몬 능력치의 「B-(95)」 표기는 그대로입니다.)\n\n## 2026.02.23\n### 배역 변경\n- 「크리스탈 리자드」 (바위/독) → 「톡시노돈」 (독/비행)\n- 「쾨니히」 (불꽃/전기) → 「유니윌」 (독/전기)\n- 「카를로타」 (물/얼음) → 「스팀로더」 (물/불꽃)\n\n### 「침수」「송전」 1/시 추가\n- 「침수」 : 1/시 / 「필중기」. 대상을 「침수」 상태로 만들어 다음에 내보낼 기술을 「물」 기술로 만든다.\n- 「송전」 : 1/시 / 「필중기」. 대상을 「송전」 상태로 만들어 다음에 내보낼 기술을 「전기」 기술로 만든다.\n\n### 2계제 조정\n- 카카시 · 【탈진】/아군에게 「송전」을 내보낼 때 횟수를 소모하지 않는 대신 2턴 동안 「예리 : +2」 상태로 만든다.\n- 서브마린 샤크 · 【탈진】/「마린다이브」가 명중했을 때 아군을 자신 다음에 행동하게 할 수 있다. (기존: 물 안 해제 후 탁류 위력 강화)\n- 미도리야 · 【탈진】/「분발」을 내보낼 때 아군의 「혼란」 및 「멘탈효과」를 치유한다. (기존: 「콤비네이션」 효과)\n\n### 아마노 히나 전체 재조정\n『날씨녀의 가호』 【방호】/「날씨」에 의한 보정을 받은 기술로 받을 대미지를 반감한다.\n『날씨녀의 적응』 「날씨」 기술을 내보냈을 때 자신에게 기술과 같은 「타입」을 추가한다.\n『일곱빛깔 무지개』 『어시스트』로 추가하는 기술을 「깊은안개」「어스름」「별하늘」로 변경한다.\n\n- 직접 날씨 기술을 전개한 뒤에 「웨더볼」을 치도록 장려하는 구성입니다.\n- 특성 : 무지개 → 특성 : 날씨의아이 · 필드의 「날씨」가 상대에 의해서 해제되지 않는다.\n- 히나가 있을 땐 안개제거, 천지를먹기, 웨더클리너 등으로 날씨가 해제되지 않습니다.\n\n### 숲의 거인 속별 너프\n① 【등장 (선발, 죽어내밀기)】/턴 종료 시까지 자신을 「특성 : 탄막」으로 만든다.\n② 「특성 : 탄막」일 때 자신의 「방어/특방」이 저하(0.85배)된다. (NEW)\n\n### 브람바인 드레이크 조정\n- 특성 「철가시」 → 「두꺼운지방」\n\n『첨극수의 육중』 【방호】【탈진】/「헤비봄버」를 내보낼 때 「물리기 : 격투」 기술로 받을 대미지를 반감한다.\n『오토 퍼지』 【1/시】【자동】【유일 (「소지품 : 나무열매」)】/「HP : 1/2 이하」일 때 「HP」를 1/4만큼 회복하고 「특성파괴」 상태가 된다.\n\n### 아흑룡 조정\n- 기술 「검은눈빛」 → 「가로채기」\n- 2계제 · 「상성 : 1/2~1/8배」인 공격을 받았을 때 중확률로 「특공 : +1」 한다. (기존: 저확률 화상)\n\n### 그 외 캐릭터\n- 신지드 속별 · 시합 준비 시 「소지품 : 연막탄」을 추가로 착용할 수 있다.\n- 카프카 · 기술 「벌레의야단법석」 → 「분진」\n- 카라켄 · 기술 「분진」 → 「지뢰원」\n\n### 파트너 제작 2체로 변경\n그에 따른 여러 재정이 변경되었습니다.\n\n### 스팀로더 전용 도입\n『증기차의 관통포』 【사전】【공유 (『포』, 『전용』)】【보급】/「HP」를 1/8만큼 소비하여 다음 「하이드로캐논」이 「정면」의 「방어」 등의 기술을 관통한다.\n『증기차의 곡사포』 【사전】【공유 (『포』, 『전용』)】【보급】/「HP」를 1/8만큼 소비하여 다음 「블라스트번」이 「대각」에게 「우선도 : +1」 한다.\n\n### 기타\n- 저주의묘 · 우선도 -7 추가\n- 당기는 것들 · 본러쉬 → 뼈다귀부메랑\n\n『독조룡의 강습』 【공세】/「돌풍」을 자신의 「방어」로 대미지 계산을 실시한다.\n【보급】 제거.\n\n『얼어라, 부숴져라』 엘레나 속별 변경 · 【자동】/「특성 : 냉기」일 때 「트리플악셀」이 「타입 : 강철」에게 「상성 : 2배」가 된다. 명중 후 「특성파괴」 상태가 된다."}]}</script>
+<script id="rb-app">
+(function(){
+"use strict";
+var FONTS="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap";
+var SRC={
+  style:document.getElementById("rb-style").textContent,
+  shell:document.getElementById("rb-shell").innerHTML,
+  app:document.getElementById("rb-app").textContent
+};
+var DATA=JSON.parse(document.getElementById("rb-data").textContent);
+document.getElementById("app").innerHTML=SRC.shell;
+
+var $=function(id){return document.getElementById(id)};
+var main=$("main"),toc=$("toc"),q=$("q"),statusEl=$("status");
+var editBtn=$("editBtn"),saveBtn=$("saveBtn"),cancelBtn=$("cancelBtn");
+var editing=false,draft=null,dirty=false,art=null,canSave=true,saving=false;
+var STASH="rb-draft-v1";
+
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function pad(n){return n<10?"0"+n:""+n}
+
+/* ---------- inline notation ---------- */
+function inl(s){
+  var h=esc(s);
+  h=h.replace(/`([^`]+)`/g,"<code>$1</code>");
+  h=h.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  h=h.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
+  h=h.replace(/【([^】]*)】/g,'<span class="tg">$1</span>');
+  h=h.replace(/『([^』]*)』/g,'<span class="pt"><i>『</i>$1<i>』</i></span>');
+  h=h.replace(/《([^》]*)》/g,'<span class="fd"><i>《</i>$1<i>》</i></span>');
+  h=h.replace(/「([^」]*)」/g,'<span class="tm"><i>「</i>$1<i>」</i></span>');
+  h=h.replace(/&lt;br\s*\/?&gt;/g,"<br>");
+  return h;
+}
+function contLine(t){
+  var m=t.match(/^([①-⑳])\s*(.*)$/);
+  if(m)return '<div class="def-cont"><span class="num">'+m[1]+"</span>"+inl(m[2])+"</div>";
+  if(/^ㄴ\s*/.test(t))return '<div class="def-cont sub">↳ '+inl(t.replace(/^ㄴ\s*/,""))+"</div>";
+  if(/^[・※]/.test(t))return '<div class="def-cont sub">'+inl(t)+"</div>";
+  return '<div class="def-cont">'+inl(t)+"</div>";
+}
+function rankChip(c){
+  var t=c.trim();
+  if(/^(AA|A|B-|B|C|D)$/.test(t))return '<span class="rk rk-'+(t==="B-"?"Bm":t)+'">'+t+"</span>";
+  return null;
+}
+
+
+/* ---------- visual blocks: ::: kind ... ::: ---------- */
+var TONES={good:1,best:1,warn:1,bad:1,x:1,info:1};
+function vxSplit(l){var p=l.split("|").map(function(x){return x.trim()});var t=p.length>2&&TONES[p[p.length-1]]?p.pop():"";return{a:p[0]||"",b:p.slice(1).join(" | "),t:t}}
+function vxBlock(kind,lines,chId){
+  lines=lines.filter(function(l){return l.trim()});
+  if(kind==="steps"){
+    return '<div class="vx vx-steps">'+lines.map(function(l,ix){var x=vxSplit(l);return '<div class="vx-step blk"><span class="vx-k">STEP '+(ix+1)+'</span><b>'+inl(x.a)+'</b><span class="vx-d">'+inl(x.b)+'</span></div>'}).join("")+"</div>";
+  }
+  if(kind==="cards"){
+    return '<div class="vx vx-cards">'+lines.map(function(l){var x=vxSplit(l);return '<div class="vx-card blk'+(x.t?" t-"+x.t:"")+'"><b>'+inl(x.a)+'</b><div class="vx-d">'+inl(x.b)+'</div></div>'}).join("")+"</div>";
+  }
+  if(kind==="ladder"){
+    var it=lines.map(vxSplit),ws=it.map(function(x){var m=String(x.b).match(/\d+/);return m?+m[0]:1}),mx=Math.max.apply(null,ws)||1;
+    return '<div class="vx vx-ladder">'+it.map(function(x,ix){var h=Math.round(28+92*ws[ix]/mx);return '<div class="vx-rung blk"><div class="vx-bar" style="height:'+h+'px">'+inl(x.b)+'</div><div class="vx-lab">'+(rankChip(x.a)||inl(x.a))+'</div></div>'}).join("")+"</div>";
+  }
+  if(kind==="scale"){
+    return '<div class="vx vx-scale">'+lines.map(function(l){var x=vxSplit(l);return '<div class="vx-seg blk'+(x.t?" t-"+x.t:"")+'"><b>'+inl(x.a)+'</b><span class="vx-d">'+inl(x.b)+'</span></div>'}).join("")+"</div>";
+  }
+  if(kind==="flow"){
+    var nodes=lines.join(" > ").split(/\s*>\s*/).filter(Boolean);
+    return '<div class="vx vx-flow blk">'+nodes.map(function(n,ix){var m=n.match(/^(.*?)\s*\{(\w+)\}\s*$/),t=m&&TONES[m[2]]?m[2]:"",txt=m?m[1]:n;return (ix?'<span class="vx-arrow">→</span>':"")+'<span class="vx-node'+(t?" t-"+t:"")+'">'+inl(txt)+"</span>"}).join("")+"</div>";
+  }
+  if(kind==="heat"){
+    var h=render(lines.join("\n"),chId);
+    h=h.replace(/<td data-label="([^"]*)">(\d+)([^<]*%)/g,function(all,lab,n,rest){var p=Math.max(0,Math.min(100,+n));return '<td class="vx-h" style="--p:'+Math.round(p*0.42)+'%" data-label="'+lab+'">'+n+rest});
+    return '<div class="vx vx-heat">'+h+"</div>";
+  }
+  return render(lines.join("\n"),chId);
+}
+
+/* ---------- block parser ---------- */
+var BLOCK=/^(#{2,4}\s|\||>|\s*[-*]\s|\d+\.\s|---\s*$|『[^』]+』|:::)/;
+function render(md,chId){
+  var L=String(md||"").replace(/\r/g,"").split("\n"),i=0,out=[],hn=0,defs=[];
+  function flush(){if(defs.length){out.push('<div class="defs">'+defs.join("")+"</div>");defs=[]}}
+  while(i<L.length){
+    var line=L[i];
+    if(!line.trim()){i++;continue}
+    var m;
+    if((m=line.match(/^『([^』]+)』\s*:?\s*(.*)$/))){
+      var name=m[1],rest=m[2].trim(),tags="",eff=rest,cont=[];i++;
+      var tm=rest.match(/^((?:【[^】]*】\s*)+)(?:\/\s*([\s\S]*))?$/);
+      if(tm){tags=tm[1];eff=tm[2]||""}
+      while(i<L.length&&L[i].trim()&&!BLOCK.test(L[i])){cont.push(L[i].trim());i++}
+      var tagHtml=tags?'<div class="def-tags">'+(tags.match(/【[^】]*】/g)||[]).map(function(t){return '<span class="tg">'+inl(t.slice(1,-1))+"</span>"}).join("")+"</div>":"";
+      defs.push('<div class="def blk"><div class="def-name">'+inl(name)+'</div><div class="def-main">'+tagHtml+(eff?'<div class="def-cont">'+inl(eff)+"</div>":"")+cont.map(contLine).join("")+"</div></div>");
+      continue;
+    }
+    flush();
+    if((m=line.match(/^:::\s*(\w+)\s*$/))){
+      var kind=m[1],inner=[];i++;
+      while(i<L.length&&!/^:::\s*$/.test(L[i])){inner.push(L[i]);i++}
+      i++;out.push(vxBlock(kind,inner,chId));continue;
+    }
+    if((m=line.match(/^(#{2,4})\s+(.*)$/))){
+      var lv=m[1].length+1,hid=chId+"--"+(++hn);
+      out.push("<h"+lv+' class="blk hd" data-lv="'+lv+'" id="'+hid+'">'+inl(m[2])+"</h"+lv+">");i++;continue;
+    }
+    if(/^---\s*$/.test(line)){out.push('<hr class="blk">');i++;continue}
+    if(/^>/.test(line)){
+      var nl=[];while(i<L.length&&/^>/.test(L[i])){nl.push(L[i].replace(/^>\s?/,""));i++}
+      out.push('<div class="note blk">'+nl.map(inl).join("<br>")+"</div>");continue;
+    }
+    if(/^\|/.test(line)){
+      var rows=[];while(i<L.length&&/^\|/.test(L[i])){rows.push(L[i]);i++}
+      var cells=rows.map(function(r){return r.trim().replace(/^\|/,"").replace(/\|$/,"").split("|").map(function(c){return c.trim()})});
+      cells=cells.filter(function(r){return !r.every(function(c){return /^:?-{2,}:?$/.test(c)})});
+      var head=cells.shift()||[],cols=head.length;
+      var t='<div class="tbl'+(cols>2?" stack":"")+'"><table><thead><tr>'+head.map(function(c){return"<th>"+inl(c)+"</th>"}).join("")+"</tr></thead><tbody>";
+      cells.forEach(function(r){
+        t+='<tr class="blk">'+r.map(function(c,ci){var rk=ci===0?rankChip(c):null;return '<td data-label="'+esc((head[ci]||"").replace(/[【】『』「」]/g,""))+'">'+(rk||inl(c))+"</td>"}).join("")+"</tr>";
+      });
+      out.push(t+"</tbody></table></div>");continue;
+    }
+    if(/^\s*[-*]\s/.test(line)){
+      var items=[];
+      while(i<L.length&&(/^\s*[-*]\s/.test(L[i]))){items.push(L[i].replace(/^\s*[-*]\s+/,""));i++}
+      var compact=items.length>=6&&items.every(function(x){return x.replace(/`/g,"").length<=30});
+      out.push('<ul class="'+(compact?"compact":"")+'">'+items.map(function(x){return'<li class="blk">'+inl(x)+"</li>"}).join("")+"</ul>");continue;
+    }
+    if(/^\d+\.\s/.test(line)){
+      var oi=[];while(i<L.length&&/^\d+\.\s/.test(L[i])){oi.push(L[i].replace(/^\d+\.\s+/,""));i++}
+      out.push("<ol>"+oi.map(function(x){return'<li class="blk">'+inl(x)+"</li>"}).join("")+"</ol>");continue;
+    }
+    var pl=[];while(i<L.length&&L[i].trim()&&!BLOCK.test(L[i])){pl.push(L[i]);i++}
+    if(!pl.length){pl.push(line);i++}
+    out.push('<p class="blk">'+pl.map(inl).join("<br>")+"</p>");
+  }
+  flush();
+  return out.join("");
+}
+
+/* ---------- reading view ---------- */
+function groups(chs){
+  var order=[],map={};
+  chs.forEach(function(c,ix){var g=c.group||"기타";if(!map[g]){map[g]=[];order.push(g)}map[g].push({c:c,ix:ix})});
+  return order.map(function(g){return{name:g,items:map[g]}});
+}
+function buildToc(d){
+  toc.innerHTML=groups(d.chapters).map(function(g){
+    return '<div class="toc-group"><div class="toc-group-name">'+esc(g.name)+"</div>"+g.items.map(function(it){
+      var c=it.c,subs=[],re=/^##\s+(.*)$/gm,mm,k=0,all=String(c.body||"").split("\n");
+      var hn=0;all.forEach(function(l){var x=l.match(/^(#{2,4})\s+(.*)$/);if(x){hn++;if(x[1].length===2)subs.push({id:"ch-"+c.id+"--"+hn,t:x[2]})}});
+      return '<div class="ch" data-ch="'+esc(c.id)+'"><a href="#ch-'+esc(c.id)+'" data-target="ch-'+esc(c.id)+'"><span class="n">'+pad(it.ix+1)+"</span><span>"+esc(c.title)+"</span></a>"+
+        (subs.length?'<div class="subs">'+subs.map(function(s){return'<a href="#'+esc(s.id)+'">'+esc(s.t.replace(/[『』「」【】]/g,""))+"</a>"}).join("")+"</div>":"")+"</div>";
+    }).join("")+"</div>";
+  }).join("");
+}
+function fmtDate(s){if(!s)return"";var p=s.split("-");return p.length===3?p[0]+"."+p[1]+"."+p[2]:s}
+function renderRead(){
+  var d=DATA;
+  document.title=d.title||"룰북";
+  $("brandName").textContent=d.title||"룰북";
+  var h='<div class="col" id="top">';
+  h+=recoveryBanner();
+  h+='<header class="hero"><div class="hero-kicker">RULEBOOK · '+d.chapters.length+' CHAPTERS</div><h1>'+esc(d.title)+"</h1>"+(d.subtitle?"<p>"+inl(d.subtitle)+"</p>":"")+
+    '<div class="meta"><span>마지막 수정 '+esc(fmtDate(d.updated))+'</span><span>'+d.chapters.length+'개 장</span></div>'+
+    '<div class="legend"><span class="k"><span class="tg">태그</span>발동 조건</span><span class="k"><span class="pt"><i>『</i>포텐셜<i>』</i></span>포텐셜 · 분류</span><span class="k"><span class="tm"><i>「</i>용어<i>」</i></span>기술 · 상태 · 수치</span><span class="k"><span class="fd"><i>《</i>필드<i>》</i></span>필드 효과</span></div></header>';
+  d.chapters.forEach(function(c,ix){
+    h+='<section class="chapter" id="ch-'+esc(c.id)+'" data-ch="'+esc(c.id)+'"><header class="ch-head"><div class="ch-eyebrow"><span class="num">'+pad(ix+1)+"</span><span>"+esc(c.group||"")+"</span></div><h2>"+esc(c.title)+"</h2>"+(c.desc?'<p class="ch-desc">'+inl(c.desc)+"</p>":"")+'</header><div class="ch-body">'+render(c.body,"ch-"+c.id)+"</div></section>";
+  });
+  h+='<div class="empty" id="noResult" hidden>검색 결과가 없습니다. 다른 단어로 찾아보세요.</div></div>';
+  main.innerHTML=h;
+  buildToc(d);
+  bindRecovery();
+  observe();
+}
+
+/* ---------- search ---------- */
+var sTimer=null;
+function norm(s){return s.toLowerCase().replace(/\s+/g,"")}
+function runSearch(){
+  var raw=q.value.trim();
+  renderRead();
+  if(!raw){statusEl.textContent="";return}
+  var needle=norm(raw),total=0;
+  main.querySelectorAll(".chapter").forEach(function(sec){
+    var title=sec.querySelector(".ch-head").textContent,hit=0;
+    if(norm(title).indexOf(needle)>=0){hit=1}
+    if(!hit){
+      var lastH=null;
+      sec.querySelectorAll(".ch-body .blk").forEach(function(b){
+        if(b.classList.contains("hd")){b.classList.add("hidden-blk");lastH=b;return}
+        if(norm(b.textContent).indexOf(needle)>=0){hit++;if(lastH)lastH.classList.remove("hidden-blk")}
+        else b.classList.add("hidden-blk");
+      });
+      sec.querySelectorAll(".defs,ul,ol,.tbl,.vx").forEach(function(w){if(!w.querySelector(".blk:not(.hidden-blk)"))w.classList.add("hidden-blk")});
+    }
+    if(!hit)sec.classList.add("hidden-ch");else total+=hit;
+    var tc=toc.querySelector('.ch[data-ch="'+sec.dataset.ch+'"]');if(tc)tc.classList.toggle("hidden",!hit);
+  });
+  highlight(raw);
+  $("noResult").hidden=total>0;
+  statusEl.textContent=total?total+"건 일치":"";
+  window.scrollTo({top:0});
+}
+function highlight(raw){
+  var w=raw.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");if(!w)return;
+  var re=new RegExp(w,"gi");
+  var walker=document.createTreeWalker(main,NodeFilter.SHOW_TEXT,null),nodes=[],n;
+  while((n=walker.nextNode())){if(n.parentElement.closest(".hidden-blk,.hidden-ch"))continue;if(re.test(n.nodeValue))nodes.push(n);re.lastIndex=0}
+  nodes.forEach(function(t){
+    var frag=document.createDocumentFragment(),s=t.nodeValue,last=0,m;re.lastIndex=0;
+    while((m=re.exec(s))){frag.appendChild(document.createTextNode(s.slice(last,m.index)));var mk=document.createElement("mark");mk.textContent=m[0];frag.appendChild(mk);last=m.index+m[0].length}
+    frag.appendChild(document.createTextNode(s.slice(last)));t.parentNode.replaceChild(frag,t);
+  });
+}
+q.addEventListener("input",function(){clearTimeout(sTimer);sTimer=setTimeout(runSearch,140)});
+document.addEventListener("keydown",function(e){
+  if(e.key==="/"&&!editing&&document.activeElement.tagName!=="INPUT"&&document.activeElement.tagName!=="TEXTAREA"){e.preventDefault();q.focus()}
+  if(e.key==="Escape"&&document.activeElement===q){q.value="";runSearch();q.blur()}
+});
+
+/* ---------- active chapter ---------- */
+var io=null;
+function observe(){
+  if(io)io.disconnect();
+  if(!("IntersectionObserver" in window))return;
+  io=new IntersectionObserver(function(ents){
+    ents.forEach(function(e){if(e.isIntersecting)setActive(e.target.dataset.ch)});
+  },{rootMargin:"-20% 0px -70% 0px"});
+  main.querySelectorAll(".chapter").forEach(function(s){io.observe(s)});
+}
+function setActive(id){
+  toc.querySelectorAll(".ch").forEach(function(c){var on=c.dataset.ch===id;c.classList.toggle("active-ch",on);c.querySelector("a").classList.toggle("active",on)});
+}
+toc.addEventListener("click",function(e){if(e.target.closest("a"))document.body.classList.remove("toc-open")});
+$("menuBtn").addEventListener("click",function(){document.body.classList.toggle("toc-open")});
+$("scrim").addEventListener("click",function(){document.body.classList.remove("toc-open")});
+
+/* ---------- recovery of unsaved edits ---------- */
+function readStash(){try{var s=sessionStorage.getItem(STASH);return s?JSON.parse(s):null}catch(e){return null}}
+function writeStash(d){try{sessionStorage.setItem(STASH,JSON.stringify({data:d,at:Date.now()}))}catch(e){}}
+function clearStash(){try{sessionStorage.removeItem(STASH)}catch(e){}}
+function recoveryBanner(){
+  var s=readStash();
+  if(!s||!s.data)return"";
+  if(JSON.stringify(s.data.chapters)===JSON.stringify(DATA.chapters)&&s.data.title===DATA.title){clearStash();return""}
+  return '<div class="banner" id="recover"><span class="grow">저장되지 않은 편집 내용이 이 브라우저에 남아 있습니다.</span><button class="btn" id="recYes">이어서 편집</button><button class="btn" id="recNo">버리기</button></div>';
+}
+function bindRecovery(){
+  var y=$("recYes"),n=$("recNo");
+  if(y)y.onclick=function(){var s=readStash();if(s&&s.data){startEdit(s.data);dirty=true;setStatus("복구한 편집 내용")}};
+  if(n)n.onclick=function(){clearStash();var b=$("recover");if(b)b.remove()};
+}
+
+/* ---------- edit mode ---------- */
+function setStatus(t){statusEl.textContent=t||""}
+function markDirty(){dirty=true;setStatus("변경됨 · 저장 전");cancelBtn.textContent="취소";cancelArmed=false}
+function startEdit(from){
+  editing=true;draft=JSON.parse(JSON.stringify(from||DATA));dirty=false;
+  q.value="";$("searchBox").hidden=true;
+  editBtn.hidden=true;saveBtn.hidden=false;cancelBtn.hidden=false;
+  saveBtn.disabled=!canSave;
+  setStatus(canSave?"편집 중":"읽기 전용 보기");
+  renderEdit();
+  window.scrollTo({top:0});
+}
+function stopEdit(){
+  editing=false;draft=null;dirty=false;
+  $("searchBox").hidden=false;
+  editBtn.hidden=!art||!canSave;saveBtn.hidden=true;cancelBtn.hidden=true;cancelBtn.textContent="취소";
+  setStatus("");renderRead();
+}
+var HELP=[
+  ["## 제목 / ### 소제목","장 안의 섹션 제목"],
+  ["『이름』 【1/시】【선행】/효과","줄 맨 앞이 『』이면 포텐셜 항목으로 표시"],
+  ["① 첫째 효과 (다음 줄)","포텐셜 바로 아래 줄은 세부 효과로 붙음"],
+  ["- 항목","글머리 목록"],
+  ["1. 항목","번호 목록"],
+  ["| 랭크 | 효과 |\n|---|---|\n| A | ... |","표. 첫 칸의 D·C·B-·B·A·AA는 랭크 배지로 표시"],
+  ["> 메모","※ 강조 박스"],
+  ["**굵게**  `코드`  <br>","굵게, 영문 키, 표 안 줄바꿈"],
+  ["[링크 이름](https://...)","링크"],
+  ["::: cards\n제목 | 설명 | good\n:::","카드 묶음. 끝 칸 색: good · best · warn · bad · x · info"],
+  ["::: steps\n이름 | 설명\n:::","순서 카드 (STEP 1, 2 …)"],
+  ["::: ladder\nC | d6\n:::","막대 사다리. 값의 숫자로 높이, 랭크는 배지"],
+  ["::: scale\n실패 | 설명 | bad\n:::","가로로 이어진 결과 띠"],
+  ["::: flow\n가 {bad} > 나 > 다 {good}\n:::","화살표 흐름. {색}은 선택"],
+  ["::: heat\n| 표 |\n:::","표의 % 칸에 진하기 색"],
+  ["빈 줄","문단 나누기"]
+];
+function renderEdit(){
+  var d=draft;
+  var h='<div class="col" id="top"><div class="ed-intro">'+
+    '<div class="field"><label for="ed-title">룰북 이름</label><input class="big" id="ed-title" value="'+esc(d.title)+'"></div>'+
+    '<div class="field"><label for="ed-sub">소개 문구</label><input id="ed-sub" value="'+esc(d.subtitle||"")+'"></div>'+
+    '<details class="help"><summary>표기법 안내</summary><div class="help-body">'+HELP.map(function(x){return"<div><code>"+esc(x[0])+"</code></div><div>"+esc(x[1])+"</div>"}).join("")+"</div></details>"+
+    (canSave?"":'<div class="banner"><span class="grow">이 보기에서는 저장할 수 없습니다. 편집 권한이 있는 계정으로 열면 저장할 수 있어요.</span></div>')+
+    "</div>";
+  d.chapters.forEach(function(c,ix){
+    h+='<section class="chapter editing" id="ch-'+esc(c.id)+'" data-ch="'+esc(c.id)+'" data-ix="'+ix+'"><div class="ed-card"><div class="ed-top">'+
+      '<div class="ed-toolbar"><span class="num">'+pad(ix+1)+'</span><span class="sp"></span>'+
+      '<button class="btn" data-act="up" '+(ix===0?"disabled":"")+' aria-label="위로 이동">↑ 위로</button>'+
+      '<button class="btn" data-act="down" '+(ix===d.chapters.length-1?"disabled":"")+' aria-label="아래로 이동">↓ 아래로</button>'+
+      '<button class="btn" data-act="del">삭제</button></div>'+
+      '<div class="row"><div class="field"><label for="t-'+esc(c.id)+'">장 제목</label><input id="t-'+esc(c.id)+'" data-k="title" value="'+esc(c.title)+'"></div>'+
+      '<div class="field"><label for="g-'+esc(c.id)+'">목차 분류</label><input id="g-'+esc(c.id)+'" data-k="group" value="'+esc(c.group||"")+'"></div></div>'+
+      '<div class="field"><label for="d-'+esc(c.id)+'">한 줄 설명</label><input id="d-'+esc(c.id)+'" data-k="desc" value="'+esc(c.desc||"")+'"></div>'+
+      '</div><div class="ed-split"><textarea id="b-'+esc(c.id)+'" data-k="body" spellcheck="false" aria-label="본문">'+esc(c.body||"")+'</textarea>'+
+      '<div class="ed-preview"><div class="ed-preview-label">미리보기</div><div class="ch-body">'+render(c.body,"pv-"+c.id)+"</div></div></div></div></section>";
+  });
+  h+='<button class="add-ch" id="addCh">+ 새 장 추가</button></div>';
+  main.innerHTML=h;
+  buildToc(d);observe();
+  main.querySelectorAll("textarea").forEach(grow);
+}
+function grow(t){t.style.height="auto";t.style.height=(t.scrollHeight+4)+"px"}
+var pvTimers={};
+main.addEventListener("input",function(e){
+  if(!editing)return;
+  var t=e.target;
+  if(t.id==="ed-title"){draft.title=t.value;$("brandName").textContent=t.value;markDirty();return}
+  if(t.id==="ed-sub"){draft.subtitle=t.value;markDirty();return}
+  var sec=t.closest(".chapter");if(!sec||!t.dataset.k)return;
+  var c=draft.chapters[+sec.dataset.ix];c[t.dataset.k]=t.value;markDirty();
+  if(t.dataset.k==="body"){
+    grow(t);
+    clearTimeout(pvTimers[c.id]);
+    pvTimers[c.id]=setTimeout(function(){var pv=sec.querySelector(".ed-preview .ch-body");if(pv)pv.innerHTML=render(c.body,"pv-"+c.id);buildToc(draft)},180);
+  }
+  if(t.dataset.k==="title"||t.dataset.k==="group"){clearTimeout(pvTimers._toc);pvTimers._toc=setTimeout(function(){buildToc(draft)},250)}
+});
+main.addEventListener("click",function(e){
+  if(!editing)return;
+  if(e.target.id==="addCh"){
+    var id="ch"+Date.now().toString(36);
+    var last=draft.chapters[draft.chapters.length-1];
+    draft.chapters.push({id:id,group:last?last.group:"기타",title:"새 장",desc:"",body:"## 섹션 제목\n내용을 입력하세요."});
+    markDirty();renderEdit();
+    var el=$("t-"+id);if(el){el.scrollIntoView({block:"center"});el.select()}
+    return;
+  }
+  var b=e.target.closest("button[data-act]");if(!b)return;
+  var sec=b.closest(".chapter"),ix=+sec.dataset.ix,arr=draft.chapters;
+  if(b.dataset.act==="up"&&ix>0){arr.splice(ix-1,0,arr.splice(ix,1)[0]);markDirty();renderEdit();$("ch-"+arr[ix-1].id).scrollIntoView({block:"start"})}
+  else if(b.dataset.act==="down"&&ix<arr.length-1){arr.splice(ix+1,0,arr.splice(ix,1)[0]);markDirty();renderEdit();$("ch-"+arr[ix+1].id).scrollIntoView({block:"start"})}
+  else if(b.dataset.act==="del"){
+    if(b.dataset.armed){arr.splice(ix,1);markDirty();renderEdit()}
+    else{b.dataset.armed="1";b.textContent="정말 삭제?";b.classList.add("danger");setTimeout(function(){if(b.isConnected){delete b.dataset.armed;b.textContent="삭제";b.classList.remove("danger")}},3500)}
+  }
+});
+var cancelArmed=false;
+editBtn.addEventListener("click",function(){startEdit()});
+cancelBtn.addEventListener("click",function(){
+  if(dirty&&!cancelArmed){cancelArmed=true;cancelBtn.textContent="변경 버리기?";setTimeout(function(){cancelArmed=false;if(editing)cancelBtn.textContent="취소"},3500);return}
+  cancelArmed=false;clearStash();stopEdit();
+});
+window.addEventListener("beforeunload",function(e){if(editing&&dirty&&!saving){writeStash(draft)}});
+
+/* ---------- save: republish this page with the new data ---------- */
+function today(){var d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function buildDoc(d){
+  var hs=document.head.querySelector("style");
+  var reset=hs?hs.textContent:"";
+  var json=JSON.stringify(d).replace(/</g,"\\u003c");
+  var S="</"+"script>";
+  return '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>'+reset+"</style></head><body>"+
+    "<title>"+esc(d.title||"룰북")+"</title>\n"+
+    '<link id="rb-fonts" rel="stylesheet" href="'+FONTS+'">\n'+
+    '<style id="rb-style">'+SRC.style+"</style>\n"+
+    '<template id="rb-shell">'+SRC.shell+"</template>\n"+
+    '<div id="app"></div>\n'+
+    '<script type="application/json" id="rb-data">'+json+S+"\n"+
+    '<script id="rb-app">'+SRC.app+S+"\n</body></html>";
+}
+saveBtn.addEventListener("click",function(){
+  if(!art||saving)return;
+  if(!dirty){stopEdit();return}
+  saving=true;saveBtn.disabled=true;cancelBtn.disabled=true;setStatus("저장 중…");
+  draft.updated=today();
+  writeStash(draft);
+  art.publish(buildDoc(draft)).then(function(){
+    clearStash();setStatus("저장됨");
+  }).catch(function(err){
+    saving=false;saveBtn.disabled=false;cancelBtn.disabled=false;
+    var c=err&&err.code;
+    if(c==="conflict"){setStatus("다른 곳에서 먼저 저장됨 · 새로고침 후 복구할 수 있어요");return}
+    if(c==="not_writer"||c==="not_granted"||c==="consent_required"||c==="capability_disabled"||c==="not_declared"){canSave=false;saveBtn.disabled=true;setStatus("읽기 전용 보기라 저장할 수 없어요");return}
+    if(c==="rate_limited"){setStatus("저장이 너무 잦아요. 잠시 후 다시 눌러 주세요");return}
+    if(c==="too_large"){setStatus("내용이 너무 커서 저장하지 못했어요");return}
+    setStatus("저장하지 못했어요. 다시 눌러 주세요");
+  });
+});
+
+/* ---------- boot ---------- */
+renderRead();
+if(location.hash){var tgt=document.getElementById(location.hash.slice(1));if(tgt)setTimeout(function(){tgt.scrollIntoView()},50)}
+(function connect(){
+  var c=window.claude;
+  if(!c||!c.use)return;
+  Promise.all([c.use("artifact"),c.use("user")]).then(function(r){
+    art=r[0];var user=r[1];
+    if(!art)return;
+    var p=user&&user.canEdit?Promise.resolve(user.canEdit()):Promise.resolve(true);
+    p.then(function(ok){canSave=ok!==false;if(canSave&&!editing)editBtn.hidden=false}).catch(function(){editBtn.hidden=false});
+  }).catch(function(){});
+})();
+})();
+</script>
+</body></html>

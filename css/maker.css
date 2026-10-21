@@ -484,7 +484,7 @@ html.modal-on #mk{overflow:hidden}
  #mk .tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;border-radius:0;margin:0;padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -2px 10px rgba(0,0,0,.06);gap:0}
  #mk .tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px 5px;font-size:11.5px;min-height:50px;justify-content:center}
  #mk .tabs button::before{font-size:19px;line-height:1;font-weight:400}
- #mk .tabs button[data-tab="char"]::before{content:"◉"}#mk .tabs button[data-tab="type"]::before{content:"◆"}#mk .tabs button[data-tab="db"]::before{content:"▤"}#mk .tabs button[data-tab="tbl"]::before{content:"∑"}#mk .tabs button[data-tab="notes"]::before{content:"✎"}
+ #mk .tabs button[data-tab="rule"]::before{content:"❖"}#mk .tabs button[data-tab="char"]::before{content:"◉"}#mk .tabs button[data-tab="type"]::before{content:"◆"}#mk .tabs button[data-tab="db"]::before{content:"▤"}#mk .tabs button[data-tab="tbl"]::before{content:"∑"}#mk .tabs button[data-tab="notes"]::before{content:"✎"}
  #mk .tabs button.on{background:transparent;box-shadow:none;color:var(--blue,#2563eb)}
  #mk .top{justify-content:space-between}
  #mk main{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
@@ -499,3 +499,7 @@ html.modal-on #mk{overflow:hidden}
  #mk .row:has(>input[id^="stl-"])>input[type=text]:not([id^="stl-"]),#mk .row:has(>input[id^="pstl-"])>input[type=text]:not([id^="pstl-"]){flex:1 1 100%!important;order:-1}
  #mk .row>input[id^="stl-"],#mk .row>input[id^="pstl-"]{flex:1 1 auto;width:auto!important;min-width:0}
 }
+/* 2026-10-22 룰북 탭: 아티팩트 「트레이너 룰북」을 rulebook.html 로 옮겨 iframe 으로 */
+#v-rule{padding:0}
+#ruleFrame{display:block;width:100%;height:calc(100vh - 110px);min-height:480px;border:0;background:#0f1013}
+@media (max-width:700px){#ruleFrame{height:calc(100vh - 150px)}}
