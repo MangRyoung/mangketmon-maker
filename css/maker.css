@@ -590,3 +590,16 @@ html.modal-on #mk{overflow:hidden}
 #mk .fmb:hover{border-color:var(--ink)}
 #mk .fmb.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 #mk .fmb.back{border-style:dashed;color:var(--muted)}
+/* 금지어 칸 (표 탭, 10-23) */
+#mk .banlist{display:flex;flex-wrap:wrap;gap:5px;max-height:240px;overflow:auto;padding:2px}
+#mk .banw{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:999px;padding:1px 4px 1px 10px;font-size:12px;background:var(--sunk)}
+#mk .banw b{font-weight:600;cursor:pointer}
+#mk .banw.raw{border-style:dashed}
+#mk .banw .bx{background:none;border:0;color:var(--faint);cursor:pointer;font-size:11px;padding:0 4px}
+#mk .banw .bx:hover{color:var(--warn)}
+#mk .banw.ed{padding:2px 4px}
+#mk .banw.ed input{width:160px;font-size:12px;padding:1px 6px}
+#mk .banhits{margin:4px 0 0;padding-left:18px;max-height:260px;overflow:auto}
+#mk .banhits li{margin:3px 0}
+#mk .bantest{margin-top:4px;padding:6px 8px;border:1px dashed var(--line);border-radius:6px;line-height:1.6}
+#mk #v-tbl mark{background:#ffd23f;color:#111;border-radius:2px;padding:0 1px}

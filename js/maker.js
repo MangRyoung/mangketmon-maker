@@ -502,6 +502,30 @@ async function saveFile(filename,data){
 function rich(s){return esc(brN(s)).replace(/\\n|\n/g,'<br>').replace(/【([^】]*)】/g,'<span class="tg">$1</span>')}
 const banRe=()=>{try{return S.db.ban?new RegExp(S.db.ban):null}catch(e){return null}};
 function banHits(s){const re=banRe();if(!re||!s)return [];const g=new RegExp(re.source,'g');return [...new Set(String(s).match(g)||[])]}
+/* 금지어 목록 ↔ S.db.ban 정규식 (10-23 망령: 표 탭 「금지어」 칸에서 보기 · 추가 · 고치기 · 지우기).
+   한 단어 = 글자 그대로 (괄호 · 점도 글자). \ [ * + ? { 가 들어간 것만 정규식 조각으로 그대로 둔다 */
+const BAN_RAW=/\\|\[|[*+?{]/;
+function banSplit(src){const out=[];let cur='',bs=false,depth=0;for(const ch of String(src||'')){if(bs){cur+='\\'+ch;bs=false;continue}if(ch==='\\'){bs=true;continue}if(ch==='['||ch==='(')depth++;if(ch===']'||ch===')')depth=Math.max(0,depth-1);if(ch==='|'&&!depth){out.push(cur);cur='';continue}cur+=ch}out.push(cur);
+ return out.map(w=>w.trim()).filter(Boolean).map(w=>{const plain=w.replace(/\\([^A-Za-z0-9])/g,'$1');return BAN_RAW.test(plain)||/\\[A-Za-z0-9]/.test(w)?{w,raw:true}:{w:plain}})}
+function banJoin(list){const seen=new Set();return list.filter(x=>x&&x.w&&!seen.has(x.w)&&seen.add(x.w)).map(x=>x.raw?x.w:x.w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')}
+function banList(){return banSplit(S.db.ban)}
+function banSet(list){S.db.ban=banJoin(list);save(true)}
+function banMark(s){const re=banRe();if(!re||!s)return esc(s||'');const g=new RegExp(re.source,'g');let out='',i=0;for(const m of String(s).matchAll(g)){if(!m[0]){g.lastIndex++;continue}out+=esc(s.slice(i,m.index))+'<mark>'+esc(m[0])+'</mark>';i=m.index+m[0].length}return out+esc(s.slice(i))}
+/* 저장된 캐릭터 전체에서 금지어 찾기: 포켓몬 포텐셜 · 전용 · 트레이너 고유 */
+function banScan(){const rows=[];for(const t of S.trainers){const tn=t.name||'(이름 없는 트레이너)';
+  (t.unique||[]).forEach((u,i)=>{if(u&&u.eff){const h=banHits(u.eff);if(h.length)rows.push({t:tn,p:'트레이너 고유',n:u.name||('고유 '+(i+1)),h,eff:u.eff})}});
+  for(const p of t.pokemon||[]){const pn=p.name||p.species||'(포켓몬)';(p.pots||[]).forEach((n,i)=>{if(!n)return;const e=potEffOf(p,i);const h=banHits(e);if(h.length)rows.push({t:tn,p:pn,n,h,eff:e})});
+   for(const x of [p.excl,...(p.exclX||[])])if(x&&x.eff){const h=banHits(x.eff);if(h.length)rows.push({t:tn,p:pn,n:(x.name||'전용')+' (전용)',h,eff:x.eff})}}}
+ return rows}
+let BANQ='',BANED=-1;
+function banBoxHTML(){const L=banList();const q=BANQ.trim();const vis=L.map((x,i)=>[x,i]).filter(([x])=>!q||x.w.includes(q));
+ return `<h3>금지어 <span class="small muted" style="font-weight:400">${L.length}개 · 포텐셜 효과 글에 들어가면 편집 창과 슬롯에 경고</span><span class="sp"></span><button class="btn sm ghost" data-bw="reset">기본값으로</button></h3>
+  <div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:8px"><input type="text" id="banNew" placeholder="새 금지어 — 여러 개는 쉼표(,)나 줄바꿈으로" style="flex:1;min-width:220px"><button class="btn sm pri" data-bw="add">추가</button><input type="search" id="banQ" value="${esc(BANQ)}" placeholder="목록에서 찾기" style="width:160px"></div>
+  <div class="banlist">${vis.map(([x,i])=>i===BANED?`<span class="banw ed"><input type="text" id="banEd" value="${esc(x.w)}" data-i="${i}"><button class="btn xs pri" data-bw="edok" data-i="${i}">확인</button><button class="btn xs ghost" data-bw="edx">취소</button></span>`:`<span class="banw ${x.raw?'raw':''}" title="${x.raw?'정규식 조각 — 글자 그대로가 아니다':'눌러서 고치기'}"><b data-bw="ed" data-i="${i}">${esc(x.w)}</b><button class="bx" data-bw="del" data-i="${i}" aria-label="지우기">✕</button></span>`).join('')||`<span class="small muted">${q?'찾는 금지어가 없습니다':'금지어가 없습니다'}</span>`}</div>
+  <div class="cgrid" style="margin-top:10px"><div><label class="lbl">문구로 확인하기<textarea id="banTest" rows="3" placeholder="효과 글을 붙여 넣으면 걸리는 표현에 표시가 붙습니다"></textarea></label><div id="banTestOut" class="small" style="margin-top:4px"></div></div>
+   <div><div class="row" style="gap:6px"><b class="small">내 캐릭터에서 찾기</b><span class="sp"></span><button class="btn sm" data-bw="scan">찾기</button></div><div id="banScanOut" class="small muted" style="margin-top:4px">저장된 트레이너 · 포켓몬의 포텐셜 · 전용 · 고유 효과 글을 훑습니다.</div></div></div>
+  <details style="margin-top:8px"><summary class="small">고급: 정규식 그대로 고치기</summary><textarea data-p="db.ban" id="banRawTa" rows="4" class="mono" style="font-size:12px;width:100%">${esc(S.db.ban)}</textarea><div class="small muted">| 로 나눈 정규식입니다. 위 목록에서 고치면 괄호 · 점 같은 글자는 알아서 글자 그대로 처리됩니다.</div></details>`}
+function banRefresh(keepFocus){const b=$('#banBox');if(!b)return;b.innerHTML=banBoxHTML();if(keepFocus){const q=$('#banQ');if(q){q.focus();q.setSelectionRange(q.value.length,q.value.length)}}const e=$('#banEd');if(e){e.focus();e.select()}}
 
 /* ---------- 태그 툴바 ---------- */
 function tagbarHTML(){return `<div class="tagbar" data-tagbar>${S.db.tags.map((t,i)=>`<button type="button" data-tagi="${i}" title="${esc(t[1])}">【${esc(t[0])}】${t[2]?' ▾':''}</button>`).join('')}<span class="sep"></span>
@@ -1727,6 +1751,7 @@ function rulesPanels(){const R=RULES(),I=R.invest;const inp=(k,l,w,ph)=>`<label 
 function roTable(title,head,rows){return `<div class="panel"><h3>${title}</h3><div class="tw" style="max-height:360px;overflow:auto"><table><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(x=>`<td class="num">${esc(x)}</td>`).join('')}</tr>`).join('')}</table></div></div>`}
 function renderTbl(){$('#v-tbl').innerHTML=`<div class="intro"><h1>테이블·계산식</h1><p>시트 「테이블(더블)」의 계산 규칙과 랭크 템플릿, 포텐셜 태그 사전입니다. 템플릿과 태그 사전은 여기서 고치면 바로 적용됩니다.</p></div>
  <div class="cgrid">
+ <div class="panel" style="grid-column:1/-1" id="banBox">${banBoxHTML()}</div>
  <div class="panel" style="grid-column:1/-1"><h3>실수치 계산식 · 테이블(더블) Q198:Q203</h3><div class="formula">레벨 = 육성 랭크 레벨(랭크→레벨 표 D열) + 분배 레벨<br>HP = ⌊ ⌊종족치 × 2 + 개체치 + 노력치/4⌋ × 레벨/100 ⌋ + 10 + 레벨<br>그 외 = ⌊ ( ⌊ ⌊종족치 × 2 + 개체치 + 노력치/4⌋ × 레벨/100 ⌋ + 5 ) × 성격 보정 ⌋<br><span class="faint">이 제작기는 개체치·노력치·성격을 쓰지 않으므로 각각 0 · 0 · 1.0으로 계산합니다. 복사용 텍스트의 노력치 칸은 빈칸으로 유지됩니다.</span></div></div>
  <div class="panel" style="grid-column:1/-1"><h3>랭크별 기초 템플릿<span class="sp"></span><button class="btn sm" data-tact="tplAdd">+ 행</button><button class="btn sm" data-tact="tplReset">기본값</button></h3>
   <p class="small muted" style="margin:0 0 6px">자질 랭크를 바꾸면 해당 자질의 행이 트레이너 포인트 기본값에 자동으로 들어갑니다. 「공통 / *」 행은 새 트레이너와 「템플릿 다시 적용」 때 들어갑니다. 트레이너의 「1인 기준 (2체)」가 켜져 있으면 「값 (1인)」을, 꺼져 있으면 「값 (6체)」를 씁니다. 1인 값은 룰북 「1인 기준 (2체)」 장의 시안이 기본값으로 들어가 있고, 빈 칸은 다시 열 때 기본값(없으면 6체 값)으로 채워집니다. 비고가 「추정」「시안」인 값은 룰북을 보고 맞춰 주세요.</p>
@@ -1757,13 +1782,25 @@ function renderTbl(){$('#v-tbl').innerHTML=`<div class="intro"><h1>테이블·�
  ${roTable('랭크 → 레벨 · B112:E133',['랭크','C열','레벨','E열'],S.db.lvl)}
  ${roTable('종족치 등급 · B149:C175',['이상','등급'],S.db.grade)}
  ${roTable('타입',['타입','색','글자','영문'],S.db.types)}
- <div class="panel" style="grid-column:1/-1"><h3>금지 키워드 · BQ2</h3><p class="small muted" style="margin:0 0 6px">포텐셜 효과에 이 정규식과 맞는 표현이 있으면 편집 창과 슬롯에 경고가 뜹니다.</p><textarea data-p="db.ban" rows="4" class="mono" style="font-size:12px">${esc(S.db.ban)}</textarea></div>
  </div>`}
 $('#v-tbl').addEventListener('input',e=>{const pt=e.target.dataset.pti;if(pt){const [i,c]=pt.split('.').map(Number);if(c===1){S.db.ptItems[i][1]=e.target.value;save(true)}return}const p=e.target.dataset.p;if(!p)return;const[o,k]=getRef(p);o[k]=e.target.value;save(true)});
 $('#v-tbl').addEventListener('change',e=>{const pt=e.target.dataset.pti;if(pt){const [i,c]=pt.split('.').map(Number);const row=S.db.ptItems[i];
   if(c===0){const old=row[0],nw=e.target.value.trim();if(!nw||nw===old){e.target.value=old;return}if(S.db.ptItems.some((r,j)=>j!==i&&r[0]===nw)){toast('같은 이름의 항목이 있습니다');e.target.value=old;return}
    row[0]=nw;for(const t of S.trainers){if(old in t.base){t.base[nw]=t.base[old];delete t.base[old]}if(t.extra&&old in t.extra){t.extra[nw]=t.extra[old];delete t.extra[old]}}for(const r of S.db.tpl)if(r[2]===old)r[2]=nw;save();toast('항목 이름을 바꿨습니다')}
   else if(c===2)row[2]=e.target.value;else row[1]=e.target.value;save(true);return}if(e.target.dataset.p){save(true);if(/^db\.stpl\.\d+\.0$/.test(e.target.dataset.p))renderTbl()}});
+/* 금지어 칸 */
+$('#v-tbl').addEventListener('click',async e=>{const b=e.target.closest('[data-bw]');if(!b)return;const k=b.dataset.bw,i=+b.dataset.i;const L=banList();
+ if(k==='add'){const inp=$('#banNew');const ws=inp.value.split(/[,，\n]/).map(x=>x.trim()).filter(Boolean);if(!ws.length)return toast('금지어를 적어 주세요');const have=new Set(L.map(x=>x.w));const nw=ws.filter(w=>!have.has(w));if(!nw.length)return toast('이미 있는 금지어입니다');banSet([...L,...nw.map(w=>({w}))]);inp.value='';banRefresh();toast(`금지어 ${nw.length}개 추가`);return}
+ if(k==='del'){const w=L[i]&&L[i].w;if(!w)return;L.splice(i,1);banSet(L);BANED=-1;banRefresh();toast(`「${w}」 금지어를 뺐습니다`);return}
+ if(k==='ed'){BANED=i;banRefresh();return}
+ if(k==='edx'){BANED=-1;banRefresh();return}
+ if(k==='edok'){const v=($('#banEd')||{}).value;const w=String(v||'').trim();if(!w){BANED=-1;return banRefresh()}if(L.some((x,j)=>j!==i&&x.w===w))return toast('이미 있는 금지어입니다');const old=L[i].w;L[i]=old===w?L[i]:{w};banSet(L);BANED=-1;banRefresh();if(old!==w)toast(`「${old}」 → 「${w}」`);return}
+ if(k==='reset'){if(!await ask('금지어를 룰 시트 기본 목록으로 되돌릴까요? 추가하거나 고친 것은 사라집니다.','되돌리기'))return;S.db.ban=DEF.ban||'';save(true);BANED=-1;banRefresh();toast('기본 목록으로 되돌렸습니다');return}
+ if(k==='scan'){const R=banScan();const o=$('#banScanOut');o.classList.toggle('muted',!R.length);o.innerHTML=R.length?`<b class="warn">${R.length}곳에서 걸렸습니다</b><ul class="banhits">${R.map(r=>`<li><b>${esc(r.t)}</b> · ${esc(r.p)} · 『${esc(r.n)}』 — <span class="warn">${r.h.map(esc).join(', ')}</span><div class="faint">${banMark(r.eff).replace(/\\n|\n/g,' / ')}</div></li>`).join('')}</ul>`:'<span class="okc">저장된 캐릭터에는 금지어가 없습니다</span>';return}});
+$('#v-tbl').addEventListener('input',e=>{const id=e.target.id;if(id==='banQ'){BANQ=e.target.value;banRefresh(true);return}
+ if(id==='banTest'){const v=e.target.value;const h=banHits(v);$('#banTestOut').innerHTML=!v.trim()?'':h.length?`<span class="warn">걸림: ${h.map(esc).join(', ')}</span><div class="bantest">${banMark(v).replace(/\n/g,'<br>')}</div>`:'<span class="okc">걸리는 금지어가 없습니다</span>'}});
+$('#v-tbl').addEventListener('keydown',e=>{if(e.isComposing)return;if(e.target.id==='banNew'&&e.key==='Enter'){e.preventDefault();$('[data-bw="add"]').click()}if(e.target.id==='banEd'){if(e.key==='Enter'){e.preventDefault();$('[data-bw="edok"]').click()}if(e.key==='Escape'){BANED=-1;banRefresh()}}});
+$('#v-tbl').addEventListener('change',e=>{if(e.target.id==='banRawTa'){BANED=-1;const t=$('#banBox details');const open=t&&t.open;banRefresh();const t2=$('#banBox details');if(t2&&open)t2.open=true}});
 $('#v-tbl').addEventListener('click',async e=>{const b=e.target.closest('[data-tact]');if(!b)return;const a=b.dataset.tact,i=+b.dataset.i;
  if(a==='tplAdd')S.db.tpl.push(['지시','C','','','','']);if(a==='tplDel')S.db.tpl.splice(i,1);
  if(a==='prReset'){if(!await ask('프라이드 규칙을 룰북 기본값으로 되돌릴까요?','되돌리기'))return;S.db.pride=clone(PRIDE_DEF);S.db.prideExV=1}
