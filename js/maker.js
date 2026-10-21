@@ -2041,6 +2041,8 @@ function shStatus(t){SH.last=t;const el=$('#saved');if(el)el.innerHTML=`<span cl
 const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(x=>[x,v[x]])):v);
 function fnv(s){let h=2166136261;for(const c of String(s)){h^=c.codePointAt(0);h=Math.imul(h,16777619)>>>0}return h.toString(16)}
 function keySeg(k){const h=[...new TextEncoder().encode(String(k))].map(b=>b.toString(16).padStart(2,'0')).join('');return h.length<=180?h:'h'+fnv(k)+h.slice(0,40)}
+/* 오레마스가 시트를 가져갈 때 쓰는 효과 글 사본 (10-21 망령): 특성·포텐셜이 오레마스 DB 에 없거나 제작기에서 새로 만든 것이어도 시트에 보이는 글 그대로 */
+function effSnap(p){try{const ab=p.ability?idx.abil&&idx.abil.get(p.ability):null;return {ab:ab?String(ab[2]||''):'',pots:(p.pots||[]).map((n,i)=>n&&n!=='-'?String(potEffOf(p,i)||''):''),kinds:(p.pots||[]).map((n,i)=>n&&n!=='-'?String(potKindOf(p,i)||''):'')}}catch(e){return null}}
 function stripUI(o){const c={};for(const k in o){if(UIK.has(k)||k[0]==='_'||k==='pokemon')continue;c[k]=clone(o[k])}return c}
 let DEFJ=null,DEFJN=-1;function defJ(){const rn=(DEF.rm||[]).length*100000+(DEF.st||[]).length;if(DEFJ&&DEFJN===rn)return DEFJ;DEFJN=rn;DEFJ={};for(const k in DBS){const m=new Map();for(const r of DEF[k]||[]){const key=r[DBS[k].key];if(key!==''&&!m.has(key))m.set(key,JSON.stringify(r))}DEFJ[k]=m}return DEFJ}
 function dbEditDocs(out=new Map()){const dj=defJ();
@@ -2060,7 +2062,7 @@ function shSettings(){return {tpl:S.db.tpl||[],tplV:S.db.tplV||0,tags:S.db.tags|
 function shWant(){const out=new Map();
  S.folders.forEach((f,i)=>{f._ord=i;const d={ord:i,name:f.name||''};if(f.priv)d.priv=true;if(f.owner){d.owner=f.owner;d.ownerName=f.ownerName||''}out.set('folders/'+f.id,d)});
  S.trainers.forEach((t,i)=>{const d=stripUI(t);d.pids=t.pokemon.map(p=>p.id);out.set('trainers/'+t.id,{ord:i,data:d});
-  t.pokemon.forEach(p=>out.set('pokemon/'+p.id,{tid:t.id,data:stripUI(p)}))});
+  t.pokemon.forEach(p=>out.set('pokemon/'+p.id,{tid:t.id,data:Object.assign(stripUI(p),{effTxt:effSnap(p)})}))});
  for(const [p,b] of shDbDocs())out.set(p,b);
  /* 레디메이드 기본 행을 아직 못 읽었으면, 받아 둔 레디메이드 수정 행은 그대로 둔다 (지우지 않게) */
  for(const lk of ['rm','st'])if(!lazyOk(lk))for(const [id,d] of SH.ed)if(d&&d.kind===lk)out.set('dbedit/'+id,d);
