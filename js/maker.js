@@ -708,7 +708,7 @@ function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전�
  const seg=v=>{$('.split',l).dataset.seg=v;$$('[data-seg]',l).forEach(b=>{if(b.tagName==='BUTTON')b.classList.toggle('on',b.dataset.seg===v)})};
  l.addEventListener('click',e=>{const b=e.target.closest('button[data-seg]');if(b)seg(b.dataset.seg)});
  mountPicker(l,'pots',st,{onPick:n=>{const r=potRow(n);$('#pe-name',l).value=n;ta.value=brN(r[2]);const k=$('#pe-kind',l);if(k)k.value=r[0];upd();if(matchMedia('(max-width:700px)').matches){seg('edit');toast(`「${n}」을(를) 불러왔습니다`)}}});
- const commit=(name,eff,kind)=>{if(isEx){if(xi!=null&&!name)p.exclX.splice(xi,1);else{exO.name=name;exO.eff=eff}}else if(isU){const ta2=$('#pe-auto',l);const dsl=ta2?ta2.value.trim():'';t.unique[slot.unique]=dsl?{name,eff,auto:dsl}:{name,eff}}else{
+ const commit=(name,eff,kind)=>{if(isEx){if(xi!=null&&!name)p.exclX.splice(xi,1);else{exO.name=name;exO.eff=eff}}else if(isU){const ta2=$('#pe-auto',l);const dsl=ta2?ta2.value.trim():'';{const o0=t.unique[slot.unique]||{};const nu=Object.assign({},o0,{name,eff});if(dsl)nu.auto=dsl;else delete nu.auto;t.unique[slot.unique]=nu}   /* 10-23 망령: 고쳐도 꾸미기(색 · 아이콘 · 부제)는 남긴다 */}else{
    const r=potRow(name);p.pots[slot]=name;p.potEff[slot]=r&&brN(r[2]).trim()===eff.trim()?'':eff;p.potKind[slot]=r&&r[0]===kind?'':kind}
   const ta2=$('#pe-auto',l);if(ta2&&!isU&&p){p.auto=p.auto||{};const key=String(name||'').replace(/『|』/g,'');const dsl=ta2.value.trim();if(key&&dsl)p.auto[key]=dsl;else if(key)delete p.auto[key]}
   save();refreshTrainer(t)};
