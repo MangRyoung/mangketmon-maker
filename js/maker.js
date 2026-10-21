@@ -1299,7 +1299,7 @@ function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=inve
  <div class="panel uqpanel"><h3>『고유 포텐셜』<span class="small muted" style="font-weight:400">능력 ${esc(t.ranks['능력'])} · 최대 ${esc(abilLimits(t.ranks['능력']).u)}개</span><span class="sp"></span><button class="btn sm" data-act="addU" data-i="${ti}">+ 고유 포텐셜</button></h3><div class="uql">
   ${t.unique.map((u,i)=>uqCard(u,i,ti)).join('')||'<p class="small faint" style="margin:4px 0 0">아직 없습니다 — 「+ 고유 포텐셜」</p>'}</div></div>
  <div class="panel">${fieldsHtml(t,`data-i="${ti}"`,'t')}</div>
- <div class="panel ptbar"><h3>PT 기술점<b class="num ${pu>pm?'warn':''}">${pu}</b><span class="small muted">/ 최대치</span>${inp(P+'.ptMax',t.ptMax,{w:'58px',num:1,ph:String(ptMaxDef(t))})}${t.solo?'<span class="small muted">1인 기준</span>':''}<span class="sp"></span>${(()=>{const L=abilLimits(t.ranks['능력'],t.solo);const n=t.pokemon.reduce((a,p)=>a+exclAll(p).length,0);const per=strip(t.ranks['능력'])==='AAA'?2:1;const over=t.pokemon.filter(p=>exclAll(p).length>per).map(p=>p.name||'(이름 없음)');return `<span class="small" style="font-weight:500">전용 포텐셜 <b class="num ${n>L.x?'warn':''}">${n}</b> / ${esc(L.xs)}${over.length?` <span class="warn">· 1체에 ${per}개 초과: ${esc(over.join(', '))}</span>`:''} <span class="faint">· 능력 ${esc(t.ranks['능력'])}</span></span>`})()}<span class="small muted">· 할인 ${discUsed(t)} / ${esc(t.base['「기술 할인점」']??'-')}</span><button class="btn sm ghost" type="button" data-tip="PT 기술점은 각 포켓몬의 기술 소켓 합계이며, 『올드 타입』 계열은 기술 4개에 ${oldSock()}점으로 고정됩니다(테이블·계산식 탭에서 변경). 최대치를 비워 두면 육성 랭크의 「최대치」를 씁니다. 기술 옆 「할인」을 체크하면 「기술 할인점」이 1점씩 소모됩니다. 각 포켓몬의 역할·특성·소지품·종족치·프라이드·기술 소켓·전용 포텐셜은 아래 포켓몬 줄에 있습니다." title="설명">?</button></h3>
+ <div class="panel ptbar"><h3>PT 기술점<b class="num ${pu>pm?'warn':''}">${pu}</b><span class="small muted">/ 최대치</span>${inp(P+'.ptMax',t.ptMax,{w:'58px',num:1,ph:String(ptMaxDef(t))})}${t.solo?'<span class="small muted">1인 기준</span>':''}<button class="btn sm pttyb" type="button" data-act="ptType" data-i="${ti}" title="이 PT의 타입 구성 · 공통 약점 · 보완 후보">🛡 타입 일관성</button><span class="sp"></span>${(()=>{const L=abilLimits(t.ranks['능력'],t.solo);const n=t.pokemon.reduce((a,p)=>a+exclAll(p).length,0);const per=strip(t.ranks['능력'])==='AAA'?2:1;const over=t.pokemon.filter(p=>exclAll(p).length>per).map(p=>p.name||'(이름 없음)');return `<span class="small" style="font-weight:500">전용 포텐셜 <b class="num ${n>L.x?'warn':''}">${n}</b> / ${esc(L.xs)}${over.length?` <span class="warn">· 1체에 ${per}개 초과: ${esc(over.join(', '))}</span>`:''} <span class="faint">· 능력 ${esc(t.ranks['능력'])}</span></span>`})()}<span class="small muted">· 할인 ${discUsed(t)} / ${esc(t.base['「기술 할인점」']??'-')}</span><button class="btn sm ghost" type="button" data-tip="PT 기술점은 각 포켓몬의 기술 소켓 합계이며, 『올드 타입』 계열은 기술 4개에 ${oldSock()}점으로 고정됩니다(테이블·계산식 탭에서 변경). 최대치를 비워 두면 육성 랭크의 「최대치」를 씁니다. 기술 옆 「할인」을 체크하면 「기술 할인점」이 1점씩 소모됩니다. 각 포켓몬의 역할·특성·소지품·종족치·프라이드·기술 소켓·전용 포텐셜은 아래 포켓몬 줄에 있습니다." title="설명">?</button></h3>
   <div class="meter ${pu>pm?'over':''}"><i style="width:${pm?Math.min(100,pu/pm*100):0}%"></i></div>
   ${ptChecks(t).map(x=>`<p class="small warn" style="margin:6px 0 0">⚠ ${esc(x)}</p>`).join('')}</div>
  <div class="plist" data-sort="poke" data-i="${ti}">${t.pokemon.map((p,pi)=>pokeHTML(t,ti,p,pi)).join('')}</div>
@@ -1501,6 +1501,7 @@ $('#v-char').addEventListener('click',async e=>{
   case 'tpl':if(await ask('테이블·계산식 탭의 랭크 템플릿 값으로 포인트 기본값을 덮어쓸까요?','적용',false)){applyTpl(T);rf();toast('템플릿을 적용했습니다')}break;
   case 'addPt':openPicker('points',{title:'포인트 사용 항목',onPick:n=>{T.pts.push(n);rf()}});break;
   case 'delPt':T.pts.splice(j,1);rf();break;
+  case 'ptType':ptTypeModal(T);break;
   case 'addU':T.unique.push({name:'',eff:''});rf();openPotEditor(T,null,{unique:T.unique.length-1});break;
   case 'editU':if(e.target.closest('[data-act="delU"],[data-act="decoU"]'))break;openPotEditor(T,null,{unique:j});break;
   case 'delU':e.stopPropagation();T.unique.splice(j,1);rf();break;
@@ -1910,6 +1911,16 @@ function ptTypeCard(t){const r=ptTypeReport(t);const nm=esc(t.name||'트레이�
   <div class="ptcr"><span class="k">구성</span><span class="v">${r.comp.map(e=>`<span class="cb" title="${e.who.map(esc).join('\n')}">${tchip(e.x)}<b>${e.n}</b></span>`).join('')}</span></div>
   <div class="ptcr"><span class="k">공통 약점</span><span class="v">${weakTxt}</span></div>
   <div class="ptcr"><span class="k">못 막는 타입</span><span class="v">${openTxt}</span></div></div>`}
+/* 10-24 망령: 캐릭터 시트 PT 기술점 칸 「🛡 타입 일관성」 — 지금 PT 카드 + 보완 후보(공통 약점 · 못 막는 타입을 반감·무효로 받는 단일 타입) */
+function ptTypeFill(t){const r=ptTypeReport(t);const tg=[...new Set([...r.weak.map(w=>w.x),...r.open])];if(!tg.length)return{tg,list:[]};const wk=new Set(r.weak.map(w=>w.x));
+ const list=Object.keys(tyChart()).map(d=>{const cov=tg.filter(a=>tyMult(a,[d])<1);const worse=[...wk].filter(a=>tyMult(a,[d])>=2);return{d,cov,worse}}).filter(x=>x.cov.length).sort((a,b)=>(b.cov.length-b.worse.length)-(a.cov.length-a.worse.length)||b.cov.length-a.cov.length||KO.compare(a.d,b.d)).slice(0,6);
+ return{tg,list}}
+function ptTypeModal(t){const r=ptTypeReport(t);const f=ptTypeFill(t);
+ const fill=!r.n?'':!f.tg.length?'<p class="small ok" style="margin:0">공통 약점도 못 막는 타입도 없어서 따로 보완할 곳이 없습니다</p>':f.list.length?`<div class="ptfill">${f.list.map(x=>`<div class="ptcr"><span class="k">${tchip(x.d)}</span><span class="v"><span class="small muted">막아 줌</span>${x.cov.map(tchip).join('')}${x.worse.length?`<span class="small warn" style="margin-left:4px">겹치는 약점</span>${x.worse.map(tchip).join('')}`:''}</span></div>`).join('')}</div>`:'<p class="small muted" style="margin:0">단일 타입 하나로 막을 수 있는 게 없습니다</p>';
+ const l=openModal(`<div class="mhead"><h2>타입 일관성 · ${esc(t.name||'트레이너')}</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div><div class="mbody">${ptTypeCard(t)}
+  ${r.n?`<h3 class="small" style="margin:12px 0 6px">보완 후보 <span class="faint" style="font-weight:400">공통 약점 · 못 막는 타입을 반감·무효로 받는 타입 (막는 수 − 겹치는 약점 순)</span></h3>${fill}`:''}
+  <p class="small faint" style="margin:10px 0 0">원작 18타입 상성 · 타입1·타입2만 봅니다. 타입 탭에서 다른 트레이너와 같이 볼 수 있습니다.</p></div>`);
+ l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))return closeModal();if(e.target.closest('[data-yact="open"]'))closeModal()})}
 function renderType(){const root=$('#v-type');if(!root)return;const o=tyOpt();
  const folders=S.folders.filter(f=>S.trainers.some(t=>tFolder(t)===f.id));const hasNone=S.trainers.some(t=>!tFolder(t));
  const tsel=o.scope.startsWith('t:')?o.scope.slice(2):'';if(tsel&&!S.trainers.some(t=>t.id===tsel))o.scope='';

@@ -612,3 +612,7 @@ html.modal-on #mk{overflow:hidden}
 /* 10-24 망령: 워딩 도우미 — 고칠 곳 · 추천 구문 줄마다 체크해서 골라 반영 */
 #mk .wordbox .wck{display:inline-flex;align-items:flex-start;gap:6px;cursor:pointer}#mk .wordbox .wck input{margin:2px 0 0;flex:none}
 #mk .wdsl{white-space:normal}#mk .wdsl .wck{display:flex;padding:1px 0}#mk .wdsl code{white-space:pre-wrap;background:none;padding:0}
+/* 10-24 망령: PT 기술점 칸 「🛡 타입 일관성」 */
+#mk .ptbar .pttyb{margin-left:6px;font-weight:500}
+#mk .ptfill{display:flex;flex-direction:column;gap:6px}#mk .ptfill .ptcr{grid-template-columns:64px minmax(0,1fr)}#mk .ptfill .ptcr .k{padding-top:0}
+@media (max-width:700px){#mk .ptbar .pttyb{margin-left:auto}}
