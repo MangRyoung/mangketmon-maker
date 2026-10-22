@@ -689,6 +689,9 @@ html.modal-on #mk{overflow:hidden}
 /* 10-22 망령: 한 장 요약 — 왼쪽 기둥(그림 · 특성 · 도구 · 능력치 · 상성) | 기술 한 줄 | 전용 · 포텐셜 두 줄 · 메모. 칸 자리는 고정 */
 #mk .mbox.pcdbox{width:min(1280px,100%);max-height:calc(100vh - 24px)}
 #mk .pcd-wrap{padding:8px 10px 10px}
+/* 10-24 망령: 세로가 긴 요약(휴대폰)이 창 높이에 눌려 아래가 잘리던 것 — 카드는 줄어들지 않고 창이 스크롤 */
+#mk .pcd-wrap>.pcd{flex:none;min-height:min-content}
+@media (max-width:600px){#mk .mbox.pcdbox{max-height:none;height:100dvh}}
 #mk .pcd{display:grid;grid-template-columns:300px minmax(0,1fr);gap:10px;padding:10px;border-radius:14px;background:var(--surface);border:1px solid var(--line);position:relative;overflow:hidden}
 #mk .pcd::before{content:"";position:absolute;inset:0 auto 0 0;width:330px;background:linear-gradient(170deg,color-mix(in srgb,var(--c1) 26%,transparent),color-mix(in srgb,var(--c2) 12%,transparent) 45%,transparent 75%);z-index:0;pointer-events:none}
 #mk .pcd>*{position:relative;z-index:1}
@@ -799,3 +802,40 @@ html.modal-on #mk{overflow:hidden}
 @media (max-width:760px){#mk .fed{grid-template-columns:1fr}#mk .fedp{position:static;order:-1}}
 /* 소지품 칸 2 · 3 (10-24) */
 #mk .islot{display:flex;align-items:center;gap:6px;margin-top:8px}#mk .islot .pickbtn{flex:1;min-width:0}#mk .islot .islk{font-size:12px;color:var(--muted);white-space:nowrap;min-width:52px}#mk .islot+.effbox{margin-top:6px}#mk .islot-add{margin-top:8px;gap:8px;align-items:center}
+/* 10-24 망령: 폴더를 카드 격자로 — 닫힌 폴더는 촘촘히, 연 폴더만 한 줄 전체 */
+#mk #trs[data-sort="folders"]{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;align-items:start}
+#mk .tfold{margin:0;min-width:0}
+#mk .tfold.open{grid-column:1/-1;margin:8px 0 14px}
+#mk .tfh.ftile{position:relative;isolation:isolate;overflow:hidden;display:grid;grid-template-columns:auto auto minmax(0,1fr);grid-template-areas:"car ic main" "bot bot bot";align-items:center;gap:8px 10px;padding:10px 12px 10px 14px;margin:0;border:1px solid var(--line);border-radius:14px;min-height:0;flex-wrap:initial;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+#mk .tfh.ftile:not(.tdc):not([class*="tdp-"]){background:var(--surface)}
+#mk .tfold.priv>.tfh.ftile:not(.tdc){background:color-mix(in srgb,var(--warn) 6%,var(--surface))}
+#mk .tfh.ftile:hover{border-color:color-mix(in srgb,var(--tc,var(--blue)) 45%,var(--line))}
+#mk .tfold.open>.tfh.ftile{grid-template-columns:auto auto minmax(0,1fr) auto;grid-template-areas:"car ic main bot";margin-bottom:12px}
+#mk .ftile>.caret{grid-area:car;color:var(--faint)}
+#mk .ftile .ficon{grid-area:ic;width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:color-mix(in srgb,var(--tc,var(--blue)) 14%,var(--surface));color:var(--tc,var(--blue))}
+#mk .ftile .ficon svg{width:20px;height:20px}
+#mk .ftile .fem{font-size:21px;line-height:1;font-weight:400}
+#mk .ftile.fnone .ficon{display:none}
+#mk .ftile.fnone{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"car main" "bot bot";border-style:dashed;background:var(--sunk)}
+#mk .tfold.open>.tfh.ftile.fnone{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"car main bot"}
+#mk .ftile .fbot{grid-area:bot;display:flex;align-items:center;gap:8px;min-width:0}
+#mk .ftile .fmain{grid-area:main;min-width:0}
+#mk .ftile .fl1{display:flex;align-items:center;gap:6px;min-width:0}
+#mk .ftile .fname{font:18px/1.2 var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#mk .ftile .fsub{font-size:12px;font-weight:600;color:color-mix(in srgb,var(--tc,var(--muted)) 75%,var(--ink));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mk .ftile .fmeta{font-size:11.5px;color:var(--faint)}
+#mk .ftile .favs{display:flex;align-items:center;min-width:0;flex:1 1 auto;overflow:hidden;padding-left:2px}
+#mk .ftile .fav{width:28px;height:28px;border-radius:50%;border:2px solid var(--surface);background:var(--sunk2);margin-left:-8px;overflow:hidden;display:grid;place-items:center;font-size:11.5px;font-weight:700;color:var(--muted);flex:none}
+#mk .ftile .fav:first-child{margin-left:0}
+#mk .ftile .fav img{width:100%;height:100%;object-fit:cover}
+#mk .ftile .fav.more{font-size:10.5px;background:var(--sunk)}
+#mk .ftile .facts{display:flex;flex:none;gap:2px;justify-content:flex-end;align-items:center}
+#mk .ftile .facts .btn{min-height:30px;padding:0 9px}
+#mk .ftile .facts .fic{width:32px;padding:0;justify-content:center;font-size:15px}
+#mk .ftile.tdc{border-color:color-mix(in srgb,var(--tc) 35%,var(--line))}
+#mk .tdprev .tfold{max-width:340px}
+#mk .tdprev .ftile{cursor:default}
+@media (max-width:600px){#mk #trs[data-sort="folders"]{grid-template-columns:minmax(0,1fr);gap:8px}#mk .tfold.open>.tfh.ftile{grid-template-columns:auto auto minmax(0,1fr);grid-template-areas:"car ic main" "bot bot bot"}#mk .tfold.open>.tfh.ftile.fnone{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"car main" "bot bot"}#mk .ftile .facts .btn{padding:0 7px}#mk .ftile .facts .fic{width:30px}#mk .tfh.ftile{padding:8px 10px 8px 12px;gap:6px 9px}#mk .ftile .ficon{width:34px;height:34px}#mk .ftile .fname{font-size:17px}}
+/* 10-24 망령: 포켓몬 머리의 삭제를 눈에 띄게 (배경 볼 무늬에 묻혀 안 보였다) */
+#mk .pact .pdel{background:color-mix(in srgb,var(--warn) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 40%,var(--line));position:relative;z-index:1}
+@media (max-width:600px){#mk .ph .pact{margin:-2px 2px -4px 0}#mk .pact .pdel{padding:0 8px}}
