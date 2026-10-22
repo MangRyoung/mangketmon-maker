@@ -119,6 +119,7 @@ window.OM_FX=(()=>{
      case 'resetstates':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){const list=op.group==='condition_abnormal'?ABN:NEG;const c=[];for(const k of list)if((m.states||{})[k]){delete m.states[k];c.push(stKo(k))}L.push(`${m.name} ${c.length?'「'+c.join('」「')+'」 해제':'해제할 상태 없음'}`)}break}
      case 'raid':{self.raid=Object.assign({},self.raid||{},{segments:+op.x||(self.raid||{}).segments||0,floor:op.floor,cure:op.cure,cstat:op.cstat,rup:op.rup});L.push(`${self.name} 레이드 배틀 설정 (구간 ${self.raid.segments||'?'})`);break}
      case 'dex':{const ts=await targets(b,self,'enemy1',ctx);const tg=ts[0];L.push(`「${name}」 데이터 해석${tg?' → '+tg.name:''}`);if(tg&&window.OM_DEX_UI&&ctx.viewer!==undefined)setTimeout(()=>window.OM_DEX_UI.analyze(ctx.viewer||self.tid,tg.id,{forced:true,free:true}),400);break}
+     case 'stmod':L.push(`${self.name} 「${stKo(op.st)}」 사양 ${op.n}/${op.d} (시트에 적힌 값 — 턴 종료 때 자동으로 읽는다)`);break;
      default:L.push(`(모르는 명령 ${op.k})`)}
    }catch(e){L.push(`(${op.k} 처리 중 오류: ${e.message})`)}}
   RUNB=prevB;return {lines:L,b}}
@@ -152,6 +153,16 @@ window.OM_FX=(()=>{
  function nodropHit(m,stat){const t=+(((window.OM_APP||{}).ST||{}).state||{}).battle?.turn||0;for(const e of (m.fx&&m.fx.nodrop)||[]){if(e.until>=0&&t>e.until)continue;if(!e.st||e.st===stat)return e.name}return ''}
  function noind(m,kind){const t=curTurn();for(const e of (m.fx&&m.fx.noind)||[]){if(e.until>=0&&t>e.until)continue;if(itemOff(m,e))continue;if(e.kind===kind||(e.kind===''&&kind!=='switch'&&kind!=='freesw'))return true}return false}   /* 강제 교대 무시(switch)는 「비례 대미지 무시」에 딸려 오지 않는다 */
  function noindName(m,kind){for(const e of (m.fx&&m.fx.noind)||[]){if(itemOff(m,e))continue;if(e.kind===kind||(e.kind===''&&kind!=='switch'&&kind!=='freesw'))return e.name}return ''}
+ /* 10-22 망령: 포켓몬마다 상태 변화 사양 바꾸기 — 시트(포텐셜 · 전용 · 특성 · 소지품)에 적어 둔 것만, 배틀 중엔 손대지 않는다.
+    ① 효과 글: 『수선녀의 요술』 「아쿠아링」에 의한 회복량을 강화(1/8 → 1/6)한다 처럼 「상태」 … (a/b → c/d)
+    ② 자동화 구문: 상태수정 아쿠아링 1/6
+    돌려줌 {n,d,name} 또는 null. 턴 종료 처리(field.js)가 아쿠아링 · 뿌리박기 · 독 · 화상 … 의 비율을 이걸로 바꾼다 */
+ const RE_STMOD=/「([^」]+)」\s*(?:에\s*의한|에\s*따른|로\s*인한|으로\s*인한|의)[^(（\n]{0,24}[(（]\s*\d+\s*\/\s*\d+\s*(?:→|->|⇒|=>|➜)\s*(\d+)\s*\/\s*(\d+)\s*[)）]/g;
+ function stMod(m,en){if(!m||!en)return null;
+  for(const k in (m.auto||{}))for(const op of ((m.auto[k]||{}).ops||[]))if(op&&op.k==='stmod'&&op.st===en)return {n:+op.n,d:+op.d,name:k};
+  const src=[...(m.pots||[]).filter(p=>p&&p.name&&!p.ph).map(p=>[p.name,p.eff]),...(m.excl?[[m.excl.name,m.excl.eff]]:[]),...(m.exclX||[]).map(x=>[x.name,x.eff]),[m.ability,m.abilityEff],...(magicRoom()?[]:[[m.item,m.itemEff]])];
+  for(const [name,eff] of src){if(!name||!eff)continue;for(const r of String(eff).matchAll(RE_STMOD))if(stEn(r[1])===en&&+r[3]>0)return {n:+r[2],d:+r[3],name:String(name).replace(/『|』/g,'')}}
+  return null}
  function floating(m){const f=m.fx&&m.fx.float;if(!f)return false;const t=curTurn();return !(f.until>=0&&t>f.until)}
  function curTurn(){return +((((window.OM_APP||{}).ST||{}).state||{}).battle||{}).turn||0}
  function modDesc(e){const parts=[];if(e.types&&e.types.length)parts.push(e.types.map(t=>TYPE_KO[t]||t).join('·'));else parts.push('모든 타입');if(e.cat==='physical')parts.push('물리');if(e.cat==='special')parts.push('특수');
@@ -262,6 +273,7 @@ window.OM_FX=(()=>{
    case '조건':{const w=words.join('');if(/아군빈사/.test(w))return {k:'cond',c:'ally_fainted'};const m=w.match(/HP[≤<=]+(\d+\/\d+)/);if(m)return {k:'cond',c:'hp_le',frac:m[1]};return {k:'confirm',q:words.join(' ')}}
    case '해석':return {k:'dex',mode:'scouter'};
    case '레이드':{const m=words.join(' ').match(/구간[:：]?(\d+)/);return {k:'raid',on:1,x:m?+m[1]:'',cond:'cap',floor:1,cure:1,cstat:1,rup:1,rmod:0}}
+   case '상태수정':case '상태사양':{const st=stEn(takeState(words));const f=words.map(w=>w.match(/^(\d+)\s*\/\s*(\d+)$/)).find(Boolean);if(!st||!f)return {k:'?',raw:line};return {k:'stmod',st,n:+f[1],d:+f[2]}}
    default:return {k:'?',raw:line}}}
  /* 여러 줄 구문: 「선택:」 뒤의 「- 라벨 → 구문; 구문」 줄들은 선택지 */
  /* 「선택:」 은 하나만, 「선택 여럿:」(복수 선택: · 다중 선택:) 은 여러 개를 고를 수 있다 */
@@ -307,9 +319,10 @@ window.OM_FX=(()=>{
    case 'cond':L.push('조건 '+(op.c==='ally_fainted'?'아군빈사':'HP≤'+op.frac));break;
    case 'choice':L.push(op.multi?'선택 여럿:':'선택:');for(const o of op.opts)L.push('- '+o.label+' → '+unparse(o.ops).join('; '));break;
    case 'raid':L.push('레이드'+(op.x?' 구간:'+op.x:''));break;case 'dex':L.push('해석');break;
+   case 'stmod':L.push('상태수정 '+stKoW(op.st)+' '+op.n+'/'+op.d);break;
    default:L.push('# '+JSON.stringify(op))}}
   return L}
  /* 사람이 읽는 설명 (미리보기·로그) */
  function describe(ops){return unparse(ops)}
- return {untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,magicRoom,itemOff,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
+ return {stMod,untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,magicRoom,itemOff,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
 })();

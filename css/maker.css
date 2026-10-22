@@ -485,6 +485,7 @@ html.modal-on #mk{overflow:hidden}
  #mk .tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px 5px;font-size:11.5px;min-height:50px;justify-content:center}
  #mk .tabs button::before{font-size:19px;line-height:1;font-weight:400}
  #mk .tabs button[data-tab="rule"]::before{content:"❖"}#mk .tabs button[data-tab="char"]::before{content:"◉"}#mk .tabs button[data-tab="type"]::before{content:"◆"}#mk .tabs button[data-tab="db"]::before{content:"▤"}#mk .tabs button[data-tab="tbl"]::before{content:"∑"}#mk .tabs button[data-tab="notes"]::before{content:"✎"}#mk .tabs button[data-tab="log"]::before{content:"☰"}
+
  #mk .tabs button.on{background:transparent;box-shadow:none;color:var(--blue,#2563eb)}
  #mk .top{justify-content:space-between}
  #mk main{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
@@ -735,3 +736,6 @@ html.modal-on #mk{overflow:hidden}
 #mk .cq{color:#C2410C}#mk .cq2{color:#B45309;font-weight:600}#mk .cq3{color:#1D4ED8}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #mk .cq{color:#FDBA74}:root:not([data-theme="light"]) #mk .cq2{color:#FCD34D}:root:not([data-theme="light"]) #mk .cq3{color:#93C5FD}}
 :root[data-theme="dark"] #mk .cq{color:#FDBA74}:root[data-theme="dark"] #mk .cq2{color:#FCD34D}:root[data-theme="dark"] #mk .cq3{color:#93C5FD}
+/* 10-22 망령: 특성 · 포텐셜로 오른 종족치 */
+#mk .st.bup .gb{outline:2px solid var(--blue,#2563eb);outline-offset:1px}
+#mk .bupnote{display:flex;flex-direction:column;gap:2px;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--sunk,#f3f5f9)}
