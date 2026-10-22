@@ -22,3 +22,10 @@ window.OM_DB.readymade={"추격 무시":{"text":"「따라가때리기」 효과
  put('특성 : 도주','【상시】 반드시 임의 교대할 수 있다.',[FS]);
  put('이상한 부리','【상시】 아군과 반드시 교대할 수 있다.',[FS]);
 })();
+/* 손으로 더한 것 (2026-10-22): 급소 방어 · 천진. DB 글의 【방호】 를 늘 켜진 효과로 보고 【상시】 를 붙였다 */
+(()=>{const R=window.OM_DB.readymade;const put=(k,text,ops)=>{if(!R[k])R[k]={text,ops}};
+ const NC={k:'guard',tgt:'self',v:1,types:[],cat:'all',eff:'all',rng:'all',uses:-1,turn:0,tl:0,ro:[],st:'',tg:[],sb:'',cx:'none'};
+ put('특성 : 조가비갑옷','【상시】【방호】/기술이 자신의 급소에 맞지 않는다.',[NC]);
+ put('특성 : 전투무장','【상시】【방호】/기술이 자신의 급소에 맞지 않는다.',[NC]);
+ put('특성 : 천진','【상시】【방호 (조건)】/기술을 내보낼(받을) 때 랭크 변화를 무시한다.',[{k:'ignoreup',dir:'both',scope:'both',on:1,mode:0,ro:[],all:1}]);
+})();

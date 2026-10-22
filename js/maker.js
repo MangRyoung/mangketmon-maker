@@ -200,12 +200,15 @@ const BU_C=new Map();
 function baseUp(t,p){const src=[];const ab=p.ability&&idx.abil?idx.abil.get(p.ability):null;if(ab&&ab[2])src.push(['특성',p.ability,ab[2]]);
  (p.pots||[]).forEach((n,i)=>{if(n&&n!=='-'){const e=potEffOf(p,i);if(e)src.push(['포텐셜',String(n).replace(/『|』/g,''),e])}});
  for(const x of exclAll(p))if(x.eff)src.push(['전용',x.name,x.eff]);
- const key=JSON.stringify([p.base,src.map(s=>s[2]),t&&t.ranks]);const hit=BU_C.get(key);if(hit)return hit;
+ const key=JSON.stringify([p.base,src.map(s=>s[2]),t&&t.ranks,p.auto]);const hit=BU_C.get(key);if(hit)return hit;
  const n=[0,0,0,0,0,0],mx=[0,0,0,0,0,0],by=[[],[],[],[],[],[]];
  for(const [kind,name,eff] of src){for(const cl of String(eff).replace(/<br\s*\/?>/g,'\n').split(/\n|(?=[①-⑳])/)){
   for(const m of cl.matchAll(/「([^」]+)」의\s*종족치(?:를|가|도)?\s*(\d+)\s*랭크\s*(상승|감소)/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;const d=(+m[2]||1)*(m[3]==='감소'?-1:1);
    for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;n[i]+=d;by[i].push(`${kind} 『${name}』 ${d>0?'+':''}${d}랭크`)}}
-  for(const m of cl.matchAll(/「([^」]+)」의\s*종족치\s*범위를\s*최대화/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;mx[i]=1;by[i].push(`${kind} 『${name}』 범위 최대`)}}}}
+  for(const m of cl.matchAll(/「([^」]+)」의\s*종족치\s*범위를\s*최대화/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;mx[i]=1;by[i].push(`${kind} 『${name}』 범위 최대`)}}}
+  /* 그 칸의 자동화 구문: 종족치 방어,특방 +1 · 종족치 스피드 최대 (구문 생성기 「종족치 (시트)」) */
+  for(const ln of String(autoDsl(p,name)).split(/\n|;/)){const m=ln.trim().match(/^종족치\s+(.+?)\s+(최대|[+\-]?\d+)\s*$/);if(!m)continue;const d=m[2]==='최대'?0:+m[2];
+   for(const s of m[1].split(/[,\/·\s]+/)){const i=BU_ST[s.trim().toUpperCase()==='HP'?'HP':s.trim()];if(i==null)continue;if(m[2]==='최대'){mx[i]=1;by[i].push(`${kind} 『${name}』 구문 범위 최대`)}else if(d){n[i]+=d;by[i].push(`${kind} 『${name}』 구문 ${d>0?'+':''}${d}랭크`)}}}}
  const base=p.base.map((v,i)=>{if(v===''||v==null||isNaN(+v))return v;let x=gradeStep(+v,n[i]);if(mx[i])x=gradeMax(x);return x});
  const up=base.map((v,i)=>v!==p.base[i]&&+v!==+p.base[i]?{i,from:+p.base[i],to:+v,by:by[i]}:null).filter(Boolean);
  const r={base,up};if(BU_C.size>400)BU_C.clear();BU_C.set(key,r);return r}
@@ -387,7 +390,7 @@ function sessionPoke(t,p,types){
  const useT=n=>{if(!n||n==='-')return;String(n).split(/[()]/).filter(Boolean).forEach(x=>{const ti=typeInfo(x);if(ti)types[ti[0]]=[ti[1],ti[2]]})};
  const tys=[p.t1,p.t2,p.t3].filter(x=>x&&x!=='-');tys.forEach(useT);useT(p.tera);
  const fill=p.pots.map((n,i)=>i).filter(i=>p.pots[i]&&p.pots[i]!=='-');
- const ab=idx.abil&&idx.abil.get(p.ability),it=idx.items&&idx.items.get(p.item);
+ const ab=idx.abil&&idx.abil.get(p.ability),it=itemRow(p);
  const hasBase=p.base.some(v=>v!==''&&v!=null);
  const moves=p.moves.filter(m=>m.name).map(m=>{const r=idx.moves.get(m.name)||[];const g=i=>r[i]??'';useT(g(5));
   return {name:m.name,type:g(5),cat:g(6),pow:String(g(7)),acc:String(g(8)),range:g(9),contact:g(10),prio:String(g(11)),eff:brN(g(13)),sock:String(g(0))}});
@@ -414,12 +417,15 @@ const fxReady=()=>!!(window.OM_FX&&window.OM_FX_UI);
 window.OM_APP=window.OM_APP||{openModal:h=>{const l=openModal(h,{wide:true});l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))closeModal()});return l},closeModal:()=>closeModal(),toast:t=>toast(t),ST:{role:'player',state:{}},set:async()=>false};
 let fxLoadP=null,FXST='';/* '' 불러오는 중 · ok · fail */
 function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
- const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202610241200';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
+ const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202610241300';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
  FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');await one('itemrule.js');FXST='ok';rmInit();stInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
 function fxRetry(){if(fxReady())return;fxLoadP=null;toast('구문 스크립트를 다시 불러옵니다…');loadFx();if(S.ui&&S.ui.tab)refreshAll()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fxretry]');if(!b)return;e.preventDefault();e.stopPropagation();fxRetry()},true);
 const fxRetryBtn=()=>FXST==='fail'?'<button type="button" class="btn sm ghost" data-fxretry title="자동화 구문 스크립트를 불러오지 못했습니다 — 눌러서 다시 시도">구문 ⟳</button>':'';
-function fxEffOf(p,kind,name,slot){if(kind==='trait'){const r=idx.abil.get(name);return r?r[2]:''}if(kind==='item'){const r=idx.items.get(name);return r?r[4]:''}
+/* 오리지널 소지품: DB 에 넣지 않고 그 포켓몬 시트(p.itemOwn)에만 둔다 (10-24 망령). DB 행과 같은 꼴로 돌려준다 */
+function ownItem(p){const o=p&&p.itemOwn;return o&&typeof o==='object'&&o.name&&o.name===p.item?o:null}
+function itemRow(p){if(!p||!p.item)return null;const r=idx.items&&idx.items.get(p.item);if(r)return r;const o=ownItem(p);return o?[o.kind||'오리지널',o.name,'',o.cons?'O':'-',o.eff||'',o.sock||'-','이 포켓몬만 (DB 에 없음)',o.auto||'']:null}
+function fxEffOf(p,kind,name,slot){if(kind==='trait'){const r=idx.abil.get(name);return r?r[2]:''}if(kind==='item'){const r=name===p.item?itemRow(p):idx.items.get(name);return r?r[4]:''}
  if(slot==='excl')return p.excl.eff||'';if(typeof slot==='string'&&slot[0]==='x'){const x=(p.exclX||[])[+slot.slice(1)];return x?x.eff:''}if(typeof slot==='number')return potEffOf(p,slot);if(typeof slot==='string'&&slot[0]==='f'){const [fk,xi]=slot.slice(1).split('.').map(Number);const x=((p.forms||[])[fk]||{}).pots;const it=x&&x[xi];if(it){if(it.eff)return it.eff;const r=potRow(it.name);return r?r[2]:''}return ''}const i=p.pots.indexOf(name);return i>=0?potEffOf(p,i):''}
 function fxRm(kind,name){if(!fxReady()||!name)return null;try{return OM_FX.autoOf({auto:{}},kind,name)}catch(e){return null}}
 function fxAutoBtn(p,kind,name,ti,pi,slot){if(!name)return '';if(!fxReady())return fxRetryBtn();const K=OM_FX;const own=String((p.auto||{})[FXK(name)]||'').trim();const base=fxRm(kind,name);
@@ -455,7 +461,7 @@ function newPoke(){return{id:uid(),open:true,tab:'base',name:'',gender:'-',pride
  base:Array(6).fill(''),ev:Array(6).fill(''),pots:Array(20).fill(''),potEff:Array(20).fill(''),potKind:Array(20).fill(''),excl:{name:'',eff:''},exclX:[],moves:[],sockMax:'',memo:'',image:'',stands:[],standActive:0,partner:false,auto:{},forms:[],fields:[]}}
 function fixP(p){const n=newPoke();for(const k in n)if(p[k]==null)p[k]=n[k];
  for(const k of ['pots','potEff','potKind'])while(p[k].length<20)p[k].push('');
- p.moves=(p.moves||[]).filter(m=>m&&m.name);p.exclX=(Array.isArray(p.exclX)?p.exclX:[]).filter(x=>x&&typeof x==='object').map(x=>({name:String(x.name||''),eff:String(x.eff||'')}));delete p.iv;delete p.nature;p.image=safeImg(p.image);p.stands=standsFix(p.stands);p.fields=fieldsFix(p.fields);if(!(+p.standActive>=0)||+p.standActive>=p.stands.length)p.standActive=0;p.potKind=p.potKind.map(k=>k?normKind(k):'');if(!p.auto||typeof p.auto!=='object')p.auto={};p.forms=(Array.isArray(p.forms)?p.forms:[]).filter(f=>f&&typeof f==='object').map(fixForm);if(!p.id)p.id=uid();return p}
+ p.moves=(p.moves||[]).filter(m=>m&&m.name);p.exclX=(Array.isArray(p.exclX)?p.exclX:[]).filter(x=>x&&typeof x==='object').map(x=>({name:String(x.name||''),eff:String(x.eff||'')}));delete p.iv;delete p.nature;p.image=safeImg(p.image);p.stands=standsFix(p.stands);p.fields=fieldsFix(p.fields);if(!(+p.standActive>=0)||+p.standActive>=p.stands.length)p.standActive=0;p.potKind=p.potKind.map(k=>k?normKind(k):'');if(!p.auto||typeof p.auto!=='object')p.auto={};if(p.tune)tuneOf(p);p.forms=(Array.isArray(p.forms)?p.forms:[]).filter(f=>f&&typeof f==='object').map(fixForm);if(!p.id)p.id=uid();return p}
 /* 폼체인지·메가진화: 오레마스 배틀에서 바꿔 들어갈 모습 (이름·타입·특성·종족치·그림) */
 const FORM_KINDS=['폼체인지','메가진화','원시회귀','기타'];
 function newForm(){return {name:'',kind:'폼체인지',t1:'-',t2:'-',ability:'',base:Array(6).fill(''),image:'',cond:'',revert:true,pots:[]}}
@@ -479,24 +485,50 @@ const fldTypeKo=en=>{const r=(S.db.types||[]).find(x=>x[3]===en);return r?r[0]:'
 function fieldsHtml(o,D,who){const L=o.fields||[];
  return `<div class="mkflds"><div class="row" style="gap:6px;align-items:baseline"><b class="small">필드 전개</b><span class="small muted">${who==='t'?'이 트레이너가':'이 포켓몬이'} 오레마스 배틀에서 직접 펼치는 필드 · 스타디움 · 이계</span><span class="sp"></span><button type="button" class="btn sm" data-act="fldAdd" ${D}>+ 필드</button></div>
  ${L.length?`<div class="mkfl">${L.map((f,k)=>{const ti=typeInfo(fldTypeKo(f.color));const img=/^https?:\/\//.test(f.img)?f.img:'';return `<div class="mkf" tabindex="0" role="button" data-kbd data-act="fldEdit" ${D} data-k="${k}"><div class="mkfp" ${img?`style="background-image:url('${esc(img)}')"`:''}>${img?'':esc(f.img?'배경: '+f.img:'그림 없음')}</div><div class="mkfb"><div class="row" style="gap:5px;flex-wrap:wrap"><span class="mkfk k${f.type}">${FLD_KINDS[f.type]}</span><b>《${esc(f.name)}》</b>${ti?`<span class="chip" style="background:${safeCss(ti[1])||'var(--sunk2)'}">${esc(ti[0])}</span>`:''}<span class="small muted">${esc(f.loc||'')}${f.loc?' · ':''}${f.count>0?f.count+'턴':'무한'}</span></div><div class="small mkfe">${esc(f.eff||'효과 글 없음')}</div></div><button type="button" class="btn sm ghost danger" data-act="fldDel" ${D} data-k="${k}" aria-label="필드 지우기">✕</button></div>`}).join('')}</div>`:'<div class="small faint" style="margin-top:4px">아직 없음 — 「+ 필드」로 넣으면 배틀의 「필드 전개」에서 주인이 펼칠 수 있다</div>'}</div>`}
+/* 필드 등록 · 수정 창 (10-22 망령: 꾸미기) — 오른쪽에 오레마스 「필드 전개」 컷인 · 로그 카드 미리보기, 그림은 끌어다 놓기 · 붙여넣기 · 파일 · 주소 */
+const FLD_EN=['FIELD','STADIUM','ANOTHER WORLD'];
+const lightCol=c=>{const m=String(c||'').match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);if(!m)return false;let h=m[1];if(h.length===3)h=[...h].map(x=>x+x).join('');const [r,g,b]=[0,2,4].map(i=>parseInt(h.slice(i,i+2),16));return (r*299+g*587+b*114)/1000>165};
 function openFieldEditor(o,k,done){const isNew=k==null;const f=isNew?{type:0,name:'',loc:'',img:'',eff:'',count:-1,color:''}:Object.assign({},o.fields[k]);
- const types=(S.db.types||[]).filter(x=>x[3]);
- const l=openModal(`<div class="mhead"><h2>${isNew?'필드 추가':'필드 수정'}</h2><span class="small muted">${esc(o.name||'')}</span></div><div class="mbody"><div class="mkfform">
-  <label class="lbl">종류<select id="fe-t">${FLD_KINDS.map((n,i)=>`<option value="${i}" ${f.type===i?'selected':''}>${n}</option>`).join('')}</select></label>
-  <label class="lbl">이름<input id="fe-n" value="${esc(f.name)}" placeholder="예) 세가지 재앙" maxlength="60" autocomplete="off"></label>
-  <label class="lbl">지역<input id="fe-l" value="${esc(f.loc)}" placeholder="예) 재앙, 종말" maxlength="60" autocomplete="off"></label>
-  <label class="lbl">지속 턴<input id="fe-c" type="number" min="1" max="99" value="${f.count>0?f.count:''}" placeholder="비우면 무한"></label>
-  <label class="lbl">색상 타입<select id="fe-k"><option value="">-</option>${types.map(x=>`<option value="${esc(x[3])}" ${f.color===x[3]?'selected':''}>${esc(x[0])}</option>`).join('')}</select></label>
-  <label class="lbl wide">그림 <span class="small muted" style="font-weight:400">주소 https://… 또는 오레마스 배경 목록 이름</span><span class="row" style="gap:4px;flex-wrap:nowrap"><input id="fe-i" value="${esc(f.img)}" placeholder="https://…" style="flex:1;min-width:0" autocomplete="off"><label class="btn sm" for="fe-f" tabindex="0" role="button" data-kbd title="공유 저장소(Supabase)에 올리고 주소를 채운다">올리기</label><input type="file" id="fe-f" accept="image/*" hidden></span></label>
-  <div class="mkfprev wide" id="fe-p"></div>
-  <label class="lbl wide">효과 <span class="small muted" style="font-weight:400">한 줄에 하나 — 배틀 로그 카드에 그대로 나온다</span><textarea id="fe-e" rows="6" placeholder="① …&#10;② …">${esc(f.eff)}</textarea></label>
- </div></div><div class="mfoot"><span class="sp"></span><button class="btn" data-x="no">취소</button><button class="btn pri" id="fe-ok">${isNew?'추가':'저장'}</button></div>`,{wide:true});
- const prev=()=>{const u=$('#fe-i',l).value.trim();$('#fe-p',l).innerHTML=/^https?:\/\//.test(u)?`<div class="mkfp big" style="background-image:url('${esc(u)}')"></div>`:''};$('#fe-i',l).oninput=prev;prev();
- $('[data-x="no"]',l).onclick=()=>closeModal();
- $('#fe-f',l).onchange=async ev=>{const fl=ev.target.files[0];ev.target.value='';if(!fl)return;if(!/^image\//.test(fl.type))return toast('그림 파일만');if(fl.size>8*1024*1024)return toast('8MB 이하만');toast('올리는 중…');try{$('#fe-i',l).value=await putImg(`fields/${o.id}_${Date.now().toString(36)}`,fl);prev();toast('올렸습니다')}catch(e){toast('올리지 못했습니다: '+e.message)}};
- $('#fe-ok',l).onclick=()=>{const name=$('#fe-n',l).value.trim();if(!name){toast('이름을 적어 주세요');$('#fe-n',l).focus();return}
-  const v=fieldsFix([{type:+$('#fe-t',l).value,name,loc:$('#fe-l',l).value.trim(),img:$('#fe-i',l).value.trim(),eff:$('#fe-e',l).value.replace(/\r/g,'').trim(),count:+$('#fe-c',l).value,color:$('#fe-k',l).value}])[0];
-  o.fields=o.fields||[];if(isNew)o.fields.push(v);else o.fields[k]=v;closeModal();done&&done();toast(isNew?'필드를 넣었습니다':'고쳤습니다')}}
+ const types=(S.db.types||[]).filter(x=>x[3]&&x[0]&&x[0]!=='-');let busy=false;
+ const l=openModal(`<div class="mhead"><h2>${isNew?'필드 추가':'필드 수정'}</h2><span class="small muted">${esc(o.name||'')}</span><span class="sp"></span><button class="btn ghost" data-x="no">닫기</button></div><div class="mbody"><div class="fed">
+  <div class="fedf">
+   <div class="lbl">종류</div><div class="row fedk" style="gap:6px">${FLD_KINDS.map((n,i)=>`<button type="button" class="btn sm k${i} ${f.type===i?'on':''}" data-fk="${i}">${n}</button>`).join('')}</div>
+   <label class="lbl">이름<input id="fe-n" value="${esc(f.name)}" placeholder="예) 세가지 재앙" maxlength="60" autocomplete="off"></label>
+   <div class="row" style="gap:10px;flex-wrap:nowrap"><label class="lbl" style="flex:2;min-width:0">지역<input id="fe-l" value="${esc(f.loc)}" placeholder="예) 재앙, 종말" maxlength="60" autocomplete="off"></label><label class="lbl" style="flex:1;min-width:0">지속 턴<input id="fe-c" type="number" min="1" max="99" value="${f.count>0?f.count:''}" placeholder="비우면 무한"></label></div>
+   <div class="lbl">색상 타입 <span class="small faint" style="font-weight:400">컷인 띠 · 카드 테두리 색</span></div>
+   <div class="fedc"><button type="button" class="fedc1 none" data-fc="" title="없음">✕</button>${types.map(x=>`<button type="button" class="fedc1" data-fc="${esc(x[3])}" title="${esc(x[0])}" style="background:${safeCss(x[1])||'var(--sunk2)'}${lightCol(x[1])?';color:#1d2433;text-shadow:none':''}">${esc(x[0])}</button>`).join('')}</div>
+   <div class="lbl">그림 <span class="small faint" style="font-weight:400">끌어다 놓기 · 붙여넣기(Ctrl+V) · 파일 · 주소 https://… · 오레마스 배경 목록 이름</span></div>
+   <div class="feddrop" id="fe-d" tabindex="0" role="button" data-kbd title="눌러서 파일 고르기"><span id="fe-dt">여기에 그림을 끌어다 놓거나 눌러서 고르기</span></div>
+   <div class="row" style="gap:4px;flex-wrap:nowrap"><input id="fe-i" value="${esc(f.img)}" placeholder="https://… 또는 배경 이름" style="flex:1;min-width:0" autocomplete="off"><button type="button" class="btn sm ghost" id="fe-x" title="그림 지우기">✕</button><input type="file" id="fe-f" accept="image/*" hidden></div>
+   <div class="lbl">효과 <span class="small faint" style="font-weight:400">한 줄에 하나 — 배틀 로그 카드에 그대로 나온다</span><span class="sp"></span><button type="button" class="btn xs" id="fe-num" title="줄 앞에 ① ② ③ … 를 붙인다">① 번호 매기기</button></div>
+   <textarea id="fe-e" rows="6" placeholder="① …&#10;② …">${esc(f.eff)}</textarea>
+  </div>
+  <div class="fedp"><div class="small muted">미리보기 — 오레마스 「필드 전개」</div><div id="fe-p"></div></div>
+ </div></div><div class="mfoot"><span class="small faint">Ctrl+Enter 로 ${isNew?'추가':'저장'}</span><span class="sp"></span><button class="btn" data-x="no">취소</button><button class="btn pri" id="fe-ok">${isNew?'추가':'저장'}</button></div>`,{wide:true});
+ const st={type:f.type,color:f.color};
+ const prev=()=>{const u=$('#fe-i',l).value.trim();const img=/^https?:\/\//.test(u)?u:'';const ti=typeInfo(fldTypeKo(st.color));const col=ti?safeCss(ti[1]):'';
+  const name=$('#fe-n',l).value.trim()||'이름 없음',loc=$('#fe-l',l).value.trim(),cnt=+$('#fe-c',l).value;const eff=$('#fe-e',l).value.replace(/\r/g,'').split('\n').map(x=>x.trim()).filter(Boolean);
+  $('#fe-p',l).innerHTML=`<div class="fedcut k${st.type}" style="${col?`--fc:${col}`:''}"><div class="fedbar"></div><div class="fedimg" ${img?`style="background-image:url('${esc(img)}')"`:''}>${img?'':`<span>${u?'「'+esc(u)+'」 — 배경 목록 이름은 오레마스에서 보인다':'그림 없음'}</span>`}<div class="fedtx"><div class="fedkn">${FLD_EN[st.type]}</div><div class="fednm">《${esc(name)}》</div>${loc?`<div class="fedlc">${esc(loc)}</div>`:''}<div class="fedlc">${esc(o.name||'')}</div></div></div><div class="fedbar"></div></div>
+   <div class="fedlog k${st.type}" style="${col?`--fc:${col}`:''}"><div class="row" style="gap:6px;flex-wrap:wrap"><span class="mkfk k${st.type}">${FLD_KINDS[st.type]}</span><b>《${esc(name)}》</b>${ti?`<span class="chip" style="background:${col||'var(--sunk2)'}">${esc(ti[0])}</span>`:''}<span class="small muted">${cnt>0?cnt+'턴':'무한'}</span></div>${eff.length?`<div class="small fedeff">${eff.map(x=>`<div>${esc(x)}</div>`).join('')}</div>`:'<div class="small faint">효과 글 없음</div>'}</div>`;
+  l.querySelectorAll('[data-fk]').forEach(b=>b.classList.toggle('on',+b.dataset.fk===st.type));l.querySelectorAll('[data-fc]').forEach(b=>b.classList.toggle('on',b.dataset.fc===st.color));
+  $('#fe-dt',l).textContent=busy?'올리는 중…':img?'다른 그림을 끌어다 놓거나 눌러서 바꾸기':'여기에 그림을 끌어다 놓거나 눌러서 고르기';$('#fe-d',l).classList.toggle('has',!!img)};
+ for(const id of ['#fe-n','#fe-l','#fe-c','#fe-e','#fe-i'])$(id,l).addEventListener('input',prev);prev();
+ l.querySelectorAll('[data-fk]').forEach(b=>b.onclick=()=>{st.type=+b.dataset.fk;prev()});
+ l.querySelectorAll('[data-fc]').forEach(b=>b.onclick=()=>{st.color=b.dataset.fc;prev()});
+ const up=async fl=>{if(!fl)return;if(!/^image\//.test(fl.type))return toast('그림 파일만');if(fl.size>8*1024*1024)return toast('8MB 이하만');busy=true;prev();
+  try{$('#fe-i',l).value=await putImg(`fields/${o.id}_${Date.now().toString(36)}`,fl);toast('올렸습니다')}catch(e){toast('올리지 못했습니다: '+e.message)}busy=false;prev()};
+ $('#fe-d',l).onclick=()=>$('#fe-f',l).click();$('#fe-f',l).onchange=ev=>{const fl=ev.target.files[0];ev.target.value='';up(fl)};
+ $('#fe-x',l).onclick=()=>{$('#fe-i',l).value='';prev()};
+ const box=$('.mbox',l)||l;const dz=$('#fe-d',l);
+ box.addEventListener('dragover',e=>{if([...(e.dataTransfer&&e.dataTransfer.items||[])].some(x=>x.kind==='file')){e.preventDefault();dz.classList.add('over')}});box.addEventListener('dragleave',e=>{if(e.target===dz)dz.classList.remove('over')});
+ box.addEventListener('drop',e=>{dz.classList.remove('over');const fl=e.dataTransfer&&[...e.dataTransfer.files].find(x=>/^image\//.test(x.type));if(fl){e.preventDefault();e.stopPropagation();up(fl);return}const u=e.dataTransfer&&(e.dataTransfer.getData('text/uri-list')||e.dataTransfer.getData('text/plain'));if(u&&/^https?:\/\//.test(u.trim())){e.preventDefault();$('#fe-i',l).value=u.trim().split('\n')[0];prev()}});
+ box.addEventListener('paste',e=>{const it=[...(e.clipboardData&&e.clipboardData.items||[])].find(x=>x.type.startsWith('image/'));if(it){e.preventDefault();e.stopPropagation();up(it.getAsFile())}});
+ $('#fe-num',l).onclick=()=>{const N='①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';const ta=$('#fe-e',l);let i=0;ta.value=ta.value.replace(/\r/g,'').split('\n').map(x=>x.trim()).filter(Boolean).map(x=>(N[i++]||'')+x.replace(/^[①-⑳]\s*/,'')).join('\n');prev()};
+ l.querySelectorAll('[data-x="no"]').forEach(b=>b.onclick=()=>closeModal());
+ const ok=()=>{if(busy)return toast('그림을 올리는 중입니다');const name=$('#fe-n',l).value.trim();if(!name){toast('이름을 적어 주세요');$('#fe-n',l).focus();return}
+  const v=fieldsFix([{type:st.type,name,loc:$('#fe-l',l).value.trim(),img:$('#fe-i',l).value.trim(),eff:$('#fe-e',l).value.replace(/\r/g,'').trim(),count:+$('#fe-c',l).value,color:st.color}])[0];
+  o.fields=o.fields||[];if(isNew)o.fields.push(v);else o.fields[k]=v;closeModal();done&&done();toast(isNew?'필드를 넣었습니다':'고쳤습니다')};
+ $('#fe-ok',l).onclick=ok;box.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();ok()}})}
 function newTrainer(){const t={id:uid(),open:true,name:'새 트레이너',kind:'pc',pl:'',folder:'',image:'',ranks:{지시:'C',육성:'C',통솔:'C',능력:'C'},detail:{지시:'',육성:'',통솔:'',능력:''},solo:false,
  pts:[],extra:{},base:Object.fromEntries(ptItems().map(([n,d])=>[n,+d||0])),unique:[{name:'',eff:''}],ptMax:'',fields:[],pokemon:[]};applyTpl(t);return t}
 function fixT(t){if(t.base)delete t.base['소지품 소켓'];const n=newTrainer();for(const k in n)if(t[k]==null)t[k]=n[k];for(const k in n.base)if(t.base[k]==null)t.base[k]=n.base[k];
@@ -675,13 +707,14 @@ function keepFocus(root,fn){const a=document.activeElement;let key=null,ss=null,
   if(!key&&a.id)key='#'+CSS.escape(a.id);try{ss=a.selectionStart;se=a.selectionEnd}catch(e){}}
  fn();if(!key)return;const n=root.querySelector(key);if(n&&n!==document.activeElement){n.focus({preventScroll:true});try{if(ss!=null)n.setSelectionRange(ss,se)}catch(e){}}}
 function fCount(kind,st){let n=Object.values(st.f||{}).filter(Boolean).length;for(const k of ['type','cat','kind'])if(st[k])n++;if(st.pmin!==''&&st.pmin!=null)n++;if(st.pmax!==''&&st.pmax!=null)n++;if(st.mine)n++;return n}
-function openPicker(kind,{title,multi,chosen,onPick,onRemove}={}){
+function openPicker(kind,{title,multi,chosen,onPick,onRemove,onOrig}={}){
  const st={q:'',lim:120,type:'',cat:'',kind:'',mine:false,nameOnly:false,f:{},pmin:'',pmax:''};
  const l=openModal(`<div class="mhead"><h2>${esc(title||DBS[kind].t+' 선택')}</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
   <div class="mbody">${pickerShell(kind,st)}${multi?'<p class="small muted" style="margin:0">클릭하면 추가되고, 이미 추가된 항목(파란색)을 다시 누르면 빠집니다. 창은 닫기 전까지 열려 있습니다.</p>':''}</div>
   <div class="mfoot"><button class="btn" data-orig>+ 오리지널 ${DBS[kind].t} 만들기</button><span class="sp"></span><button class="btn pri" data-x>${multi?'완료':'닫기'}</button></div>`,{wide:true});
  const redraw=mountPicker(l,kind,st,{chosen,onPick:n=>{if(multi&&chosen&&chosen().has(n)&&onRemove)onRemove(n);else onPick(n);if(!multi)closeModal()}});
  l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))closeModal();
+  if(e.target.closest('[data-orig]')&&onOrig)return onOrig(st.q);
   if(e.target.closest('[data-orig]'))openEdit(kind,-1,{preset:{[DBS[kind].key]:st.q},onSaved:n=>{onPick(n);if(multi)redraw();else closeModal()}})})}
 
 /* ---------- DB 항목 편집 ---------- */
@@ -745,6 +778,31 @@ function openEdit(kind,i,{preset={},onSaved}={}){const D=DBS[kind];
    else{const old=S.db[kind][i][D.key];S.db[kind][i]=nr;const ci=S.custom[kind].indexOf(old);if(ci>=0)S.custom[kind][ci]=nr[D.key];
     if(old!==nr[D.key]){const n=renameRefs(kind,old,nr[D.key]);if(n){save();setTimeout(()=>toast(`캐릭터 시트 ${n}곳의 이름도 바꿨습니다`),1900)}}}
    reindex();save(true);closeModal();toast('DB에 저장했습니다');onSaved?onSaved(nr[D.key]):refreshAll()}})}
+/* 오리지널 소지품 (시트에만) — DB 는 건드리지 않고 p.item · p.itemOwn 만 바꾼다. 오레마스로는 시트 그대로 넘어간다 */
+function openOwnItem(P,name,done){const o0=ownItem(P)&&(!name||name===P.item)?ownItem(P):null;const o=Object.assign({name:name||'',kind:'오리지널',cons:false,sock:'-',eff:'',auto:''},o0?clone(o0):{name:name||''});
+ const l=openModal(`<div class="mhead"><h2>오리지널 소지품 · 이 포켓몬만</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
+ <div class="mbody"><p class="small muted" style="margin:0">소지품 DB 에는 넣지 않고 이 포켓몬 시트에만 적어 둔다. 오레마스(배틀 웹툴)로 가져가면 특성 · 포텐셜처럼 여기 적은 이름 · 효과 · 구문이 그대로 들어간다.</p>
+ <datalist id="L-ikinds3">${[...new Set(S.db.items.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist>
+ <div class="fgrid"><label class="lbl" for="oi-name">이름<input id="oi-name" value="${esc(o.name)}"></label><label class="lbl" for="oi-kind">종류<input id="oi-kind" list="L-ikinds3" value="${esc(o.kind)}"></label>
+ <label class="lbl" for="oi-cons">소모품<select id="oi-cons"><option value="" ${o.cons?'':'selected'}>아니오</option><option value="O" ${o.cons?'selected':''}>소모품 (쓰면 없어짐)</option></select></label><label class="lbl" for="oi-sock">소켓<input id="oi-sock" value="${esc(o.sock)}"></label>
+ <label class="lbl" for="oi-eff" style="grid-column:1/-1">효과${tagbarHTML()}<textarea id="oi-eff" rows="4">${esc(brN(o.eff))}</textarea><span class="small" data-banwarn></span></label>
+ <label class="lbl" for="oi-auto" style="grid-column:1/-1">구문 <span class="small muted">오레마스 배틀이 자동으로 처리하는 법 · 한 줄에 하나 · 비우면 효과 글을 읽는다</span><textarea id="oi-auto" rows="3" style="font-family:var(--mono,monospace);font-size:12.5px" placeholder="예) 턴 종료: 회복 1/16">${esc(o.auto)}</textarea><span class="row" style="gap:6px;align-items:center;flex-wrap:wrap"><button type="button" class="btn sm" data-irgen>효과 글에서 만들기</button><span class="small" data-irprev></span></span><details><summary class="small">구문 도움말</summary><pre class="small" style="white-space:pre-wrap">${esc(IR_HELP)}</pre></details></label></div>
+ <div class="preview" data-prev></div></div>
+ <div class="mfoot">${o0?'<button class="btn danger" data-oidel>소지품 빼기</button>':''}<span class="sp"></span><button class="btn" data-x>취소</button><button class="btn pri" data-oisave>저장</button></div>`,{wide:true});
+ const ta=$('#oi-eff',l),ds=$('#oi-auto',l),pv=$('[data-irprev]',l),IR=()=>window.OM_ITEMRULE;bindTagbar(l,()=>ta);
+ const gen=()=>IR().fromEff($('#oi-name',l).value,($('#oi-cons',l).value==='O'?'소모품/':'')+ta.value);
+ const up=()=>{$('[data-prev]',l).innerHTML='<span class="small faint">미리보기</span><br>'+rich(ta.value);const h=banHits(ta.value);$('[data-banwarn]',l).innerHTML=(h.length?`<span class="warn">금지 키워드: ${h.map(esc).join(', ')}</span>`:'')+lintHTML(ta.value);
+  if(!IR()){pv.innerHTML='<span class="muted">구문 스크립트를 불러오는 중…</span>';return}const t=ds.value.trim();if(!t){pv.innerHTML=IR().has(gen())?'<span class="muted">비어 있음 — 효과 글로 자동 처리</span>':'<span class="muted">자동 처리 없음 — 손으로</span>';return}
+  const r=IR().parse(t);pv.innerHTML=(IR().has(r.rule)?'<span class="ok">✓ 읽었다</span>':'<span class="muted">자동으로 하는 일이 없다</span>')+(r.errs.length?` <span class="warn">모르는 줄: ${esc(r.errs.join(' / '))}</span>`:'')};
+ l.addEventListener('input',up);l.addEventListener('change',up);up();loadFx().then(up);
+ $('[data-irgen]',l).addEventListener('click',()=>{if(!IR())return toast('구문 스크립트를 아직 불러오는 중입니다');const g=gen();if(!IR().has(g))return toast('효과 글에서 자동으로 읽을 수 있는 것이 없습니다 — 도움말을 보고 직접 써 주세요');ds.value=IR().toText(g);up()});
+ l.addEventListener('click',async e=>{if(e.target.closest('[data-x]'))return closeModal();
+  if(e.target.closest('[data-oidel]')){if(await ask(`「${esc(P.item)}」을(를) 이 포켓몬에서 뺄까요?`,'빼기')){P.item='';delete P.itemOwn;closeModal();save();done&&done()}return}
+  if(e.target.closest('[data-oisave]')){const nm=$('#oi-name',l).value.trim();if(!nm)return toast('이름을 입력하세요');
+   if(idx.items.get(nm)&&!await ask(`소지품 DB 에 「${esc(nm)}」이(가) 이미 있어서 여기 적은 효과보다 DB 의 것이 먼저 쓰입니다. 그래도 이 이름으로 둘까요?`,'그대로 두기'))return;
+   const T=tuneOf(P);if(T.itemName&&T.itemName===P.item&&P.item!==nm)T.itemName=nm;
+   P.item=nm;P.itemOwn={name:nm,kind:$('#oi-kind',l).value.trim()||'오리지널',cons:$('#oi-cons',l).value==='O',sock:$('#oi-sock',l).value.trim()||'-',eff:ta.value,auto:ds.value.trim()};
+   closeModal();save();toast('이 포켓몬 시트에만 적었습니다 (DB 는 그대로)');done&&done()}})}
 function renameRefs(kind,a,b){let n=0;for(const t of S.trainers){if(kind==='points')t.pts=t.pts.map(x=>x===a?(n++,b):x);
   for(const p of t.pokemon){if(kind==='moves')p.moves.forEach(m=>{if(m.name===a){m.name=b;n++}});if(kind==='abil'&&p.ability===a){p.ability=b;n++}if(kind==='items'&&p.item===a){p.item=b;n++}
    if(kind==='pots')p.pots.forEach((x,i)=>{if(x===a){p.pots[i]=b;n++}})}}return n}
@@ -1349,9 +1407,20 @@ function openTDeco(T,done){const d=T.deco||{};const st={color:safeCss(d.color)||
  $('[data-x="no"]',l).onclick=()=>closeModal();
  $('[data-x="ok"]',l).onclick=()=>{const o={};if(st.color)o.color=st.color;if(st.title)o.title=st.title;if(st.bg)o.bg=st.bg;if(st.pat)o.pat=st.pat;if(Object.keys(o).length)T.deco=o;else delete T.deco;closeModal();done();
   if(o.bg&&/^data:/.test(o.bg)&&shHostOn())hostImg('tb',T.id,o.bg).then(url=>{if(!T.deco||T.deco.bg!==o.bg)return;T.deco.bg=url;save();refreshTrainer(T)}).catch(e=>toast('배경 그림을 공유 저장소에 올리지 못해 시트 안에 넣었습니다 ('+e.message+')'))}}
+/* html2canvas 1.4 는 color(srgb …) · oklch 같은 새 색 함수를 못 읽는다 (color-mix 의 계산 값이 그 꼴) → 복제본의 계산된 색을 rgba 로 바꿔 넣는다 (::before · ::after 는 규칙으로) */
+const PNG_PROPS=['color','background-color','background-image','border-top-color','border-right-color','border-bottom-color','border-left-color','outline-color','text-decoration-color','box-shadow','text-shadow','fill','stroke'];
+const PNG_BAD=/color\(|oklch\(|oklab\(|\blab\(|\blch\(/;
+function pngRgb(v){v=String(v).replace(/color\(srgb\s+([\d.e-]+)\s+([\d.e-]+)\s+([\d.e-]+)(?:\s*\/\s*([\d.e-]+%?))?\)/g,(_,r,g,b,a)=>`rgba(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)},${a==null?1:/%$/.test(a)?parseFloat(a)/100:+a})`);
+ if(PNG_BAD.test(v)){let cx=null;try{cx=document.createElement('canvas').getContext('2d')}catch(e){}v=v.replace(/(color|oklch|oklab|lab|lch)\([^()]*\)/g,m=>{if(!cx)return 'rgba(0,0,0,0)';cx.fillStyle='rgba(0,0,0,0)';cx.fillStyle=m;const f=String(cx.fillStyle);return /^(#|rgb)/.test(f)?f:'rgba(0,0,0,0)'})}return v}
+function pngFix(cdoc,root){const W=cdoc.defaultView;if(!W)return;const css=[];let n=0;const els=[root,...root.querySelectorAll('*')];
+ for(const el of els){const cs=W.getComputedStyle(el);for(const p of PNG_PROPS){const v=cs.getPropertyValue(p);if(v&&PNG_BAD.test(v))el.style.setProperty(p,pngRgb(v),'important')}
+  for(const ps of ['::before','::after']){const c2=W.getComputedStyle(el,ps);if(!c2||c2.content==='none'||c2.content==='normal')continue;const fx=[];for(const p of PNG_PROPS){const v=c2.getPropertyValue(p);if(v&&PNG_BAD.test(v))fx.push(`${p}:${pngRgb(v)} !important`)}
+   if(fx.length){const k='pngfx'+(n++);el.classList.add(k);css.push(`.${k}${ps}{${fx.join(';')}}`)}}}
+ if(css.length){const s=cdoc.createElement('style');s.textContent=css.join('\n');cdoc.head.appendChild(s)}}
+
 /* 10-22 망령: 포켓몬 한 장 요약 — 이름·타입·특성·기술·능력치·상성·전용·포텐셜을 한 화면에 (PNG 로 저장) */
 function fxTxt(s){return esc(brN(s)).replace(/\n/g,'<br>').replace(/「([^」<]{1,40})」/g,'<span class="cq">「$1」</span>').replace(/『([^』<]{1,40})』/g,'<span class="cq2">『$1』</span>').replace(/【([^】<]{1,30})】/g,'<span class="cq3">【$1】</span>')}
-function pokeCardHTML(t,p){const tys=[p.t1,p.t2,p.t3].filter(x=>x&&x!=='-').flatMap(tyParts);const ab=idx.abil.get(p.ability),it=p.item?idx.items.get(p.item):null;
+function pokeCardHTML(t,p){const tys=[p.t1,p.t2,p.t3].filter(x=>x&&x!=='-').flatMap(tyParts);const ab=idx.abil.get(p.ability),it=itemRow(p);
  const tot=p.base.reduce((a,b)=>a+(+b||0),0);const cap=moveCap(t,p);
  const mv=p.moves.filter(m=>m.name).map(m=>{const r=idx.moves.get(m.name)||[];const g=i=>r[i]??'';const ti=typeInfo(g(5));return {name:m.name,ty:g(5),bg:ti&&safeCss(ti[1])||'var(--sunk2)',fg:ti&&safeCss(ti[2])||'var(--ink)',cat:g(6),pow:g(7),acc:g(8),range:g(9),prio:g(11),eff:g(13)}});
  const all=S.db.types.map(x=>x[0]).filter(x=>x&&x!=='-'&&tyChart()[x]);const mul={};for(const a of all)mul[a]=tyMult(a,tys);
@@ -1379,7 +1448,7 @@ function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요
  $('.mbox',l).classList.add('pcdbox');l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>closeModal());
  $('[data-pcgo]',l).onclick=()=>{closeModal();goPoke(t,p)};
  $('[data-pcpng]',l).onclick=async()=>{const el=$('.pcd',l);try{if(!window.html2canvas)await new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('html2canvas 를 불러오지 못했다'));document.head.appendChild(sc)});
-  const bg=getComputedStyle(MKROOT()).getPropertyValue('--surface')||'#fff';const cv=await window.html2canvas(el,{backgroundColor:bg.trim()||'#fff',scale:2,useCORS:true});const a=document.createElement('a');a.download=(p.name||'포켓몬')+'.png';a.href=cv.toDataURL('image/png');a.click()}catch(err){toast('PNG 로 저장하지 못했습니다 ('+err.message+')')}}}
+  const bg=getComputedStyle(MKROOT()).getPropertyValue('--surface')||'#fff';const cv=await window.html2canvas(el,{backgroundColor:bg.trim()||'#fff',scale:2,useCORS:true,onclone:(cd,ce)=>{try{pngFix(cd,ce)}catch(e){}}});const a=document.createElement('a');a.download=(p.name||'포켓몬')+'.png';a.href=cv.toDataURL('image/png');a.click()}catch(err){toast('PNG 로 저장하지 못했습니다 ('+err.message+')')}}}
 function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=investCheck(t);const pu=ptSockets(t),pm=ptMax(t);
  return `<section class="folder ${t.open?'open':''}" id="tr-${t.id}" data-ti="${ti}" data-si="${ti}">
  <header class="fh tcard ${tDecoCls(t)}" style="${tDecoVars(t)}" data-tog="${P}" data-grab tabindex="0" role="button" data-kbd aria-expanded="${!!t.open}" aria-label="${esc(t.name||'트레이너')} 펼치기/접기"><span class="caret">▸</span><span class="avatar">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="">`:esc([...(t.name||'?')][0]||'?')}</span>
@@ -1446,9 +1515,9 @@ function pokeHTML(t,ti,p,pi){const v=formView(p);const P=`T.${ti}.pokemon.${pi}`
   <div class="pexcl ${XL.length?'':'none'} ${XL.length>1?'multi':''}">${XL.map(x=>{const e=oneLn(x.eff);return `<div class="pxi"><div class="pxn"><span class="pxk">전용</span><b>${esc(x.name)}</b></div>${e?`<div class="pxe" title="${esc(e)}">${esc(e)}</div>`:''}</div>`}).join('')}</div>
   <div class="hide-s pkstat">${radar(v)}<div style="min-width:0">${miniGrades(v,t)}<div class="psub" style="margin-top:3px">종족치 합 <b class="num">${tot||'-'}</b>${(()=>{const pl=v._form?null:planRange(v);if(!pl||!tot)return '';const ok=tot>=pl.lo&&tot<=pl.hi;return `<span class="${ok?'faint':'warn'}" title="규칙상 예정 합계"> / ${pl.lo}${pl.hi!==pl.lo?'~'+pl.hi:''}</span>`})()} · 기술 <span class="${c.cap!=null&&c.used>c.cap?'warn':''}">${capTxt(c,'-','/')}</span> · 포텐셜 ${npot}</div></div></div>
   <div class="pact"><button class="btn sm ghost" data-act="pcard" data-i="${ti}" data-j="${pi}" title="이 포켓몬을 한 장으로 요약해서 본다 (PNG 저장)">한 장</button><button class="btn sm ghost" data-act="copy" data-i="${ti}" data-j="${pi}" title="복사용 텍스트 복사">복사</button><button class="btn sm ghost" data-act="dupP" data-i="${ti}" data-j="${pi}">복제</button><button class="btn sm ghost danger" data-act="delP" data-i="${ti}" data-j="${pi}">삭제</button></div></div>
- ${p.open?`<div class="pbody"><nav class="ptabs">${[['base','기본<span class="wide-only">·능력치</span>',''],['moves','기술',filled],['pots','포텐셜',npot],['text','<span class="wide-only">복사용 </span>텍스트','']].map(([k,n,cn])=>`<button data-ptab="${k}" data-i="${ti}" data-j="${pi}" class="${p.tab===k?'on':''}">${n}${cn!==''?`<span class="cnt">${cn}</span>`:''}</button>`).join('')}</nav>
- ${p.tab==='moves'?movesTab(t,ti,p,pi,P,c):p.tab==='pots'?potsTab(t,ti,p,pi):p.tab==='text'?textTab(t,ti,p,pi,P):baseTab(t,ti,p,pi,P)}</div>`:''}</article>`}
-function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=idx.items.get(p.item);const types=S.db.types.map(x=>x[0]);const tot=p.base.reduce((a,b)=>a+(+b||0),0);const id=p.id;
+ ${p.open?`<div class="pbody"><nav class="ptabs">${[['base','기본<span class="wide-only">·능력치</span>',''],['moves','기술',filled],['pots','포텐셜',npot],['tune','상세<span class="wide-only"> 조정</span>',tuneCount(p)||''],['text','<span class="wide-only">복사용 </span>텍스트','']].map(([k,n,cn])=>`<button data-ptab="${k}" data-i="${ti}" data-j="${pi}" class="${p.tab===k?'on':''}">${n}${cn!==''?`<span class="cnt">${cn}</span>`:''}</button>`).join('')}</nav>
+ ${p.tab==='moves'?movesTab(t,ti,p,pi,P,c):p.tab==='pots'?potsTab(t,ti,p,pi):p.tab==='tune'?tuneTab(t,ti,p,pi):p.tab==='text'?textTab(t,ti,p,pi,P):baseTab(t,ti,p,pi,P)}</div>`:''}</article>`}
+function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=itemRow(p),own=ownItem(p)&&!idx.items.get(p.item);const types=S.db.types.map(x=>x[0]);const tot=p.base.reduce((a,b)=>a+(+b||0),0);const id=p.id;
  return `<div class="bgrid"><div style="display:flex;flex-direction:column;gap:10px;min-width:0">
   <div class="row" style="gap:12px;align-items:center;flex-wrap:nowrap"><div class="pimg" data-act="pimgPick" data-i="${ti}" data-j="${pi}" data-pdrop="${ti}.${pi}" role="button" tabindex="0" data-kbd title="클릭하거나 그림을 끌어다 놓거나 Ctrl+V로 붙여넣기">${safeImg(p.image)?`<img src="${safeImg(p.image)}" alt="포켓몬 이미지">`:'<span class="small">이미지<br>클릭 · 끌어다 놓기 · 붙여넣기</span>'}</div>
    <div style="display:flex;flex-direction:column;gap:6px;min-width:0"><div class="row"><label class="btn sm" for="pimg-${id}" tabindex="0" role="button" data-kbd>이미지 삽입</label><input type="file" id="pimg-${id}" accept="image/*" data-pimg="${ti}.${pi}" hidden>${p.image?`<button class="btn sm ghost" data-act="noPimg" data-i="${ti}" data-j="${pi}">제거</button>`:''}</div>
@@ -1465,10 +1534,10 @@ function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=idx.items.get(
   </div>
   <div class="fgrid" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)">
    <div class="lbl">특성<button class="pickbtn" data-act="pickAbil" data-i="${ti}" data-j="${pi}">${p.ability?`<b>${esc(p.ability)}</b><span class="sp"></span><span class="faint small">${ab?'소켓 '+esc(ab[0]):'DB에 없음'}</span>`:'<span class="ph0">특성 검색…</span>'}</button></div>
-   <div class="lbl">소지품<button class="pickbtn" data-act="pickItem" data-i="${ti}" data-j="${pi}">${p.item?`<b>${esc(p.item)}</b>${ilockChip(p.item)}<span class="sp"></span><span class="faint small">${it?'소켓 '+esc(it[5]):'DB에 없음'}</span>`:'<span class="ph0">소지품 검색…</span>'}</button></div>
+   <div class="lbl">소지품<button class="pickbtn" data-act="pickItem" data-i="${ti}" data-j="${pi}">${p.item?`<b>${esc(p.item)}</b>${ilockChip(p.item)}<span class="sp"></span><span class="faint small">${own?'오리지널 · 시트에만':it?'소켓 '+esc(it[5]):'DB에 없음'}</span>`:'<span class="ph0">소지품 검색…</span>'}</button></div>
   </div>
   ${ab?`<div class="effbox"><b>${esc(p.ability)}</b> ${rich(ab[2])}<span class="fxrow">${fxAutoBtn(p,'trait',p.ability,ti,pi)}</span></div>`:p.ability?`<div class="effbox">DB에 없는 특성입니다. <button class="btn sm" data-act="newAbil" data-i="${ti}" data-j="${pi}">이 이름으로 오리지널 특성 만들기</button><span class="fxrow">${fxAutoBtn(p,'trait',p.ability,ti,pi)}</span></div>`:''}
-  ${it?`<div class="effbox"><b>${esc(p.item)}</b> ${rich(it[4])} ${it[6]&&it[6]!=='-'?`<span class="faint">· ${esc(it[6])}</span>`:''}<span class="fxrow">${fxAutoBtn(p,'item',p.item,ti,pi)}</span></div>`:p.item?`<div class="effbox"><b>${esc(p.item)}</b><span class="fxrow">${fxAutoBtn(p,'item',p.item,ti,pi)}</span></div>`:''}
+  ${it?`<div class="effbox"><b>${esc(p.item)}</b> ${rich(it[4])} ${own?`<span class="faint">· 오리지널 (이 포켓몬만 · DB 에 없음)${it[3]==='O'?' · 소모품':''}</span> <button class="btn sm" data-act="ownItem" data-i="${ti}" data-j="${pi}">수정</button>`:it[6]&&it[6]!=='-'?`<span class="faint">· ${esc(it[6])}</span>`:''}<span class="fxrow">${fxAutoBtn(p,'item',p.item,ti,pi)}</span></div>`:p.item?`<div class="effbox"><b>${esc(p.item)}</b> DB에 없는 소지품입니다. <button class="btn sm" data-act="ownItem" data-i="${ti}" data-j="${pi}">이 포켓몬만 쓰는 오리지널로 효과 적기</button><span class="fxrow">${fxAutoBtn(p,'item',p.item,ti,pi)}</span></div>`:''}
   ${formsHtml(t,ti,p,pi,P)}
  </div>
  <div class="panel" style="min-width:0"><h3>능력치<span class="sp"></span><span class="small muted">종족치 합 <b class="num">${tot}</b>${(()=>{const et=effB(t,p).reduce((a,b)=>a+(+b||0),0);return et!==tot?` → 특성 · 포텐셜 반영 <b class="num">${et}</b>`:''})()}${(()=>{const pl=planRange(p);if(!pl)return '';const ok=tot>=pl.lo&&tot<=pl.hi;return ` · 예정 <b class="num${ok?'':' warn'}">${pl.lo}${pl.hi!==pl.lo?'~'+pl.hi:''}</b>${pl.alt?' <span class="faint">(괄호 값)</span>':''}`})()}</span></h3>
@@ -1482,6 +1551,46 @@ function movesTab(t,ti,p,pi,P,c){const ms=p.moves;const over=c.cap!=null&&c.used
   <div class="st2">${r?esc(r[7]):'-'}<small>위력</small></div><div class="st2">${r?esc(r[8]):'-'}<small>명중</small></div><div class="st2">${r?esc(r[11]):'-'}<small>우선도</small></div><div class="st2">${moveSock(p,m)}<small>소켓</small></div>
   <div class="ef">${r?rich(r[13]):''}</div><div class="row mva" style="gap:2px;flex-wrap:nowrap"><label class="small row" title="「기술 할인점」 1점을 써서 이 기술의 소켓을 0.5 할인합니다 (올드 타입 계열은 교배기·유전기 습득용)" style="gap:2px"><input type="checkbox" data-p="${P}.moves.${i}.half" ${m.half?'checked':''}>할인</label>
   ${r?`<button class="btn sm ghost" data-act="mvEdit" data-name="${esc(m.name)}">수정</button>`:''}<button class="btn sm ghost danger" data-act="mvDel" data-i="${ti}" data-j="${pi}" data-k="${i}" aria-label="삭제">✕</button></div></div>`}).join('')||'<div class="empty">기술이 없습니다. 「기술 검색·추가」로 DB에서 찾거나 오리지널 기술을 만드세요.</div>'}</div>`}
+/* ---------- 상세 조정 탭 (10-22 망령): 이 포켓몬만의 상태 변화 사양 · 소지품 사양을 한곳에서 보고 고친다 ----------
+   p.tune = {st:[{st:'아쿠아링',v:'1/6'}], item:'소지품 구문(js/fx/itemrule.js 꼴)', itemName:'그 구문을 쓴 소지품'}
+   오레마스 import.js 가 st → 자동화 「상세 조정」의 「상태수정」 줄로, item → itemTune 으로 가져간다. 효과 글 · 「구문」 버튼으로 걸어 둔 것도 같이 보여 준다 */
+const TUNE_ST=[['아쿠아링','AquaRing',1,8,'회복'],['뿌리박기','Ingrain',1,16,'회복'],['환희의노래','Chant',1,16,'회복'],['희망사항','Wish',1,2,'회복'],['씨뿌리기','LeechSeed',1,8,'흡수'],['독','Poison',1,8,'대미지'],['화상','Burn',1,16,'대미지'],['악몽','Nightmare',1,4,'대미지'],['저주','Curse',1,4,'대미지'],['조이기','Bind',1,8,'대미지']];
+const FRAC_RE=/^\s*(\d+)\s*\/\s*(\d+)\s*$/;
+function tuneOf(p){let t=p.tune;if(!t||typeof t!=='object')t=p.tune={};if(!Array.isArray(t.st))t.st=[];t.st=t.st.filter(x=>x&&TUNE_ST.some(r=>r[0]===x.st));t.item=String(t.item||'');t.itemName=String(t.itemName||'');return t}
+function tuneDsl(p){return tuneOf(p).st.filter(x=>FRAC_RE.test(x.v||'')&&+String(x.v).split('/')[1]>0).map(x=>`상태수정 ${x.st} ${String(x.v).replace(/\s+/g,'')}`).join('\n')}
+function tuneCount(p){const t=tuneOf(p);return t.st.length+(t.item.trim()?1:0)}
+/* 배틀 쪽 OM_FX.stMod 가 읽는 꼴로 시트를 옮겨 그대로 물어본다 (상세 조정 칸은 빼고: 글 · 구문에서 온 것만) */
+function tuneMon(p){const K=OM_FX;const auto={};for(const k in (p.auto||{})){const v=String(p.auto[k]||'').trim();if(v)auto[FXK(k)]={dsl:v,ops:K.parse(v).ops}}
+ const ab=idx.abil.get(p.ability),it=itemRow(p);
+ return {auto,pots:p.pots.map((n,i)=>n&&n!=='-'?{name:String(n).replace(/『|』/g,''),eff:potEffOf(p,i)}:null).filter(Boolean),excl:p.excl&&p.excl.name?{name:p.excl.name,eff:p.excl.eff||''}:null,exclX:(p.exclX||[]).filter(x=>x&&x.name),ability:p.ability||'',abilityEff:ab?ab[2]:'',item:p.item||'',itemEff:it?it[4]:''}}
+function tuneItemBase(p){const it=itemRow(p);const IR=window.OM_ITEMRULE;if(!it||!IR)return '';try{return IR.toText(IR.ruleOf(p.item,{eff:it[4],auto:it[7]||''}))}catch(e){return ''}}
+function tuneItemPrev(dsl){const IR=window.OM_ITEMRULE;if(!IR||!dsl.trim())return '<span class="faint">비어 있음 — 소지품 DB 의 구문(없으면 효과 글)을 그대로 쓴다</span>';const r=IR.parse(dsl);const tx=IR.toText(r.rule);return (tx?`<b>읽은 결과</b><pre class="tpre">${esc(tx)}</pre>`:'<span class="warn">읽은 규칙이 없다</span>')+(r.errs.length?`<div class="warn">모르는 줄: ${esc(r.errs.join(' / '))}</div>`:'')}
+function tuneTab(t,ti,p,pi){const T=tuneOf(p);const ok=fxReady();const D=`data-i="${ti}" data-j="${pi}"`;
+ const mon=ok?tuneMon(p):null;
+ const rows=TUNE_ST.map(([ko,en,n,d,kind])=>{const tu=T.st.find(x=>x.st===ko);let src=null;try{src=mon?OM_FX.stMod(mon,en):null}catch(e){}
+  if(!tu&&!src)return '';const fin=tu&&FRAC_RE.test(tu.v)?String(tu.v).replace(/\s+/g,''):src?`${src.n}/${src.d}`:`${n}/${d}`;
+  return `<tr><td><b>${esc(ko)}</b> <span class="small muted">${kind}</span></td><td class="mono">${n}/${d}</td><td>${src?`<span class="mono">${src.n}/${src.d}</span> <span class="small muted">『${esc(src.name)}』</span>`:'<span class="faint">—</span>'}</td>
+   <td>${tu?`<span class="row" style="gap:4px;flex-wrap:nowrap"><input class="mono" data-tunest="${esc(ko)}" ${D} value="${esc(tu.v)}" style="width:64px" inputmode="numeric"><button class="btn sm ghost danger" data-act="tuneDel" ${D} data-k="${esc(ko)}" aria-label="지우기">✕</button></span>`:'<span class="faint">—</span>'}</td><td class="mono"><b>${esc(fin)}</b></td></tr>`}).join('');
+ const left=TUNE_ST.filter(r=>!T.st.some(x=>x.st===r[0]));
+ const it=itemRow(p);const base=ok?tuneItemBase(p):'';const stale=T.item.trim()&&T.itemName&&T.itemName!==p.item;
+ const autos=Object.entries(p.auto||{}).filter(([k,v])=>String(v||'').trim());const td=tuneDsl(p);
+ return `<div class="tune">
+ <section class="tbox"><div class="row"><b>상태 변화 사양</b><span class="small muted">이 포켓몬만 · 배틀의 턴 종료 회복 · 대미지 계산에 쓰인다</span></div>
+  ${ok?'':'<p class="small warn">자동화 구문 스크립트를 불러오는 중이라 효과 글에서 읽은 것은 아직 못 보여 준다</p>'}
+  ${rows?`<div class="tscroll"><table class="ttbl"><thead><tr><th>상태</th><th>기본</th><th>효과 글 · 구문</th><th>상세 조정</th><th>배틀</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<p class="small faint" style="margin:6px 0">바뀐 상태 변화가 없다 — 모두 기본값</p>'}
+  ${left.length?`<div class="row" style="margin-top:6px;gap:6px"><select data-tuneadd="${p.id}">${left.map(([ko,en,n,d])=>`<option value="${esc(ko)}">${esc(ko)} (기본 ${n}/${d})</option>`).join('')}</select><input class="mono" data-tuneaddv="${p.id}" placeholder="1/6" style="width:64px" inputmode="numeric"><button class="btn pri sm" data-act="tuneAdd" ${D}>+ 추가</button></div>`:''}
+  <p class="small faint" style="margin:6px 0 0">효과 글에 「아쿠아링」에 의한 회복량을 강화(1/8 → 1/6) 처럼 적어 두거나 「구문」에 상태수정 아쿠아링 1/6 을 써도 여기 잡힌다. 상세 조정 칸이 있으면 그것을 먼저 쓴다.</p></section>
+ <section class="tbox"><div class="row"><b>소지품 사양</b>${p.item?`<span class="kindb">${esc(p.item)}</span>`:''}<span class="small muted">이 포켓몬이 들었을 때만</span></div>
+  ${!p.item?'<p class="small faint" style="margin:6px 0">소지품이 없다</p>':`
+  ${it?`<div class="small" style="margin:6px 0">${rich(it[4])}</div>`:''}
+  ${base?`<details class="small"><summary>소지품 DB 구문 ${it&&String(it[7]||'').trim()?'':'(효과 글에서 읽은 것)'}</summary><pre class="tpre">${esc(base)}</pre></details>`:''}
+  ${stale?`<p class="small warn">『${esc(T.itemName)}』용으로 적은 구문이다 — 지금 소지품과 달라 배틀에서 쓰이지 않는다</p>`:''}
+  <textarea data-tuneitem="${p.id}" ${D} rows="3" placeholder="비우면 소지품 DB 구문 그대로 · 예) 턴 종료: 회복 1/8" style="width:100%;font-family:var(--mono,monospace);font-size:12.5px;margin-top:6px">${esc(T.item)}</textarea>
+  <div class="small" id="tunePrev-${p.id}" style="margin-top:4px">${ok?tuneItemPrev(T.item):''}</div>
+  <div class="row" style="margin-top:6px;gap:6px">${base?`<button class="btn sm" data-act="tuneItemCopy" ${D}>DB 구문 가져와 고치기</button>`:''}${T.item.trim()?`<button class="btn sm ghost" data-act="tuneItemClr" ${D}>비우기</button>`:''}<span class="sp"></span><span class="small muted">구문 꼴은 테이블 탭 · 소지품 DB 「구문」과 같다</span></div>`}</section>
+ <section class="tbox"><div class="row"><b>걸어 둔 자동화 구문</b><span class="small muted">포텐셜 · 특성 · 소지품 칸의 「구문」 버튼에서 고친다</span></div>
+  ${autos.length||td?`<div class="tauto">${autos.map(([k,v])=>`<div><span class="kindb">${esc(k)}</span><pre class="tpre">${esc(String(v).trim())}</pre></div>`).join('')}${td?`<div><span class="kindb">상세 조정</span><pre class="tpre">${esc(td)}</pre></div>`:''}</div>`:'<p class="small faint" style="margin:6px 0">없다 (같은 이름의 레디메이드가 있으면 그것이 돈다)</p>'}</section>
+ </div>`}
 function potsTab(t,ti,p,pi){const exE=p.excl.eff;
  return `<div class="potl" data-sort="pots" data-i="${ti}" data-j="${pi}"><div class="pot excl ${p.excl.name?'':'vac'}" tabindex="0" role="button" data-kbd data-act="editPot" data-i="${ti}" data-j="${pi}" data-k="excl"><span class="sl">전용</span><span class="pn">${esc(p.excl.name||'전용 포텐셜 · 눌러서 작성')}</span><span class="pe">${rich(exE)}${banHits(exE).length?' <span class="warn">금지어</span>':''}</span><span class="row" style="gap:2px;flex-wrap:nowrap">${fxAutoBtn(p,'pot',p.excl.name,ti,pi,'excl')}</span></div>
  ${(p.exclX||[]).map((x,xi)=>`<div class="pot excl ${x.name?'':'vac'}" tabindex="0" role="button" data-kbd data-act="editPot" data-i="${ti}" data-j="${pi}" data-k="x${xi}"><span class="sl">전용 ${xi+2}</span><span class="pn">${esc(x.name||'추가 전용 포텐셜 · 눌러서 작성')}</span><span class="pe">${rich(x.eff)}${banHits(x.eff).length?' <span class="warn">금지어</span>':''}</span><span class="row" style="gap:2px;flex-wrap:nowrap">${fxAutoBtn(p,'pot',x.name,ti,pi,'x'+xi)}<button class="btn sm ghost danger" data-act="potDel" data-i="${ti}" data-j="${pi}" data-k="x${xi}" aria-label="전용 칸 지우기">✕</button></span></div>`).join('')}
@@ -1503,14 +1612,19 @@ function withFocus(fn){const f=document.activeElement;const key=focusKey(f);let 
  fn();if(!key)return;const n=document.querySelector(key);if(n&&n!==document.activeElement){n.focus({preventScroll:true});try{if(ss!=null)n.setSelectionRange(ss,se)}catch(e){}}}
 function refreshTrainer(t){if(rfBusy)return;const ti=S.trainers.indexOf(t);const el=$('#tr-'+t.id);if(!el||!el.parentNode||ti<0)return renderChar();
  rfBusy=true;try{withFocus(()=>{try{el.outerHTML=trainerHTML(t,ti)}catch(e){renderChar()}})}finally{rfBusy=false}}
-function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v=20261022';return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=20261022b';return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
+/* 로그 정리기 iframe 을 남은 창 높이에 딱 맞춘다 (휴대폰 아래 탭 막대는 뺀다) — 제작기 쪽은 스크롤이 없고 정리기 안에서만 스크롤 */
+function fitLog(){const f=$('#logFrame');const v=$('#v-log');if(!f||!v||v.hidden)return;const top=f.getBoundingClientRect().top+window.scrollY;let bot=0;const tb=$('#mk .tabs');if(tb){const r=tb.getBoundingClientRect();if(getComputedStyle(tb).position==='fixed'&&r.top>innerHeight/2)bot=r.height}f.style.height=Math.max(420,Math.floor(innerHeight-top-bot))+'px'}
+addEventListener('resize',()=>{clearTimeout(fitLog.t);fitLog.t=setTimeout(fitLog,80)});
+function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v=20261024';requestAnimationFrame(fitLog);return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=20261022b';return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
 let rT=null;
 let composing=false;
 $('#v-char').addEventListener('compositionstart',()=>{composing=true;clearTimeout(rT)});
 $('#v-char').addEventListener('compositionend',e=>{composing=false;const t=trOf(e.target);if(t&&e.target.tagName!=='TEXTAREA'){clearTimeout(rT);rT=setTimeout(()=>refreshTrainer(t),550)}});
-$('#v-char').addEventListener('input',e=>{const p=e.target.dataset.p;if(!p)return;const[o,k]=getRef(p);if(!o)return;o[k]=e.target.type==='checkbox'?e.target.checked:e.target.value;save();
+$('#v-char').addEventListener('input',e=>{if(e.target.dataset.tuneitem){const t=S.trainers[+e.target.dataset.i];const P=t&&t.pokemon[+e.target.dataset.j];if(!P)return;const T0=tuneOf(P);T0.item=e.target.value;T0.itemName=T0.item.trim()?P.item:'';save();const pv=$('#tunePrev-'+P.id);if(pv&&fxReady())pv.innerHTML=tuneItemPrev(T0.item);return}
+ const p=e.target.dataset.p;if(!p)return;const[o,k]=getRef(p);if(!o)return;o[k]=e.target.type==='checkbox'?e.target.checked:e.target.value;save();
  const t=trOf(e.target);if(e.target.tagName==='TEXTAREA'||e.isComposing||composing)return;clearTimeout(rT);rT=setTimeout(()=>t&&refreshTrainer(t),550)});
 $('#v-char').addEventListener('change',e=>{const el=e.target;
+ if(el.dataset.tunest){const t=S.trainers[+el.dataset.i];const P=t&&t.pokemon[+el.dataset.j];if(!P)return;const v=el.value.replace(/\s+/g,'');const x=tuneOf(P).st.find(q=>q.st===el.dataset.tunest);if(!x)return;if(!FRAC_RE.test(v)||!(+v.split('/')[1]>0)){toast('비율을 1/6 처럼 적어 주세요');el.value=x.v;return}x.v=v;save();refreshTrainer(t);return}
  if(el.dataset.sfiles){const fs=[...el.files];el.value='';stUpload(el.dataset.sfiles,fs);return}
  if(el.dataset.srep||el.dataset.sl!=null||el.dataset.spt!=null||el.dataset.skd!=null){const ref=el.dataset.srep||el.dataset.sl||el.dataset.spt||el.dataset.skd;const c=ref.lastIndexOf(':');const R=stRef(ref.slice(0,c));const s=R.o&&(R.o.stands||[])[+ref.slice(c+1)];if(!s)return;
   if(el.dataset.srep){const f=el.files[0];el.value='';if(!f)return;toast('올리는 중…');uploadStand(R.o,f).then(u=>{s.src=u;save();refreshTrainer(R.t);toast('그림을 바꿨습니다')}).catch(er=>toast('올리지 못했습니다: '+er.message));return}
@@ -1614,6 +1728,10 @@ $('#v-char').addEventListener('click',async e=>{
   case 'addU':T.unique.push({name:'',eff:''});rf();openPotEditor(T,null,{unique:T.unique.length-1});break;
   case 'editU':if(e.target.closest('[data-act="delU"],[data-act="decoU"]'))break;openPotEditor(T,null,{unique:j});break;
   case 'delU':e.stopPropagation();T.unique.splice(j,1);rf();break;
+  case 'tuneAdd':{const sel=$(`[data-tuneadd="${P.id}"]`),vi=$(`[data-tuneaddv="${P.id}"]`);const v=String((vi||{}).value||'').replace(/\s+/g,'');if(!sel||!FRAC_RE.test(v)||!(+v.split('/')[1]>0)){toast('비율을 1/6 처럼 적어 주세요');break}tuneOf(P).st.push({st:sel.value,v});rf();toast(`「${sel.value}」 ${v} — 이 포켓몬만`);break}
+  case 'tuneDel':{const T0=tuneOf(P);T0.st=T0.st.filter(x=>x.st!==b.dataset.k);rf();break}
+  case 'tuneItemCopy':{const T0=tuneOf(P);const bs=tuneItemBase(P);if(T0.item.trim()&&!await ask('지금 적어 둔 소지품 구문을 DB 구문으로 바꿀까요?','바꾸기'))break;T0.item=bs;T0.itemName=P.item;rf();break}
+  case 'tuneItemClr':{const T0=tuneOf(P);T0.item='';T0.itemName='';rf();break}
   case 'addP':{const p=newPoke();applySheetTpl(T,p);T.pokemon.push(p);rf();break}
   case 'stpl':{const n=applySheetTpl(T,P);rf();toast(n?`템플릿 포텐셜 ${n}개를 넣었습니다`:'더 넣을 템플릿 포텐셜이 없습니다');break}
   case 'delP':if(await ask(`포켓몬 시트 「${esc(P.name||'이름 없음')}」을(를) 삭제할까요?`,'삭제')){T.pokemon.splice(j,1);rf()}break;
@@ -1653,7 +1771,8 @@ $('#v-char').addEventListener('click',async e=>{
   case 'impText':openImport(null);break;
   case 'pickAbil':openPicker('abil',{onPick:n=>{P.ability=n;rf()}});break;
   case 'newAbil':openEdit('abil',-1,{preset:{1:P.ability},onSaved:n=>{P.ability=n;rf()}});break;
-  case 'pickItem':openPicker('items',{onPick:n=>{P.item=n;rf()}});break;
+  case 'pickItem':openPicker('items',{onPick:n=>{P.item=n;rf()},onOrig:q=>openOwnItem(P,q,()=>{closeModal();rf()})});break;
+  case 'ownItem':openOwnItem(P,P.item,rf);break;
   case 'pickMove':openPicker('moves',{title:'기술 검색·추가',multi:true,chosen:()=>new Set(P.moves.map(m=>m.name)),onPick:n=>{P.moves.push({name:n,half:false});rf()},onRemove:n=>{P.moves=P.moves.filter(m=>m.name!==n);rf()}});break;
   case 'mvDel':P.moves.splice(+k,1);rf();break;
   case 'mvEdit':{const n=b.dataset.name;const ix=S.db.moves.findIndex(r=>r[2]===n);if(ix>=0)openEdit('moves',ix,{onSaved:()=>renderChar()});break}
@@ -2243,7 +2362,7 @@ const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)
 function fnv(s){let h=2166136261;for(const c of String(s)){h^=c.codePointAt(0);h=Math.imul(h,16777619)>>>0}return h.toString(16)}
 function keySeg(k){const h=[...new TextEncoder().encode(String(k))].map(b=>b.toString(16).padStart(2,'0')).join('');return h.length<=180?h:'h'+fnv(k)+h.slice(0,40)}
 /* 오레마스가 시트를 가져갈 때 쓰는 효과 글 사본 (10-21 망령): 특성·포텐셜이 오레마스 DB 에 없거나 제작기에서 새로 만든 것이어도 시트에 보이는 글 그대로 */
-function effSnap(p){try{const ab=p.ability?idx.abil&&idx.abil.get(p.ability):null;return {ab:ab?String(ab[2]||''):'',pots:(p.pots||[]).map((n,i)=>n&&n!=='-'?String(potEffOf(p,i)||''):''),kinds:(p.pots||[]).map((n,i)=>n&&n!=='-'?String(potKindOf(p,i)||''):'')}}catch(e){return null}}
+function effSnap(p){try{const ab=p.ability?idx.abil&&idx.abil.get(p.ability):null;const it=itemRow(p);return {ab:ab?String(ab[2]||''):'',it:it?String(it[4]||''):'',itAuto:it?String(it[7]||''):'',itCons:it&&it[3]==='O'?1:0,pots:(p.pots||[]).map((n,i)=>n&&n!=='-'?String(potEffOf(p,i)||''):''),kinds:(p.pots||[]).map((n,i)=>n&&n!=='-'?String(potKindOf(p,i)||''):'')}}catch(e){return null}}
 function stripUI(o){const c={};for(const k in o){if(UIK.has(k)||k[0]==='_'||k==='pokemon')continue;c[k]=clone(o[k])}return c}
 let DEFJ=null,DEFJN=-1;function defJ(){const rn=(DEF.rm||[]).length*100000+(DEF.st||[]).length;if(DEFJ&&DEFJN===rn)return DEFJ;DEFJN=rn;DEFJ={};for(const k in DBS){const m=new Map();for(const r of DEF[k]||[]){const key=r[DBS[k].key];if(key!==''&&!m.has(key))m.set(key,JSON.stringify(r))}DEFJ[k]=m}return DEFJ}
 function dbEditDocs(out=new Map()){const dj=defJ();

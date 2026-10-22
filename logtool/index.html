@@ -1636,5 +1636,34 @@ async function seedSample(){
 })();
 </script>
 <!-- ===== 제작기 연동 끝 ===== -->
+<!-- ===== 접는 패널 · 제작기 안 화면 (2026-10-22 망령) =====
+  · 「오레마스 방 불러오기」 · 「토큰 이미지 자동 연결」 칸은 제목을 눌러 접는다 (이 브라우저에 기억)
+  · 제작기 「로그 정리기」 탭 안에서 열리면(html.embed) 제목 줄을 빼고 화면 폭을 다 쓴다 — 제작기가 iframe 을 창 높이에 맞춘다 -->
+<style>
+.rail .panel.foldable>h2,.rail .panel.foldable>.row:first-child h2{cursor:pointer;user-select:none}
+.rail .panel.foldable .fdh{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.rail .panel.foldable .fdh::after{content:"－";color:var(--muted);font-size:.8rem}
+.rail .panel.foldable.folded .fdh::after{content:"＋"}
+.rail .panel.foldable.folded>*:not(.fdh){display:none}
+.rail .panel.foldable.folded{gap:0}
+html.embed .app{max-width:none;padding-block:10px 60px;padding-inline:14px;grid-template-columns:320px minmax(0,1fr);gap:16px}
+html.embed .brand{display:none}
+html.embed .rail{top:10px;max-height:calc(100vh - 20px);scrollbar-width:thin}
+html.embed .main>.bar{position:sticky;top:0;z-index:6;background:var(--bg);padding-block:8px;margin-top:-8px}
+@media (max-width:900px){html.embed .app{grid-template-columns:minmax(0,1fr)}html.embed .rail{position:static;max-height:none}}
+</style>
+<script>
+(()=>{
+ try{if(window.parent!==window&&typeof window.parent.MKM_CHARS==='function')document.documentElement.classList.add('embed')}catch(e){}
+ const LS='mtlog_fold';let st={};try{st=JSON.parse(localStorage.getItem(LS)||'{}')||{}}catch(e){}
+ const save=()=>{try{localStorage.setItem(LS,JSON.stringify(st))}catch(e){}};
+ const FOLD=['오레마스 방 불러오기','토큰 이미지 자동 연결'];
+ const setup=()=>{for(const p of document.querySelectorAll('.rail section.panel')){if(p.classList.contains('foldable'))continue;const h=p.querySelector(':scope>h2');if(!h)continue;const name=h.textContent.trim();if(!FOLD.includes(name))continue;
+   const hd=document.createElement('div');hd.className='fdh';hd.setAttribute('role','button');hd.tabIndex=0;h.replaceWith(hd);hd.appendChild(h);p.classList.add('foldable');if(st[name])p.classList.add('folded');
+   const tog=()=>{p.classList.toggle('folded');st[name]=p.classList.contains('folded');save()};hd.onclick=tog;hd.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog()}}}};
+ setup();setTimeout(setup,300);
+})();
+</script>
+<!-- ===== 접는 패널 끝 ===== -->
 
 </body></html>

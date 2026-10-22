@@ -18,13 +18,17 @@ window.OM_FX_UI=(()=>{
 날씨 비 5 · 날씨 해제        필드 그래스필드 5 · 룸 트릭룸 5 · 필드상태 중력 5        설치기 [아군|상대] 리플렉터 5
 타입 [대상] 추가|변경|원래 불꽃,비행        특성 [대상] 변경 X · 특성 원래        역할 추가|제거 에이스,블로커        추격 [숨김]
 비례무시 [대상] [빈사|설치기|설치기피해|반동] [N턴]        우선도 +1 [대상] [타입:X] [물리|특수|변화] [태그:회복] [이번턴]
-면역 [대상] 잠듦,마비 · 면역 이상        감소무시 [대상] [공격] [N턴]        강화무시 [공격시|받음] [방어|회피|공격|양쪽]        하늘위 [대상] [N턴]
+면역 [대상] 잠듦,마비 · 면역 이상        감소무시 [대상] [공격] [N턴]        강화무시 [공격시|받음|양방향] [방어|회피|공격|양쪽] [모두=하락도]        하늘위 [대상] [N턴]
+종족치 방어,특방 +1 · 종족치 스피드 최대 (시트 종족치에 반영)        상태수정 아쿠아링 1/6 (이 포켓몬의 상태 변화 비율)
+예고 미래예지 [위력 120] [기술 미래예지] [대상]        변신 [대상] [그림유지] · 변신 해제        철거 [상대|양쪽] [장벽|전부]        반드시교대 [대상] [N턴]
 확인 "조건 문장"  (발동 때 물어본다)        조건 아군빈사 · 조건 HP≤1/2        레이드 구간:4
 선택:   (여러 효과 중 하나 고르기 · 「선택 여럿:」 이면 여러 개를 고른다)
 - ① 라벨 → 랭크 공격+1
 - ② 라벨 → 회복 1/4
 효과 글의 표식: 【등장】 등장 때 자동 · 【상시】 처음 한 번 자동 · 【N/시】 횟수 · 드물게/저확률/중확률/고확률 확률 판정`;
- const KINDS=[['rank','랭크 변화'],['mult','배율 변화'],['boost','위력 강화'],['guard','위력 완화'],['state','상태 변화'],['statefx','상태 (확률)'],['cure','상태 치유'],['heal','HP 회복'],['dmg','HP 대미지'],['weather','날씨'],['terrain','필드·룸'],['etc','필드의 상태'],['object','설치기'],['type','타입 변경'],['trait','특성 변경'],['prio','우선도'],['immune','상태 면역'],['nodrop','감소 무시'],['ignoreup','강화 무시'],['noind','비례 대미지/설치기 무시'],['float','하늘 위'],['role','역할 취급'],['pursuit','추격'],['confirm','조건 확인'],['cond','조건 (자동)']];
+ const KINDS=[['rank','랭크 변화'],['mult','배율 변화'],['boost','위력 강화'],['guard','위력 완화'],['state','상태 변화'],['statefx','상태 (확률)'],['cure','상태 치유'],['heal','HP 회복'],['dmg','HP 대미지'],['weather','날씨'],['terrain','필드·룸'],['etc','필드의 상태'],['object','설치기'],['type','타입 변경'],['trait','특성 변경'],['prio','우선도'],['immune','상태 면역'],['nodrop','감소 무시'],['ignoreup','강화 무시'],['noind','비례 대미지/설치기 무시'],['float','하늘 위'],['role','역할 취급'],['pursuit','추격'],['confirm','조건 확인'],['cond','조건 (자동)'],['baseup','종족치 (시트)'],['stmod','상태 변화 수치'],['future','예고 공격 (미래예지)'],['transform','변신'],['reset','랭크 · 배율 초기화'],['resetst','상태 초기화'],['clearobj','설치기 · 장벽 철거'],['freesw','반드시 교대']];
+ const BU_STS=['HP','공격','방어','특공','특방','스피드'];
+ const STMOD_STS=[['아쿠아링','1/8'],['뿌리박기','1/16'],['환희의노래','1/16'],['희망사항','1/2'],['씨뿌리기','1/8'],['독','1/8'],['화상','1/16'],['악몽','1/4'],['저주','1/4'],['조이기','1/8']];
  const TG=['self','ally','enemy','others','all','ally1','adj','enemy1','randother','randenemy','randall','area'];
  const TYPES=['Normal','Fire','Water','Electric','Grass','Ice','Fighting','Poison','Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark','Steel','Fairy'];
  const STATS=['attack','defense','specialattack','specialdefense','speed','accuracy','evasion','critical','critical_buff'];
@@ -57,12 +61,20 @@ window.OM_FX_UI=(()=>{
    case 'prio':return `<div class="row">대상 ${tgSel('g_tgt')} <label>우선도 <input type="number" step="0.5" class="n xs" data-g="v" value="1"></label> ${sel('g_mode',[['add','더하기'],['set','고정'],['off','해제']],'add')} 분류 ${sel('g_cat',[['all','모두'],['물리','물리'],['특수','특수'],['변화','변화']],'all')} 타입 ${tySel('g_type','', '제한 없음')} <label>태그 <input type="text" data-g="tag" placeholder="회복,드레인"></label> ${sel('g_dur',[['keep','해제 전까지'],['turn','이번 턴']],'keep')}</div>`;
    case 'immune':return `<div class="row">대상 ${tgSel('g_tgt')} <label>상태 (쉼표) <input type="text" data-g="states" placeholder="잠듦,마비 · 이상"></label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
    case 'nodrop':return `<div class="row">대상 ${tgSel('g_tgt')} 능력 ${sel('g_st',[['','모든 능력'],...STATS.slice(0,7).map(k=>[k,ko[k]])],'')} <label>턴 <input type="number" class="n xs" data-g="turns" value="-1"></label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
-   case 'ignoreup':return `<div class="row">${sel('g_dir',[['atk','공격할 때 상대의'],['recv','받을 때 상대의']],'atk')} ${sel('g_scope',[['both','방어·회피'],['def','방어'],['eva','회피'],['atk','공격']],'both')} 상승 무시 <label>역할 상대 <input type="text" data-g="ro" placeholder="에이스"></label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
+   case 'ignoreup':return `<div class="row">${sel('g_dir',[['atk','공격할 때 상대의'],['recv','받을 때 상대의'],['both','주고받을 때 상대의 (천진)']],'atk')} ${sel('g_scope',[['both','방어·회피'],['def','방어'],['eva','회피'],['atk','공격']],'both')} 상승 무시 <label><input type="checkbox" data-g="all"> 하락도 (랭크 변화 모두 · 천진)</label> <label>역할 상대 <input type="text" data-g="ro" placeholder="에이스"></label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
    case 'noind':return `<div class="row">대상 ${tgSel('g_tgt')} ${sel('g_kind',[['','비례 대미지를 받지 않는다'],['noko','비례 대미지로는 빈사가 되지 않는다'],['hazard','설치기를 무시한다'],['hazdmg','설치기의 비례 대미지를 받지 않는다'],['recoil','반동 비례 대미지를 받지 않는다'],['switch','강제 교대를 받지 않는다']],'')} <label>턴 <input type="number" class="n xs" data-g="turns" value="-1"></label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
    case 'float':return `<div class="row">대상 ${tgSel('g_tgt')} <label>턴 <input type="number" class="n xs" data-g="turns" value="-1"></label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
    case 'role':return `<div class="row">${sel('g_mode',[['add','추가'],['remove','제거'],['clear','초기화']],'add')} <label>역할 (쉼표) <input type="text" data-g="roles" placeholder="에이스,블로커"></label></div>`;
    case 'pursuit':return `<div class="row"><label><input type="checkbox" data-g="imm"> 추격 무시 (교대해도 상대의 추격을 받지 않는다)</label> <label>대상 ${tgSel('g_tgt')}</label> <label><input type="checkbox" data-g="hide"> 숨김</label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
    case 'confirm':return `<div class="row"><label>조건 문장 <input type="text" data-g="q" placeholder="자신이 「특성 : ○○오라」일 때" style="width:360px"></label></div>`;
+   case 'baseup':return `<div class="row">${BU_STS.map(s=>`<label><input type="checkbox" data-g="bu_${s}"> ${s}</label>`).join(' ')}</div><div class="row">${sel('g_bm',[['up','랭크 상승'],['down','랭크 감소'],['max','범위 최대화']],'up')} <label>랭크 <input type="number" class="n xs" data-g="n" value="1" min="1"></label></div><div class="small dim">제작기 시트의 종족치 · 실수치 · 합계에 바로 들어간다 (1랭크 = 한 등급, C→B). 배틀 중엔 바뀌지 않는다</div>`;
+   case 'stmod':return `<div class="row">${sel('g_sm',STMOD_STS.map(([k,d])=>[k,k+' (기본 '+d+')']),'아쿠아링')} → <label>비율 <input type="text" class="n xs" data-g="frac" value="1/6"></label></div><div class="small dim">이 포켓몬이 그 상태일 때 턴 종료 회복 · 대미지 비율을 바꾼다 (시트에 적어 두는 값)</div>`;
+   case 'future':return `<div class="row"><label>상태 <input type="text" data-g="st" value="미래예지" style="width:90px"></label> <label>위력 <input type="number" class="n xs" data-g="pow" value="0" title="0 = 기술 위력"></label> <label>기술 <input type="text" data-g="mv" placeholder="미래예지" style="width:90px"></label> 대상 ${tgSel('g_tgt','enemy1')}</div><div class="small dim">다음 턴 가장 마지막에 대미지 계산 (공격 창의 「지연」 기술은 자동으로 건다)</div>`;
+   case 'transform':return `<div class="row">대상 ${tgSel('g_tgt','enemy1')} <label><input type="checkbox" data-g="keep"> 그림 유지</label> <label><input type="checkbox" data-g="off"> 변신 해제</label></div>`;
+   case 'reset':return `<div class="row">${sel('g_rw',[['all','랭크 · 배율 전부'],['rank','랭크만'],['mult','배율만']],'all')} 대상 ${tgSel('g_tgt')}</div>`;
+   case 'resetst':return `<div class="row">대상 ${tgSel('g_tgt')} <label><input type="checkbox" data-g="all"> 부정 상태 전부 (끄면 상태 이상만)</label></div>`;
+   case 'clearobj':return `<div class="row">${sel('g_cs',[['self','자기 쪽'],['enemy','상대 쪽'],['both','양쪽']],'self')} ${sel('g_cw',[['hazard','설치기'],['wall','장벽'],['all','전부']],'hazard')}</div>`;
+   case 'freesw':return `<div class="row">대상 ${tgSel('g_tgt')} <label>턴 <input type="number" class="n xs" data-g="turns" value="-1"></label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
    case 'cond':return `<div class="row">${sel('g_c',[['ally_fainted','「빈사」 상태인 아군이 있을 때'],['hp_le','HP 가 비율 이하일 때']],'ally_fainted')} <label>비율 <input type="text" class="n xs" data-g="frac" value="1/2"></label></div>`;
   }return ''}
  function genLine(kind,md){const K=FX();const g=k=>{const el=md.querySelector(`[data-g="${k}"]`);return el?(el.type==='checkbox'?el.checked:el.value):''};const s=id=>{const el=$('#'+id,md);return el?el.value:''};const tg=t=>t&&t!=='self'?' '+K.TGT_KO[t].replace(/\s/g,''):'';const tga=t=>' '+K.TGT_KO[t||'enemy1'].replace(/\s/g,'');
@@ -84,12 +96,20 @@ window.OM_FX_UI=(()=>{
    case 'prio':{const m=s('g_mode');return '우선도 '+(m==='set'?'=':(+g('v')>0?'+':''))+(+g('v')||0)+tg(s('g_tgt'))+(s('g_type')?' 타입:'+K.TYPE_KO[s('g_type')]:'')+(s('g_cat')!=='all'?' '+s('g_cat'):'')+(g('tag')?' 태그:'+tyK(g('tag')):'')+(s('g_dur')==='turn'?' 이번턴':'')+(m==='off'?' 해제':'')}
    case 'immune':return '면역'+tg(s('g_tgt'))+' '+(tyK(g('states'))||'이상')+(g('off')?' 해제':'');
    case 'nodrop':return '감소무시'+tg(s('g_tgt'))+(s('g_st')?' '+K.STAT_KO[s('g_st')]:'')+(+g('turns')>0?' '+g('turns')+'턴':'')+(g('off')?' 해제':'');
-   case 'ignoreup':return '강화무시 '+(s('g_dir')==='recv'?'받음':'공격시')+' '+({both:'양쪽',def:'방어',eva:'회피',atk:'공격'})[s('g_scope')]+(tyK(g('ro'))?' 역할:'+tyK(g('ro')):'')+(g('off')?' 해제':'');
+   case 'ignoreup':return '강화무시 '+(s('g_dir')==='both'?'양방향':s('g_dir')==='recv'?'받음':'공격시')+' '+({both:'양쪽',def:'방어',eva:'회피',atk:'공격'})[s('g_scope')]+(g('all')?' 모두':'')+(tyK(g('ro'))?' 역할:'+tyK(g('ro')):'')+(g('off')?' 해제':'');
    case 'noind':if(s('g_kind')==='switch')return '교대무시'+tg(s('g_tgt'))+(+g('turns')>0?' '+g('turns')+'턴':'')+(g('off')?' 해제':'');return '비례무시'+tg(s('g_tgt'))+({'':'',noko:' 빈사',hazard:' 설치기',hazdmg:' 설치기피해',recoil:' 반동'})[s('g_kind')]+(+g('turns')>0?' '+g('turns')+'턴':'')+(g('off')?' 해제':'');
    case 'float':return '하늘위'+tg(s('g_tgt'))+(+g('turns')>0?' '+g('turns')+'턴':'')+(g('off')?' 해제':'');
    case 'role':return '역할 '+({add:'추가',remove:'제거',clear:'초기화'})[s('g_mode')]+' '+tyK(g('roles'));
    case 'pursuit':return '추격'+(g('imm')?' 무시'+tg(s('g_tgt')):'')+(g('off')?' 해제':'')+(g('hide')?' 숨김':'');
    case 'confirm':return '확인 "'+g('q')+'"';
+   case 'baseup':{const st=BU_STS.filter(x=>g('bu_'+x));if(!st.length)return '';const m=s('g_bm');return '종족치 '+st.join(',')+' '+(m==='max'?'최대':(m==='down'?'-':'+')+Math.max(1,+g('n')||1))}
+   case 'stmod':{const f=String(g('frac')||'').replace(/\s+/g,'');if(!/^\d+\/\d+$/.test(f))return '';return '상태수정 '+s('g_sm')+' '+f}
+   case 'future':return '예고 '+String(g('st')||'미래예지').replace(/\s+/g,'')+(+g('pow')>0?' 위력 '+(+g('pow')):'')+(String(g('mv')||'').trim()?' 기술 '+String(g('mv')).trim().replace(/\s+/g,''):'')+tga(s('g_tgt'));
+   case 'transform':return g('off')?'변신 해제':'변신'+tga(s('g_tgt'))+(g('keep')?' 그림유지':'');
+   case 'reset':return '초기화'+({rank:' 랭크',mult:' 배율',all:''})[s('g_rw')]+tg(s('g_tgt'));
+   case 'resetst':return '상태초기화'+tg(s('g_tgt'))+(g('all')?' 전부':'');
+   case 'clearobj':return '철거'+({self:'',enemy:' 상대',both:' 양쪽'})[s('g_cs')]+({hazard:'',wall:' 장벽',all:' 전부'})[s('g_cw')];
+   case 'freesw':return '반드시교대'+tg(s('g_tgt'))+(+g('turns')>0?' '+g('turns')+'턴':'')+(g('off')?' 해제':'');
    case 'cond':return s('g_c')==='hp_le'?'조건 HP≤'+(g('frac')||'1/2'):'조건 아군빈사'}return ''}
 
  /* ===== 편집기 ===== */

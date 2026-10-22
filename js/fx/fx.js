@@ -112,13 +112,14 @@ window.OM_FX=(()=>{
      case 'prio':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){const F=fx(m);const key=name+' ← '+self.name;if(op.mode==='off'){F.prio=F.prio.filter(e=>e.key!==key)}else{F.prio=F.prio.filter(e=>e.key!==key);F.prio.push({key,name,v:+op.v||0,mode:op.mode||'add',cat:op.cat||'all',type:op.type||'',tag:op.tag||'',turn:op.dur==='turn'?(+b.turn||0):-1})}L.push(`${m.name} 우선도 ${op.mode==='set'?'= ':(op.v>0?'+':'')}${op.v} (${op.type?(TYPE_KO[op.type]||op.type)+' 타입 ':''}${op.cat&&op.cat!=='all'?op.cat+' ':''}${op.tag?'「'+op.tag+'」 ':''}기술${op.dur==='turn'?' · 이번 턴':''})`)}break}
      case 'immune':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){const F=fx(m);const key=name+' ← '+self.name;F.immune=F.immune.filter(e=>e.key!==key);if(op.mode!=='off')F.immune.push({key,name,states:op.states||[]});L.push(`${m.name} 「${(op.states||[]).map(stKo).join('」「')}」 면역${op.mode==='off'?' 해제':''}`)}break}
      case 'nodrop':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){const F=fx(m);const key=name+' ← '+self.name;F.nodrop=F.nodrop.filter(e=>e.key!==key);if(op.mode!=='off')F.nodrop.push({key,name,st:op.st||'',until:op.turns>0?(+b.turn||0)+op.turns-1:-1,ytype:op.ytype||'',ro:op.ro||[]});L.push(`${m.name} ${op.st?STAT_KO[op.st]+' ':'능력 '}감소 무시${op.mode==='off'?' 해제':''}`)}break}
-     case 'ignoreup':{const F=fx(self);F.ignoreUp=op.on?{dir:op.dir||'atk',scope:op.scope||'both',ro:op.ro||[],name}:null;L.push(`${self.name} ${op.dir==='recv'?'받을 때 상대의':'공격할 때 상대의'} ${({def:'방어',eva:'회피',atk:'공격',both:'방어·회피'})[op.scope]||'능력'} 상승 무시${op.on?'':' 해제'}`);break}
+     case 'ignoreup':{const F=fx(self);const pv=F.ignoreUp;let dir=op.dir||'atk',scope=op.scope||'both';/* 같은 효과의 두 번째 줄(받음 + 공격시)은 덮어쓰지 않고 합친다 */if(op.on&&pv&&pv.name===name&&pv.dir!==dir){dir='both';scope='both'}F.ignoreUp=op.on?Object.assign({dir,scope,ro:op.ro||[],name},op.all||(pv&&pv.name===name&&pv.all)?{all:1}:{}):null;L.push(`${self.name} ${dir==='both'?'주고받을 때 상대의':dir==='recv'?'받을 때 상대의':'공격할 때 상대의'} ${({def:'방어',eva:'회피',atk:'공격',both:'방어·회피'})[op.scope]||'능력'} 상승 무시${op.on?'':' 해제'}`);break}
      case 'float':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){const F=fx(m);F.float=op.mode==='off'?null:{until:op.turns>0?(+b.turn||0)+op.turns-1:-1,name};L.push(`${m.name} 하늘 위${op.mode==='off'?' 해제':''}`)}break}
      case 'role':{const F=fx(self);if(op.mode==='clear')F.roles=[];else if(op.mode==='remove')F.roles=F.roles.filter(r=>!(op.roles||[]).includes(r));else F.roles=[...new Set([...F.roles,...(op.roles||[])])];F.rolesBy=F.roles.length?name:'';L.push(`${self.name} 역할 취급: ${F.roles.join('·')||'없음'}`);break}
      case 'pursuit':{if(op.immune){const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){m.flags=m.flags||{};m.flags.pursuitImmune=!!op.on;if(op.on)m.flags.pursuitImmuneBy=name;else delete m.flags.pursuitImmuneBy;L.push(`${m.name} 이번 턴 상대의 「따라가때리기」를 받지 않는다${op.on?'':' — 해제'}`)}break}self.flags=self.flags||{};self.flags.pursuit=!!op.on;if(op.on)self.flags.pursuitBy=name;else delete self.flags.pursuitBy;L.push(`${self.name} 다음 기술에 「따라가때리기」${op.on?'':' 해제'}`);break}
      case 'resetstates':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){const list=op.group==='condition_abnormal'?ABN:NEG;const c=[];for(const k of list)if((m.states||{})[k]){delete m.states[k];c.push(stKo(k))}L.push(`${m.name} ${c.length?'「'+c.join('」「')+'」 해제':'해제할 상태 없음'}`)}break}
      case 'raid':{self.raid=Object.assign({},self.raid||{},{segments:+op.x||(self.raid||{}).segments||0,floor:op.floor,cure:op.cure,cstat:op.cstat,rup:op.rup});L.push(`${self.name} 레이드 배틀 설정 (구간 ${self.raid.segments||'?'})`);break}
      case 'dex':{const ts=await targets(b,self,'enemy1',ctx);const tg=ts[0];L.push(`「${name}」 데이터 해석${tg?' → '+tg.name:''}`);if(tg&&window.OM_DEX_UI&&ctx.viewer!==undefined)setTimeout(()=>window.OM_DEX_UI.analyze(ctx.viewer||self.tid,tg.id,{forced:true,free:true}),400);break}
+     case 'baseup':L.push(`${self.name} 종족치 ${op.stats.join('·')} ${op.max?'범위 최대':(op.n>0?'+':'')+op.n+'랭크'} (제작기 시트의 종족치 · 실수치에 이미 들어가 있다)`);break;
      case 'stmod':L.push(`${self.name} 「${stKo(op.st)}」 사양 ${op.n}/${op.d} (시트에 적힌 값 — 턴 종료 때 자동으로 읽는다)`);break;
      default:L.push(`(모르는 명령 ${op.k})`)}
    }catch(e){L.push(`(${op.k} 처리 중 오류: ${e.message})`)}}
@@ -187,7 +188,7 @@ window.OM_FX=(()=>{
   if(e.st&&q.stance&&e.st!==q.stance)return false;return true}
  function attackMods(atk,def,q){const out={boost:1,guard:1,cg:0,cr:0,cx:'',names:[]};
   for(const e of liveMods(atk)){if(e.kind!=='boost')continue;const qq=Object.assign({},q,{roles:(def.fx&&def.fx.roles)||[],egg:def.egg||[]});if(!matchMod(e,qq))continue;out.boost*=e.v;out.cr+=e.cr||0;if(e.cx)out.cx=e.cx;out.names.push({key:e.key,who:atk.id,txt:`${atk.name} 「${e.name}」 ×${e.v}`})}
-  for(const e of liveMods(def)){if(e.kind!=='guard')continue;const qq=Object.assign({},q,{roles:(atk.fx&&atk.fx.roles)||[],egg:atk.egg||[]});if(!matchMod(e,qq))continue;out.guard*=e.v;out.cg+=e.cg||0;if(e.cx==='none')out.cx='none';out.names.push({key:e.key,who:def.id,txt:`${def.name} 「${e.name}」 ×${e.v}`})}
+  for(const e of liveMods(def)){if(e.kind!=='guard')continue;const qq=Object.assign({},q,{roles:(atk.fx&&atk.fx.roles)||[],egg:atk.egg||[]});if(!matchMod(e,qq))continue;const onlyCx=+e.v===1&&!e.cg;if(onlyCx&&(atk.id===def.id||(q&&q.cat==='변화')))continue;/* 급소만 막는 효과(조가비갑옷 …)는 자기 기술 · 변화기에선 이름을 안 띄운다 */out.guard*=e.v;out.cg+=e.cg||0;if(e.cx==='none')out.cx='none';out.names.push({key:e.key,who:def.id,txt:`${def.name} 「${e.name}」 ${onlyCx&&e.cx==='none'?'급소 없음':'×'+e.v}`})}
   out.boost=Math.round(out.boost*1000)/1000;out.guard=Math.round(out.guard*1000)/1000;return out}
  /* 쓴 뒤: 횟수 있는 항목을 깎는다 (b 사본의 포켓몬에) */
  function consume(b,names){for(const n of names||[]){const m=b.mons[n.who];if(!m||!m.fx)continue;const e=m.fx.mods.find(x=>x.key===n.key);if(!e)continue;if(e.uses>0){e.uses--;if(e.uses===0)m.fx.mods=m.fx.mods.filter(x=>x!==e)}}}
@@ -263,7 +264,7 @@ window.OM_FX=(()=>{
    case '우선도':{const vi=words.findIndex(w=>/^[+\-=]?\d+(\.\d+)?$/.test(w));let v=0,mode='add';if(vi>=0){const w=words.splice(vi,1)[0];if(w.startsWith('='))mode='set';v=n(w)}const tgt=tgtOf(words)||'self';const ty=types();let cat='all';if(has('물리'))cat='물리';if(has('특수'))cat='특수';if(has('변화'))cat='변화';const dur=has('이번턴')?'turn':'keep';if(has('해제'))mode='off';const ti=words.findIndex(w=>/^태그[:：]?/.test(w));const tag=ti>=0?words.splice(ti,1)[0].replace(/^태그[:：]?/,''):'';return {k:'prio',tgt,mode,v,cat,type:ty[0]||'',dur,tag}}
    case '면역':{const tgt=tgtOf(words)||'self';const mode=has('해제')?'off':'on';const states=words.join(',').split(/[,·]/).map(x=>x.trim()).filter(Boolean).map(x=>x==='이상'?'abnormal':(stEn(x)||x));return {k:'immune',tgt,mode,states}}
    case '감소무시':{const tgt=tgtOf(words)||'self';const tl=turns();const mode=has('해제')?'off':'on';const st=KO_STAT[words[0]]||'';return {k:'nodrop',tgt,mode,st,turns:tl!=null?tl:-1,ytype:'',ro:[]}}
-   case '강화무시':{const dir=has('받음')||has('받을때')?'recv':'atk';has('공격시');let scope='both';if(has('방어'))scope='def';if(has('회피'))scope='eva';if(has('공격'))scope='atk';if(has('양쪽'))scope='both';const ri=words.findIndex(w=>/^역할[:：]?/.test(w));const ro=ri>=0?words.splice(ri,1)[0].replace(/^역할[:：]?/,'').split(',').filter(Boolean):[];return {k:'ignoreup',dir,scope,on:has('해제')?0:1,mode:0,ro}}
+   case '강화무시':{/* 받음 · 공격시 둘 다 쓰거나 「양방향」이면 주고받을 때 모두 (천진) */const rv=has('받음')||has('받을때'),av=has('공격시'),bo=has('양방향');const dir=bo||(rv&&av)?'both':rv?'recv':'atk';let scope='both';if(has('방어'))scope='def';if(has('회피'))scope='eva';if(has('공격'))scope='atk';if(has('양쪽'))scope='both';const ri=words.findIndex(w=>/^역할[:：]?/.test(w));const ro=ri>=0?words.splice(ri,1)[0].replace(/^역할[:：]?/,'').split(',').filter(Boolean):[];const allR=has('모두');return Object.assign({k:'ignoreup',dir,scope,on:has('해제')?0:1,mode:0,ro},allR?{all:1}:{})}
    case '하늘위':{const tgt=tgtOf(words)||'self';const tl=turns();return {k:'float',tgt,mode:has('해제')?'off':'on',turns:tl!=null?tl:-1}}
    case '역할':{let mode='add';if(has('제거'))mode='remove';if(has('초기화'))mode='clear';has('추가');return {k:'role',mode,roles:words.join(',').split(/[,·]/).map(x=>x.trim()).filter(Boolean)}}
    case '추격':{const im=has('무시')?1:0;return {k:'pursuit',on:has('해제')?0:1,hide:has('숨김')?1:0,immune:im,tgt:im?(tgtOf(words)||'self'):'self'}}
@@ -273,6 +274,7 @@ window.OM_FX=(()=>{
    case '조건':{const w=words.join('');if(/아군빈사/.test(w))return {k:'cond',c:'ally_fainted'};const m=w.match(/HP[≤<=]+(\d+\/\d+)/);if(m)return {k:'cond',c:'hp_le',frac:m[1]};return {k:'confirm',q:words.join(' ')}}
    case '해석':return {k:'dex',mode:'scouter'};
    case '레이드':{const m=words.join(' ').match(/구간[:：]?(\d+)/);return {k:'raid',on:1,x:m?+m[1]:'',cond:'cap',floor:1,cure:1,cstat:1,rup:1,rmod:0}}
+   case '종족치':{/* 시트 종족치: 종족치 방어,특방 +1 · 종족치 스피드 최대 — 제작기가 시트 종족치 · 실수치에 넣는다 (배틀 중엔 바꾸지 않는다) */const all=words.join(' ');const mx=/최대/.test(all);const mm=all.match(/(^|\s)([+\-]?\d+)/);const nn=mm?+mm[2]:1;const st=[];for(const w of words)for(const s of w.split(/[,\/·]/)){const t=s.trim().toUpperCase()==='HP'?'HP':s.trim();if(['HP','공격','방어','특공','특방','스피드'].includes(t)&&!st.includes(t))st.push(t)}if(!st.length||(!mx&&!nn))return {k:'?',raw:line};return {k:'baseup',stats:st,n:mx?0:nn,max:mx?1:0}}
    case '상태수정':case '상태사양':{const st=stEn(takeState(words));const f=words.map(w=>w.match(/^(\d+)\s*\/\s*(\d+)$/)).find(Boolean);if(!st||!f)return {k:'?',raw:line};return {k:'stmod',st,n:+f[1],d:+f[2]}}
    default:return {k:'?',raw:line}}}
  /* 여러 줄 구문: 「선택:」 뒤의 「- 라벨 → 구문; 구문」 줄들은 선택지 */
@@ -310,7 +312,7 @@ window.OM_FX=(()=>{
    case 'prio':L.push('우선도 '+(op.mode==='set'?'=':(op.v>0?'+':''))+op.v+tg(op.tgt)+(op.type?ty([op.type]):'')+(op.cat&&op.cat!=='all'?' '+op.cat:'')+(op.tag?' 태그:'+op.tag:'')+(op.dur==='turn'?' 이번턴':'')+(op.mode==='off'?' 해제':''));break;
    case 'immune':L.push('면역'+tg(op.tgt)+' '+(op.states||[]).map(s=>s==='abnormal'?'이상':stKoW(s)).join(',')+(op.mode==='off'?' 해제':''));break;
    case 'nodrop':L.push('감소무시'+tg(op.tgt)+(op.st?' '+STAT_KO[op.st]:'')+(op.turns>0?' '+op.turns+'턴':'')+(op.mode==='off'?' 해제':''));break;
-   case 'ignoreup':L.push('강화무시 '+(op.dir==='recv'?'받음':'공격시')+' '+({def:'방어',eva:'회피',atk:'공격',both:'양쪽'})[op.scope]+(op.ro&&op.ro.length?' 역할:'+op.ro.join(','):'')+(op.on?'':' 해제'));break;
+   case 'ignoreup':L.push('강화무시 '+(op.dir==='both'?'양방향':op.dir==='recv'?'받음':'공격시')+' '+({def:'방어',eva:'회피',atk:'공격',both:'양쪽'})[op.scope]+(op.all?' 모두':'')+(op.ro&&op.ro.length?' 역할:'+op.ro.join(','):'')+(op.on?'':' 해제'));break;
    case 'float':L.push('하늘위'+tg(op.tgt)+(op.turns>0?' '+op.turns+'턴':'')+(op.mode==='off'?' 해제':''));break;
    case 'role':L.push('역할 '+({add:'추가',remove:'제거',clear:'초기화'})[op.mode]+' '+(op.roles||[]).join(','));break;
    case 'pursuit':L.push('추격'+(op.immune?' 무시'+tg(op.tgt):'')+(op.on?'':' 해제')+(op.hide?' 숨김':''));break;
@@ -319,6 +321,7 @@ window.OM_FX=(()=>{
    case 'cond':L.push('조건 '+(op.c==='ally_fainted'?'아군빈사':'HP≤'+op.frac));break;
    case 'choice':L.push(op.multi?'선택 여럿:':'선택:');for(const o of op.opts)L.push('- '+o.label+' → '+unparse(o.ops).join('; '));break;
    case 'raid':L.push('레이드'+(op.x?' 구간:'+op.x:''));break;case 'dex':L.push('해석');break;
+   case 'baseup':L.push('종족치 '+op.stats.join(',')+' '+(op.max?'최대':(op.n>0?'+':'')+op.n));break;
    case 'stmod':L.push('상태수정 '+stKoW(op.st)+' '+op.n+'/'+op.d);break;
    default:L.push('# '+JSON.stringify(op))}}
   return L}

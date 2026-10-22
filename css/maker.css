@@ -507,7 +507,10 @@ html.modal-on #mk{overflow:hidden}
 /* 10-22 로그 정리기 탭 */
 #v-log{padding:0}
 #mk .lgbar{display:flex;align-items:center;gap:10px;padding:6px 12px;border-bottom:1px solid var(--line);background:var(--surface)}
-#logFrame{display:block;width:100%;height:calc(100vh - 150px);min-height:480px;border:0;background:var(--bg)}
+#logFrame{display:block;width:100%;height:calc(100vh - 150px);min-height:420px;border:0;background:var(--bg)}
+/* 로그 정리기 탭: 화면 폭을 다 쓰고, 창 높이에 맞춘 iframe 하나만 스크롤한다 (fitLog) */
+#mk main:has(>#v-log:not([hidden])){max-width:none;padding:0}
+#mk .lgbar a.btn{text-decoration:none}
 @media (max-width:700px){#mk .lgbar .muted{display:none}#logFrame{height:calc(100vh - 170px)}}
 /* 10-21 필드 전개 (트레이너·포켓몬 각자의 필드 · 스타디움 · 이계 → 오레마스 배틀) */
 #mk .mkflds{margin-top:10px;padding:8px 10px;border:1px dashed var(--line);border-radius:8px}
@@ -739,3 +742,41 @@ html.modal-on #mk{overflow:hidden}
 /* 10-22 망령: 특성 · 포텐셜로 오른 종족치 */
 #mk .st.bup .gb{outline:2px solid var(--blue,#2563eb);outline-offset:1px}
 #mk .bupnote{display:flex;flex-direction:column;gap:2px;margin-top:6px;padding:6px 8px;border-radius:8px;background:var(--sunk,#f3f5f9)}
+#mk .tune{display:flex;flex-direction:column;gap:10px}
+#mk .tune .tbox{border:1px solid var(--line,#e3e6ee);border-radius:10px;padding:10px 12px;background:var(--surface,#fff)}
+#mk .tune .tbox>.row{gap:8px;flex-wrap:wrap;align-items:baseline}
+#mk .tune .tscroll{overflow-x:auto;margin-top:6px}
+#mk .tune .ttbl{border-collapse:collapse;width:100%;font-size:13px}
+#mk .tune .ttbl th,#mk .tune .ttbl td{padding:4px 8px;border-bottom:1px solid var(--line,#e3e6ee);text-align:left;white-space:nowrap}
+#mk .tune .ttbl th{font-weight:600;color:var(--muted,#667);font-size:12px}
+#mk .tune .mono{font-family:var(--mono,monospace)}
+#mk .tune .tpre{margin:4px 0 0;padding:6px 8px;border-radius:8px;background:var(--sunk,#f3f5f9);font-family:var(--mono,monospace);font-size:12px;white-space:pre-wrap}
+#mk .tune .tauto{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:6px}
+#mk .fed{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px}
+#mk .fedf{display:flex;flex-direction:column;gap:6px;min-width:0}
+#mk .fedf .lbl{display:flex;flex-direction:column;gap:3px}
+#mk .fedf div.lbl{flex-direction:row;align-items:baseline;gap:6px}
+#mk .fedf textarea{width:100%;min-height:110px}
+#mk .fedk .btn.on{background:var(--ink,#1d2433);color:#fff;border-color:var(--ink,#1d2433)}
+#mk .fedc{display:flex;flex-wrap:wrap;gap:4px}
+#mk .fedc1{border:2px solid transparent;border-radius:999px;padding:2px 8px;font-size:11.5px;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.35);cursor:pointer;line-height:1.5}
+#mk .fedc1.none{background:var(--sunk,#f3f5f9);color:var(--muted,#667);text-shadow:none}
+#mk .fedc1.on{border-color:var(--ink,#1d2433);box-shadow:0 0 0 2px var(--surface,#fff) inset}
+#mk .feddrop{border:2px dashed var(--line,#d5dae4);border-radius:10px;padding:14px;text-align:center;font-size:12.5px;color:var(--muted,#667);cursor:pointer;background:var(--sunk,#f6f7fa);transition:background .15s,border-color .15s}
+#mk .feddrop.has{padding:8px}
+#mk .feddrop.over,#mk .feddrop:hover{border-color:var(--blue,#2563eb);background:color-mix(in srgb,var(--blue,#2563eb) 8%,transparent)}
+#mk .fedp{display:flex;flex-direction:column;gap:8px;min-width:0;position:sticky;top:0;align-self:start}
+#mk .fedcut{--fc:#5fd38d;border-radius:12px;overflow:hidden;background:#111;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+#mk .fedbar{height:6px;background:var(--fc)}
+#mk .fedimg{position:relative;aspect-ratio:16/9;background:#222 center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:12px;text-align:center}
+#mk .fedimg::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.62),rgba(0,0,0,.15) 60%,transparent)}
+#mk .fedtx{position:absolute;left:16px;bottom:14px;z-index:1;color:#fff;text-align:left;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+#mk .fedkn{display:inline-block;font-size:10.5px;letter-spacing:.2em;color:#fff;background:var(--fc);padding:1px 8px;border-radius:4px;font-weight:700;margin-bottom:4px}
+#mk .fednm{font-size:22px;font-weight:800;line-height:1.2}
+#mk .fedlc{font-size:12px;opacity:.85}
+#mk .fedcut.k1 .fedimg::after{background:linear-gradient(0deg,rgba(0,0,0,.6),transparent 70%)}
+#mk .fedcut.k2{background:#1b1030}
+#mk .fedcut.k2 .fedimg{filter:saturate(1.2) hue-rotate(-10deg)}
+#mk .fedlog{--fc:var(--line,#e3e6ee);border:1px solid var(--line,#e3e6ee);border-left:4px solid var(--fc);border-radius:10px;padding:8px 10px;background:var(--surface,#fff)}
+#mk .fedeff{margin-top:4px;line-height:1.55;white-space:pre-wrap}
+@media (max-width:760px){#mk .fed{grid-template-columns:1fr}#mk .fedp{position:static;order:-1}}
