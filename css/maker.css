@@ -660,8 +660,8 @@ html.modal-on #mk{overflow:hidden}
  #mk .tuql{display:flex;order:6;flex:1 1 100%;flex-direction:row;flex-wrap:wrap}#mk .tacts{order:7;flex:1 1 100%;justify-content:flex-end;flex-wrap:wrap;row-gap:4px}#mk .tacts .tmove{flex:0 1 auto;min-width:0;max-width:100%}#mk .tparty{max-width:520px}#mk .tcard>.sp{display:none}#mk .tmain{flex:1 1 0}}
 @media (max-width:520px){#mk .tacts .tmove{max-width:42vw}#mk .tcard .avatar{width:46px;height:46px}#mk .tcard .tname{max-width:62vw}#mk .tpr{width:40px;height:40px}#mk .tacts .btn{padding:0 7px}}
 /* 10-22 포켓몬 한 장 요약 */
-/* 10-22 망령: 한 장 요약 — 왼쪽 기둥(그림 · 특성 · 도구 · 능력치 · 상성) + 오른쪽은 기술 · 전용 · 포텐셜 · 메모를 여러 단으로 흘려 높이를 맞춘다. 스크롤 없이 한 장 */
-#mk .mbox.pcdbox{width:min(1560px,98vw);max-height:calc(100vh - 24px)}
+/* 10-22 망령: 한 장 요약 — 왼쪽 기둥(그림 · 특성 · 도구 · 능력치 · 상성) | 기술 한 줄 | 전용 · 포텐셜 두 줄 · 메모. 칸 자리는 고정 */
+#mk .mbox.pcdbox{width:min(1560px,100%);max-height:calc(100vh - 24px)}
 #mk .pcd-wrap{padding:8px 10px 10px}
 #mk .pcd{display:grid;grid-template-columns:300px minmax(0,1fr);gap:10px;padding:10px;border-radius:14px;background:var(--surface);border:1px solid var(--line);position:relative;overflow:hidden}
 #mk .pcd::before{content:"";position:absolute;inset:0 auto 0 0;width:330px;background:linear-gradient(170deg,color-mix(in srgb,var(--c1) 26%,transparent),color-mix(in srgb,var(--c2) 12%,transparent) 45%,transparent 75%);z-index:0;pointer-events:none}
@@ -696,9 +696,11 @@ html.modal-on #mk{overflow:hidden}
 #mk .pcd-tg>span{font:10px/18px var(--mono,monospace);font-weight:800;text-align:center;border-radius:5px;color:#fff}
 #mk .pcd-tg.x4>span{background:#B91C1C}#mk .pcd-tg.x2>span{background:#EF4444}#mk .pcd-tg.h>span{background:#16A34A}#mk .pcd-tg.q>span{background:#15803D}#mk .pcd-tg.z>span{background:#475569}
 #mk .pcd-tg .chips{gap:3px}#mk .pcd-tg .chip{font-size:10.5px;padding:0 6px}
-#mk .pcd-flow{columns:280px;column-gap:8px;column-fill:balance;min-width:0}
-#mk .pcd-flow>*{break-inside:avoid;margin-bottom:6px}
-#mk .pcd-flow>.pcd-h:not(:first-child){margin-top:8px}
+#mk .pcd-flow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:10px;align-items:start;min-width:0}
+#mk .pcd-mvc,#mk .pcd-ptc{display:flex;flex-direction:column;gap:6px;min-width:0}
+#mk .pcd-mvc>.pcd-h,#mk .pcd-ptc>.pcd-h{margin:0}
+#mk .pcd-ptc>.pcd-h:not(:first-child){margin-top:4px}
+#mk .pcd-ptg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-items:start}
 #mk .pcd-m{border-radius:9px;padding:5px 9px;background:color-mix(in srgb,var(--mb) 14%,var(--surface));border:1px solid color-mix(in srgb,var(--mb) 45%,var(--line));border-left:5px solid var(--mb)}
 #mk .pcd-mh{display:flex;align-items:center;gap:6px}#mk .pcd-mh b{font-size:13px;flex:1;min-width:0}
 #mk .pcd-mt{font-size:10px;padding:0 7px;border-radius:999px;background:var(--mb);color:var(--mf);font-weight:700}
@@ -708,8 +710,9 @@ html.modal-on #mk{overflow:hidden}
 #mk .pcd-p{padding:5px 9px;border-radius:9px;background:var(--sunk);border:1px solid var(--line)}
 #mk .pcd-p>b{font-size:12.5px}
 #mk .pcd-pk{display:inline-block;font-size:9.5px;font-weight:700;padding:0 6px;border-radius:999px;background:var(--ink);color:var(--bg);margin-right:5px;vertical-align:1px}
-@media (max-width:900px){#mk .pcd{grid-template-columns:minmax(0,1fr)}#mk .pcd::before{width:auto;bottom:auto;height:160px}#mk .pcd-flow{columns:240px}}
-@media (max-width:600px){#mk .pcd{padding:8px}#mk .pcd-wrap{padding:4px}#mk .pcd-flow{columns:auto 1}}
+@media (max-width:1250px){#mk .pcd-flow{grid-template-columns:minmax(0,1fr)}#mk .pcd-mvc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#mk .pcd-mvc>.pcd-h{grid-column:1/-1}}
+@media (max-width:900px){#mk .pcd{grid-template-columns:minmax(0,1fr)}#mk .pcd::before{width:auto;bottom:auto;height:160px}}
+@media (max-width:600px){#mk .pcd{padding:8px}#mk .pcd-wrap{padding:4px}#mk .pcd-mvc,#mk .pcd-ptg{grid-template-columns:minmax(0,1fr)}}
 /* 고유 정보창 */
 #mk button.tuqc{font:inherit;color:inherit;cursor:pointer;border-top:0;border-right:0;border-bottom:0;text-align:left}
 #mk button.tuqc:hover{background:color-mix(in srgb,var(--uc) 22%,var(--surface))}
