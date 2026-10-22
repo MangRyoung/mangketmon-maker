@@ -69,6 +69,9 @@ window.OM_MOVEAUTO=(()=>{
    /* 반동 비례 대미지 */
    let m=s.match(/^(명중하지 않았을 때\s*)?「반동 비례 대미지\s*:\s*(최대\s*HP\s*)?(\d+\/\d+)」$/)||s.match(/^(명중하지 않았을 때\s*)?공격 후\s*「반동 비례 대미지\s*:\s*(최대\s*HP\s*)?(\d+\/\d+)」$/);
    if(m){recoil={frac:m[3],basis:m[2]?'max':'dealt',when:m[1]?'miss':'hit'};continue}
+   /* 발버둥: 「최대 HP」의 1/4만큼의 비례 대미지를 받는다 · 이 비례 대미지는 무시할 수 없다 */
+   m=s.match(/^「최대\s*HP」의\s*(\d+\/\d+)만큼의 비례 대미지를 받는다$/);if(m){recoil={frac:m[1],basis:'max',when:'hit'};continue}
+   if(recoil&&/^이 비례 대미지는 무시할 수 없다$/.test(s)){recoil.hard=true;continue}
    m=s.match(/^(\d+\/\d+)의 드레인$/);if(m){drain=m[1];continue}
    m=s.match(/^(?:자신의\s*)?「HP」를\s*(\d+\/\d+)만큼 회복한다$/);if(m){groups.push({n:10,label:'HP '+m[1]+' 회복',who:'once',ops:[{k:'heal',tgt:'self',value:m[1]}],when:'use'});continue}
    if(/^반드시 급소에 맞는다$/.test(s)){critSure=true;continue}
@@ -117,7 +120,7 @@ window.OM_MOVEAUTO=(()=>{
  /* 사람이 읽는 한 줄 요약 */
  function describe(a){if(!a)return '';const L=[];
   for(const g of a.groups){const body=g.oneOf?g.oneOf.map(o=>FX().unparse(o).join(' ')).join(' 또는 '):FX().unparse(g.ops).join(' / ');L.push((g.n<10?g.n+'할 ':'')+body)}
-  if(a.recoil)L.push(`반동 ${a.recoil.basis==='max'?'최대 HP ':'가한 대미지 '}${a.recoil.frac}${a.recoil.when==='miss'?' (빗나갔을 때)':''}`);
+  if(a.recoil)L.push(`반동 ${a.recoil.basis==='max'?'최대 HP ':'가한 대미지 '}${a.recoil.frac}${a.recoil.when==='miss'?' (빗나갔을 때)':''}${a.recoil.hard?' (무시 불가)':''}`);
   if(a.drain)L.push(`드레인 ${a.drain}`);if(a.selfFaint)L.push('사용 후 자신 빈사');if(a.forceSwitch)L.push('대상 강제 교대');if(a.selfSwitch)L.push(a.selfSwitch==='batton'?'배턴터치 교대':'임의 교대');if(a.critSure)L.push('확정 급소');return L.join(' · ').replace(/ target/g,' 대상')}
  const auto=a=>!!a&&!!(a.groups.length||a.recoil||a.drain||a.selfFaint||a.critSure||a.forceSwitch||a.selfSwitch);
  return {parse,describe,auto}})();

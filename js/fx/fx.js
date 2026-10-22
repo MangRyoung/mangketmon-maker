@@ -9,6 +9,10 @@
 "use strict";
 window.OM_FX=(()=>{
  const DB=()=>window.OM_DB||{}, B=()=>window.OM_BATTLE, S=()=>window.OM_STATS;
+ /* 특성 바꾸기 · 되돌리기 (10-24 망령): 이름만 바꾸면 효과 글(abilityEff)이 예전 특성 그대로 남는다 — 새 특성은 DB 글, 되돌릴 땐 원래 글(제작기 사본 포함)로 */
+ const abEff=n=>{const a=(DB().traits||{})[n]||{};return String(a.multi||a.single||'').replace(/<br\s*\/?>/gi,'\n')};
+ function setAb(m,n,by){if(m.abilityOrig==null){m.abilityOrig=m.ability||'';m.abilityEffOrig=m.abilityEff||''}if(by!=null)m.abilityBy=by;m.ability=n||'';m.abilityEff=abEff(n);if(m.abilityOrig===m.ability)resetAb(m)}
+ function resetAb(m){if(m.abilityOrig==null)return false;m.ability=m.abilityOrig;m.abilityEff=m.abilityEffOrig!=null?m.abilityEffOrig:abEff(m.ability);delete m.abilityOrig;delete m.abilityEffOrig;delete m.abilityBy;return true}
  const STATS=['attack','defense','specialattack','specialdefense','speed','accuracy','evasion','critical','critical_buff'];
  const STAT_KO={attack:'공격',defense:'방어',specialattack:'특공',specialdefense:'특방',speed:'스피드',accuracy:'명중',evasion:'회피',critical:'급소',critical_buff:'급소방호'};
  const KO_STAT={};for(const k in STAT_KO)KO_STAT[STAT_KO[k]]=k;KO_STAT['특수공격']='specialattack';KO_STAT['특수방어']='specialdefense';KO_STAT['민첩']='speed';KO_STAT['속도']='speed';
@@ -71,7 +75,7 @@ window.OM_FX=(()=>{
      case 'cond':{let ok=true;if(op.c==='ally_fainted')ok=Object.values(b.mons||{}).some(m=>m.side===self.side&&m.id!==self.id&&m.hp.cur<=0);
        else if(op.c==='hp_le')ok=self.hp.cur<=frac(self.hp.max,op.frac);if(!ok){L.push(`「${name}」 조건(${op.c==='ally_fainted'?'빈사 상태인 아군':'HP '+op.frac+' 이하'})을 만족하지 않아 발동하지 않았다`);stop=true}break}
      case 'choice':{let idx=[0];if(ctx.choose)idx=await ctx.choose(op.opts.map(o=>o.label),!!(op.multi||op.opts.some(o=>o.multi)));if(!idx||!idx.length){stop=true;break}
-       for(const i of idx){const o=op.opts[i];if(!o)continue;L.push(`▶ ${o.label}`);const r=await run(o.ops,ctx);L.push(...r.lines)}break}
+       for(const i of idx){const o=op.opts[i];if(!o)continue;const ch=ctx.noRoll?0:chanceOf(o.label);if(ch&&ch<100){const rl=Math.floor(Math.random()*100)+1;if(rl>ch){L.push(`▶ ${o.label} — ${ch}% 판정 실패 (${rl}/${ch})`);continue}L.push(`▶ ${o.label} — ${ch}% 판정 성공 (${rl}/${ch})`)}else L.push(`▶ ${o.label}`);const r=await run(o.ops,ctx);L.push(...r.lines)}break}
      case 'rank':case 'mult':{const ts=await targets(b,self,op.tgt,ctx);for(const m of ts)L.push(...applyStats(m,op,self,name));break}
      case 'reset':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){if(op.what!=='mult'){m.rank={};delete m.tempRank}if(op.what!=='rank'){m.mod={};delete m.tempMod;if(m.fx)m.fx.mults=[]}L.push(`${m.name} ${op.what==='rank'?'랭크':op.what==='mult'?'배율':'랭크·배율'} 초기화`)}break}
      case 'boost':case 'guard':{const ts=await targets(b,self,op.tgt,ctx);for(const m of ts){const F=fx(m);const key=name+' ← '+self.name;if(op.remove){F.mods=F.mods.filter(e=>e.key!==key);L.push(`${m.name} 「${name}」 ${op.k==='boost'?'위력 강화':'위력 완화'} 해제`);continue}
@@ -97,7 +101,7 @@ window.OM_FX=(()=>{
        if(op.o==='압정뿌리기'||op.o==='독압정'){const mx=op.o==='압정뿌리기'?3:2;f.objects[side][op.o]=Math.min(mx,cur+1);L.push(`${side==='left'?'좌측':'우측'} 「${op.o}」 ${f.objects[side][op.o]}겹`)}else{const ext=+op.count<1000&&side===self.side?itemExt(self,op.o):'';f.objects[side][op.o]=(+op.count||5)+(ext?3:0);L.push(`${side==='left'?'좌측':'우측'} 「${op.o}」 ${op.count>=1000?'계속':((+op.count||5)+(ext?3:0))+'턴'}${ext?' (「'+ext+'」 +3)':''}`)}break}
      case 'type':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){if(op.mode==='reset'){if(m.typesOrig){m.types=m.typesOrig;delete m.typesOrig}L.push(`${m.name} 타입 원래대로`);continue}m.typesOrig=m.typesOrig||m.types.slice();m.typesBy=name;
        const add=(op.types||[]).map(t=>KO_TYPE[t]||t);if(op.mode==='set')m.types=add;else m.types=[...new Set([...m.types.filter(t=>t!=='-'),...add])];L.push(`${m.name} 타입 ${op.mode==='set'?'→':'+'} ${add.map(t=>TYPE_KO[t]||t).join('/')}`)}break}
-     case 'trait':{const ts=await targets(b,self,op.tgt||'enemy1',ctx);for(const m of ts){if(op.mode==='reset'){if(m.abilityOrig!=null){m.ability=m.abilityOrig;delete m.abilityOrig}L.push(`${m.name} 특성 원래대로`);continue}if(m.abilityOrig==null)m.abilityOrig=m.ability||'';m.abilityBy=name;m.ability=op.tn;L.push(`${m.name} 특성 → 「${op.tn}」`)}break}
+     case 'trait':{const ts=await targets(b,self,op.tgt||'enemy1',ctx);for(const m of ts){if(op.mode==='reset'){resetAb(m);L.push(`${m.name} 특성 원래대로`);continue}setAb(m,op.tn,name);L.push(`${m.name} 특성 → 「${op.tn}」`)}break}
      case 'future':{const en=stEn(op.state)||'FutureSight';const mv=op.mv||stKo(en);const md=(DB().moves||{})[mv]||{};const ts=await targets(b,self,op.tgt||'enemy1',ctx);
       const ak=/공격/.test(String(md.atk||''))&&!/특공/.test(String(md.atk||''))||/「공격」/.test(((stDB()[en]||{}).desc||[])[0]||'')?'attack':'specialattack';const SI={attack:1,specialattack:3};
       for(const m of ts){const st=m.states||{};const had=FUTURE.find(k=>st[k]);if(had){L.push(`${m.name} 이미 「${stKo(had)}」 예고가 걸려 있어 「${mv}」 실패`);continue}
@@ -213,19 +217,21 @@ window.OM_FX=(()=>{
  function removeByName(m,name){const F=fx(m);let n=0;for(const k of ['mods','noind','prio','immune','nodrop']){const b=F[k].length;F[k]=F[k].filter(e=>e.name!==name);n+=b-F[k].length}
   for(const e of F.mults.filter(e=>e.name===name)){unmult(m,e);n++}F.mults=F.mults.filter(e=>e.name!==name);
   if(F.ignoreUp&&F.ignoreUp.name===name){F.ignoreUp=null;n++}if(F.float&&F.float.name===name){F.float=null;n++}if(F.roles.length&&F.rolesBy===name){F.roles=[];F.rolesBy='';n++}
-  if(m.typesOrig&&m.typesBy===name){m.types=m.typesOrig;delete m.typesOrig;delete m.typesBy;n++}if(m.abilityOrig!=null&&m.abilityBy===name){m.ability=m.abilityOrig;delete m.abilityOrig;delete m.abilityBy;n++}
+  if(m.typesOrig&&m.typesBy===name){m.types=m.typesOrig;delete m.typesOrig;delete m.typesBy;n++}if(m.abilityOrig!=null&&m.abilityBy===name){resetAb(m);n++}
   if(m.flags&&m.flags.pursuit&&m.flags.pursuitBy===name){delete m.flags.pursuit;delete m.flags.pursuitBy;n++}if(m.flags&&m.flags.pursuitImmune&&m.flags.pursuitImmuneBy===name){delete m.flags.pursuitImmune;delete m.flags.pursuitImmuneBy;n++}return n}
  function unmult(m,e){m.mod=m.mod||{};for(const k in e.stats){const v=+e.stats[k]||1;m.mod[k]=Math.round(((+m.mod[k]||1)/v)*1000)/1000;if(Math.abs(m.mod[k]-1)<0.002)delete m.mod[k];if(e.temp&&m.tempMod&&m.tempMod[k]!=null){m.tempMod[k]=Math.round(((+m.tempMod[k]||1)/v)*1000)/1000;if(Math.abs(m.tempMod[k]-1)<0.002)delete m.tempMod[k]}}}
  /* 효과 하나 해제 (id 는 chips 의 id) */
  function remove(m,id){const F=fx(m);const [kind,key]=id.split(/:(.+)/);if(['mods','noind','prio','immune','nodrop'].includes(kind)){F[kind]=F[kind].filter(e=>e.key!==key);return true}
   if(kind==='mults'){const e=F.mults.find(x=>x.key===key);if(e)unmult(m,e);F.mults=F.mults.filter(x=>x.key!==key);return true}
-  if(kind==='ignoreUp'){F.ignoreUp=null;return true}if(kind==='float'){F.float=null;return true}if(kind==='roles'){F.roles=[];return true}if(kind==='types'){if(m.typesOrig){m.types=m.typesOrig;delete m.typesOrig}return true}if(kind==='ability'){if(m.abilityOrig!=null){m.ability=m.abilityOrig;delete m.abilityOrig}return true}if(kind==='pursuit'){if(m.flags)delete m.flags.pursuit;return true}if(kind==='pursuitImmune'){if(m.flags){delete m.flags.pursuitImmune;delete m.flags.pursuitImmuneBy}return true}return false}
+  if(kind==='ignoreUp'){F.ignoreUp=null;return true}if(kind==='float'){F.float=null;return true}if(kind==='roles'){F.roles=[];return true}if(kind==='types'){if(m.typesOrig){m.types=m.typesOrig;delete m.typesOrig}return true}if(kind==='ability'){resetAb(m);return true}if(kind==='pursuit'){if(m.flags)delete m.flags.pursuit;return true}if(kind==='pursuitImmune'){if(m.flags){delete m.flags.pursuitImmune;delete m.flags.pursuitImmuneBy}return true}return false}
  function untransform(m){const x=m&&m.xform;if(!x)return '';if(m.ability&&m.ability!==x.ability)removeByName(m,m.ability);m.types=x.types;m.ability=x.ability;m.abilityEff=x.abilityEff;m.stats=x.stats;m.rank=x.rank;m.moves=x.moves;m.image=x.image;delete m.xform;return `${m.name} 변신이 풀렸다`}
- function removeAll(m){untransform(m);const F=fx(m);for(const e of F.mults)unmult(m,e);F.mults=[];F.mods=[];F.noind=[];F.prio=[];F.immune=[];F.nodrop=[];F.ignoreUp=null;F.float=null;F.roles=[];if(m.typesOrig){m.types=m.typesOrig;delete m.typesOrig}if(m.abilityOrig!=null){m.ability=m.abilityOrig;delete m.abilityOrig}if(m.flags){delete m.flags.pursuit;delete m.flags.pursuitBy;delete m.flags.pursuitImmune;delete m.flags.pursuitImmuneBy}if(m.typesBy)delete m.typesBy;if(m.abilityBy)delete m.abilityBy;F.rolesBy=''}
+ function removeAll(m){untransform(m);const F=fx(m);for(const e of F.mults)unmult(m,e);F.mults=[];F.mods=[];F.noind=[];F.prio=[];F.immune=[];F.nodrop=[];F.ignoreUp=null;F.float=null;F.roles=[];if(m.typesOrig){m.types=m.typesOrig;delete m.typesOrig}resetAb(m);if(m.flags){delete m.flags.pursuit;delete m.flags.pursuitBy;delete m.flags.pursuitImmune;delete m.flags.pursuitImmuneBy}if(m.typesBy)delete m.typesBy;if(m.abilityBy)delete m.abilityBy;F.rolesBy=''}
 
  /* ===== 발동 시점·확률 (효과 글의 표식) ===== */
  function timing(text){const t=String(text||'');const out={entry:/【등장】/.test(t),passive:/【상시】/.test(t),turnEnd:/【턴 종료】|턴 종료 시/.test(t),pre:/【선행】/.test(t),uses:(t.match(/【(\d+)\/시】/)||[])[1]||'',percent:''};
   for(const [k,v] of [['드물게','드물게'],['저확률','저확률'],['중확률','중확률'],['고확률','고확률']])if(t.includes(k))out.percent=v;return out}
+ /* 「N할로」 · 「N% 확률로」 (10-24 망령): 글에 적힌 확률 → % (없으면 0). 「HP 를 3할 회복」 같은 양은 「할로」 · 「확률」 꼴이 아니라 잡히지 않는다 */
+ function chanceOf(text){const t=String(text||'');let x=t.match(/(\d+(?:\.\d+)?)\s*할(?:의 확률)?\s*로/);if(x)return Math.min(100,+x[1]*10);x=t.match(/(\d+(?:\.\d+)?)\s*%\s*(?:의\s*)?확률/)||t.match(/확률\s*(\d+(?:\.\d+)?)\s*%/);if(x)return Math.min(100,+x[1]);return 0}
  /* 확률 표식 → %: 오레마스 방 설정(rp.pct)이 있으면 그것, 없으면 룰 DB(const campaign.percent_*), 그것도 없으면 기본값. 제작기에는 OM_APP 이 없어 룰 DB 값을 쓴다 */
  function percentBase(label){const C=(DB().const||{}).campaign||{};const v=C['percent_'+label];if(v==null||v==='')return {드물게:10,저확률:30,중확률:50,고확률:60}[label]||100;return +v>1?+v:+v*100}
  function percentOf(label){const R=((((window.OM_APP||{}).ST||{}).state||{}).rp||{}).pct||{};const rv=R[label];if(rv!=null&&rv!==''&&isFinite(+rv))return Math.max(0,Math.min(100,+rv));return percentBase(label)}
@@ -327,5 +333,5 @@ window.OM_FX=(()=>{
   return L}
  /* 사람이 읽는 설명 (미리보기·로그) */
  function describe(ops){return unparse(ops)}
- return {stMod,untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,magicRoom,itemOff,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
+ return {chanceOf,setAb,resetAb,stMod,untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,magicRoom,itemOff,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
 })();
