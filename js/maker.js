@@ -1339,6 +1339,8 @@ function pokeCardHTML(t,p){const tys=[p.t1,p.t2,p.t3].filter(x=>x&&x!=='-').flat
   </div><div class="pcd-ptc">${XL.length?`<div class="pcd-h">전용 포텐셜</div>${XL.map(x=>`<div class="pcd-x"><b>『${esc(x.name)}』</b><div class="pcd-e">${fxTxt(x.eff)}</div></div>`).join('')}`:''}
   ${pots.length?`<div class="pcd-h">포텐셜 <span class="faint">${pots.length}</span></div><div class="pcd-ptg">${pots.map(x=>`<div class="pcd-p"><span class="pcd-pk">${esc(x.k||SLOTS[x.i]||'')}</span><b>『${esc(x.n)}』</b><div class="pcd-e">${fxTxt(x.e)}</div></div>`).join('')}</div>`:''}
   ${p.memo?`<div class="pcd-h">메모</div><div class="pcd-e pcd-memo">${esc(p.memo)}</div>`:''}</div></div></div>`}
+/* 10-22 망령: 로그 탭(logtool/, 같은 출처 iframe)의 「제작기 그림 잇기」가 읽는 캐릭터 그림 목록 */
+window.MKM_CHARS=()=>S.trainers.flatMap(t=>[{name:t.name,image:safeImg(t.image)||'',kind:'trainer'},...(t.pokemon||[]).map(p=>({name:p.name,image:safeImg(p.image)||'',kind:'poke'}))]).filter(x=>x.name&&x.image);
 function goPoke(T,P){T.open=true;P.open=true;save();refreshTrainer(T);requestAnimationFrame(()=>{const el=document.getElementById('pk-'+P.id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'})})}
 function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요약</h2><span class="sp"></span><button class="btn sm ghost" data-pcgo title="제작기에서 이 포켓몬 시트로 이동">시트로</button><button class="btn sm" data-pcpng title="이 요약을 그림 파일로 저장">PNG 저장</button><button class="btn ghost" data-x>닫기</button></div><div class="mbody pcd-wrap">${pokeCardHTML(t,p)}</div>`,{wide:true});
  $('.mbox',l).classList.add('pcdbox');l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>closeModal());
@@ -1468,7 +1470,7 @@ function withFocus(fn){const f=document.activeElement;const key=focusKey(f);let 
  fn();if(!key)return;const n=document.querySelector(key);if(n&&n!==document.activeElement){n.focus({preventScroll:true});try{if(ss!=null)n.setSelectionRange(ss,se)}catch(e){}}}
 function refreshTrainer(t){if(rfBusy)return;const ti=S.trainers.indexOf(t);const el=$('#tr-'+t.id);if(!el||!el.parentNode||ti<0)return renderChar();
  rfBusy=true;try{withFocus(()=>{try{el.outerHTML=trainerHTML(t,ti)}catch(e){renderChar()}})}finally{rfBusy=false}}
-function refreshAll(){stApply();if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=20261022b';return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
+function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v=20261022';return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=20261022b';return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
 let rT=null;
 let composing=false;
 $('#v-char').addEventListener('compositionstart',()=>{composing=true;clearTimeout(rT)});
@@ -1914,7 +1916,9 @@ $('#v-tbl').addEventListener('click',async e=>{const b=e.target.closest('[data-b
  if(k==='edok'){const v=($('#banEd')||{}).value;const w=String(v||'').trim();if(!w){BANED=-1;return banRefresh()}if(L.some((x,j)=>j!==i&&x.w===w))return toast('이미 있는 금지어입니다');const old=L[i].w;L[i]=old===w?L[i]:{w};banSet(L);BANED=-1;banRefresh();if(old!==w)toast(`「${old}」 → 「${w}」`);return}
  if(k==='reset'){if(!await ask('금지어를 룰 시트 기본 목록으로 되돌릴까요? 추가하거나 고친 것은 사라집니다.','되돌리기'))return;S.db.ban=DEF.ban||'';save(true);BANED=-1;banRefresh();toast('기본 목록으로 되돌렸습니다');return}
  if(k==='scan'){const R=banScan();const o=$('#banScanOut');o.classList.toggle('muted',!R.length);o.innerHTML=R.length?`<b class="warn">${R.length}곳에서 걸렸습니다</b><ul class="banhits">${R.map(r=>`<li><b>${esc(r.t)}</b> · ${esc(r.p)} · 『${esc(r.n)}』 — <span class="warn">${r.h.map(esc).join(', ')}</span><div class="faint">${banMark(r.eff).replace(/\\n|\n/g,' / ')}</div></li>`).join('')}</ul>`:'<span class="okc">저장된 캐릭터에는 금지어가 없습니다</span>';return}});
-$('#v-tbl').addEventListener('input',e=>{const id=e.target.id;if(id==='banQ'){BANQ=e.target.value;banRefresh(true);return}
+/* 10-22 망령: 한글 조합 중에 다시 그리면 자모가 쪼개진다 (ㄱㅗㅇ…) — 조합이 끝난 뒤에 */
+$('#v-tbl').addEventListener('compositionend',e=>{if(e.target.id==='banQ'){BANQ=e.target.value;banRefresh(true)}});
+$('#v-tbl').addEventListener('input',e=>{const id=e.target.id;if(id==='banQ'){BANQ=e.target.value;if(e.isComposing)return;banRefresh(true);return}
  if(id==='banTest'){const v=e.target.value;const h=banHits(v);$('#banTestOut').innerHTML=!v.trim()?'':h.length?`<span class="warn">걸림: ${h.map(esc).join(', ')}</span><div class="bantest">${banMark(v).replace(/\n/g,'<br>')}</div>`:'<span class="okc">걸리는 금지어가 없습니다</span>'}});
 $('#v-tbl').addEventListener('keydown',e=>{if(e.isComposing)return;if(e.target.id==='banNew'&&e.key==='Enter'){e.preventDefault();$('[data-bw="add"]').click()}if(e.target.id==='banEd'){if(e.key==='Enter'){e.preventDefault();$('[data-bw="edok"]').click()}if(e.key==='Escape'){BANED=-1;banRefresh()}}});
 $('#v-tbl').addEventListener('change',e=>{if(e.target.id==='banRawTa'){BANED=-1;const t=$('#banBox details');const open=t&&t.open;banRefresh();const t2=$('#banBox details');if(t2&&open)t2.open=true}});
@@ -2063,7 +2067,7 @@ $('#v-type').addEventListener('click',e=>{const b=e.target.closest('[data-yact]'
 $('#v-type').addEventListener('change',e=>{const a=e.target.dataset.yact;if(a==='t3'||a==='tera'){tyOpt()[a]=e.target.checked?1:0;save();renderType()}
  if(e.target.dataset.ysel==='trainer'){tyOpt().scope=e.target.value||'';save();renderType()}});
 function showTab(tab){if(!$('#v-'+tab))tab='char';S.ui.tab=tab;$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
- $('#v-char').hidden=tab!=='char';$('#v-type').hidden=tab!=='type';$('#v-db').hidden=tab!=='db';$('#v-tbl').hidden=tab!=='tbl';{const vn=$('#v-notes');if(vn)vn.hidden=tab!=='notes'}{const vr=$('#v-rule');if(vr)vr.hidden=tab!=='rule'}refreshAll();save();MKROOT().scrollTo(0,0)}
+ $('#v-char').hidden=tab!=='char';$('#v-type').hidden=tab!=='type';$('#v-db').hidden=tab!=='db';$('#v-tbl').hidden=tab!=='tbl';{const vn=$('#v-notes');if(vn)vn.hidden=tab!=='notes'}{const vr=$('#v-rule');if(vr)vr.hidden=tab!=='rule'}{const vl=$('#v-log');if(vl)vl.hidden=tab!=='log'}refreshAll();save();MKROOT().scrollTo(0,0)}
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)showTab(b.dataset.tab)});
 /* 좁은 화면: 파일 메뉴(엑셀·백업)는 「파일」 버튼으로 펼친다 */
 const MTOP=()=>$('[data-toolsbtn]').closest('.top');

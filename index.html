@@ -8,13 +8,13 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%2317202C'/%3E%3Cpath d='M2 16a14 14 0 0 1 28 0z' fill='%23C8362B'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23fff' stroke='%2317202C' stroke-width='2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="css/maker.css?v=202610241020">
+<link rel="stylesheet" href="css/maker.css?v=202610241100">
 </head>
 <body>
 <div id="mk">
 <header class="top">
   <div class="brand"><span class="ball" aria-hidden="true"></span><span class="bt">망켓몬 제작기</span></div>
-  <nav class="tabs" id="tabs"><button data-tab="rule">룰북</button><button data-tab="char" class="on">캐릭터<span class="wide-only"> 제작</span></button><button data-tab="type">타입<span class="wide-only"> 배분</span></button><button data-tab="db">DB<span class="wide-only"> 관리</span></button><button data-tab="tbl"><span class="wide-only">테이블·</span>계산식</button><button data-tab="notes">업뎃<span class="wide-only"> 노트</span></button></nav>
+  <nav class="tabs" id="tabs"><button data-tab="rule">룰북</button><button data-tab="char" class="on">캐릭터<span class="wide-only"> 제작</span></button><button data-tab="type">타입<span class="wide-only"> 배분</span></button><button data-tab="db">DB<span class="wide-only"> 관리</span></button><button data-tab="tbl"><span class="wide-only">테이블·</span>계산식</button><button data-tab="log">로그<span class="wide-only"> 정리기</span></button><button data-tab="notes">업뎃<span class="wide-only"> 노트</span></button></nav>
   <button class="btn sm toolsbtn" type="button" data-toolsbtn aria-expanded="false" aria-controls="tools">파일 <span aria-hidden="true">▾</span></button>
   <div class="tools" id="tools">
     <button class="btn sm" data-act="xlsxOut">엑셀로 내보내기</button>
@@ -31,6 +31,7 @@
   <section id="v-type" hidden></section>
   <section id="v-db" hidden></section>
   <section id="v-tbl" hidden></section>
+  <section id="v-log" hidden><div class="lgbar"><b>로그 정리기</b><span class="small muted">맵툴 · 오레마스 로그를 세션 로그로 정리 · 「제작기 그림 잇기」로 캐릭터 초상 연결</span><span class="sp"></span><a class="btn sm ghost" href="logtool/index.html" target="_blank" rel="noopener">새 창으로</a></div><iframe id="logFrame" title="로그 정리기" loading="lazy"></iframe></section>
   <section id="v-notes" hidden></section>
 </main>
 <div id="toast" role="status"></div>
@@ -40,9 +41,9 @@
 <script src="js/store.js"></script>
 <script src="data/db.js?v=202610240700"></script>
 <script src="js/vendor/jszip.min.js"></script>
-<script src="js/notes.js?v=202610241010"></script>
+<script src="js/notes.js?v=202610241130"></script>
 <script src="js/rulebook_host.js?v=202610220630"></script>
 <script src="js/potlint.js?v=202610240800"></script>
-<script src="js/maker.js?v=202610241020"></script>
+<script src="js/maker.js?v=202610241130"></script>
 </body>
 </html>
