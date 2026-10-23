@@ -24,28 +24,39 @@ window.MKM_STORE=(()=>{
 
  function makeDB(client){
   const cols=new Map();
-  async function fetchAll(kind){const out=[];let from=0;
-   for(;;){const r=await client.from(TABLE()).select('id,data').eq('kind',kind).order('id').range(from,from+PAGE-1);
+  /* since(ISO 시각)를 주면 그 뒤에 고쳐진 행만 (10-23 이그레스: 다시 맞출 때 그림 든 시트까지 전부 받지 않게) */
+  async function fetchAll(kind,since){const out=[];let from=0;
+   for(;;){let q=client.from(TABLE()).select('id,data,updated_at').eq('kind',kind);if(since)q=q.gt('updated_at',since);
+    const r=await q.order('id').range(from,from+PAGE-1);
     if(r.error)throw mapErr(r.error);const rows=r.data||[];out.push(...rows);if(rows.length<PAGE)break;from+=PAGE}
+   return out}
+  /* 지금 있는 id 만 — 지워진 행 찾기용 (내용은 받지 않는다) */
+  async function fetchIds(kind){const out=[];let from=0;
+   for(;;){const r=await client.from(TABLE()).select('id').eq('kind',kind).order('id').range(from,from+PAGE-1);
+    if(r.error)throw mapErr(r.error);const rows=r.data||[];for(const x of rows)out.push(x.id);if(rows.length<PAGE)break;from+=PAGE}
    return out}
   async function fetchOne(kind,id){const r=await client.from(TABLE()).select('id,data').eq('kind',kind).eq('id',id).maybeSingle();if(r.error)throw mapErr(r.error);return r.data}
   function collection(kind){
    if(cols.has(kind))return cols.get(kind);
-   const st={cache:new Map(),cb:null,err:null,ready:false,chan:null,subs:0,resyncing:false,again:false};
+   const st={cache:new Map(),cb:null,err:null,ready:false,chan:null,subs:0,resyncing:false,again:false,at:0};
+   const seen=t=>{const ms=Date.parse(t||'');if(ms>st.at)st.at=ms};   /* 받은 행 중 가장 늦은 수정 시각 (서버 시계) */
    function emit(changes){if(changes.length&&st.cb)st.cb({docs:[...st.cache.entries()].map(([id,d])=>mkDoc(id,d)),docChanges:()=>changes})}
    function apply(id,data){const j=canon(data);const had=st.cache.has(id);if(had&&canon(st.cache.get(id))===j)return null;st.cache.set(id,data);return{type:had?'modified':'added',doc:mkDoc(id,data)}}
    function remove(id){if(!st.cache.has(id))return null;const d=st.cache.get(id);st.cache.delete(id);return{type:'removed',doc:mkDoc(id,d)}}
    async function resync(){if(st.resyncing){st.again=true;return}st.resyncing=true;
-    try{do{st.again=false;const rows=await fetchAll(kind);const seen=new Set(),ch=[];
-      for(const r of rows){seen.add(r.id);const c=apply(r.id,r.data||{});if(c)ch.push(c)}
-      for(const id of [...st.cache.keys()])if(!seen.has(id)){const c=remove(id);if(c)ch.push(c)}
+    try{do{st.again=false;
+      /* 10-23 이그레스: 마지막으로 본 수정 시각 1분 전부터 바뀐 행만 받고, 지워진 행은 id 목록으로 찾는다. 본 적이 없으면 전부 */
+      const since=st.at?new Date(st.at-60000).toISOString():null;
+      const rows=await fetchAll(kind,since);const ids=since?new Set(await fetchIds(kind)):null;const got=new Set(),ch=[];
+      for(const r of rows){got.add(r.id);seen(r.updated_at);const c=apply(r.id,r.data||{});if(c)ch.push(c)}
+      for(const id of [...st.cache.keys()])if(!(ids?ids.has(id):got.has(id))){const c=remove(id);if(c)ch.push(c)}
       emit(ch)}while(st.again)}
     catch(e){if(st.err)st.err(mapErr(e))}
     finally{st.resyncing=false}}
    async function onRow(payload){
     try{
      if(payload.eventType==='DELETE'){/* Realtime 은 DELETE 에 kind 필터를 걸지 않으므로 다른 kind 의 삭제는 여기서 거른다 (replica identity full 이라 old 에 kind 가 있다) */const o=payload.old||{};if(o.kind!=null&&o.kind!==kind)return;const id=o.id;if(id==null)return resync();const c=remove(id);if(c)emit([c]);return}
-     const n=payload.new||{};let id=n.id,data=n.data;
+     const n=payload.new||{};let id=n.id,data=n.data;seen(n.updated_at);
      if(id==null)return resync();
      if(data===undefined||(payload.errors&&payload.errors.length)){const row=await fetchOne(kind,id);if(!row){const c=remove(id);if(c)emit([c]);return}data=row.data}
      const c=apply(id,data||{});if(c)emit([c])}
@@ -54,10 +65,10 @@ window.MKM_STORE=(()=>{
     st.chan=client.channel('docs:'+kind)
      .on('postgres_changes',{event:'*',schema:'public',table:TABLE(),filter:'kind=eq.'+kind},onRow)
      .subscribe(status=>{
-      if(status==='SUBSCRIBED'){st.subs++;resync()}   /* 처음 읽은 뒤 구독이 붙기까지 사이의 남의 변경도 잡는다 (점검 6-5) */
+      if(status==='SUBSCRIBED'){st.subs++;resync()}   /* 처음 읽은 뒤 구독이 붙기까지 사이의 남의 변경도 잡는다 (점검 6-5) — 10-23 부터는 그 사이 바뀐 행만 */
       else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){if(st.err)st.err(Object.assign(new Error('realtime '+status),{code:'unavailable'}))}})}
    const col={onSnapshot(cb,err){st.cb=cb;st.err=err||null;
-     (async()=>{try{const rows=await fetchAll(kind);for(const r of rows)st.cache.set(r.id,r.data||{});st.ready=true;
+     (async()=>{try{const rows=await fetchAll(kind);for(const r of rows){st.cache.set(r.id,r.data||{});seen(r.updated_at)}st.ready=true;
        cb({docs:[...st.cache.entries()].map(([id,d])=>mkDoc(id,d)),docChanges:()=>[]});subscribe()}
       catch(e){if(err)err(mapErr(e))}})();
      return()=>{if(st.chan)client.removeChannel(st.chan)}},

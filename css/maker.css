@@ -839,3 +839,6 @@ html.modal-on #mk{overflow:hidden}
 /* 10-24 망령: 포켓몬 머리의 삭제를 눈에 띄게 (배경 볼 무늬에 묻혀 안 보였다) */
 #mk .pact .pdel{background:color-mix(in srgb,var(--warn) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 40%,var(--line));position:relative;z-index:1}
 @media (max-width:600px){#mk .ph .pact{margin:-2px 2px -4px 0}#mk .pact .pdel{padding:0 8px}}
+/* 10-25 망령: 휴대폰 포켓몬 머리 — 「≤1100px 6칸 격자」 규칙이 휴대폰 규칙보다 뒤에 있어 머리줄이 화면 밖으로 넘쳤다(전용 칸과 「한 장 · 복사 · 복제」 겹침, 삭제 잘림). 휴대폰 격자를 다시 걸고, 전용은 제 줄 전체 · 단추는 그 아래 줄 오른쪽 */
+@media (max-width:800px){#mk .ph{grid-template-columns:44px minmax(0,1fr) auto}}
+@media (max-width:600px){#mk .ph{grid-template-columns:44px minmax(0,1fr)}#mk .ph>.pmain{grid-column:2/-1}#mk .ph>.pexcl{grid-column:1/-1;grid-row:auto;min-width:0}#mk .ph>.pact{grid-column:1/-1;grid-row:auto;justify-content:flex-end;flex-wrap:wrap;margin:0;align-self:auto}}

@@ -1407,7 +1407,9 @@ function openTDeco(T,done,FD){const d=T.deco||{};const st={color:safeCss(d.color
   <div class="mfoot"><button class="btn ghost" data-tcr>기본으로</button><span class="sp"></span><button class="btn" data-x="no">취소</button><button class="btn pri" data-x="ok">저장</button></div>`);
  const pv=()=>{const tt=Object.assign({},T,{deco:st});if(FD){const n=S.trainers.map((t,ti)=>[t,ti]).filter(([t])=>tFolder(t)===T.id);$('[data-tdprev]',l).innerHTML=`<div class="tfold">${folderHead(tt,T.name||'이름 없는 폴더',n,false,1)}</div>`;l.querySelectorAll('[data-tc]').forEach(x=>x.classList.toggle('on',x.dataset.tc===st.color));l.querySelectorAll('[data-tp]').forEach(x=>x.classList.toggle('pri',x.dataset.tp===st.pat));return}$('[data-tdprev]',l).innerHTML=`<div class="folder tdpw"><header class="fh tcard ${tDecoCls(tt)}" style="${tDecoVars(tt)}"><span class="avatar">${safeImg(T.image)?`<img src="${safeImg(T.image)}" alt="">`:esc([...(T.name||'?')][0]||'?')}</span><div class="tmain"><div class="tl1"><span class="tname">${esc(T.name)}</span></div>${st.title?`<div class="ttitle">${esc(st.title)}</div>`:''}<div class="tl3"><span class="row trk">${QUAL.map(q=>rkChip(q,T.ranks[q])).join('')}</span></div></div>${tPartyHTML(T,-1).replace(/data-act="tpk"/g,'')}</header></div>`;
   l.querySelectorAll('[data-tc]').forEach(x=>x.classList.toggle('on',x.dataset.tc===st.color));l.querySelectorAll('[data-tp]').forEach(x=>x.classList.toggle('pri',x.dataset.tp===st.pat))};pv();
- const setBg=f=>{if(!f||!/^image\//.test(f.type))return;readImg(f,1000,'image/webp',u=>{st.bg=u;$('[data-tcb]',l).value='';$('[data-tcb]',l).placeholder='(올린 그림)';pv()})};
+ const setBg=f=>{if(!f||!/^image\//.test(f.type))return;readImg(f,1000,'image/webp',u=>{st.bg=u;$('[data-tcb]',l).value='';$('[data-tcb]',l).placeholder='(올린 그림)';pv();
+  /* 10-23 이그레스: 고르자마자 공유 저장소에 올려 주소로 바꾼다 (저장을 먼저 누르면 예전처럼 저장 뒤에 옮긴다) */
+  if(shHostOn())hostImg(FD?'fb':'tb',T.id,u).then(url=>{if(st.bg!==u)return;st.bg=url;$('[data-tcb]',l).value=url;pv()}).catch(e=>console.warn('[배경 그림]',e))})};
  l.querySelectorAll('[data-tc]').forEach(x=>x.onclick=()=>{st.color=x.dataset.tc;if(st.color)$('[data-tcc]',l).value=st.color;pv()});
  $('[data-tcc]',l).oninput=e=>{st.color=e.target.value;pv()};$('[data-tct]',l).oninput=e=>{st.title=e.target.value.trim();pv()};if(FD){$('[data-tci]',l).oninput=e=>{st.icon=e.target.value.trim();pv()};l.querySelectorAll('[data-tcip]').forEach(x=>x.onclick=()=>{st.icon=x.dataset.tcip;$('[data-tci]',l).value=st.icon;pv()})}
  l.querySelectorAll('[data-tp]').forEach(x=>x.onclick=()=>{st.pat=x.dataset.tp;pv()});
@@ -1667,7 +1669,7 @@ $('#v-char').addEventListener('change',e=>{const el=e.target;
 /* 스탠딩 그림을 공유 저장소(Supabase Storage, 버킷 oremas — 오레마스와 같은 프로젝트)에 올리고 공개 주소를 돌려준다 */
 async function putImg(path,blob){const c=window.MKM_CONFIG||{};if(!c.supabaseUrl||!c.supabaseKey)throw new Error('공유 저장소 설정이 없습니다 (js/config.js)');
  const ty=blob.type||'image/png';const ext=ty.includes('png')?'png':ty.includes('webp')?'webp':ty.includes('gif')?'gif':'jpg';const full=`${path}.${ext}`;const base=c.supabaseUrl.replace(/\/$/,'');
- const r=await fetch(`${base}/storage/v1/object/oremas/${full}`,{method:'POST',headers:{apikey:c.supabaseKey,Authorization:'Bearer '+c.supabaseKey,'Content-Type':ty,'x-upsert':'true','cache-control':'3600'},body:blob});
+ const r=await fetch(`${base}/storage/v1/object/oremas/${full}`,{method:'POST',headers:{apikey:c.supabaseKey,Authorization:'Bearer '+c.supabaseKey,'Content-Type':ty,'x-upsert':'true','cache-control':'31536000'},body:blob});
  if(!r.ok){let m='';try{m=(await r.json()).message||''}catch(e){}if(/bucket not found/i.test(m))m='그림 저장소(버킷 oremas)가 없습니다 — supabase/schema.sql 을 다시 실행해 주세요';throw new Error(m||('HTTP '+r.status))}
  return `${base}/storage/v1/object/public/oremas/${full}`}
 /* 스탠딩 그림(트레이너·포켓몬)을 공유 저장소(Supabase Storage, 버킷 oremas — 오레마스와 같은 프로젝트)에 원본 그대로 올리고 공개 주소를 돌려준다. 투명 배경이 그대로 남는다 */
@@ -1675,7 +1677,24 @@ async function uploadStand(o,f){if(!/^image\//.test(f.type))throw new Error('그
 /* 시트 이미지(data URL)를 공유 저장소로: 문서가 1.5MB 를 넘지 않게 */
 async function hostImg(tag,id,dataUrl){const b=await (await fetch(dataUrl)).blob();return putImg(`maker/${tag}_${id}_${Date.now().toString(36)}`,b)}
 const shHostOn=()=>{try{return !!(SH.on&&SH.canWrite)}catch(e){return false}};
-function setImgOf(o,tag,u,t){o.image=u;save();refreshTrainer(t);if(!shHostOn())return;hostImg(tag,o.id,u).then(url=>{if(o.image!==u)return;o.image=url;save();refreshTrainer(t)}).catch(e=>toast('그림을 공유 저장소에 올리지 못해 시트 안에 넣었습니다 ('+e.message+')'))}
+/* 10-23 이그레스: 예전에 시트 안(data URL)에 넣은 그림을 공유 저장소로 옮기고 주소만 남긴다 — 시트를 받을 때마다 그림까지 받지 않게.
+   공유 DB 를 다 읽은 뒤 한 장씩 천천히. 못 옮긴 그림은 그대로 두고 다음에 열 때 다시 해 본다 */
+let shMigBusy=false;
+async function shMigrateImgs(){if(shMigBusy||!shHostOn())return;shMigBusy=true;let n=0;
+ const isD=u=>/^data:image\//.test(String(u||''));const jobs=[];
+ for(const f of S.folders)if(f.deco&&isD(f.deco.bg))jobs.push([f.deco,'bg','fb',f.id,null]);
+ for(const t of S.trainers){if(isD(t.image))jobs.push([t,'image','t',t.id,t]);if(t.deco&&isD(t.deco.bg))jobs.push([t.deco,'bg','tb',t.id,t]);
+  for(const p of t.pokemon||[]){if(isD(p.image))jobs.push([p,'image','p',p.id,t]);for(const fm of p.forms||[])if(fm&&isD(fm.image))jobs.push([fm,'image','p',fm.id||p.id,t])}}
+ try{for(const [o,k,tag,id,t] of jobs){if(!shHostOn())break;const u=o[k];
+   try{const url=await hostImg(tag,id,u);if(o[k]!==u)continue;o[k]=url;n++;save();if(t)refreshTrainer(t)}catch(e){console.warn('[그림 옮기기]',e)}}}
+ finally{shMigBusy=false}
+ if(n){renderAll();toast(`예전 시트 그림 ${n}장을 공유 저장소로 옮겼습니다`)}}
+/* 10-23 이그레스: 공유 중이면 먼저 저장소에 올리고 주소만 저장한다 (예전엔 그림째 한 번 저장한 뒤 바꿔서, 그림 든 시트가 모두에게 한 번씩 갔다). 못 올리면 예전처럼 시트 안에 */
+const IMG_TK=new WeakMap();
+function setImgOf(o,tag,u,t){if(!shHostOn()){o.image=u;save();refreshTrainer(t);return}
+ const tk={};IMG_TK.set(o,tk);toast('그림을 공유 저장소에 올리는 중…');
+ hostImg(tag,o.id,u).then(url=>{if(IMG_TK.get(o)!==tk)return;o.image=url;save();refreshTrainer(t)})
+  .catch(e=>{if(IMG_TK.get(o)!==tk)return;o.image=u;save();refreshTrainer(t);toast('그림을 공유 저장소에 올리지 못해 시트 안에 넣었습니다 ('+e.message+')')})}
 /* 10-21 망령: 폼체인지·메가진화 그림도 포켓몬 그림처럼 (클릭 · 끌어다 놓기 · 붙여넣기) */
 function setFormImg(key,f){const [a,b,k]=String(key).split('.').map(Number);const t=S.trainers[a],p=t&&t.pokemon[b],fm=p&&(p.forms||[])[k];if(!fm||!f||!/^image\//.test(f.type))return false;if(!fm.id)fm.id=(p.id||uid())+'_f'+uid();readImg(f,480,'image/webp',u=>{setImgOf(fm,'p',u,t);toast(`「${fm.name||'폼'}」 그림을 넣었습니다`)});return true}
 document.addEventListener('drop',e=>{const z=e.target.closest&&e.target.closest('[data-fdrop]');if(!z)return;const f=e.dataTransfer&&e.dataTransfer.files&&[...e.dataTransfer.files].find(x=>/^image\//.test(x.type));if(!f)return;e.preventDefault();e.stopImmediatePropagation();setFormImg(z.dataset.fdrop,f)},true);
@@ -2532,7 +2551,7 @@ async function shStart(){if(SH.ready||SH.starting)return;SH.starting=true;if(SH.
  for(const t of S.trainers){const u=ui.get(t.id);if(u)t.open=u.open;for(const p of t.pokemon){const v=ui.get(p.id);if(v){p.open=v.open;p.tab=v.tab}}}
  const paths=[];for(const k of SH_KINDS)for(const [id] of B[k]||[])paths.push(k+'/'+id);
  SH.synced=new Map();SH.ready=true;shAfter(paths,{t:true,d:true});if(SH.purge){SH.purge=false;SH.synced.delete('meta/set.stpl');const n=stplPurge();if(n){SH.dbDirty=true;toast(`템플릿 『계제 포텐셜』 칸 ${n}개를 비웠습니다 (종족 포텐셜로 대체)`)}}renderAll();shStatus(SH.canWrite?'연결됨 · 함께 수정 중':'읽기 전용 · 보기만 가능합니다');
- shFlush()}
+ shFlush();setTimeout(shMigrateImgs,4000)}
 function renderAll(){if(S.ui.tab==='char')renderChar();else refreshAll()}
 
 const MKROOT=()=>document.getElementById('mk')||document.body;
