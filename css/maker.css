@@ -842,3 +842,6 @@ html.modal-on #mk{overflow:hidden}
 /* 10-25 망령: 휴대폰 포켓몬 머리 — 「≤1100px 6칸 격자」 규칙이 휴대폰 규칙보다 뒤에 있어 머리줄이 화면 밖으로 넘쳤다(전용 칸과 「한 장 · 복사 · 복제」 겹침, 삭제 잘림). 휴대폰 격자를 다시 걸고, 전용은 제 줄 전체 · 단추는 그 아래 줄 오른쪽 */
 @media (max-width:800px){#mk .ph{grid-template-columns:44px minmax(0,1fr) auto}}
 @media (max-width:600px){#mk .ph{grid-template-columns:44px minmax(0,1fr)}#mk .ph>.pmain{grid-column:2/-1}#mk .ph>.pexcl{grid-column:1/-1;grid-row:auto;min-width:0}#mk .ph>.pact{grid-column:1/-1;grid-row:auto;justify-content:flex-end;flex-wrap:wrap;margin:0;align-self:auto}}
+/* 10-23 망령: 상세 조정 급소 규칙 */
+#mk .tune .tcrit{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:6px;align-items:center}
+#mk .tune .tcrit label{display:inline-flex;align-items:center;gap:6px}

@@ -417,7 +417,7 @@ const fxReady=()=>!!(window.OM_FX&&window.OM_FX_UI);
 window.OM_APP=window.OM_APP||{openModal:h=>{const l=openModal(h,{wide:true});l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))closeModal()});return l},closeModal:()=>closeModal(),toast:t=>toast(t),ST:{role:'player',state:{}},set:async()=>false};
 let fxLoadP=null,FXST='';/* '' 불러오는 중 · ok · fail */
 function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
- const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202610241700';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
+ const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202610251500';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
  FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');await one('itemrule.js');FXST='ok';rmInit();stInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
 function fxRetry(){if(fxReady())return;fxLoadP=null;toast('구문 스크립트를 다시 불러옵니다…');loadFx();if(S.ui&&S.ui.tab)refreshAll()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fxretry]');if(!b)return;e.preventDefault();e.stopPropagation();fxRetry()},true);
@@ -835,6 +835,7 @@ function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전�
    <pre class="small" data-autorm style="white-space:pre-wrap;background:var(--bg2,#f4f4f6);padding:6px;border-radius:6px;margin:0 0 6px"></pre>
    <textarea id="pe-auto" rows="4" style="width:100%;font-family:var(--mono,monospace);font-size:12.5px" placeholder="(비우면 레디메이드 자동)">${esc(isU?String((t.unique[slot.unique]||{}).auto||''):autoDsl(p,cur.name))}</textarea>
    <div class="small" data-autoprev style="white-space:pre-wrap;margin-top:4px"></div>
+   <div data-autogen></div>
    <details><summary class="small">구문 도움말</summary><pre class="small" style="white-space:pre-wrap">${esc(AUTO_HELP)}</pre></details></details>`:''}</div></div></div>
  <div class="mfoot"><button class="btn danger" data-clear>슬롯 비우기</button>${isU||PR_HIDDEN?'':'<button class="btn" data-rec title="이 포켓몬의 타입·기술·종족치·역할에서 계통별 포텐셜 안을 짜고 수지 검사">✨ 추천</button>'}${isU?'':'<button class="btn" data-build title="트리거·조건·효과를 골라 새 포텐셜 문장 만들기">🛠 제작</button>'}<span class="sp"></span><button class="btn" data-x>취소</button><button class="btn pri" data-apply>적용</button></div>`,{wide:true});
  const ta=$('#pe-eff',l);bindTagbar(l,()=>ta);
@@ -842,6 +843,7 @@ function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전�
   rmEl.textContent=base&&base.ops&&base.ops.length?'레디메이드 자동: '+K.unparse(base.ops).join(' / ')+(base.manual?' (자동화 미지원 — 손으로)':''):'같은 이름의 레디메이드 없음';
   const r=K.parse(ta2.value);pv.innerHTML=(r.ops.length?'미리보기: '+esc(K.unparse(r.ops).join(' / ')):'')+(r.errs.length?` <span class="warn">모르는 줄: ${esc(r.errs.join(' / '))}</span>`:'');hint.textContent=r.ops.length?'구문 있음':(base&&base.ops&&base.ops.length&&!base.manual?'레디메이드 자동':'없음')};
  autoUpd();l.addEventListener('input',e=>{if(e.target.id==='pe-auto'||e.target.id==='pe-name')autoUpd()});
+ {const gh=$('[data-autogen]',l),ta3=$('#pe-auto',l);if(gh&&ta3&&window.OM_FX_UI&&OM_FX_UI.mountGen)OM_FX_UI.mountGen(gh,ta3,{toast})}   /* 10-23 망령: 고유 포함 — 편집 창에서 바로 생성기 */
  const fill=o=>{$('#pe-name',l).value=o.name||'';ta.value=o.eff||'';const k=$('#pe-kind',l);if(k&&o.kind)k.value=o.kind;upd();seg('edit')};
  const upd=()=>{$('[data-prev]',l).innerHTML=`<b>${esc($('#pe-name',l).value||'(이름 없음)')}</b><br>`+rich(ta.value);const h=banHits(ta.value);$('[data-ban]',l).innerHTML=(h.length?`<span class="warn">금지 키워드 감지: ${h.map(esc).join(', ')}</span>`:'<span class="okc">금지 키워드 없음</span>')+lintHTML(ta.value);wordUpd()};
  /* 10-24 망령: 뉴비 워딩 도우미 — DB 문장 꼴로 고칠 곳 · 자동화 구문 추천 (js/potlint.js) */
@@ -1573,9 +1575,19 @@ function movesTab(t,ti,p,pi,P,c){const ms=p.moves;const over=c.cap!=null&&c.used
    오레마스 import.js 가 st → 자동화 「상세 조정」의 「상태수정」 줄로, item → itemTune 으로 가져간다. 효과 글 · 「구문」 버튼으로 걸어 둔 것도 같이 보여 준다 */
 const TUNE_ST=[['아쿠아링','AquaRing',1,8,'회복'],['뿌리박기','Ingrain',1,16,'회복'],['환희의노래','Chant',1,16,'회복'],['희망사항','Wish',1,2,'회복'],['씨뿌리기','LeechSeed',1,8,'흡수'],['독','Poison',1,8,'대미지'],['화상','Burn',1,16,'대미지'],['악몽','Nightmare',1,4,'대미지'],['저주','Curse',1,4,'대미지'],['조이기','Bind',1,8,'대미지']];
 const FRAC_RE=/^\s*(\d+)\s*\/\s*(\d+)\s*$/;
-function tuneOf(p){let t=p.tune;if(!t||typeof t!=='object')t=p.tune={};if(!Array.isArray(t.st))t.st=[];t.st=t.st.filter(x=>x&&TUNE_ST.some(r=>r[0]===x.st));t.item=String(t.item||'');t.itemName=String(t.itemName||'');return t}
+function tuneOf(p){let t=p.tune;if(!t||typeof t!=='object')t=p.tune={};if(!Array.isArray(t.st))t.st=[];t.st=t.st.filter(x=>x&&TUNE_ST.some(r=>r[0]===x.st));t.item=String(t.item||'');t.itemName=String(t.itemName||'');if(!t.crit||typeof t.crit!=='object'||Array.isArray(t.crit))t.crit={};return t}
 function tuneDsl(p){return tuneOf(p).st.filter(x=>FRAC_RE.test(x.v||'')&&+String(x.v).split('/')[1]>0).map(x=>`상태수정 ${x.st} ${String(x.v).replace(/\s+/g,'')}`).join('\n')}
-function tuneCount(p){const t=tuneOf(p);return t.st.length+(t.item.trim()?1:0)}
+function tuneCount(p){const t=tuneOf(p);return t.st.length+(t.item.trim()?1:0)+(Object.keys(t.crit).length?1:0)}
+/* 10-23 망령: 포켓몬마다 급소 규칙 — 오레마스가 불러오면 공격 창이 자동으로 쓴다 (critRule) */
+const CRIT_TBL=[['','기본 표 (6.25 → 12.5 → 25 → 50 → 100%)'],['2','완만한 표 (… 25 → 33 → 50%)'],['1','가파른 표 (… 50 → 100%)']];
+function tuneCritBox(T,D){const c=T.crit;return `<section class="tbox"><div class="row"><b>급소 규칙</b><span class="small muted">이 포켓몬만 · 오레마스 공격 창이 자동으로 쓴다</span></div>
+  <div class="tcrit"><label>급소 표 <select data-tunecr="tbl" ${D}>${CRIT_TBL.map(([v,l])=>`<option value="${v}" ${String(c.tbl||'')===v?'selected':''}>${l}</option>`).join('')}</select></label>
+   <label>급소 랭크 + <input type="number" class="mono" data-tunecr="add" ${D} value="${esc(c.add||'')}" placeholder="0" style="width:56px"></label>
+   <label>받을 때 급소 방호 <input type="number" class="mono" data-tunecr="guard" ${D} value="${esc(c.guard||'')}" placeholder="0" style="width:56px"></label>
+   <label>급소 대미지 <select data-tunecr="dmg" ${D}>${[['','기본 ×1.5'],['2','×2'],['2.25','×2.25'],['2.5','×2.5'],['3','×3']].map(([v,l])=>`<option value="${v}" ${String(c.dmg||'')===v?'selected':''}>${l}</option>`).join('')}</select></label>
+   <label class="row small"><input type="checkbox" data-tunecr="sure" ${D} ${c.sure?'checked':''}> 공격이 언제나 급소</label>
+   <label class="row small"><input type="checkbox" data-tunecr="never" ${D} ${c.never?'checked':''}> 급소에 맞지 않는다</label></div>
+  <p class="small faint" style="margin:6px 0 0">급소 랭크는 공격 창의 급소 단계에 더해지고, 방호는 이 포켓몬이 맞을 때 상대 급소 단계에서 빠진다. 비워 두면 룰 기본.</p></section>`}
 /* 배틀 쪽 OM_FX.stMod 가 읽는 꼴로 시트를 옮겨 그대로 물어본다 (상세 조정 칸은 빼고: 글 · 구문에서 온 것만) */
 function tuneMon(p){const K=OM_FX;const auto={};for(const k in (p.auto||{})){const v=String(p.auto[k]||'').trim();if(v)auto[FXK(k)]={dsl:v,ops:K.parse(v).ops}}
  const ab=idx.abil.get(p.ability),it=itemRow(p);
@@ -1609,6 +1621,7 @@ function tuneTab(t,ti,p,pi){const T=tuneOf(p);const ok=fxReady();const D=`data-i
   <textarea data-tuneitem="${p.id}" ${D} rows="3" placeholder="비우면 소지품 DB 구문 그대로 · 예) 턴 종료: 회복 1/8" style="width:100%;font-family:var(--mono,monospace);font-size:12.5px;margin-top:6px">${esc(T.item)}</textarea>
   <div class="small" id="tunePrev-${p.id}" style="margin-top:4px">${ok?tuneItemPrev(T.item):''}</div>
   <div class="row" style="margin-top:6px;gap:6px">${base?`<button class="btn sm" data-act="tuneItemCopy" ${D}>DB 구문 가져와 고치기</button>`:''}${T.item.trim()?`<button class="btn sm ghost" data-act="tuneItemClr" ${D}>비우기</button>`:''}<span class="sp"></span><span class="small muted">구문 꼴은 테이블 탭 · 소지품 DB 「구문」과 같다</span></div>`}</section>
+ ${tuneCritBox(T,D)}
  <section class="tbox"><div class="row"><b>걸어 둔 자동화 구문</b><span class="small muted">포텐셜 · 특성 · 소지품 칸의 「구문」 버튼에서 고친다</span></div>
   ${autos.length||td?`<div class="tauto">${autos.map(([k,v])=>`<div><span class="kindb">${esc(k)}</span> <button class="btn sm ghost" data-act="tuneFxK" ${D} data-name="${esc(k)}">고치기</button><pre class="tpre">${esc(String(v).trim())}</pre></div>`).join('')}${td?`<div><span class="kindb">상세 조정</span><pre class="tpre">${esc(td)}</pre></div>`:''}</div>`:'<p class="small faint" style="margin:6px 0">없다 (같은 이름의 레디메이드가 있으면 그것이 돈다)</p>'}
   ${(()=>{const C=tuneCands(p);return C.length?`<div class="row" style="margin-top:6px;gap:6px"><select data-tunefx="${p.id}">${C.map((c,ci)=>`<option value="${ci}">${esc(c.lab)} · ${esc(c.name)}${String((p.auto||{})[FXK(c.name)]||'').trim()?' (구문 있음)':((fxRm(c.kind,c.name)||{}).ops||[]).length?' (레디메이드)':''}</option>`).join('')}</select><button class="btn pri sm" data-act="tuneFx" ${D}>+ 구문 쓰기</button></div>`:'<p class="small faint" style="margin:6px 0 0">포텐셜 · 특성 · 소지품을 먼저 넣으면 여기서 구문을 걸 수 있다</p>'})()}</section>
@@ -1654,6 +1667,7 @@ $('#v-char').addEventListener('input',e=>{if(e.target.dataset.tuneitem){const t=
  const p=e.target.dataset.p;if(!p)return;const[o,k]=getRef(p);if(!o)return;o[k]=e.target.type==='checkbox'?e.target.checked:e.target.value;save();
  const t=trOf(e.target);if(e.target.tagName==='TEXTAREA'||e.isComposing||composing)return;clearTimeout(rT);rT=setTimeout(()=>t&&refreshTrainer(t),550)});
 $('#v-char').addEventListener('change',e=>{const el=e.target;
+ if(el.dataset.tunecr){const t=S.trainers[+el.dataset.i];const P=t&&t.pokemon[+el.dataset.j];if(!P)return;const c=tuneOf(P).crit;const k=el.dataset.tunecr;const v=el.type==='checkbox'?el.checked:String(el.value).trim();if(v===''||v===false||(k!=='tbl'&&k!=='dmg'&&el.type==='number'&&!+v))delete c[k];else c[k]=el.type==='checkbox'?1:v;save();return}
  if(el.dataset.tunest){const t=S.trainers[+el.dataset.i];const P=t&&t.pokemon[+el.dataset.j];if(!P)return;const v=el.value.replace(/\s+/g,'');const x=tuneOf(P).st.find(q=>q.st===el.dataset.tunest);if(!x)return;if(!FRAC_RE.test(v)||!(+v.split('/')[1]>0)){toast('비율을 1/6 처럼 적어 주세요');el.value=x.v;return}x.v=v;save();refreshTrainer(t);return}
  if(el.dataset.sfiles){const fs=[...el.files];el.value='';stUpload(el.dataset.sfiles,fs);return}
  if(el.dataset.srep||el.dataset.sl!=null||el.dataset.spt!=null||el.dataset.skd!=null){const ref=el.dataset.srep||el.dataset.sl||el.dataset.spt||el.dataset.skd;const c=ref.lastIndexOf(':');const R=stRef(ref.slice(0,c));const s=R.o&&(R.o.stands||[])[+ref.slice(c+1)];if(!s)return;
