@@ -951,3 +951,16 @@ html[data-vt] #mk .cq{color:#FDBA74}html[data-vt] #mk .cq2{color:#FCD34D;font-we
 /* 한 장 요약 왼쪽 색: 왼쪽 칸 전체가 아니라 그림 · 이름 머리 뒤에만 옅게 — 기술 칸과 겹치지 않게 (2026-10-24) */
 #mk .pcd::before{inset:0 auto auto 0!important;width:min(var(--pcdw,330px),100%)!important;height:150px!important;bottom:auto!important;border-radius:14px 0 48px 0;background:linear-gradient(160deg,color-mix(in srgb,var(--c1) 30%,transparent),color-mix(in srgb,var(--c2) 12%,transparent) 55%,transparent 92%)!important}
 @media (max-width:900px){#mk .pcd::before{width:100%!important;border-radius:14px 14px 0 0}}
+
+/* 10-25 망령: 폼 버튼은 이름 옆으로 — 줄 수가 늘 같게 */
+#mk .pname>.fmbs{display:inline-flex;flex:none;flex-wrap:nowrap;margin:0 0 0 4px;gap:3px;font-family:var(--body,inherit)}
+#mk .pname>.pnm{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mk .pname>.fmbs .fmb{font-size:10.5px;padding:3px 7px}
+@media (max-width:600px){#mk .pname>.fmbs .fmb{padding:3px 6px;font-size:10px}#mk .pname>.fmbs .fmb.back{display:none}}
+
+/* 10-25 망령: 타입 색 띠는 번호+이름 칸까지만(특성 칸 침범 X), 반반 한 번만 */
+html[data-vt] #mk .pk .ph{--bL:72px}
+html[data-vt] #mk .pk .ph>.pmain{position:relative;align-self:stretch;margin:-8px 0;padding:8px 0;align-items:center}
+html[data-vt] #mk .pk .ph>.pmain::before{content:"";position:absolute;z-index:-1;top:0;bottom:0;left:calc(-1 * var(--bL));right:-5px;pointer-events:none;background:linear-gradient(105deg,var(--bA) 0 50%,var(--bB) 50% 100%);box-shadow:inset calc(-1 * var(--bE,0px)) 0 0 var(--bEC,transparent)}
+@media (max-width:800px){html[data-vt] #mk .pk .ph{--bL:64px}html[data-vt] #mk .pk .ph>.pmain::before{right:-10px}}
+@media (max-width:600px){html[data-vt] #mk .pk .ph{--bL:60px}html[data-vt] #mk .pk .ph>.pmain{margin:-8px 0 0;padding:8px 0 4px}html[data-vt] #mk .pk .ph>.pmain::before{right:-8px;box-shadow:none}}
