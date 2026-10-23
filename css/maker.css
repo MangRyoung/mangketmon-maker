@@ -1007,3 +1007,15 @@ html[data-vt] #mk .pk .ph>.pmain::before{content:"";position:absolute;z-index:-1
 #mk main:has(>#v-rule:not([hidden])){max-width:none;padding:0}
 #mk #v-log .lgbar{display:none}
 #ruleFrame,#logFrame{background:var(--bg)}
+/* 10-24 망령: 폴더 카드 — 트레이너 칩 한 줄(넘치면 얼굴만) · 칩 줄과 「+ 트레이너」 조금 오른쪽 · P4 왼쪽 띠와 안 겹치게 · P4 칩 글씨 보이게 */
+#mk .ftile .fbot{padding-left:10px}
+#mk .ftile .flist{flex-wrap:nowrap!important;overflow:hidden!important}
+#mk .ftile .flist>.fch{flex:none}
+#mk .ftile .flist.ico{gap:3px}
+#mk .ftile .flist.ico>.fch:not(.more):not(.none){padding:0;background:none;gap:0}
+#mk .ftile .flist.ico>.fch .fcn{display:none}
+#mk .ftile .flist.ico>.fch .fav{width:26px;height:26px}
+html[data-vt="p4"] #mk .tfh.ftile{padding-left:26px}
+html[data-vt="p4"] #mk .ftile .fch{--ink:#fffbe6;--muted:#d8cf9a;background:#111!important;color:#fffbe6!important}
+html[data-vt="p4"] #mk .ftile .fch .fav{border-color:#111}
+html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:none!important}

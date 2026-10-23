@@ -1371,7 +1371,10 @@ function renderChar(){const root=$('#v-char');
   body=`<div id="trs" data-sort="folders">${S.folders.map((f,fi)=>grp(f.id,f.name||'이름 없는 폴더',fi)).join('')}${grp('','폴더 없음')}</div>`}
  root.innerHTML=`${hiddenN?`<p class="small faint" style="margin:0 0 8px">🔒 비공개라서 안 보이는 트레이너 ${hiddenN}명 (내 것이면 「서명」에 같은 비밀구를 적으세요)</p>`:''}<div class="intro"><h1>캐릭터 시트</h1><p>트레이너 폴더마다 자질·포인트·PT 서머리를 관리하고, 그 아래에 포켓몬 시트를 자유롭게 추가합니다. 「+ 폴더」로 세션별 대분류를 만들고 트레이너를 끌어다 넣을 수 있습니다. ${SH.on?'모든 내용은 공유 DB에 자동 저장되어, 링크를 아는 사람 모두가 같이 보고 고칩니다.':'모든 내용은 이 브라우저에 자동 저장됩니다.'}</p>
  <button class="btn pri" data-act="addT">+ 트레이너</button><button class="btn" data-act="addF">+ 폴더</button><button class="btn" data-act="impText">복사용 텍스트 붙여넣기</button></div>
- ${body}`}
+ ${body}`;fitFlist(root)}
+/* 폴더 카드 트레이너 칩: 한 줄에 이름까지 안 들어가면 얼굴만 (10-24 망령) — 글꼴이 늦게 오거나 창 크기가 바뀌면 다시 잰다 */
+function fitFlist(root){const run=()=>(root||document).querySelectorAll('.ftile .flist').forEach(l=>{l.classList.remove('ico');if(l.scrollWidth>l.clientWidth+1)l.classList.add('ico')});run();setTimeout(run,350)}
+{let ft=null;addEventListener('resize',()=>{clearTimeout(ft);ft=setTimeout(()=>{const r=document.getElementById('v-char');if(r)fitFlist(r)},150)})}
 /* 이름 입력 창 */
 function askText(title,label,val=''){return new Promise(res=>{const l=openModal(`<div class="mhead"><h2>${esc(title)}</h2></div><div class="mbody"><label class="lbl" for="ask-txt">${esc(label)}<input id="ask-txt" value="${esc(val)}" maxlength="60" autocomplete="off"></label></div><div class="mfoot"><span class="sp"></span><button class="btn" data-x="no">취소</button><button class="btn pri" data-x="ok">확인</button></div>`,{onClose:()=>res(null)});
  const inp=$('#ask-txt',l);setTimeout(()=>{inp.focus();inp.select()},40);
