@@ -33,3 +33,23 @@ window.OM_DB.readymade={"추격 무시":{"text":"「따라가때리기」 효과
 (()=>{const R=window.OM_DB.readymade;const put=(k,text,ops)=>{if(!R[k])R[k]={text,ops}};
  put('특성 : 천변지이','①턴 개시 시 3할로 필드의 상태를 5턴 동안 무작위한 「날씨」로 만든다.',[{k:'weather',w:'random',count:5,p:30}]);
 })();
+/* 손으로 더한 것 (2026-10-23 망령): 레디메이드 재검토 — 특성 · 소지품 · 포텐셜(역할 · 익스펜션 · 전술) 중 지금 구문으로 되는 것. 글에 【등장】【상시】 를 붙여 오레마스가 자동으로 건다. 구문이 비어 있던 기존 항목도 채운다 */
+(()=>{const R=window.OM_DB.readymade;const put=(k,text,ops)=>{if(!R[k]||!(R[k].ops||[]).length)R[k]={text,ops}};
+ put("특성 : 굳은얼굴","【등장】/상대 전체의 「공격 : -2」한다.",[{"k": "rank", "tgt": "enemy", "stats": {"attack": -2}}]);
+ put("특성 : 주인의오라","①【등장】/「공격/방어/특공/특방/스피드 중 무작위한 하나 : +2」한다.",[{"k": "rank", "tgt": "self", "stats": {}, "rnd": {"n": 1, "v": 2}}]);
+ put("특성 : 무지개의극광","①【등장】/모든 포켓몬의 랭크 변화를 초기화한다.",[{"k": "reset", "what": "rank", "tgt": "all"}]);
+ put("특성 : 배리어프리","①【등장】/필드 전체의 「장벽」을 철거한다.",[{"k": "clearobj", "side": "both", "what": "wall"}]);
+ put("특성 : 함께날다","①【상시】/필드 위에 있는 한 아군이 하늘 위에 떠오른다.",[{"k": "float", "tgt": "ally", "mode": "on", "turns": -1, "hold": 1}]);
+ put("특성 : 악몽의오라","①턴 종료 시 「잠듦」 상태인 상대의 「HP」를 1/8만큼 드레인한다. (회복은 손으로)",[{"k": "dmg", "tgt": "enemy", "value": "1/8", "basis": "max", "st": "Sleep"}]);
+ put("소지품 : 파괴의유전자","소모품/【등장】/영구히 「혼란」 상태가 되고 「공격 : +2」한다.",[{"k": "state", "state": "혼란", "tgt": "self", "count": 1000, "forced": 0}, {"k": "rank", "tgt": "self", "stats": {"attack": 2}}]);
+ put("소지품 : 클리어참","【상시】/자신 이외로 인해 자신의 능력이 감소(저하)하지 않는다.",[{"k": "nodrop", "tgt": "self", "mode": "on", "st": "", "turns": -1, "ytype": "", "ro": []}]);
+ put("소지품 : 만복향로","【상시】/자신의 기술에 「우선도 : -0.5」한다.",[{"k": "prio", "tgt": "self", "mode": "add", "v": -0.5, "cat": "all", "type": "", "dur": "keep", "tag": ""}]);
+ put("소지품 : 느림보꼬리","【상시】/자신의 기술에 「우선도 : -0.5」한다.",[{"k": "prio", "tgt": "self", "mode": "add", "v": -0.5, "cat": "all", "type": "", "dur": "keep", "tag": ""}]);
+ put("소지품 : 검은철구","【상시】/「스피드」를 저하(0.5배)시킨다. 땅으로 떨어진다.",[{"k": "mult", "tgt": "self", "stats": {"speed": 0.5}}, {"k": "float", "tgt": "self", "mode": "off", "turns": -1}]);
+ put("소지품 : 반짝가루","【상시】/「회피」를 강화(1.1배)한다.",[{"k": "mult", "tgt": "self", "stats": {"evasion": 1.1}}]);
+ put("소지품 : 무사태평향로","【상시】/「회피」를 강화(1.05배)한다.",[{"k": "mult", "tgt": "self", "stats": {"evasion": 1.05}}]);
+ put("소지품 : 스피드파우더","【상시】/「메타몽」 전용. 「스피드」를 2배로 만든다.",[{"k": "mult", "tgt": "self", "stats": {"speed": 2}}]);
+ put("소지품 : 정화부적","【상시】/자신 이외로 인해 「화상/마비/독」 상태가 되지 않는다.",[{"k": "immune", "tgt": "self", "mode": "on", "states": ["Burn", "Paralysis", "Poison", "Toxic"]}]);
+ put("익스펜션 : 악","【상시】/자신이 받을 기술의 「따라가때리기」 효과를 받지 않는다.",[{"k": "pursuit", "on": 1, "hide": 0, "immune": 1, "tgt": "self"}]);
+ put("익스펜션 : 물","턴 개시 시 중확률로 자신의 상태 이상을 치유한다.",[{"k": "resetstates", "tgt": "self", "group": "condition_abnormal", "pl": "중확률"}]);
+})();
