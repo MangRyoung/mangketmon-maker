@@ -51,5 +51,7 @@ window.OM_DB.readymade={"추격 무시":{"text":"「따라가때리기」 효과
  put("소지품 : 스피드파우더","【상시】/「메타몽」 전용. 「스피드」를 2배로 만든다.",[{"k": "mult", "tgt": "self", "stats": {"speed": 2}}]);
  put("소지품 : 정화부적","【상시】/자신 이외로 인해 「화상/마비/독」 상태가 되지 않는다.",[{"k": "immune", "tgt": "self", "mode": "on", "states": ["Burn", "Paralysis", "Poison", "Toxic"]}]);
  put("익스펜션 : 악","【상시】/자신이 받을 기술의 「따라가때리기」 효과를 받지 않는다.",[{"k": "pursuit", "on": 1, "hide": 0, "immune": 1, "tgt": "self"}]);
- put("익스펜션 : 물","턴 개시 시 중확률로 자신의 상태 이상을 치유한다.",[{"k": "resetstates", "tgt": "self", "group": "condition_abnormal", "pl": "중확률"}]);
+ put("익스펜션 : 물","턴 개시 시 중확률로 자신의 상태 이상을 치유한다.",[{"k": "resetstates", "tgt": "self", "group": "condition_abnormal"}]);
 })();
+/* 손으로 더한 것 (2026-10-23 망령): 버텨라! — ② 턴 종료 시까지 기술 대미지 반감 ③ 다음 기술로 「빈사」 안 됨. ①(회피율 0)은 손으로 */
+(()=>{const R=window.OM_DB.readymade;const k='버텨라!';if(R[k]&&!(R[k].ops||[]).length)R[k].ops=[{"k": "guard", "tgt": "self", "v": 0.5, "types": [], "cat": "all", "eff": "all", "rng": "all", "uses": -1, "turn": 1, "tl": 0, "ro": [], "st": "", "tg": [], "sb": ""}, {"k": "guard", "tgt": "self", "v": 1, "types": [], "cat": "all", "eff": "all", "rng": "all", "uses": 1, "turn": 1, "tl": 0, "ro": [], "st": "", "tg": [], "sb": "", "ed": 1}]})();

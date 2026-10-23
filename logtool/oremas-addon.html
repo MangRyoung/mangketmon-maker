@@ -467,3 +467,43 @@ html.embed .main>.bar{position:sticky;top:0;z-index:6;background:var(--bg);paddi
 })();
 </script>
 <!-- ===== 접는 패널 끝 ===== -->
+<!-- ===== 제작기 안 화면 2 (2026-10-23 망령) =====
+  · 제작기 탭 안에서는 버튼 · 칸 · 패널 색과 글꼴을 제작기 것으로 맞춘다 (로그 본문 · 저장하는 HTML 의 꾸미기는 그대로)
+  · 넓은 화면(1480px~)은 「등장인물 · 스타일 · 표시 옵션」을 오른쪽 줄로 옮겨 가운데 로그 양옆이 비지 않게 한다
+  · 제작기 위에 따로 있던 제목 줄 대신 도구 줄에 「새 창으로」 -->
+<style>
+html.embed .rail .panel{border-radius:10px;padding:12px 14px}
+html.embed .rail .btn,html.embed .main>.bar .btn{height:30px;padding:0 11px;border-radius:7px;font-size:13px;display:inline-flex;align-items:center;gap:5px;text-decoration:none}
+html.embed .rail .btn:hover,html.embed .main>.bar .btn:hover{background:var(--sunk);border-color:var(--line)}
+html.embed .rail .btn.primary,html.embed .rail .btn.on,html.embed .main>.bar .btn.primary,html.embed .main>.bar .btn.on{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+html.embed .rail .btn.primary:hover,html.embed .main>.bar .btn.primary:hover{opacity:.9;background:var(--ink)}
+html.embed .rail .panel h2{font-family:var(--mkd);font-weight:400;font-size:16px;letter-spacing:0;color:var(--fg)}
+html.embed .rail textarea,html.embed .rail input[type=text],html.embed .rail input[type=url],html.embed .rail select{background:var(--sunk);border-color:var(--line);border-radius:7px}
+html.embed .rail .li.cur{background:var(--sunk);box-shadow:inset 3px 0 0 var(--mka)}
+html.embed .main>.bar .mkopen{margin-left:2px}
+@media (min-width:1480px){html.embed .app.three{grid-template-columns:300px minmax(0,1fr) 330px}html.embed .rail2{position:sticky}}
+</style>
+<script>
+(()=>{
+ const D=document.documentElement;if(!D.classList.contains('embed'))return;let P=null;try{P=window.parent}catch(e){}if(!P)return;
+ /* 제작기 색 · 글꼴 (밝은 · 어두운 화면 모두 제작기 #mk 의 값을 그대로 읽는다) — 바깥 틀에만 입힌다 */
+ const st=document.createElement('style');st.id='mkvars';document.head.appendChild(st);
+ const sync=()=>{try{const mk=P.document.getElementById('mk');if(!mk)return;const cs=P.getComputedStyle(mk);const g=k=>cs.getPropertyValue(k).trim();if(!g('--bg'))return;
+  const v=`--bg:${g('--bg')};--surface:${g('--surface')};--sunk:${g('--sunk')};--fg:${g('--ink')};--ink:${g('--ink')};--muted:${g('--muted')};--line:${g('--line')};--accent:${g('--ink')};--accent-ink:${g('--surface')};--gm-bg:${g('--sunk')};--mka:${g('--accent')};--mkd:${g('--display')};font-family:${g('--body')}`;
+  st.textContent=`html.embed body{background:${g('--bg')}}html.embed .rail,html.embed .main>.bar,html.embed .pop,html.embed .toast{${v}}`;
+  const th=P.document.documentElement.getAttribute('data-theme');if(th)D.setAttribute('data-theme',th);else D.removeAttribute('data-theme')}catch(e){}};
+ sync();try{P.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>setTimeout(sync,30));new P.MutationObserver(sync).observe(P.document.documentElement,{attributes:true,attributeFilter:['data-theme']})}catch(e){}
+ /* 넓은 화면: 오른쪽 줄 */
+ const R2=['등장인물','스타일','표시 옵션'];let rail2=null,marks=[];
+ const nameOf=p=>{const h=p.querySelector(':scope>h2,:scope>summary h2,:scope>.fdh h2,:scope>.row h2,:scope>summary');return h?h.textContent.trim():''};
+ const lay=()=>{const app=document.getElementById('app');const rail=app&&app.querySelector(':scope>.rail:not(.rail2)');if(!rail)return;const wide=innerWidth>=1480;
+  if(wide&&!rail2){const ps=[...rail.children].filter(p=>p.classList.contains('panel')&&R2.includes(nameOf(p)));if(!ps.length)return;rail2=document.createElement('aside');rail2.className='rail rail2';app.appendChild(rail2);
+   for(const p of ps){const m=document.createComment('rail2');p.before(m);marks.push([m,p]);rail2.appendChild(p)}app.classList.add('three')}
+  else if(!wide&&rail2){for(const [m,p] of marks)m.replaceWith(p);marks=[];rail2.remove();rail2=null;app.classList.remove('three')}};
+ lay();setTimeout(lay,350);addEventListener('resize',()=>{clearTimeout(lay.t);lay.t=setTimeout(lay,120)});
+ /* 도구 줄에 「새 창으로」 */
+ const nw=()=>{const bar=document.querySelector('.main>.bar');if(!bar||bar.querySelector('.mkopen'))return;const a=document.createElement('a');a.className='btn mkopen';a.href='index.html';a.target='_blank';a.rel='noopener';a.textContent='새 창으로 ↗';a.title='로그 정리기를 제작기 밖 새 창에서 연다';bar.appendChild(a)};
+ nw();setTimeout(nw,350);
+})();
+</script>
+<!-- ===== 제작기 안 화면 2 끝 ===== -->

@@ -688,4 +688,22 @@ function useRemote(d){
 })();
 })();
 </script>
+<!-- 10-23 망령: 제작기 「룰북」 탭 안에서 열리면 제작기 화면에 녹인다 — 제목(탭 이름과 겹침)을 빼고 제작기 색을 그대로 쓴다 (내보내는 룰북 HTML 에는 안 들어간다) -->
+<style id="rb-embed">
+html.embed .topbar .brand{display:none}
+html.embed .topbar{gap:10px;padding-inline:14px 12px}
+html.embed .search{margin-left:0;max-width:520px}
+html.embed .actions{margin-left:auto}
+html.embed body{margin:0}
+html.embed .col{margin-inline:auto}
+@media (min-width:1500px){html.embed .col{max-width:1000px}}
+</style>
+<script>
+(function(){var P=null;try{if(window.parent!==window&&window.parent.MKM_RULEBOOK)P=window.parent}catch(e){}if(!P)return;var D=document.documentElement;D.classList.add('embed');
+ var st=document.createElement('style');st.id='rb-mkvars';document.head.appendChild(st);
+ function sync(){try{var mk=P.document.getElementById('mk');if(!mk)return;var cs=P.getComputedStyle(mk);var g=function(k){return cs.getPropertyValue(k).trim()};if(!g('--bg'))return;
+  st.textContent='html.embed:root{--bg:'+g('--bg')+';--surface:'+g('--surface')+';--sunk:'+g('--sunk')+';--ink:'+g('--ink')+';--muted:'+g('--muted')+';--faint:'+g('--faint')+';--line:'+g('--line')+';--accent:'+g('--accent')+';--accent-soft:'+g('--accent-soft')+';--tag-bg:'+g('--tag-bg')+';--tag-ink:'+g('--tag-ink')+'}';
+  var th=P.document.documentElement.getAttribute('data-theme');if(th)D.setAttribute('data-theme',th);else D.removeAttribute('data-theme')}catch(e){}}
+ sync();try{P.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){setTimeout(sync,30)});new P.MutationObserver(sync).observe(P.document.documentElement,{attributes:true,attributeFilter:['data-theme']})}catch(e){}})();
+</script>
 </body></html>

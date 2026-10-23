@@ -980,3 +980,30 @@ html[data-vt] #mk .pk .ph>.pmain::before{content:"";position:absolute;z-index:-1
 #mk .ivt{display:grid;grid-template-columns:repeat(6,1fr);text-align:center;font-size:12px;row-gap:1px}
 #mk .ivt span{color:var(--faint);font-size:10.5px}#mk .ivt b{font-variant-numeric:tabular-nums;font-size:14px}
 #mk .ivt b.lo,#mk .ivlg.lo{color:#d64545}#mk .ivt b.hi,#mk .ivlg.hi{color:#2f9e5b}#mk .ivlg.big{background:#ffd84a;color:#111;padding:0 4px;border-radius:3px}
+/* ===== 2026-10-23 폴더 카드: 트레이너 목록 줄 · 버튼 아랫줄 ===== */
+#mk .ftile .fbot{flex-direction:column;align-items:stretch;gap:6px}
+#mk .ftile .flist{flex-wrap:wrap;gap:4px 6px;overflow:visible;padding-left:0}
+#mk .ftile .fch{display:inline-flex;align-items:center;gap:5px;min-width:0;max-width:100%;padding:2px 9px 2px 2px;border-radius:999px;background:color-mix(in srgb,var(--tc,var(--blue)) 8%,var(--sunk));font-size:12px;font-weight:600;color:var(--ink)}
+#mk .ftile .fch .fav{margin-left:0;width:22px;height:22px;border-width:1px;font-size:10px}
+#mk .ftile .fch .fcn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:11em}
+#mk .ftile .fch.more,#mk .ftile .fch.none{padding:3px 9px;color:var(--muted)}
+#mk .ftile .facts{flex-wrap:wrap;justify-content:flex-start;gap:6px}
+#mk .ftile .facts>.btn[data-act=addTin]{flex:1 1 auto;justify-content:center}
+#mk .ftile .facts2{display:flex;gap:2px;flex:1 0 100%;justify-content:flex-end}
+#mk .tfold.open>.tfh.ftile .fbot{flex-direction:row;align-items:center}
+#mk .tfold.open>.tfh.ftile .flist{display:none}
+#mk .tfold.open>.tfh.ftile .facts{flex-wrap:nowrap}
+#mk .tfold.open>.tfh.ftile .facts>.btn[data-act=addTin]{flex:none}
+#mk .tfold.open>.tfh.ftile .facts2{flex:none}
+/* 지시 체계 칩: 눌러서 항목마다 계열 바꾸기 (10-23) */
+#mk .ordc.ed,#mk .ordc.add{position:relative;cursor:pointer}
+#mk .ordc.ed:hover,#mk .ordc.add:hover{border-color:var(--blue)}
+#mk .ordc.ed select,#mk .ordc.add select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
+#mk .ordc.ex{border-color:var(--warn,#d08a00);background:color-mix(in srgb,var(--warn,#d08a00) 12%,var(--sunk,#f1f1f1))}
+#mk .ordc i{font-style:normal;font-size:10px;font-weight:700;color:var(--warn,#d08a00)}
+#mk .ordc.add{border-style:dashed;color:var(--muted)}
+#mk .ordc.ed.z{text-decoration:none}#mk .ordc.ed.z span{text-decoration:line-through}
+/* 10-23 망령: 룰북 · 로그 정리기 탭 — 회색 테두리 상자 없이 화면에 딱 붙이고(창 높이는 fitLog), 로그 정리기 위 제목 줄은 정리기 도구 줄의 「새 창으로」로 옮겼다 */
+#mk main:has(>#v-rule:not([hidden])){max-width:none;padding:0}
+#mk #v-log .lgbar{display:none}
+#ruleFrame,#logFrame{background:var(--bg)}

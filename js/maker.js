@@ -222,7 +222,8 @@ function ivHtml(t,ti,p,pi){const iv=p.ivs||[0,0,0,0,0,0];const has=!!p.ivs;const
  return `<div class="ivbox"><div class="ivhd"><b>개체값</b><span class="small muted">${has?`합 <b class="num ${sum>IVBIG?'warn':''}">${sum}</b>`:'아직 안 깠다 (0)'}${lg?` · ${esc(lg.d||'')} 알까기 ${+lg.n||0}회${lg.x?` + 추가 ${lg.x}`:''}${lg.r?` · 다시 굴림 ${lg.r}`:''}${lg.e?' · 손으로 고침':''}`:''}</span><span class="sp"></span><button class="btn sm pri" data-act="ivHatch" data-i="${ti}" data-j="${pi}">🥚 알까기 <span class="faint">(${ivCount(t)}회)</span></button>${has?`<button class="btn sm ghost" data-act="ivClear" data-i="${ti}" data-j="${pi}" title="개체값을 비운다 (0)">비우기</button>`:''}</div>
   <div class="ivrow6">${STATS.map((s,k)=>`<label><span>${s}</span><input type="number" min="0" max="31" inputmode="numeric" data-ivs="${ti}.${pi}.${k}" value="${has?iv[k]:''}" placeholder="0" class="${iv[k]<=1&&has?'lo':iv[k]>=30?'hi':''}"></label>`).join('')}</div>
   <div class="faint small">오레마스가 시트를 불러오면 이 값이 들어간다 (여기서 바꾸면 방에서 깐 값보다 우선)</div></div>`}
-function openIvHatch(T,P){const count=ivCount(T);let rolls=Array.from({length:count},ivRoll),chosen=-1;const used={x:0,r:0};
+async function openIvHatch(T,P){if(P.ivs&&P.ivs.some(v=>+v>0)){const lg=P.ivLog;if(!(await ask(`「${esc(P.name||'포켓몬')}」 은(는) 이미 알을 깠습니다 — 지금 ${P.ivs.join('/')} (합 ${ivSum(P.ivs)})${lg&&lg.d?`<br>${esc(lg.d)} 에 깠습니다`:''}<br>정말 다시 깔까요? (적용을 누르기 전까지는 그대로)`,'다시 깔기')))return}
+ const count=ivCount(T);let rolls=Array.from({length:count},ivRoll),chosen=-1;const used={x:0,r:0};
  const cell=v=>`<b class="${v<=1?'lo':v>=30?'hi':''}">${v}</b>`;const tbl=iv=>`<div class="ivt">${STATS.map(k=>`<span>${k}</span>`).join('')}${iv.map(cell).join('')}</div>`;
  const l=openModal(`<div class="mhead"><h2>알까기 — ${esc(P.name||'포켓몬')}</h2><span class="small muted" data-ivc></span><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div><div class="mbody">
   <div class="ivnow"><span class="small muted">지금</span>${P.ivs?tbl(P.ivs)+`<span class="small">합 <b>${ivSum(P.ivs)}</b></span>`:'<span class="small muted">없음</span>'}</div>
@@ -346,7 +347,8 @@ function potKindOf(p,i){const n=p.pots[i];if(p.potKind[i])return p.potKind[i];co
 const AUTO_HELP=`대상: 자신(기본) · 아군전체 · 상대전체 · 자신이외 · 전체 · 아군1체 · 상대1체 · 자신이외무작위 · 상대무작위 · 전원무작위
 랭크 [대상] 공격+1 방어-1 … [임시] [강제]        배율 [대상] 공격×1.33 …        초기화 랭크|배율|전부
 위력 ×1.3 [대상] [타입:불꽃,물] [물리|특수] [굉장|별로|보통] [단일|전체기] [자속|비자속] [태그:소리,접촉] [위력≥150] [위력≤60] [역할:에이스] [수세|공세] [확정급소|급소없음] [N회] [이번턴] [N턴]
-완화 ×0.75 … (받는 쪽, 위력과 같은 조건)
+완화 ×0.75 … (받는 쪽, 위력과 같은 조건) · 「견딤」을 붙이면 그 기술로 「빈사」가 되지 않는다 (예: 완화 ×1 1회 견딤)
+중첩: 효과 글에 【중첩 (3회)】 가 있으면 같은 포텐셜이 다시 걸릴 때 위력 · 완화 배율(×1.5 → ×2.25 → ×3.375)과 우선도(+1 → +2 → +3)가 그 횟수까지 쌓인다. 없으면 다시 걸 때 덮어쓴다
 상태 화상 [대상] [N턴] [강제] · 상태확률 화상 50% [대상] [1체] · 치유 [대상] [독,맹독|이상] [N%] · 상태초기화 [대상]
 회복 1/4 [대상] [전부] · 피해 1/8 [대상] [현재|직전|타입:바위] [제외:독] [빈사없음]
 날씨 비 5 · 날씨 해제 · 필드 그래스필드 5 · 룸 트릭룸 5 · 필드상태 중력 5 · 설치기 [아군|상대] 리플렉터 5
@@ -438,7 +440,7 @@ const fxReady=()=>!!(window.OM_FX&&window.OM_FX_UI);
 window.OM_APP=window.OM_APP||{openModal:h=>{const l=openModal(h,{wide:true});l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))closeModal()});return l},closeModal:()=>closeModal(),toast:t=>toast(t),ST:{role:'player',state:{}},set:async()=>false};
 let fxLoadP=null,FXST='';/* '' 불러오는 중 · ok · fail */
 function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
- const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202610252100';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
+ const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202610260100';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
  FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');await one('itemrule.js');FXST='ok';rmInit();stInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
 function fxRetry(){if(fxReady())return;fxLoadP=null;toast('구문 스크립트를 다시 불러옵니다…');loadFx();if(S.ui&&S.ui.tab)refreshAll()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fxretry]');if(!b)return;e.preventDefault();e.stopPropagation();fxRetry()},true);
@@ -847,6 +849,7 @@ function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전�
   <datalist id="L-kinds2">${[...new Set(S.db.pots.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist>
   <div class="fgrid" style="grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)">${isEx||isU?`<span class="lbl">종류<b style="color:var(--ink);font-size:13px">${isEx?'전용':'고유'}</b></span>`:`<label class="lbl" for="pe-kind">종류(순서)<input id="pe-kind" list="L-kinds2" value="${esc(cur.kind)}" placeholder="예: 04.1. 종족"></label>`}
   <label class="lbl" for="pe-name">이름<input id="pe-name" value="${esc(cur.name)}"></label></div>
+  <label class="lbl" for="pe-line">컷인 대사 <span class="small muted" style="font-weight:400">오레마스에서 이 포텐셜 컷인이 뜰 때 큰 글씨 아래에 나오는 한 줄 · 비우면 없음</span><input id="pe-line" maxlength="80" value="${esc(isU?String((t.unique[slot.unique]||{}).line||''):String(((p&&p.cutLine)||{})[String(cur.name||'').replace(/『|』/g,'').trim()]||''))}" placeholder="예: 하늘 끝까지 태워 주마!"></label>
   <label class="lbl" for="pe-eff">효과${tagbarHTML()}<textarea id="pe-eff" rows="6">${esc(brN(cur.eff))}</textarea></label>
   <div class="preview" data-prev></div><div class="small" data-ban></div>
   ${window.MKM_POTLINT?`<details class="wordbox" data-wordbox><summary>✍ 워딩 도우미 <span class="small muted" data-wcount></span></summary><div data-wbody></div></details>`:''}
@@ -889,8 +892,9 @@ function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전�
  const seg=v=>{$('.split',l).dataset.seg=v;$$('[data-seg]',l).forEach(b=>{if(b.tagName==='BUTTON')b.classList.toggle('on',b.dataset.seg===v)})};
  l.addEventListener('click',e=>{const b=e.target.closest('button[data-seg]');if(b)seg(b.dataset.seg)});
  mountPicker(l,'pots',st,{onPick:n=>{const r=potRow(n);$('#pe-name',l).value=n;ta.value=brN(r[2]);const k=$('#pe-kind',l);if(k)k.value=r[0];upd();if(matchMedia('(max-width:700px)').matches){seg('edit');toast(`「${n}」을(를) 불러왔습니다`)}}});
- const commit=(name,eff,kind)=>{if(isEx){if(xi!=null&&!name)p.exclX.splice(xi,1);else{exO.name=name;exO.eff=eff}}else if(isU){const ta2=$('#pe-auto',l);const dsl=ta2?ta2.value.trim():'';{const o0=t.unique[slot.unique]||{};const nu=Object.assign({},o0,{name,eff});if(dsl)nu.auto=dsl;else delete nu.auto;t.unique[slot.unique]=nu}   /* 10-23 망령: 고쳐도 꾸미기(색 · 아이콘 · 부제)는 남긴다 */}else{
+ const commit=(name,eff,kind)=>{if(isEx){if(xi!=null&&!name)p.exclX.splice(xi,1);else{exO.name=name;exO.eff=eff}}else if(isU){const ta2=$('#pe-auto',l);const dsl=ta2?ta2.value.trim():'';{const o0=t.unique[slot.unique]||{};const nu=Object.assign({},o0,{name,eff});if(dsl)nu.auto=dsl;else delete nu.auto;{const ln=(($('#pe-line',l)||{}).value||'').trim();if(ln&&name)nu.line=ln.slice(0,80);else delete nu.line}t.unique[slot.unique]=nu}   /* 10-23 망령: 고쳐도 꾸미기(색 · 아이콘 · 부제)는 남긴다 */}else{
    const r=potRow(name);p.pots[slot]=name;p.potEff[slot]=r&&brN(r[2]).trim()===eff.trim()?'':eff;p.potKind[slot]=r&&r[0]===kind?'':kind}
+  if(!isU&&p){const ln=(($('#pe-line',l)||{}).value||'').trim();const k0=String(cur.name||'').replace(/『|』/g,'').trim(),k1=String(name||'').replace(/『|』/g,'').trim();p.cutLine=p.cutLine||{};if(k0&&k0!==k1)delete p.cutLine[k0];if(k1&&ln)p.cutLine[k1]=ln.slice(0,80);else if(k1)delete p.cutLine[k1];if(!Object.keys(p.cutLine).length)delete p.cutLine}
   const ta2=$('#pe-auto',l);if(ta2&&!isU&&p){p.auto=p.auto||{};const key=String(name||'').replace(/『|』/g,'');const dsl=ta2.value.trim();if(key&&dsl)p.auto[key]=dsl;else if(key)delete p.auto[key]}
   save();refreshTrainer(t)};
  l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))return closeModal();
@@ -1350,12 +1354,12 @@ const fOpen=fid=>!((S.ui.fclosed||{})[fid||'_none']);
 const trVisible=t=>tVis(t)&&(!S.folders.length||fOpen(tFolder(t)));
 /* 10-24 망령: 폴더 머리를 카드 한 장으로 — 닫힌 폴더는 격자로 촘촘히, 연 폴더만 한 줄 전체. 꾸미기(색 · 아이콘 · 부제 · 무늬 · 배경 그림)는 트레이너 카드와 같은 틀 */
 function folderHead(f,name,n,open,pv){const fid=f?f.id:'',key=fid||'_none',d=(f&&f.deco)||{},pk=n.reduce((a,[t])=>a+t.pokemon.length,0);
- const av=n.slice(0,6).map(([t])=>`<span class="fav" title="${esc(t.name||'')}">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="" loading="lazy">`:esc([...(t.name||'?')][0]||'?')}</span>`).join('')+(n.length>6?`<span class="fav more">+${n.length-6}</span>`:'');
+ const av=n.slice(0,8).map(([t])=>`<span class="fch" title="${esc(t.name||'')}"><span class="fav">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="" loading="lazy">`:esc([...(t.name||'?')][0]||'?')}</span><span class="fcn">${esc(t.name||'이름 없음')}</span></span>`).join('')+(n.length>8?`<span class="fch more">+${n.length-8}</span>`:'')||'<span class="fch none">아직 트레이너가 없다</span>';
  const A=pv?'':` data-ftog="${esc(key)}" data-fdrop="${esc(key)}" ${fid?'data-grab':''} tabindex="0" role="button" data-kbd aria-expanded="${open}" aria-label="${esc(name)} 폴더 펼치기/접기"`;
  return `<div class="tfh ftile tcard ${f?tDecoCls(f):''} ${fid?'':'fnone'}" style="${f?tDecoVars(f):''}"${A}><span class="caret">▸</span><span class="ficon">${d.icon?`<b class="fem">${esc(d.icon)}</b>`:FOLDER_SVG}</span>
   <div class="fmain"><div class="fl1"><span class="fname${fid?'':' muted'}">${esc(name)}</span>${f&&f.priv?`<span class="kindb privchip" title="${esc('비공개 · '+(f.ownerName||'')+(ME.gm?' (GM 열람)':''))}">🔒</span>`:''}</div>${d.title?`<div class="fsub">${esc(d.title)}</div>`:''}<div class="fmeta">트레이너 ${n.length}명 · 포켓몬 ${pk}체</div></div>
-  <div class="fbot"><div class="favs">${av}</div>
-  ${pv?'':`<div class="facts"><button class="btn sm" data-act="addTin" data-f="${esc(fid)}" title="이 폴더에 트레이너 추가">+ 트레이너</button>${fid?`<button class="btn sm ghost fic" data-act="decoF" data-f="${esc(fid)}" title="폴더 꾸미기 (색 · 아이콘 · 부제 · 무늬 · 배경 그림)" aria-label="폴더 꾸미기">🎨</button><button class="btn sm ghost fic" data-act="privF" data-f="${esc(fid)}" title="${f&&f.priv?'지금 비공개 — 눌러서 공개로':'지금 공개 — 눌러서 비공개로 (만든 사람과 GM 에게만 보임)'}" aria-label="${f&&f.priv?'공개로':'비공개로'}">${f&&f.priv?'🔒':'🌐'}</button><button class="btn sm ghost fic" data-act="renF" data-f="${esc(fid)}" title="이름 바꾸기" aria-label="이름 바꾸기">✏️</button><button class="btn sm ghost fic danger" data-act="delF" data-f="${esc(fid)}" title="폴더 삭제 (안의 트레이너는 「폴더 없음」으로)" aria-label="폴더 삭제">🗑</button>`:''}</div>`}</div></div>`}
+  <div class="fbot"><div class="favs flist">${av}</div>
+  ${pv?'':`<div class="facts"><button class="btn sm" data-act="addTin" data-f="${esc(fid)}" title="이 폴더에 트레이너 추가">+ 트레이너</button>${fid?`<span class="facts2"><button class="btn sm ghost fic" data-act="decoF" data-f="${esc(fid)}" title="폴더 꾸미기 (색 · 아이콘 · 부제 · 무늬 · 배경 그림)" aria-label="폴더 꾸미기">🎨</button><button class="btn sm ghost fic" data-act="privF" data-f="${esc(fid)}" title="${f&&f.priv?'지금 비공개 — 눌러서 공개로':'지금 공개 — 눌러서 비공개로 (만든 사람과 GM 에게만 보임)'}" aria-label="${f&&f.priv?'공개로':'비공개로'}">${f&&f.priv?'🔒':'🌐'}</button><button class="btn sm ghost fic" data-act="renF" data-f="${esc(fid)}" title="이름 바꾸기" aria-label="이름 바꾸기">✏️</button><button class="btn sm ghost fic danger" data-act="delF" data-f="${esc(fid)}" title="폴더 삭제 (안의 트레이너는 「폴더 없음」으로)" aria-label="폴더 삭제">🗑</button></span>`:''}</div>`}</div></div>`}
 function renderChar(){const root=$('#v-char');
  const inF=fid=>S.trainers.map((t,ti)=>[t,ti]).filter(([t])=>tFolder(t)===fid&&tVis(t));const hiddenN=S.trainers.filter(t=>!tVis(t)).length;
  let body;
@@ -1500,14 +1504,20 @@ const TORD=(()=>{const CL=['기본-일반','기본-숙달','기본-숙달 (지�
  const rankLv=r=>{const b=String(r||'').replace(/[+\-]/g,'').toUpperCase();const m={E:0,D:0,C:1,B:2,A:3,AA:4,AAA:5,S:6,EX:6};return m.hasOwnProperty(b)?m[b]:1};
  const presetTc=(p,r)=>{const lv=rankLv(r);if(p==='assoc')return lv>=3?2:lv>=2?1:0;if(p==='ten')return lv>=4?5:lv>=3?4:lv>=2?3:8;if(p==='wild')return 7;if(p==='jam')return 6;return NaN};
  const zeros=(o,c)=>{let z=[];if(o===0)z=['special'];if(o===1)z=['return','special'];if(o===2)z=['heal'];if(o===3)z=['dodge','endure','return','snipe','special'];if(o===0&&c<=1)z.push('snipe','accuracy','evasion');if(o===0&&c===2)z.push('snipe');if(o===2&&c===3)z.push('special','accuracy','evasion');if(o===2&&c===4)z.push('special');if(o===2&&c===8)z.push('endure','return','snipe','special','accuracy','evasion');return z};
- return {CL,OL,LORD,OK,CK,LCMD,PRE,tordOf,presetTc,zeros}})();
+ const LO=['retreat','dodge','endure','return','snipe','special'],LC=ALL;const KO={retreat:'물러나',dodge:'피해라',endure:'버텨라',return:'바꿔라',snipe:'맞춰라',special:'특수',attack:'공격',defense:'방어',specialattack:'특공',specialdefense:'특방',speed:'스피드',heal:'회복',accuracy:'명중',evasion:'회피'};
+ const nameOf=(kind,fam,k)=>{const keys=(kind==='o'?OK:CK)[fam]||[];const i=keys.indexOf(k);return i<0?'':((kind==='o'?LORD:LCMD)[fam]||[])[i]||''};
+ return {CL,OL,LORD,OK,CK,LCMD,PRE,tordOf,presetTc,zeros,LO,LC,KO,nameOf}})();
 function tOrdTc(t){const o=t.orders||{};if(o.preset==='manual')return Math.max(0,Math.min(8,+o.tc||0));return TORD.presetTc(o.preset,(t.ranks||{})['지시'])}
 function tOrdHTML(t,ti){const o=t.orders||{};const p=o.preset||'';const rk=(t.ranks||{})['지시']||'C';const base=o.base==null||o.base===''?1:+o.base;
  const opts=`<option value="" ${!p?'selected':''}>정하지 않음 (오레마스 방 설정)</option>`+TORD.PRE.map(([k,n])=>{const tc=TORD.presetTc(k,rk);return `<option value="${k}" ${p===k?'selected':''}>${n}${isNaN(tc)?'':' → '+esc(TORD.CL[tc])}</option>`}).join('');
  let prev='';if(p){const tc=tOrdTc(t),to=TORD.tordOf(tc),z=TORD.zeros(to,tc);
-  const chips=(keys,names)=>keys.map((k,i)=>names[i]?`<span class="ordc ${z.includes(k)?'z':''}">${esc(names[i])}<b>${z.includes(k)?0:base}</b></span>`:'').join('');
-  prev=`<div class="ordp"><div><span class="ordk o">ORDER</span><b>명령 (4식)</b><span class="small muted">${esc(TORD.OL[to])}</span></div><div class="ordl">${chips(TORD.OK[to],TORD.LORD[to])}</div>
-   <div><span class="ordk c">COMMAND</span><b>지령 (6령)</b><span class="small muted">${esc(TORD.CL[tc])}</span></div><div class="ordl">${chips(TORD.CK[tc],TORD.LCMD[tc])}</div></div>`}
+  const ty=o.type||{};const chips=kind=>{const keys=kind==='o'?TORD.LO:TORD.LC,def=kind==='o'?to:tc,L=kind==='o'?TORD.OL:TORD.CL;let exn=0;
+   const h=keys.map(k=>{const v=ty[kind+'_'+k];const f=v==null?def:+v;const ex=f!==def;if(ex)exn++;const nm=TORD.nameOf(kind,f,k);const zero=!nm||(!ex&&z.includes(k));if(!nm&&!ex)return '';
+    return `<label class="ordc ed ${zero?'z':''} ${ex?'ex':''}" title="${esc(TORD.KO[k])} — 눌러서 이 항목만 다른 계열로${ex?' (지금 예외: '+L[f]+')':''}"><span>${esc(nm||TORD.KO[k])}</span><b>${zero?0:base}</b>${ex?'<i>예외</i>':''}<select data-tordx="${ti}" data-kind="${kind}" data-key="${k}" aria-label="${esc(TORD.KO[k])} 계열">${L.map((n,i)=>`<option value="${i}" ${f===i?'selected':''}>${esc(n)}${i===def?' (기본)':''} — ${esc(TORD.nameOf(kind,i,k)||'없음')}</option>`).join('')}</select></label>`}).join('');
+   const add=keys.filter(k=>ty[kind+'_'+k]==null&&!TORD.nameOf(kind,def,k)&&L.some((_,i)=>TORD.nameOf(kind,i,k)));
+   return h+(add.length?`<label class="ordc add" title="이 계열에 없는 항목을 다른 계열에서 가져온다"><span>＋ 다른 계열 항목</span><select data-tordadd="${ti}" data-kind="${kind}"><option value="">고르기</option>${add.map(k=>L.map((n,i)=>TORD.nameOf(kind,i,k)?`<option value="${k}:${i}">${esc(TORD.KO[k])} — ${esc(TORD.nameOf(kind,i,k))} (${esc(n)})</option>`:'').join('')).join('')}</select></label>`:'')+(exn?`<button type="button" class="btn xs ghost" data-act="tordReset" data-i="${ti}" data-kind="${kind}" title="예외 계열을 모두 지우고 기본으로">예외 ${exn}개 되돌리기</button>`:'')};
+  prev=`<div class="ordp"><div><span class="ordk o">ORDER</span><b>명령 (4식)</b><span class="small muted">${esc(TORD.OL[to])} · 칩을 눌러 항목마다 계열을 바꾼다</span></div><div class="ordl">${chips('o')}</div>
+   <div><span class="ordk c">COMMAND</span><b>지령 (6령)</b><span class="small muted">${esc(TORD.CL[tc])}</span></div><div class="ordl">${chips('c')}</div></div>`}
  return `<div class="tord"><div class="tordh"><b>지시 체계</b><span class="ordk o">ORDER</span><span class="ordk c">COMMAND</span><span class="small muted">지시 ${esc(rk)}</span></div>
   <label class="plrow"><span>지령 종류</span><select data-tord="${ti}" data-k="preset">${opts}</select></label>
   ${p==='manual'?`<label class="plrow"><span>계열</span><select data-tord="${ti}" data-k="tc">${TORD.CL.map((n,i)=>`<option value="${i}" ${+o.tc===i?'selected':''}>${i+1}. ${esc(n)}</option>`).join('')}</select></label>`:''}
@@ -1625,12 +1635,12 @@ function tuneOf(p){let t=p.tune;if(!t||typeof t!=='object')t=p.tune={};if(!Array
 function tuneDsl(p){return tuneOf(p).st.filter(x=>FRAC_RE.test(x.v||'')&&+String(x.v).split('/')[1]>0).map(x=>`상태수정 ${x.st} ${String(x.v).replace(/\s+/g,'')}`).join('\n')}
 function tuneCount(p){const t=tuneOf(p);return t.st.length+(t.item.trim()?1:0)+(Object.keys(t.crit).length?1:0)}
 /* 10-23 망령: 포켓몬마다 급소 규칙 — 오레마스가 불러오면 공격 창이 자동으로 쓴다 (critRule) */
-const CRIT_TBL=[['','기본 표 (6.25 → 12.5 → 25 → 50 → 100%)'],['2','완만한 표 (… 25 → 33 → 50%)'],['1','가파른 표 (… 50 → 100%)']];
+const CRIT_TBL=[['','기본 표 (6.25 → 12.5 → 25 → 50 → 100%)'],['2','5세대 (6.25 → 12.5 → 25 → 33.3 → 50%)'],['1','6세대 (6.25 → 12.5 → 50 → 100%)'],['3','7세대 이후 (4.17 → 12.5 → 50 → 100%)']];
 function tuneCritBox(T,D){const c=T.crit;return `<section class="tbox"><div class="row"><b>급소 규칙</b><span class="small muted">이 포켓몬만 · 오레마스 공격 창이 자동으로 쓴다</span></div>
   <div class="tcrit"><label>급소 표 <select data-tunecr="tbl" ${D}>${CRIT_TBL.map(([v,l])=>`<option value="${v}" ${String(c.tbl||'')===v?'selected':''}>${l}</option>`).join('')}</select></label>
    <label>급소 랭크 + <input type="number" class="mono" data-tunecr="add" ${D} value="${esc(c.add||'')}" placeholder="0" style="width:56px"></label>
    <label>받을 때 급소 방호 <input type="number" class="mono" data-tunecr="guard" ${D} value="${esc(c.guard||'')}" placeholder="0" style="width:56px"></label>
-   <label>급소 대미지 <select data-tunecr="dmg" ${D}>${[['','기본 ×1.5'],['2','×2'],['2.25','×2.25'],['2.5','×2.5'],['3','×3']].map(([v,l])=>`<option value="${v}" ${String(c.dmg||'')===v?'selected':''}>${l}</option>`).join('')}</select></label>
+   <label>급소 대미지 <select data-tunecr="dmg" ${D}>${[['','기본 ×1.5 (6세대 이후)'],['2','×2 (5세대까지)'],['2.25','×2.25'],['2.5','×2.5'],['3','×3']].map(([v,l])=>`<option value="${v}" ${String(c.dmg||'')===v?'selected':''}>${l}</option>`).join('')}</select></label>
    <label class="row small"><input type="checkbox" data-tunecr="sure" ${D} ${c.sure?'checked':''}> 공격이 언제나 급소</label>
    <label class="row small"><input type="checkbox" data-tunecr="never" ${D} ${c.never?'checked':''}> 급소에 맞지 않는다</label></div>
   <p class="small faint" style="margin:6px 0 0">급소 랭크는 공격 창의 급소 단계에 더해지고, 방호는 이 포켓몬이 맞을 때 상대 급소 단계에서 빠진다. 비워 두면 룰 기본.</p></section>`}
@@ -1702,9 +1712,10 @@ function withFocus(fn){const f=document.activeElement;const key=focusKey(f);let 
 function refreshTrainer(t){if(rfBusy)return;const ti=S.trainers.indexOf(t);const el=$('#tr-'+t.id);if(!el||!el.parentNode||ti<0)return renderChar();
  rfBusy=true;try{withFocus(()=>{try{el.outerHTML=trainerHTML(t,ti)}catch(e){renderChar()}})}finally{rfBusy=false}}
 /* 로그 정리기 iframe 을 남은 창 높이에 딱 맞춘다 (휴대폰 아래 탭 막대는 뺀다) — 제작기 쪽은 스크롤이 없고 정리기 안에서만 스크롤 */
-function fitLog(){const f=$('#logFrame');const v=$('#v-log');if(!f||!v||v.hidden)return;const top=f.getBoundingClientRect().top+window.scrollY;let bot=0;const tb=$('#mk .tabs');if(tb){const r=tb.getBoundingClientRect();if(getComputedStyle(tb).position==='fixed'&&r.top>innerHeight/2)bot=r.height}f.style.height=Math.max(420,Math.floor(innerHeight-top-bot))+'px'}
+function fitLog(){for(const [fi,vi] of [['#logFrame','#v-log'],['#ruleFrame','#v-rule']]){const f=$(fi),v=$(vi);if(f&&v&&!v.hidden)fitFrame(f)}}   /* 10-23 망령: 룰북 탭도 창 높이에 맞춘다 */
+function fitFrame(f){const top=f.getBoundingClientRect().top+window.scrollY;let bot=0;const tb=$('#mk .tabs');if(tb){const r=tb.getBoundingClientRect();if(getComputedStyle(tb).position==='fixed'&&r.top>innerHeight/2)bot=r.height}f.style.height=Math.max(420,Math.floor(innerHeight-top-bot))+'px'}
 addEventListener('resize',()=>{clearTimeout(fitLog.t);fitLog.t=setTimeout(fitLog,80)});
-function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v=20261024';requestAnimationFrame(fitLog);return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=20261022b';return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
+function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v=20261026';requestAnimationFrame(fitLog);return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=20261026';requestAnimationFrame(fitLog);return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
 let rT=null;
 let composing=false;
 $('#v-char').addEventListener('compositionstart',()=>{composing=true;clearTimeout(rT)});
@@ -1720,6 +1731,8 @@ $('#v-char').addEventListener('change',e=>{const el=e.target;
   if(el.dataset.srep){const f=el.files[0];el.value='';if(!f)return;toast('올리는 중…');uploadStand(R.o,f).then(u=>{s.src=u;save();refreshTrainer(R.t);toast('그림을 바꿨습니다')}).catch(er=>toast('올리지 못했습니다: '+er.message));return}
   if(el.dataset.sl!=null)s.label=el.value.trim()||'기본';else if(el.dataset.spt!=null)s.point=+el.value||0;else{if(el.value)s.kind=el.value;else delete s.kind}save();return}
  if(el.dataset.ivs){const [a,b,k]=el.dataset.ivs.split('.').map(Number);const t=S.trainers[a];const P=t&&t.pokemon[b];if(!P)return;let v=Math.round(+el.value);if(!isFinite(v))v=0;v=Math.max(0,Math.min(31,v));if(!P.ivs)P.ivs=[0,0,0,0,0,0];P.ivs[k]=v;P.ivLog=Object.assign({},P.ivLog||{},{e:1});save();refreshTrainer(t);return}
+ if(el.dataset.tordx!=null||el.dataset.tordadd!=null){const t=S.trainers[+(el.dataset.tordx??el.dataset.tordadd)];if(!t||!t.orders)return;const kind=el.dataset.kind;let k=el.dataset.key,f=+el.value;if(el.dataset.tordadd!=null){if(!el.value)return;[k,f]=el.value.split(':');f=+f}
+  const o=Object.assign({},t.orders);const tc=tOrdTc(t),def=kind==='o'?TORD.tordOf(tc):tc;const ty=Object.assign({},o.type||{});if(f===def)delete ty[kind+'_'+k];else ty[kind+'_'+k]=f;if(Object.keys(ty).length)o.type=ty;else delete o.type;t.orders=o;save();refreshTrainer(t);return}
  if(el.dataset.tord!=null){const t=S.trainers[+el.dataset.tord];if(!t)return;const k=el.dataset.k;const o=Object.assign({},t.orders||{});if(k==='preset'){if(!el.value){delete t.orders;save();refreshTrainer(t);return}o.preset=el.value;if(o.preset==='manual'&&o.tc==null){const tc=TORD.presetTc((t.orders||{}).preset,(t.ranks||{})['지시']);o.tc=isNaN(tc)?0:tc}}else if(k==='tc')o.tc=+el.value||0;else o.base=Math.max(0,Math.min(9,Math.round(+el.value||0)));if(o.base==null)o.base=1;t.orders=o;save();refreshTrainer(t);return}
  if(el.dataset.tmove!=null){const t=S.trainers[+el.dataset.tmove];if(t){t.folder=el.value;S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed[el.value||'_none'];save();renderChar();const f=S.folders.find(x=>x.id===el.value);toast(`「${t.name}」 → ${f?f.name:'폴더 없음'}`)}return}
  if(el.dataset.p){const t=trOf(el);const m=el.dataset.p.match(/^T\.\d+\.ranks\.(.+)$/);if(m&&t){if(el.tagName==='INPUT'){const v=el.value.trim().toUpperCase().replace(/\s+/g,'').replace(/＋/g,'+').replace(/[－−]/g,'-')||'C';el.value=v;t.ranks[m[1]]=v}applyTpl(t,m[1]);save()}
@@ -1870,6 +1883,7 @@ $('#v-char').addEventListener('click',async e=>{
   case 'pimgPick':{e.stopPropagation();let inp=$('#pimg-any');if(!inp){inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.id='pimg-any';inp.hidden=true;inp.addEventListener('change',()=>{const f=inp.files[0];if(!f)return;const [a,b]=String(inp.dataset.pimg).split('.').map(Number);setPokeImg(a,b,f)});MKROOT().appendChild(inp)}inp.dataset.pimg=`${i}.${j}`;inp.value='';inp.click();break}
   case 'pickOld':openOldFill(T,P);break;
   case 'addForm':P.forms=P.forms||[];P.forms.push(newForm());rf();break;
+  case 'tordReset':{const t=T;if(!t||!t.orders||!t.orders.type)break;const ty=Object.assign({},t.orders.type);for(const k of Object.keys(ty))if(k.startsWith(b.dataset.kind+'_'))delete ty[k];t.orders=Object.assign({},t.orders);if(Object.keys(ty).length)t.orders.type=ty;else delete t.orders.type;save();refreshTrainer(t);break}
   case 'addFormOld':openPicker('old',{title:'올드 타입 일람에서 폼 고르기',onPick:n=>{const r=idx.old.get(n);if(!r)return;P.forms=P.forms||[];P.forms.push(formFromOld(r));rf();toast(`「${r[1]}」 폼을 넣었습니다`)}});break;
   case 'delForm':{const k=+b.dataset.k;const f=(P.forms||[])[k];if(!f)break;if(await ask(`폼 「${esc(f.name||'이름 없음')}」을(를) 지울까요?`,'삭제')){P.forms.splice(k,1);rf()}break}
   case 'addFormPot':{const f=(P.forms||[])[+b.dataset.k];if(!f)break;f.pots=f.pots||[];const used=f.pots.map(x=>+x.slot);let sl=[4,5,6,7,8].find(i=>!used.includes(i));if(sl==null)sl=0;f.pots.push({slot:sl,name:'',eff:''});rf();break}
