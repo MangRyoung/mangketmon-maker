@@ -201,7 +201,7 @@ window.OM_FX=(()=>{
    if(fromOther&&sideObj(m,'신비의부적')&&(ABN.includes(en)||en==='Confusion'))return `${m.name} 「신비의부적」이 「${stKo(en)}」을(를) 막았다`;
    if(fromOther&&m.states.Substitute&&NEG.includes(en))return `${m.name} 「대타출동」이 「${stKo(en)}」을(를) 막았다`;if(ABN.includes(en)&&ABN.some(k=>m.states[k]))return `${m.name} 이미 상태 이상이라 「${stKo(en)}」이 되지 않음`;
    if(en==='Burn'&&typesOf(m).includes('Fire'))return `${m.name} 불꽃 타입이라 「화상」 없음`;if((en==='Poison'||en==='Toxic')&&(typesOf(m).includes('Poison')||typesOf(m).includes('Steel')))return `${m.name} 독·강철 타입이라 「${stKo(en)}」 없음`;if(en==='Paralysis'&&typesOf(m).includes('Electric'))return `${m.name} 전기 타입이라 「마비」 없음`;if(en==='Freeze'&&typesOf(m).includes('Ice'))return `${m.name} 얼음 타입이라 「얼음」 없음`}
-  const d=stDB()[en]||{};const c=count!=null&&+count>0?+count:(d.min<1000?d.min:1000);m.states[en]=c;
+  const d=stDB()[en]||{};const c=count!=null&&+count>0?+count:(d.min>=1000||!d.min?1000:(+d.max>+d.min&&+d.max<1000?+d.min+Math.floor(Math.random()*(+d.max-+d.min+1)):+d.min));m.states[en]=c;
   /* 씨뿌리기: 드레인은 씨를 뿌린 에리어로 (맵툴 seed_src_set) */
   if(en==='LeechSeed'){if(self&&self.id!==m.id&&self.entry)m.seedFrom=self.side+'_'+self.entry;else delete m.seedFrom}
   return `${m.name} 「${stKo(en)}」${c<1000?' '+c+'턴':''}${(d.desc||[]).length?' — '+d.desc.join(' '):''}`}

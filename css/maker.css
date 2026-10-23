@@ -868,3 +868,46 @@ html.modal-on #mk{overflow:hidden}
  #mk .tcard .tacts .tmove{grid-column:1/-1;max-width:none;width:100%;height:32px}
  #mk .tcard .tacts .btn{min-height:32px;padding:0 4px;justify-content:center;white-space:nowrap;font-size:12.5px}
 }
+/* 10-23 망령: 캐릭터 시트 지시 체계 (명령 ORDER 4식 · 지령 COMMAND 6령) */
+#mk .tord{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line,#ccc)}
+#mk .tordh{display:flex;align-items:center;gap:6px;font-size:13px}
+#mk .tordh b{margin-right:2px}
+#mk .ordk{font-size:10px;letter-spacing:.12em;font-weight:700;color:#fff;padding:1px 6px;border-radius:3px;background:var(--blue)}
+#mk .ordk.c{background:var(--accent);color:var(--accent-ink)}
+#mk .tord .plrow span{min-width:58px}
+#mk .tord .plrow select{flex:1;min-width:0}
+#mk .ordp{margin-top:8px;display:grid;gap:4px;font-size:12px}
+#mk .ordp>div:nth-child(odd){display:flex;align-items:center;gap:6px;margin-top:4px}
+#mk .ordl{display:flex;flex-wrap:wrap;gap:4px}
+#mk .ordc{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;background:var(--sunk,#f1f1f1);border:1px solid var(--line,#ddd)}
+#mk .ordc b{font-variant-numeric:tabular-nums;color:var(--blue)}
+#mk .ordc.z{opacity:.45;text-decoration:line-through}
+#mk .ordc.z b{color:inherit}
+/* 10-23 망령: PC 한 장 요약 가독성 — 글씨를 한 단계 키우고 굵게 (모바일은 그대로) */
+@media (min-width:901px){
+ #mk .pcd{grid-template-columns:330px minmax(0,1fr);gap:12px;padding:12px}
+ #mk .pcd::before{width:360px}
+ #mk .pcd-nm{font-size:25px}
+ #mk .pcd-sub{font-size:13px;font-weight:500}
+ #mk .pcd-tags .chip{font-size:12px;padding:1px 8px}
+ #mk .pcd-k{font-size:11px}
+ #mk .pcd-v{font-size:13px;font-weight:600}
+ #mk .pcd-ab>b{font-size:14.5px}
+ #mk .pcd-e{font-size:13.5px;line-height:1.55;font-weight:500;color:var(--ink)}
+ #mk .pcd-sr{grid-template-columns:44px minmax(0,1fr) 34px 34px 34px;padding:2px 0}
+ #mk .pcd-sl{font-size:12.5px;color:var(--ink)}
+ #mk .pcd-g{font-size:11px;line-height:18px}
+ #mk .pcd-sv{font-size:13.5px}#mk .pcd-sa{font-size:12px}
+ #mk .pcd-tot{font-size:12.5px}
+ #mk .pcd-h{font-size:13px;color:var(--ink);opacity:.8}
+ #mk .pcd-tg{grid-template-columns:40px minmax(0,1fr)}
+ #mk .pcd-tg>span{font-size:11.5px;line-height:20px}
+ #mk .pcd-tg .chip{font-size:12px;padding:1px 7px}
+ #mk .pcd-m{padding:7px 11px}
+ #mk .pcd-mh b{font-size:15px}
+ #mk .pcd-mt{font-size:11.5px}
+ #mk .pcd-mm{font-size:12px;font-weight:500}
+ #mk .pcd-x{padding:8px 12px}#mk .pcd-x>b{font-size:15px}
+ #mk .pcd-p{padding:7px 11px}#mk .pcd-p>b{font-size:14.5px}
+ #mk .pcd-pk{font-size:11px;padding:1px 7px}
+}

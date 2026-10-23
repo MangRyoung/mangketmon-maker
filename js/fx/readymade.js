@@ -29,3 +29,7 @@ window.OM_DB.readymade={"추격 무시":{"text":"「따라가때리기」 효과
  put('특성 : 전투무장','【상시】【방호】/기술이 자신의 급소에 맞지 않는다.',[NC]);
  put('특성 : 천진','【상시】【방호 (조건)】/기술을 내보낼(받을) 때 랭크 변화를 무시한다.',[{k:'ignoreup',dir:'both',scope:'both',on:1,mode:0,ro:[],all:1}]);
 })();
+/* 손으로 더한 것 (2026-10-23 망령): 천변지이 — 턴 개시 시 3할로 날씨 무작위 5턴 (오레마스 턴 개시 자동) */
+(()=>{const R=window.OM_DB.readymade;const put=(k,text,ops)=>{if(!R[k])R[k]={text,ops}};
+ put('특성 : 천변지이','①턴 개시 시 3할로 필드의 상태를 5턴 동안 무작위한 「날씨」로 만든다.',[{k:'weather',w:'random',count:5,p:30}]);
+})();
