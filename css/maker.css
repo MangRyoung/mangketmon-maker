@@ -845,3 +845,26 @@ html.modal-on #mk{overflow:hidden}
 /* 10-23 망령: 상세 조정 급소 규칙 */
 #mk .tune .tcrit{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:6px;align-items:center}
 #mk .tune .tcrit label{display:inline-flex;align-items:center;gap:6px}
+
+/* 포켓몬 머리: 타입은 이름과 Lv 사이, 특성은 전용 카드와 같은 모양으로 나란히 (2026-10-24) */
+#mk .pntypes{display:inline-flex;flex-wrap:nowrap;gap:3px;font:12px/1 var(--sans,inherit)}
+#mk .pntypes:empty{display:none}
+#mk .ph .ptyab{align-self:start;gap:3px;padding:4px 8px 5px;border-radius:8px;border-left:3px solid #5fd38d;background:color-mix(in srgb,var(--surface) 72%,transparent)}
+#mk .ph .pexcl{align-self:start}
+#mk .ph:has(.pexcl.multi) .pabe{-webkit-line-clamp:1}
+#mk .ptyab .pab{display:flex;align-items:center;gap:5px;min-width:0;font-size:12.5px;margin:0}
+#mk .ptyab .pab b{overflow:hidden;text-overflow:ellipsis}
+#mk .pabk{flex:none;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;background:#5fd38d;color:#111;letter-spacing:.04em}
+/* 한 장 요약: 기술 칸과 옆 칸(능력치 · 포텐셜)이 붙어 보여서 칸 사이를 넓히고 가는 줄로 나눈다 (2026-10-24) */
+#mk .pcd{column-gap:18px}
+#mk .pcd-flow{column-gap:20px}
+@media (min-width:1251px){#mk .pcd-ptc{position:relative}#mk .pcd-ptc::before{content:"";position:absolute;left:-11px;top:2px;bottom:0;width:1px;background:var(--line)}}
+/* 휴대폰 트레이너 카드: 고유 칩은 한 줄에 하나씩 같은 폭, 아래 단추 줄은 폴더 한 줄 + 꾸미기 · 비공개 · 복제 · 삭제 네 칸 (2026-10-24) */
+@media (max-width:600px){
+ #mk .tcard .tuql{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;padding:0 4px}
+ #mk .tcard .tuqc{min-width:0;justify-content:flex-start}
+ #mk .tcard .tuqc.more{grid-column:auto}
+ #mk .tcard .tacts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;justify-content:stretch}
+ #mk .tcard .tacts .tmove{grid-column:1/-1;max-width:none;width:100%;height:32px}
+ #mk .tcard .tacts .btn{min-height:32px;padding:0 4px;justify-content:center;white-space:nowrap;font-size:12.5px}
+}
