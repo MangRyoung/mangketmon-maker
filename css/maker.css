@@ -928,17 +928,26 @@ html.modal-on #mk{overflow:hidden}
 #mk .psc.psp b{font-size:12px}
 #mk .psc.psp em{font-style:normal;font-size:9.5px;opacity:.7}
 #mk .psc.psp small{font-size:10px;padding:1px 5px;border-radius:999px;background:color-mix(in srgb,var(--ink) 14%,transparent)}
-/* 한 장 요약 읽기 쉽게: 글자 한 단계 크게 · 설명은 본문 색 · 「」『』【】 강조는 어두운 바탕용 밝은 색 (VELVET 테마는 셋 다 어두운 판) (2026-10-24) */
+/* 한 장 요약 읽기 쉽게: 글자 한 단계 크게 · 설명은 본문 색 · 「」『』【】 강조는 어두운 바탕용 밝은 색 (VELVET 테마는 셋 다 어두운 판) — PC 글자 크기는 위 「PC 한 장 요약 가독성」 블록, 여기는 휴대폰 · 좁은 창만 (2026-10-24) */
 html[data-vt] #mk .cq{color:#FDBA74}html[data-vt] #mk .cq2{color:#FCD34D;font-weight:600}html[data-vt] #mk .cq3{color:#93C5FD}
-#mk .pcd-e{font-size:12.5px;line-height:1.55;color:var(--ink)}
-#mk .pcd-mm{font-size:11.5px;margin:1px 0 3px;color:color-mix(in srgb,var(--ink) 70%,transparent)}
-#mk .pcd-mh b{font-size:14.5px}
-#mk .pcd-mt{font-size:11px;padding:1px 8px}
-#mk .pcd-m{padding:7px 11px;background:color-mix(in srgb,var(--mb) 18%,var(--surface))}
-#mk .pcd-x{padding:8px 12px}#mk .pcd-x>b{font-size:14.5px}
-#mk .pcd-p{padding:7px 11px}#mk .pcd-p>b{font-size:14px}
-#mk .pcd-pk{font-size:10.5px;padding:1px 7px}
-#mk .pcd-h{font-size:13px;color:var(--ink);letter-spacing:.04em;margin:4px 0 6px}
-#mk .pcd-ab>b{font-size:14.5px}#mk .pcd-sub{font-size:12px}
-#mk .pcd-sl{font-size:12px;color:var(--ink)}#mk .pcd-sv{font-size:13px}#mk .pcd-sa{font-size:11px}
-#mk .pcd-tg .chip{font-size:11.5px;padding:1px 7px}
+@media (max-width:900px){
+ #mk .pcd-e{font-size:12.5px;line-height:1.55;color:var(--ink)}
+ #mk .pcd-mm{font-size:11.5px;margin:1px 0 3px;color:color-mix(in srgb,var(--ink) 70%,transparent)}
+ #mk .pcd-mh b{font-size:14.5px}
+ #mk .pcd-mt{font-size:11px;padding:1px 8px}
+ #mk .pcd-m{padding:7px 11px;background:color-mix(in srgb,var(--mb) 18%,var(--surface))}
+ #mk .pcd-x{padding:8px 12px}#mk .pcd-x>b{font-size:14.5px}
+ #mk .pcd-p{padding:7px 11px}#mk .pcd-p>b{font-size:14px}
+ #mk .pcd-pk{font-size:10.5px;padding:1px 7px}
+ #mk .pcd-h{font-size:13px;color:var(--ink);letter-spacing:.04em;margin:4px 0 6px}
+ #mk .pcd-ab>b{font-size:14.5px}#mk .pcd-sub{font-size:12px}
+ #mk .pcd-sl{font-size:12px;color:var(--ink)}#mk .pcd-sv{font-size:13px}#mk .pcd-sa{font-size:11px}
+ #mk .pcd-tg .chip{font-size:11.5px;padding:1px 7px}
+}
+/* 역할 · 종 · 프라이드 칩은 언제나 한 줄 (점수는 칩에 마우스를 올리면) (2026-10-24) */
+#mk .psub.pscs{flex-wrap:nowrap;overflow:hidden;min-width:0}
+#mk .psc{flex:none}#mk .psc.psk{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#mk .psc.psp b{font-size:13px;line-height:1;padding:1px 5px;border-radius:4px;background:var(--ink);color:var(--bg)}
+/* 한 장 요약 왼쪽 색: 왼쪽 칸 전체가 아니라 그림 · 이름 머리 뒤에만 옅게 — 기술 칸과 겹치지 않게 (2026-10-24) */
+#mk .pcd::before{inset:0 auto auto 0!important;width:min(var(--pcdw,330px),100%)!important;height:150px!important;bottom:auto!important;border-radius:14px 0 48px 0;background:linear-gradient(160deg,color-mix(in srgb,var(--c1) 30%,transparent),color-mix(in srgb,var(--c2) 12%,transparent) 55%,transparent 92%)!important}
+@media (max-width:900px){#mk .pcd::before{width:100%!important;border-radius:14px 14px 0 0}}
