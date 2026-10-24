@@ -513,26 +513,38 @@ html.embed .main>.bar .mkopen{margin-left:2px}
   · 폴더 · 순서는 'mtlogmeta/tree' 하나에. 올린 사람이 지운 로그는 보관소에서도 지운다.
   · 목록: 로그 이름 바꾸기 · 날짜 · 보관소 상태 · 찾기. 보기: 「화면에 맞춤」으로 좌우 여백 없이 -->
 <style>
-.mtc{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:color-mix(in srgb,var(--accent) 5%,transparent)}
-.mtc .row{gap:8px;align-items:center;flex-wrap:wrap}
-.mtc b{font-size:.9rem}
-.mtc .st{font-size:.8rem;color:var(--muted)}
-.mtfind{width:100%;box-sizing:border-box}
-.li .mtx{display:flex;flex-direction:column;min-width:0;flex:1}
-.li .mtx .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.li .mtx small{font-size:.72rem;color:var(--muted);line-height:1.2}
-.li .mtb{font-size:.75rem;flex:none;opacity:.8}
-.li .mtb.err{color:#d55}
-.li .mtren{all:unset;cursor:pointer;font-size:.75rem;padding:1px 5px;border-radius:5px;border:1px solid var(--line);color:var(--muted);flex:none;opacity:0;transition:opacity .12s}
+/* 왼쪽 줄을 넓히고 목록에 자리를 더 준다 */
+html.embed .app{grid-template-columns:380px minmax(0,1fr)}
+html.embed .app.three{grid-template-columns:380px minmax(0,1fr) 320px}
+.mtc{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--mka,var(--accent)) 7%,transparent)}
+.mtc .mth{display:flex;align-items:center;gap:8px}
+.mtc .mth b{font-size:.92rem}
+.mtc .st{font-size:.78rem;color:var(--muted)}
+.mtc .mth .btn{margin-left:auto;height:26px!important;font-size:12px!important;padding:0 9px!important}
+.mtc .mtup{display:block;font-size:.78rem;color:var(--muted);cursor:pointer;line-height:1.5}.mtc .mtup input{vertical-align:-2px;margin-right:5px}
+.mtfind{width:100%;box-sizing:border-box;padding:7px 10px 7px 30px!important;border:1px solid var(--line);border-radius:8px;background:var(--sunk) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E") no-repeat 10px center;color:inherit;font:inherit;font-size:.85rem}
+.logs{max-height:none}
+html.embed .rail .logs{max-height:calc(100vh - 330px);min-height:180px}
+.li[data-kind="log"]{grid-template-columns:auto minmax(0,1fr) auto;padding:8px 10px;gap:10px;border:1px solid transparent;align-items:start}
+.li[data-kind="log"]:hover{background:color-mix(in srgb,var(--fg) 5%,transparent)}
+.li[data-kind="log"] .ck{margin-top:3px}
+.li[data-kind="log"]>.n{display:none}
+.li .mtx{display:flex;flex-direction:column;gap:3px;min-width:0}
+.li .mtx .t{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:600;font-size:.9rem;line-height:1.35}
+.li .mtx small{font-size:.74rem;color:var(--muted);line-height:1.3;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.li .mtx small .mtb{font-size:.78rem}
+.li .mtx small .mtb.err{color:#d55}
+.li .mtren{all:unset;cursor:pointer;font-size:.8rem;width:24px;height:24px;display:grid;place-items:center;border-radius:6px;color:var(--muted);opacity:0;transition:opacity .12s}
+.li .mtren:hover{background:var(--sunk);color:var(--fg)}
 .li:hover .mtren,.li.cur .mtren,.li:focus-within .mtren{opacity:1}
-.li input.mtrn{flex:1;min-width:0;font:inherit;padding:2px 6px}
-.li.remote .t{font-style:italic}
-#mtFound .li{cursor:pointer}
+.li input.mtrn{min-width:0;font:inherit;font-weight:600;padding:3px 7px;border:1px solid var(--line);border-radius:6px;background:var(--sunk);color:inherit}
+.li.remote .t{font-style:italic;opacity:.85}
+.fd{padding:8px 10px!important;font-weight:600}
+#mtFound .li{cursor:pointer;grid-template-columns:minmax(0,1fr)}
 .main .log{width:100%}
-html.fitlog .main .log{max-width:none!important}
-.li[data-kind="log"]{grid-template-columns:auto minmax(0,1fr) auto auto auto}
-#mtFound .li{grid-template-columns:minmax(0,1fr) auto}
-.logs{max-height:min(55vh,560px)}
+html.fitlog .main .log{max-width:min(100%,1000px)!important}
+/* 지문(*…*) 글꼴 · 색 · 기울임 */
+.mtem{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 </style>
 <script>
 (()=>{
@@ -597,8 +609,8 @@ html.fitlog .main .log{max-width:none!important}
 
  /* ---------- 목록 ---------- */
  const panel=document.querySelector('#logList')&&document.querySelector('#logList').closest('.panel');
- if(panel){const box=document.createElement('div');box.className='mtc';box.innerHTML=`<div class="row"><b>☁ 캠페인 보관소</b><span class="st" id="mtSt"></span><span class="sp" style="flex:1"></span><button class="btn" type="button" id="mtPull" title="보관소 목록을 다시 읽는다">새로 읽기</button></div>
-   <label class="st"><input type="checkbox" id="mtUp"> 이 브라우저에서 보관소에 올리기 (GM 컴퓨터에서 켜 두세요)</label><input type="search" class="mtfind" id="mtQ" placeholder="로그 이름 · 등장인물로 찾기">`;
+ if(panel){const box=document.createElement('div');box.className='mtc';box.innerHTML=`<div class="mth"><b>☁ 캠페인 보관소</b><button class="btn" type="button" id="mtPull" title="보관소 목록을 다시 읽는다">새로 읽기</button></div><span class="st" id="mtSt" style="margin-top:-4px"></span>
+   <label class="mtup"><input type="checkbox" id="mtUp"> 이 브라우저에서 보관소에 올리기 <span style="opacity:.75">(GM 컴퓨터에서만)</span></label><input type="search" class="mtfind" id="mtQ" placeholder="로그 이름 · 등장인물로 찾기">`;
   const sb=panel.querySelector('.selbar');(sb||$('logList')).before(box);const fd=document.createElement('div');fd.className='logs';fd.id='mtFound';fd.hidden=true;$('logList').after(fd);
   $('mtUp').checked=UP();$('mtUp').onchange=()=>{ls.set('mtl-cloud-up',$('mtUp').checked);if($('mtUp').checked){toast('이 브라우저의 로그를 보관소에 올려요');pull()}else paint()};
   $('mtPull').onclick=()=>pull();$('mtQ').oninput=()=>find();
@@ -607,32 +619,47 @@ html.fitlog .main .log{max-width:none!important}
  const BADGE={ok:['☁','보관소에 있어요'],wait:['↑','곧 보관소에 올려요'],up:['↑','올리는 중'],down:['↓','받는 중'],err:['⚠','보관소와 맞추지 못했어요'],new:['☁•','보관소에 더 새 내용이 있어요 — 열면 받아요'],remote:['☁↓','보관소에만 있어요 — 열면 받아요']};
  function decorate(){document.querySelectorAll('#logList .li[data-kind="log"]').forEach(row=>{const id=row.dataset.id;const e=S.index.find(x=>x.id===id);if(!e)return;
    const t=row.querySelector(':scope>.t');if(t&&!row.querySelector('.mtx')){const w=document.createElement('span');w.className='mtx';t.replaceWith(w);w.appendChild(t);const sm=document.createElement('small');w.appendChild(sm);
-    const rb=document.createElement('button');rb.type='button';rb.className='mtren';rb.textContent='이름';rb.title='로그 이름 바꾸기';row.querySelector('.n').before(rb);const bd=document.createElement('span');bd.className='mtb';row.querySelector('.n').after(bd)}
-   const sm=row.querySelector('.mtx small');if(sm){const d=ymd(e.created||(S.logs[id]||{}).created);sm.textContent=[d,(e.names||[]).length?`${e.names.length}명`:''].filter(Boolean).join(' · ')}
-   const st=e.remote?'remote':CL.st.get(id)||(CL.idx.has(id)?'ok':'');const bd=row.querySelector('.mtb');if(bd){const b=BADGE[st];bd.textContent=b?b[0]:'';bd.title=b?b[1]:'이 브라우저에만 있어요';bd.classList.toggle('err',st==='err')}
+    const rb=document.createElement('button');rb.type='button';rb.className='mtren';rb.textContent='✎';rb.title='로그 이름 바꾸기 (제목을 두 번 눌러도 돼요)';row.appendChild(rb)}
+   const sm=row.querySelector('.mtx small');if(!sm)return;const st=e.remote?'remote':CL.st.get(id)||(CL.idx.has(id)?'ok':'');const b=BADGE[st];
+   const bits=[ymd(e.created||(S.logs[id]||{}).created),(e.names||[]).length?`${e.names.length}명`:'',`${(e.count||0).toLocaleString()}줄`].filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join('<span>·</span>');
+   sm.innerHTML=bits+(b?`<span class="mtb${st==='err'?' err':''}" title="${esc(b[1])}">${b[0]}</span>`:'<span class="mtb" title="이 브라우저에만 있어요" style="opacity:.5">💻</span>');
    row.classList.toggle('remote',!!e.remote)})}
  const oList=renderList;renderList=function(){const r=oList.apply(this,arguments);try{decorate();checkTree();if($('mtQ')&&$('mtQ').value.trim())find()}catch(err){console.warn(err)}return r};
 
  /* 이름 바꾸기 */
  $('logList').addEventListener('click',e=>{const b=e.target.closest('.mtren');if(!b)return;e.stopPropagation();e.preventDefault();rename(b.closest('.li').dataset.id,b.closest('.li'))},true);
  $('logList').addEventListener('dblclick',e=>{const t=e.target.closest('.li[data-kind="log"] .t');if(!t)return;e.preventDefault();rename(t.closest('.li').dataset.id,t.closest('.li'))});
- function rename(id,row){const e=S.index.find(x=>x.id===id);if(!e||!row)return;const w=row.querySelector('.mtx')||row.querySelector('.t');const inp=document.createElement('input');inp.className='mtrn';inp.value=e.title;w.replaceWith(inp);inp.focus();inp.select();
+ function rename(id,row){const e=S.index.find(x=>x.id===id);if(!e||!row)return;const w=row.querySelector('.mtx .t')||row.querySelector('.t');const inp=document.createElement('input');inp.className='mtrn';inp.value=e.title;w.replaceWith(inp);inp.focus();inp.select();
   let done=false;const fin=async ok=>{if(done)return;done=true;const v=inp.value.trim();if(ok&&v&&v!==e.title){const log=await getLog(id);if(log){log.title=v;touch(log);flush()}else e.title=v;if(S.cur===id)renderLog();toast('이름을 바꿨어요')}renderList()};
   inp.addEventListener('keydown',ev=>{ev.stopPropagation();if(ev.isComposing)return;if(ev.key==='Enter')fin(true);if(ev.key==='Escape')fin(false)});inp.addEventListener('blur',()=>fin(true));inp.addEventListener('click',ev=>ev.stopPropagation());inp.addEventListener('pointerdown',ev=>ev.stopPropagation())}
 
  /* 찾기: 이름 · 등장인물 (폴더 안까지) */
  function find(){const q=$('mtQ').value.trim().toLowerCase();const F=$('mtFound');if(!q){F.hidden=true;$('logList').hidden=false;return}
   const hit=S.index.filter(e=>String(e.title||'').toLowerCase().includes(q)||(e.names||[]).some(n=>String(n).toLowerCase().includes(q)));
-  F.innerHTML=hit.map(e=>{const f=e.folder&&S.folders.find(x=>x.id===e.folder);return `<div class="li${e.id===S.cur?' cur':''}" data-fid="${esc(e.id)}"><span class="mtx"><span class="t">${esc(e.title)}</span><small>${esc([f?'📁 '+f.name:'',ymd(e.created)].filter(Boolean).join(' · '))}</small></span><span class="n">${e.count}줄</span></div>`}).join('')||'<p class="hint">찾는 로그가 없어요</p>';
+  F.innerHTML=hit.map(e=>{const f=e.folder&&S.folders.find(x=>x.id===e.folder);return `<div class="li${e.id===S.cur?' cur':''}" data-fid="${esc(e.id)}"><span class="mtx"><span class="t">${esc(e.title)}</span><small>${esc([f?'📁 '+f.name:'',ymd(e.created),(e.count||0).toLocaleString()+'줄'].filter(Boolean).join(' · '))}</small></span></div>`}).join('')||'<p class="hint">찾는 로그가 없어요</p>';
   F.hidden=false;$('logList').hidden=true;F.querySelectorAll('[data-fid]').forEach(r=>r.onclick=()=>selectLog(r.dataset.fid))}
 
  /* ---------- 보기: 화면에 맞춤 (좌우 여백 없이) ---------- */
  (()=>{const lw=$('sLw');if(!lw)return;lw.max='1600';const fld=lw.closest('.field');if(!fld)return;const lab=document.createElement('label');lab.className='hint';lab.style.cssText='display:flex;gap:6px;align-items:center;margin-top:4px';
-  lab.innerHTML='<input type="checkbox" id="mtFit"> 화면에 맞춤 (보기만 · 저장한 HTML 은 로그 폭을 따른다)';fld.after(lab);const on=!!ls.get('mtl-fit',true);$('mtFit').checked=on;document.documentElement.classList.toggle('fitlog',on);
+  lab.innerHTML='<input type="checkbox" id="mtFit"> 넓게 보기 (화면 폭에 맞춰 최대 1000px · 저장한 HTML 은 로그 폭을 따른다)';fld.after(lab);const on=!!ls.get('mtl-fit',true);$('mtFit').checked=on;document.documentElement.classList.toggle('fitlog',on);
   $('mtFit').onchange=()=>{ls.set('mtl-fit',$('mtFit').checked);document.documentElement.classList.toggle('fitlog',$('mtFit').checked)}})();
 
  const go=()=>pull(true);(window.OM_LOG_IMPORT&&window.OM_LOG_IMPORT.boot?window.OM_LOG_IMPORT.boot:Promise.resolve()).then(()=>setTimeout(go,600));
  setInterval(checkTree,4000);addEventListener('pagehide',()=>{for(const [id,t] of upT){clearTimeout(t);upload(id)}});
+ /* ---------- 지문(*…*) 글꼴 · 색 · 기울임 (10-25 망령) — 저장한 HTML 에도 들어간다 ---------- */
+ (()=>{const fg=$('fGm');const fld=fg&&fg.closest('.field');if(!fld)return;
+  const box=document.createElement('div');box.innerHTML=`<div class="field"><span>지문 글꼴</span><select id="fEm"></select><span></span></div>
+   <div class="field"><span>지문 모양</span><span class="mtem"><input type="color" id="cEm" title="지문 글자 색"><button type="button" class="btn" id="cEmX" title="지문 색을 기본(흐린 글자)으로">기본 색</button><label class="hint" style="display:flex;gap:5px;align-items:center"><input type="checkbox" id="iEm"> 기울임</label></span><span></span></div>`;
+  fld.after(...box.children);
+  $('fEm').innerHTML='<option value="">본문과 같게</option>'+Object.keys(FONTS).map(f=>`<option value="${f}" style="font-family:'${f}'">${f}</option>`).join('');
+  const sync=()=>{const st=S.style;$('fEm').value=st.fEmote||'';$('cEm').value=st.emoteC||'#8a8f9c';$('cEm').style.opacity=st.emoteC?1:.5;$('iEm').checked=st.emoteIt!==false};
+  const oSync=syncStyleUI;syncStyleUI=function(){const r=oSync.apply(this,arguments);try{sync()}catch(e){}return r};sync();
+  const set=p=>{setStyle(p);if(S.style.fEmote)ensureFont(S.style.fEmote)};
+  $('fEm').onchange=()=>set({fEmote:$('fEm').value||''});$('cEm').oninput=()=>set({emoteC:$('cEm').value});$('cEmX').onclick=()=>set({emoteC:''});$('iEm').onchange=()=>set({emoteIt:$('iEm').checked});
+  if(S.style.fEmote)ensureFont(S.style.fEmote)})();
+ const oVars=styleVars;styleVars=function(){const st=S.style;let r=oVars.apply(this,arguments);r+=`;--f-emote:${st.fEmote?fontStack(st.fEmote):'inherit'};--emote-c:${st.emoteC||'var(--muted)'};--emote-st:${st.emoteIt===false?'normal':'italic'}`;return r};
+ const oFL=fontLink;fontLink=function(list){return oFL.call(this,[...(list||[]),S.style.fEmote].filter(Boolean))};
+ $('logcss').textContent+='\n.emote .line{font-family:var(--f-emote,inherit);color:var(--emote-c,var(--muted));font-style:var(--emote-st,italic)}\n.emote .line i,.emote .line em{font-style:inherit}';
  window.MTL_CLOUD={pull,upload,CL};
 })();
 </script>
