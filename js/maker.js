@@ -1956,6 +1956,12 @@ document.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)retu
   $$('.tfh.over').forEach(x=>{if(x!==fh)x.classList.remove('over')});
   if(fh){fh.classList.add('over');drag.fdrop=fh.dataset.fdrop;if(e.clientY<70)MKROOT().scrollBy(0,-16);else if(e.clientY>innerHeight-70)MKROOT().scrollBy(0,16);return}
   drag.fdrop=null;const ol=el&&el.closest('[data-sort="trainers"]');if(ol&&ol!==drag.list){ol.appendChild(drag.item);drag.list=ol}}
+ /* 10-24 망령: 폴더를 다른 폴더 카드 가운데에 놓으면 그 안으로 (가장자리면 순서만 바꾼다). 「폴더 없음」 카드에 놓으면 맨 위로 꺼낸다 */
+ if(drag.list.dataset.sort==='folders'){const el=document.elementFromPoint(e.clientX,e.clientY);const fh=el&&el.closest('.tfh[data-fdrop]');const me=S.folders[+drag.item.dataset.si];let ok=null;
+  if(fh&&me&&!drag.item.contains(fh)){const k=fh.dataset.fdrop;const r=fh.getBoundingClientRect();const mx=r.width*.2,my=Math.min(r.height*.25,40);const mid=e.clientX>r.left+mx&&e.clientX<r.right-mx&&e.clientY>r.top+my&&e.clientY<r.bottom-my;
+   if(k==='_none'?(mid&&!!fPar(me)):(mid&&k!==me.id&&!fDesc(me.id).includes(k)&&fPar(me)!==k))ok=k}
+  $$('.tfh.over,.tfh.nest').forEach(x=>{if(!ok||x!==fh)x.classList.remove('over','nest')});drag.fdrop=ok;
+  if(ok){fh.classList.add('over','nest');if(e.clientY<70)MKROOT().scrollBy(0,-16);else if(e.clientY>innerHeight-70)MKROOT().scrollBy(0,16);return}}
  const {item,list}=drag;
  const sibs=[...list.children].filter(x=>x!==item&&x.dataset.si!=null);let before=null;
  for(const x of sibs){const r=x.getBoundingClientRect();if(e.clientY<r.top+r.height/2){before=x;break}}
@@ -1964,7 +1970,8 @@ document.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)retu
 document.addEventListener('touchmove',e=>{if(drag&&drag.on)e.preventDefault()},{passive:false});
 document.addEventListener('contextmenu',e=>{if(drag&&drag.touch)e.preventDefault()});
 function endDrag(e){if(!drag||e.pointerId!==drag.id)return;const d=drag;drag=null;clearTimeout(d.timer);if(!d.on)return;
- d.item.classList.remove('dragging');MKROOT().classList.remove('drag-on');dragEnd=Date.now();$$('.tfh.over').forEach(x=>x.classList.remove('over'));
+ d.item.classList.remove('dragging');MKROOT().classList.remove('drag-on');dragEnd=Date.now();$$('.tfh.over,.tfh.nest').forEach(x=>x.classList.remove('over','nest'));
+ if(d.list.dataset.sort==='folders'&&d.fdrop!=null){const f=S.folders[+d.item.dataset.si];if(f){const k=d.fdrop==='_none'?'':d.fdrop;if(k)f.parent=k;else delete f.parent;S.ui.fclosed=S.ui.fclosed||{};if(k)delete S.ui.fclosed[k];save();renderChar();const p=fById(k);toast(`「${f.name||'폴더'}」 → ${p?fPath(p)+' 안으로':'맨 위로'}`)}return}
  if(d.list.dataset.sort==='trainers'&&S.folders.length){moveTrainersFromDom(d);return}
  const order=[...d.list.children].filter(x=>x.dataset.si!=null).map(x=>+x.dataset.si);if(order.every((v,i)=>!i||order[i-1]<v))return;applySort(d.list,order)}
 document.addEventListener('pointerup',endDrag);document.addEventListener('pointercancel',endDrag);

@@ -1029,3 +1029,6 @@ html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 #mk .fsubb{flex:none}
 @media (max-width:600px){#mk .tsubf{grid-template-columns:minmax(0,1fr);padding-left:8px}}
 #mk .tsubf+.tfb:empty{min-height:0}#mk .tsubf+.tfb:empty::before{display:none}
+#mk .tfh.nest{outline:3px dashed var(--ink,#111);outline-offset:3px;position:relative}
+#mk .tfh.nest::after{content:'📂 이 폴더 안으로';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#111;color:#ffe100;font-size:13px;padding:6px 12px;border-radius:6px;pointer-events:none;z-index:3;white-space:nowrap}
+#mk .tfh.fnone.nest::after{content:'⤴ 맨 위로 꺼내기'}
