@@ -1022,3 +1022,4 @@ html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 /* 10-24 망령: 알까기 — 이미 깐 값이 있을 때 (재굴림 버튼) */
 .ivhad{display:flex;gap:12px;align-items:center;justify-content:space-between;border:1px solid var(--yel2,#f0c84a);background:rgba(240,200,74,.08);border-radius:8px;padding:10px 12px;margin:8px 0}
 .ivhad>div{display:flex;flex-direction:column;gap:3px}
+.ivcur{font-size:11px;padding:0 6px;border-radius:3px;background:#1f7a4a;color:#fff;margin-left:6px}
