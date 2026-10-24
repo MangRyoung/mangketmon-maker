@@ -1023,3 +1023,9 @@ html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 .ivhad{display:flex;gap:12px;align-items:center;justify-content:space-between;border:1px solid var(--yel2,#f0c84a);background:rgba(240,200,74,.08);border-radius:8px;padding:10px 12px;margin:8px 0}
 .ivhad>div{display:flex;flex-direction:column;gap:3px}
 .ivcur{font-size:11px;padding:0 6px;border-radius:3px;background:#1f7a4a;color:#fff;margin-left:6px}
+/* 10-24 망령: 폴더 안의 폴더 */
+#mk .tsubf{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;align-items:start;margin:0 0 12px;padding:10px 0 10px 14px;border-left:3px solid color-mix(in srgb,var(--ink) 25%,transparent)}
+#mk .tsubf>.tfold.open{grid-column:1/-1}
+#mk .fsubb{flex:none}
+@media (max-width:600px){#mk .tsubf{grid-template-columns:minmax(0,1fr);padding-left:8px}}
+#mk .tsubf+.tfb:empty{min-height:0}#mk .tsubf+.tfb:empty::before{display:none}

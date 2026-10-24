@@ -595,6 +595,9 @@ function openModal(html,{wide=false,onClose}={}){const l=document.createElement(
 function closeModal(){const o=layers.pop();if(!o)return;o.l.remove();if(!layers.length)document.documentElement.classList.remove('modal-on');o.onClose&&o.onClose();
  if(o.opener&&o.opener.isConnected&&!layers.length)try{o.opener.focus({preventScroll:true})}catch(e){}}
 document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;const m=$('.menu');if(m){m.remove();return}const tm=MTOP();if(tm&&tm.classList.contains('tools-open')){toolsOpen(false);return}if(layers.length)closeModal()});
+/* 10-24 망령: 폴더 고르기 창 (cur = 지금 상위, skip = 이 폴더와 그 아래는 고를 수 없다). 돌려줌: 폴더 id · '' = 맨 위 · null = 취소 */
+function askFolder(title,msg,cur,skip){return new Promise(res=>{const l=openModal(`<div class="mhead"><h2>${esc(title)}</h2></div><div class="mbody"><p class="small muted" style="margin:0 0 8px">${esc(msg)}</p><select data-af style="width:100%"><option value="">(맨 위 — 다른 폴더 밖)</option>${fTreeOpts(cur,skip)}</select></div><div class="mfoot"><span class="sp"></span><button class="btn ghost" data-x="no">취소</button><button class="btn pri" data-x="ok">옮기기</button></div>`);
+ l.addEventListener('click',e=>{const x=e.target.closest('[data-x]');if(!x)return;const v=x.dataset.x==='ok'?$('[data-af]',l).value:null;closeModal();res(v)})})}
 function ask(msg,okLabel='확인',danger=true){return new Promise(res=>{const l=openModal(`<div class="mhead"><h2>확인</h2></div><div class="mbody"><p style="margin:0">${msg}</p></div><div class="mfoot"><span class="sp"></span><button class="btn" data-x="no" ${danger?'autofocus':''}>취소</button><button class="btn ${danger?'acc':'pri'}" data-x="ok" ${danger?'':'autofocus'}>${okLabel}</button></div>`,{onClose:()=>res(false)});
  l.addEventListener('click',e=>{const x=e.target.dataset.x;if(!x)return;layers[layers.length-1].onClose=null;closeModal();res(x==='ok')})})}
 async function copyStr(s){try{await navigator.clipboard.writeText(s);toast('복사했습니다')}catch(e){const l=openModal(`<div class="mhead"><h2>직접 복사</h2></div><div class="mbody"><p class="small muted" style="margin:0">자동 복사가 막혀 있습니다. 아래 내용을 선택해 복사하세요.</p><textarea rows="6" readonly>${esc(s)}</textarea></div><div class="mfoot"><span class="sp"></span><button class="btn" data-x>닫기</button></div>`);const ta=$('textarea',l);ta.select();l.addEventListener('click',e=>{if(e.target.dataset.x!=null)closeModal()})}}
@@ -1339,8 +1342,16 @@ async function meLoad(){let o=null;try{o=JSON.parse(lsGet('mkm_me')||'null')}cat
 function renderMe(){const b=$('#mebtn');if(!b)return;b.textContent=ME.hash?(ME.gm?'GM · ':'서명 · ')+(ME.name||'이름 없음'):'서명 없음';b.classList.toggle('on',!!ME.hash);b.title=ME.hash?'비공개 설정에 쓰는 내 서명. 눌러서 바꾸기':'비공개 트레이너를 만들거나 보려면 서명(이름 + 비밀구)을 적어 두세요'}
 const canSee=o=>!o||!o.priv||ME.gm||!!(ME.hash&&o.owner===ME.hash);
 const canEditPriv=o=>!o.priv||ME.gm||!!(ME.hash&&o.owner===ME.hash)||!o.owner;
-const fVis=f=>canSee(f);
-const tVis=t=>canSee(t)&&canSee(S.folders.find(f=>f.id===tFolder(t)));
+/* 10-24 망령: 폴더 안의 폴더 — 폴더에 parent(상위 폴더 id). 지워졌거나 고리가 생긴 parent 는 맨 위로 본다 */
+const fById=id=>id?S.folders.find(f=>f.id===id):null;
+const fPar=f=>{if(!f||!f.parent)return '';const p=fById(f.parent);if(!p)return '';let c=p,n=0;while(c&&n++<50){if(c.id===f.id)return '';c=c.parent?fById(c.parent):null}return p.id};
+const fKids=pid=>S.folders.filter(f=>fPar(f)===(pid||''));
+const fDesc=id=>{const out=[];const walk=p=>{for(const k of fKids(p)){out.push(k.id);walk(k.id)}};walk(id);return out};
+const fPath=f=>{const a=[];let c=f,n=0;while(c&&n++<50){a.unshift(c.name||'이름 없는 폴더');c=fById(fPar(c))}return a.join(' › ')};
+const fVis=f=>{let c=f,n=0;while(c&&n++<50){if(!canSee(c))return false;c=fById(fPar(c))}return true};
+const tVis=t=>canSee(t)&&fVis(S.folders.find(f=>f.id===tFolder(t)));
+/* 폴더 고르기 목록: 나무 순서 · 들여쓰기 (skip = 그 폴더와 그 아래는 뺀다) */
+function fTreeOpts(cur,skip){const out=[];const no=new Set(skip?[skip,...fDesc(skip)]:[]);const walk=(p,d)=>{for(const f of fKids(p)){if(no.has(f.id)||!fVis(f))continue;out.push(`<option value="${esc(f.id)}" ${cur===f.id?'selected':''}>${'  '.repeat(d)}${d?'└ ':''}${esc(f.name||'이름 없는 폴더')}</option>`);walk(f.id,d+1)}};walk('',0);return out.join('')}
 function openMe(){let o=null;try{o=JSON.parse(lsGet('mkm_me')||'null')}catch(e){}o=o||{};
  const l=openModal(`<div class="mhead"><h2>내 서명</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
  <div class="mbody"><p class="small muted" style="margin:0 0 8px">비공개로 둔 폴더·트레이너는 같은 비밀구를 적은 브라우저와 GM 에게만 보입니다. 이름은 표시용, 비밀구가 열쇠입니다. 다른 기기에서도 같은 비밀구를 적으면 내 것이 보입니다. (화면에서만 숨기는 방식이라 DB 자체가 비밀이 되지는 않습니다)</p>
@@ -1360,24 +1371,25 @@ const FOLDER_SVG='<svg width="18" height="18" viewBox="0 0 20 20" fill="currentC
 /* 트레이너가 속한 폴더 id ('' = 폴더 없음 · 지워진 폴더를 가리키면 폴더 없음으로 본다) */
 const tFolder=t=>t.folder&&S.folders.some(f=>f.id===t.folder)?t.folder:'';
 const fOpen=fid=>!((S.ui.fclosed||{})[fid||'_none']);
-const trVisible=t=>tVis(t)&&(!S.folders.length||fOpen(tFolder(t)));
+const trVisible=t=>tVis(t)&&(!S.folders.length||(()=>{let c=fById(tFolder(t)),n=0;if(!c)return fOpen('');while(c&&n++<50){if(!fOpen(c.id))return false;c=fById(fPar(c))}return true})());
 /* 10-24 망령: 폴더 머리를 카드 한 장으로 — 닫힌 폴더는 격자로 촘촘히, 연 폴더만 한 줄 전체. 꾸미기(색 · 아이콘 · 부제 · 무늬 · 배경 그림)는 트레이너 카드와 같은 틀 */
-function folderHead(f,name,n,open,pv){const fid=f?f.id:'',key=fid||'_none',d=(f&&f.deco)||{},pk=n.reduce((a,[t])=>a+t.pokemon.length,0);
+function folderHead(f,name,n,open,pv,kids){const fid=f?f.id:'',key=fid||'_none',d=(f&&f.deco)||{},pk=n.reduce((a,[t])=>a+t.pokemon.length,0);kids=kids||0;
  const av=n.slice(0,8).map(([t])=>`<span class="fch" title="${esc(t.name||'')}"><span class="fav">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="" loading="lazy">`:esc([...(t.name||'?')][0]||'?')}</span><span class="fcn">${esc(t.name||'이름 없음')}</span></span>`).join('')+(n.length>8?`<span class="fch more">+${n.length-8}</span>`:'')||'<span class="fch none">아직 트레이너가 없다</span>';
  const A=pv?'':` data-ftog="${esc(key)}" data-fdrop="${esc(key)}" ${fid?'data-grab':''} tabindex="0" role="button" data-kbd aria-expanded="${open}" aria-label="${esc(name)} 폴더 펼치기/접기"`;
  return `<div class="tfh ftile tcard ${f?tDecoCls(f):''} ${fid?'':'fnone'}" style="${f?tDecoVars(f):''}"${A}><span class="caret">▸</span><span class="ficon">${d.icon?`<b class="fem">${esc(d.icon)}</b>`:FOLDER_SVG}</span>
-  <div class="fmain"><div class="fl1"><span class="fname${fid?'':' muted'}">${esc(name)}</span>${f&&f.priv?`<span class="kindb privchip" title="${esc('비공개 · '+(f.ownerName||'')+(ME.gm?' (GM 열람)':''))}">🔒</span>`:''}</div>${d.title?`<div class="fsub">${esc(d.title)}</div>`:''}<div class="fmeta">트레이너 ${n.length}명 · 포켓몬 ${pk}체</div></div>
+  <div class="fmain"><div class="fl1"><span class="fname${fid?'':' muted'}">${esc(name)}</span>${f&&f.priv?`<span class="kindb privchip" title="${esc('비공개 · '+(f.ownerName||'')+(ME.gm?' (GM 열람)':''))}">🔒</span>`:''}</div>${d.title?`<div class="fsub">${esc(d.title)}</div>`:''}<div class="fmeta">${kids?`하위 폴더 ${kids}개 · `:''}트레이너 ${n.length}명 · 포켓몬 ${pk}체</div></div>
   <div class="fbot"><div class="favs flist">${av}</div>
-  ${pv?'':`<div class="facts"><button class="btn sm" data-act="addTin" data-f="${esc(fid)}" title="이 폴더에 트레이너 추가">+ 트레이너</button>${fid?`<span class="facts2"><button class="btn sm ghost fic" data-act="decoF" data-f="${esc(fid)}" title="폴더 꾸미기 (색 · 아이콘 · 부제 · 무늬 · 배경 그림)" aria-label="폴더 꾸미기">🎨</button><button class="btn sm ghost fic" data-act="privF" data-f="${esc(fid)}" title="${f&&f.priv?'지금 비공개 — 눌러서 공개로':'지금 공개 — 눌러서 비공개로 (만든 사람과 GM 에게만 보임)'}" aria-label="${f&&f.priv?'공개로':'비공개로'}">${f&&f.priv?'🔒':'🌐'}</button><button class="btn sm ghost fic" data-act="renF" data-f="${esc(fid)}" title="이름 바꾸기" aria-label="이름 바꾸기">✏️</button><button class="btn sm ghost fic danger" data-act="delF" data-f="${esc(fid)}" title="폴더 삭제 (안의 트레이너는 「폴더 없음」으로)" aria-label="폴더 삭제">🗑</button></span>`:''}</div>`}</div></div>`}
+  ${pv?'':`<div class="facts"><button class="btn sm" data-act="addTin" data-f="${esc(fid)}" title="이 폴더에 트레이너 추가">+ 트레이너</button>${fid?`<button class="btn sm ghost fsubb" data-act="addFin" data-f="${esc(fid)}" title="이 폴더 안에 폴더 만들기">+ 폴더</button>`:''}${fid?`<span class="facts2"><button class="btn sm ghost fic" data-act="moveF" data-f="${esc(fid)}" title="다른 폴더 안으로 옮기기 · 맨 위로 꺼내기" aria-label="폴더 옮기기">📂</button><button class="btn sm ghost fic" data-act="decoF" data-f="${esc(fid)}" title="폴더 꾸미기 (색 · 아이콘 · 부제 · 무늬 · 배경 그림)" aria-label="폴더 꾸미기">🎨</button><button class="btn sm ghost fic" data-act="privF" data-f="${esc(fid)}" title="${f&&f.priv?'지금 비공개 — 눌러서 공개로':'지금 공개 — 눌러서 비공개로 (만든 사람과 GM 에게만 보임)'}" aria-label="${f&&f.priv?'공개로':'비공개로'}">${f&&f.priv?'🔒':'🌐'}</button><button class="btn sm ghost fic" data-act="renF" data-f="${esc(fid)}" title="이름 바꾸기" aria-label="이름 바꾸기">✏️</button><button class="btn sm ghost fic danger" data-act="delF" data-f="${esc(fid)}" title="폴더 삭제 (안의 트레이너는 「폴더 없음」으로)" aria-label="폴더 삭제">🗑</button></span>`:''}</div>`}</div></div>`}
 function renderChar(){const root=$('#v-char');
  const inF=fid=>S.trainers.map((t,ti)=>[t,ti]).filter(([t])=>tFolder(t)===fid&&tVis(t));const hiddenN=S.trainers.filter(t=>!tVis(t)).length;
  let body;
  if(!S.folders.length)body=`<div id="trs" data-sort="trainers" data-fid="">${S.trainers.map((t,ti)=>tVis(t)?trainerHTML(t,ti):'').join('')||'<div class="empty">트레이너가 없습니다. 「+ 트레이너」를 눌러 시작하세요.</div>'}</div>`;
  else{
-  const grp=(fid,name,fi)=>{const f=S.folders.find(x=>x.id===fid);if(f&&!fVis(f))return '';const n=inF(fid),open=fOpen(fid),key=fid||'_none';
-   return `<div class="tfold ${open?'open':''} ${f&&f.priv?'priv':''}" ${fid?`data-si="${fi}"`:''} data-fold="${esc(key)}">${folderHead(f,name,n,open)}
-   ${open?`<div class="tfb" data-sort="trainers" data-fid="${esc(fid)}">${n.map(([t,ti])=>trainerHTML(t,ti)).join('')}</div>`:''}</div>`};
-  body=`<div id="trs" data-sort="folders">${S.folders.map((f,fi)=>grp(f.id,f.name||'이름 없는 폴더',fi)).join('')}${grp('','폴더 없음')}</div>`}
+  /* 10-24 망령: 폴더 안의 폴더 — 연 폴더 안에 하위 폴더 카드 격자, 그 아래 트레이너. 닫힌 카드의 얼굴 · 수는 하위 폴더까지 다 센다 */
+  const grp=(fid,name)=>{const f=fById(fid);if(f&&!fVis(f))return '';const n=inF(fid),open=fOpen(fid),key=fid||'_none';const kids=fid?fKids(fid).filter(fVis):[];const all=fid?n.concat(...fDesc(fid).map(inF)):n;
+   return `<div class="tfold ${open?'open':''} ${f&&f.priv?'priv':''} ${f&&fPar(f)?'sub':''}" ${fid?`data-si="${S.folders.indexOf(f)}"`:''} data-fold="${esc(key)}">${folderHead(f,name,all,open,0,kids.length)}
+   ${open?`${kids.length?`<div class="tsubf" data-sort="folders">${kids.map(k=>grp(k.id,k.name||'이름 없는 폴더')).join('')}</div>`:''}<div class="tfb" data-sort="trainers" data-fid="${esc(fid)}">${n.map(([t,ti])=>trainerHTML(t,ti)).join('')}</div>`:''}</div>`};
+  body=`<div id="trs" data-sort="folders">${fKids('').map(f=>grp(f.id,f.name||'이름 없는 폴더')).join('')}${grp('','폴더 없음')}</div>`}
  root.innerHTML=`${hiddenN?`<p class="small faint" style="margin:0 0 8px">🔒 비공개라서 안 보이는 트레이너 ${hiddenN}명 (내 것이면 「서명」에 같은 비밀구를 적으세요)</p>`:''}<div class="intro"><h1>캐릭터 시트</h1><p>트레이너 폴더마다 자질·포인트·PT 서머리를 관리하고, 그 아래에 포켓몬 시트를 자유롭게 추가합니다. 「+ 폴더」로 세션별 대분류를 만들고 트레이너를 끌어다 넣을 수 있습니다. ${SH.on?'모든 내용은 공유 DB에 자동 저장되어, 링크를 아는 사람 모두가 같이 보고 고칩니다.':'모든 내용은 이 브라우저에 자동 저장됩니다.'}</p>
  <button class="btn pri" data-act="addT">+ 트레이너</button><button class="btn" data-act="addF">+ 폴더</button><button class="btn" data-act="impText">복사용 텍스트 붙여넣기</button></div>
  ${body}`;fitFlist(root)}
@@ -1540,7 +1552,7 @@ function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=inve
   <div class="tmain"><div class="tl1"><span class="tname">${esc(t.name)}</span>${t.kind==='npc'?'<span class="plchip npc" title="NPC — 오레마스 관계도에 NPC 노드로 들어간다">NPC</span>':''}${t.priv?`<span class="kindb privchip" title="${esc('비공개 · '+(t.ownerName||'')+(ME.gm?' (GM 열람)':''))}">🔒</span>`:''}${(t.pl||'').trim()?`<span class="plchip" title="PL">PL <b>${esc(t.pl.trim())}</b></span>`:''}</div>${(t.deco||{}).title?`<div class="ttitle">${esc(t.deco.title)}</div>`:''}
    <div class="tl3"><span class="row trk">${QUAL.map(q=>rkChip(q,t.ranks[q])).join('')}</span><span class="small muted tmeta">포켓몬 ${t.pokemon.length}체 · PT 기술점 <b class="${pu>pm?'warn':''} num">${pu}/${pm}</b></span></div></div>
   ${tPartyHTML(t,ti)}${tUqHTML(t,ti)}<span class="sp"></span>
-  <div class="tacts">${S.folders.length?`<select class="tmove" data-tmove="${ti}" aria-label="폴더 이동" title="폴더 이동"><option value="">폴더 없음</option>${S.folders.map(f=>`<option value="${esc(f.id)}" ${tFolder(t)===f.id?'selected':''}>${esc(f.name||'이름 없는 폴더')}</option>`).join('')}</select>`:''}<button class="btn sm ghost" data-act="decoT" data-i="${ti}" title="카드 색 · 칭호 · 배경 그림 · 무늬">🎨 꾸미기</button><button class="btn sm ghost" data-act="privT" data-i="${ti}" title="비공개 트레이너는 만든 사람(같은 비밀구)과 GM 에게만 보입니다">${t.priv?'공개로':'비공개'}</button><button class="btn sm ghost" data-act="dupT" data-i="${ti}">복제</button><button class="btn sm ghost danger" data-act="delT" data-i="${ti}">삭제</button></div></header>
+  <div class="tacts">${S.folders.length?`<select class="tmove" data-tmove="${ti}" aria-label="폴더 이동" title="폴더 이동"><option value="">폴더 없음</option>${[fTreeOpts(tFolder(t))].join('')}</select>`:''}<button class="btn sm ghost" data-act="decoT" data-i="${ti}" title="카드 색 · 칭호 · 배경 그림 · 무늬">🎨 꾸미기</button><button class="btn sm ghost" data-act="privT" data-i="${ti}" title="비공개 트레이너는 만든 사람(같은 비밀구)과 GM 에게만 보입니다">${t.priv?'공개로':'비공개'}</button><button class="btn sm ghost" data-act="dupT" data-i="${ti}">복제</button><button class="btn sm ghost danger" data-act="delT" data-i="${ti}">삭제</button></div></header>
  ${t.open?`<div class="fb"><div class="tgrid">
   <div class="panel"><h3>프로필</h3><label class="lbl" for="tn-${t.id}">이름${inp(P+'.name',t.name,{id:'tn-'+t.id})}</label>
    <div class="imgbox" style="margin-top:8px">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="트레이너 이미지">`:'<span class="small">이미지 없음</span>'}</div>
@@ -1838,8 +1850,10 @@ $('#v-char').addEventListener('click',async e=>{
   case 'addTin':{const t=newTrainer();t.folder=b.dataset.f||'';S.trainers.push(t);S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed[b.dataset.f||'_none'];save();renderChar();break}
   case 'decoF':{const f=S.folders.find(x=>x.id===b.dataset.f);if(!f)break;openTDeco(f,()=>{save();renderChar()},1);break}
   case 'renF':{const f=S.folders.find(x=>x.id===b.dataset.f);if(!f)break;const name=await askText('폴더 이름 바꾸기','폴더 이름',f.name);if(name){f.name=name;save();renderChar()}break}
-  case 'delF':{const f=S.folders.find(x=>x.id===b.dataset.f);if(!f)break;const n=S.trainers.filter(t=>t.folder===f.id).length;
-   if(await ask(`폴더 「${esc(f.name)}」를 삭제할까요?<br><span class="small muted">안에 있던 트레이너 ${n}명은 지워지지 않고 「폴더 없음」으로 옮겨집니다.</span>`,'폴더 삭제')){S.trainers.forEach(t=>{if(t.folder===f.id)t.folder=''});S.folders=S.folders.filter(x=>x!==f);save();renderChar()}break}
+  case 'delF':{const f=S.folders.find(x=>x.id===b.dataset.f);if(!f)break;const n=S.trainers.filter(t=>t.folder===f.id).length;const up=fById(fPar(f));const kids=fKids(f.id);
+   if(await ask(`폴더 「${esc(f.name)}」를 삭제할까요?<br><span class="small muted">안에 있던 트레이너 ${n}명${kids.length?`과 하위 폴더 ${kids.length}개`:''}는 지워지지 않고 ${up?`상위 폴더 「${esc(up.name||'')}」`:'「폴더 없음」'}으로 옮겨집니다.</span>`,'폴더 삭제')){S.trainers.forEach(t=>{if(t.folder===f.id)t.folder=up?up.id:''});kids.forEach(k=>{if(up)k.parent=up.id;else delete k.parent});S.folders=S.folders.filter(x=>x!==f);save();renderChar()}break}
+  case 'addFin':{const p=fById(b.dataset.f);if(!p)break;const name=await askText('하위 폴더',`「${p.name||''}」 안에 만들 폴더 이름`);if(name){const at=S.folders.indexOf(p)+1+fDesc(p.id).length;S.folders.splice(at,0,{id:uid(),name,parent:p.id});S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed[p.id];save();renderChar()}break}
+  case 'moveF':{const f=fById(b.dataset.f);if(!f)break;const v=await askFolder(`「${f.name||''}」 옮기기`,'어느 폴더 안으로 옮길까요?',fPar(f),f.id);if(v==null)break;if(v)f.parent=v;else delete f.parent;S.ui.fclosed=S.ui.fclosed||{};if(v)delete S.ui.fclosed[v];save();renderChar();const p=fById(v);toast(`「${f.name}」 → ${p?fPath(p):'맨 위'}`);break}
   case 'delT':if(await ask(`트레이너 「${esc(T.name)}」와 소속 포켓몬 ${T.pokemon.length}체를 모두 삭제할까요?`,'삭제')){S.trainers.splice(i,1);save();renderChar()}break;
   case 'dupT':{const c=clone(T);c.id=uid();c.name+=' (복사)';c.pokemon.forEach(p=>p.id=uid());S.trainers.splice(i+1,0,c);save();renderChar();break}
   case 'noimg':T.image='';rf();break;
@@ -1952,7 +1966,7 @@ document.addEventListener('contextmenu',e=>{if(drag&&drag.touch)e.preventDefault
 function endDrag(e){if(!drag||e.pointerId!==drag.id)return;const d=drag;drag=null;clearTimeout(d.timer);if(!d.on)return;
  d.item.classList.remove('dragging');MKROOT().classList.remove('drag-on');dragEnd=Date.now();$$('.tfh.over').forEach(x=>x.classList.remove('over'));
  if(d.list.dataset.sort==='trainers'&&S.folders.length){moveTrainersFromDom(d);return}
- const order=[...d.list.children].filter(x=>x.dataset.si!=null).map(x=>+x.dataset.si);if(order.every((v,i)=>v===i))return;applySort(d.list,order)}
+ const order=[...d.list.children].filter(x=>x.dataset.si!=null).map(x=>+x.dataset.si);if(order.every((v,i)=>!i||order[i-1]<v))return;applySort(d.list,order)}
 document.addEventListener('pointerup',endDrag);document.addEventListener('pointercancel',endDrag);
 /* 폴더가 있을 때: 화면에 보이는 순서·소속대로 트레이너 목록을 다시 짠다 (접힌 폴더의 트레이너는 그대로 유지) */
 function moveTrainersFromDom(d){const moved=S.trainers[+d.item.dataset.si];
@@ -1961,7 +1975,7 @@ function moveTrainersFromDom(d){const moved=S.trainers[+d.item.dataset.si];
  $$('#trs [data-sort="trainers"]').forEach(l=>{const fid=l.dataset.fid||'';[...l.children].forEach(x=>{if(x.dataset.si==null)return;const t=S.trainers[+x.dataset.si];if(t&&!seen.has(t)){seen.add(t);t.folder=fid;order.push(t)}})});
  S.trainers.forEach(t=>{if(!seen.has(t))order.push(t)});S.trainers=order;save();renderChar()}
 function applySort(list,order){const re=a=>order.map(i=>a[i]);const kind=list.dataset.sort;if(kind==='trainers'){S.trainers=re(S.trainers);save();renderChar();return}
- if(kind==='folders'){S.folders=re(S.folders);save();renderChar();return}const T=S.trainers[+list.dataset.i];if(!T)return;
+ if(kind==='folders'){const slots=[...order].sort((a,b)=>a-b);const nf=S.folders.slice();slots.forEach((p,k)=>{nf[p]=S.folders[order[k]]});S.folders=nf;save();renderChar();return}   /* 10-24: 하위 폴더 줄은 그 폴더들 자리끼리만 */const T=S.trainers[+list.dataset.i];if(!T)return;
  if(kind==='poke')T.pokemon=re(T.pokemon);
  else{const P=T.pokemon[+list.dataset.j];if(!P)return;if(kind==='moves')P.moves=re(P.moves);else if(kind==='pots'){const full=[...order,...P.pots.map((_,i)=>i).filter(i=>!order.includes(i))];for(const a of ['pots','potEff','potKind'])P[a]=full.map(i=>P[a][i])}}
  save();refreshTrainer(T)}
@@ -2376,7 +2390,7 @@ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.tar
 /* ---------- 백업 · 엑셀 ---------- */
 function customDB(){const o={};for(const k in DBS)o[k]=S.db[k].filter(r=>S.custom[k].includes(r[DBS[k].key]));return o}
 function backupObj(){return {app:'mangketmon-maker',v:3,saved:new Date().toISOString(),trainers:S.trainers,folders:S.folders.map(folderOut),custom:S.custom,customRows:customDB(),dbEdits:[...dbEditDocs().values()],ban:S.db.ban??'',tpl:S.db.tpl,tplV:S.db.tplV||0,tags:S.db.tags,tagsV:S.db.tagsV||0,stpl:S.db.stpl,stplV:S.db.stplV||0,oldSock:S.db.oldSock,ptItems:S.db.ptItems,ptiV:S.db.ptiV||0,pride:S.db.pride,prideExV:S.db.prideExV||0,ilock:S.db.ilock||[],soloSock:S.db.soloSock||clone(SOLO_SOCK_DEF),tplSoloV:S.db.tplSoloV||0,rules:RULES()}}
-const folderOut=f=>{const o={id:f.id,name:f.name||''};if(f.priv)o.priv=true;if(f.owner){o.owner=f.owner;o.ownerName=f.ownerName||''}return o};
+const folderOut=f=>{const o={id:f.id,name:f.name||''};if(f.parent)o.parent=f.parent;if(f.priv)o.priv=true;if(f.owner){o.owner=f.owner;o.ownerName=f.ownerName||''}return o};
 /* dbEdits: 원본 DB와 다른 행(수정·추가·삭제). 덮어쓰기는 원본에서 다시 짓고, 추가는 지금 DB 위에 얹는다 */
 function applyDbEdits(edits,fromDefault){for(const k in DBS){const eds=edits.filter(d=>d&&d.kind===k);if(!eds.length&&!fromDefault)continue;const K=DBS[k].key;
   let rows=fromDefault?clone(DEF[k]||[]):S.db[k];const cust=new Set(fromDefault?[]:S.custom[k]||[]);
@@ -2524,7 +2538,7 @@ function shMetaGroups(){const st=shSettings(),out={};for(const g in META_G){cons
 function shMetaMerge(){const L=SH.metaL&&typeof SH.metaL==='object'?SH.metaL:null;const G=SH.metaG||{};if(!L&&!Object.keys(G).length)return null;const m=Object.assign({},L||{});for(const g in G)Object.assign(m,G[g]||{});return m}
 function shSettings(){return {tpl:S.db.tpl||[],tplV:S.db.tplV||0,tags:S.db.tags||[],tagsV:S.db.tagsV||0,ban:S.db.ban??'',stpl:S.db.stpl||[],stplV:S.db.stplV||0,oldSock:S.db.oldSock??5.5,ptItems:S.db.ptItems||PTI_DEF,ptiV:S.db.ptiV||0,pride:S.db.pride||PRIDE_DEF,prideExV:S.db.prideExV||0,tplSoloV:S.db.tplSoloV||0,soloSock:S.db.soloSock||SOLO_SOCK_DEF,ilock:S.db.ilock||[],rules:RULES()}}
 function shWant(){const out=new Map();
- S.folders.forEach((f,i)=>{f._ord=i;const d={ord:i,name:f.name||''};if(f.priv)d.priv=true;if(f.deco&&Object.keys(f.deco).length)d.deco=f.deco;if(f.owner){d.owner=f.owner;d.ownerName=f.ownerName||''}out.set('folders/'+f.id,d)});
+ S.folders.forEach((f,i)=>{f._ord=i;const d={ord:i,name:f.name||''};if(f.parent)d.parent=f.parent;if(f.priv)d.priv=true;if(f.deco&&Object.keys(f.deco).length)d.deco=f.deco;if(f.owner){d.owner=f.owner;d.ownerName=f.ownerName||''}out.set('folders/'+f.id,d)});
  S.trainers.forEach((t,i)=>{const d=stripUI(t);d.pids=t.pokemon.map(p=>p.id);out.set('trainers/'+t.id,{ord:i,data:d});
   t.pokemon.forEach(p=>{const bu=baseUp(t,p);out.set('pokemon/'+p.id,{tid:t.id,data:Object.assign(stripUI(p),{effTxt:effSnap(p)},bu.up.length?{baseUp:{base:bu.base.map(v=>v===''?'':+v),up:bu.up.map(u=>({i:u.i,from:u.from,to:u.to,by:u.by}))}}:{})})})});
  for(const [p,b] of shDbDocs())out.set(p,b);
@@ -2593,7 +2607,7 @@ function shApplyDoc(kind,id,d){
  if(kind==='pokemon'){d?shPutPoke(id,d):shDelPoke(id);return 't'}
  if(kind==='dbedit'){d?SH.ed.set(id,d):SH.ed.delete(id);return 'd'}
  if(kind==='meta'){if(id==='settings')SH.metaL=d||null;else if(id.startsWith('set.')){SH.metaG=SH.metaG||{};if(d)SH.metaG[id.slice(4)]=d;else delete SH.metaG[id.slice(4)]}else return '';SH.meta=shMetaMerge();return 'd'}
- if(kind==='folders'){if(d){let f=S.folders.find(x=>x.id===id);if(!f){f={id};S.folders.push(f)}f.name=String(d.name||'');f._ord=+d.ord||0;f.priv=!!d.priv;if(d.deco&&typeof d.deco==='object')f.deco=d.deco;else delete f.deco;if(d.owner){f.owner=String(d.owner);f.ownerName=String(d.ownerName||'')}else{delete f.owner;delete f.ownerName}}else{S.folders=S.folders.filter(x=>x.id!==id)}return 't'}}
+ if(kind==='folders'){if(d){let f=S.folders.find(x=>x.id===id);if(!f){f={id};S.folders.push(f)}f.name=String(d.name||'');f._ord=+d.ord||0;f.priv=!!d.priv;if(d.parent)f.parent=String(d.parent);else delete f.parent;if(d.deco&&typeof d.deco==='object')f.deco=d.deco;else delete f.deco;if(d.owner){f.owner=String(d.owner);f.ownerName=String(d.ownerName||'')}else{delete f.owner;delete f.ownerName}}else{S.folders=S.folders.filter(x=>x.id!==id)}return 't'}}
 function shAfter(paths,what){
  if(what.t){S.trainers.forEach((t,i)=>{if(t._ord==null)t._ord=i});S.trainers.sort((a,b)=>a._ord-b._ord);S.folders.forEach((f,i)=>{if(f._ord==null)f._ord=i});S.folders.sort((a,b)=>a._ord-b._ord)}
  if(what.d)shRebuildDB();
