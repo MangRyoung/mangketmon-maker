@@ -260,8 +260,8 @@
    let log,re=false;
    if(old&&(auto||confirm(`「${old.title}」 을(를) 이미 불러왔어요.\n확인: 그 로그를 서버 내용으로 새로 고침 (전 내용은 「되돌리기」로 살릴 수 있어요)\n취소: 새 로그로 하나 더 넣기`))){
     S.undo.push({id:old.id,title:old.title,messages:JSON.stringify(old.messages)});if(S.undo.length>50)S.undo.shift();$('undoBtn').disabled=false;
-    old.messages=msgs;old.title=title;log=old;re=true}
-   else{log={id:uid(),title,messages:msgs,created:Date.now()};S.logs[log.id]=log}
+    old.messages=msgs;{const auto=old.autoTitle?old.title===old.autoTitle:/· 오레마스 \d{4}-\d{2}-\d{2}/.test(old.title||'');if(auto)old.title=title;old.autoTitle=title}log=old;re=true}   /* 10-25: 바꾼 이름은 남긴다 */
+   else{log={id:uid(),title,autoTitle:title,messages:msgs,created:Date.now()};S.logs[log.id]=log}
    map[id]=log.id;await idb.set('om-rooms',map);
    touch(log);flush();await idb.set('log:'+log.id,log);await idb.set('imgs',S.imgs);await selectLog(log.id);
    say(`${msgs.length}줄 · 초상 ${pr.ok}명${pr.fail?` (못 읽은 그림 ${pr.fail})`:''}${capped?` · 너무 길어 앞 ${rows.length.toLocaleString()}줄까지만 읽었다`:''}`);
@@ -489,7 +489,11 @@ html.embed .main>.bar .mkopen{margin-left:2px}
  /* 제작기 색 · 글꼴 (밝은 · 어두운 화면 모두 제작기 #mk 의 값을 그대로 읽는다) — 바깥 틀에만 입힌다 */
  const st=document.createElement('style');st.id='mkvars';document.head.appendChild(st);
  const sync=()=>{try{const mk=P.document.getElementById('mk');if(!mk)return;const cs=P.getComputedStyle(mk);const g=k=>cs.getPropertyValue(k).trim();if(!g('--bg'))return;
-  const v=`--bg:${g('--bg')};--surface:${g('--surface')};--sunk:${g('--sunk')};--fg:${g('--ink')};--ink:${g('--ink')};--muted:${g('--muted')};--line:${g('--line')};--accent:${g('--ink')};--accent-ink:${g('--surface')};--gm-bg:${g('--sunk')};--mka:${g('--accent')};--mkd:${g('--display')};font-family:${g('--body')}`;
+  /* 10-25: 테마에 따라 글자(--ink)와 칸(--surface)이 둘 다 어두워 목록 글자가 안 보이던 것 — 대비가 모자라면 글자색을 칸에 맞춰 다시 고른다 */
+  const cv=document.createElement('canvas').getContext('2d');const rgb=c=>{cv.fillStyle='#000';cv.fillStyle=c;const h=cv.fillStyle;if(h[0]==='#')return [1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const m=h.match(/[\d.]+/g);return m?m.slice(0,3).map(Number):[0,0,0]};
+  const lum=c=>{const v=rgb(c).map(x=>{x/=255;return x<=.03928?x/12.92:((x+.055)/1.055)**2.4});return .2126*v[0]+.7152*v[1]+.0722*v[2]};const ratio=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+  let INK=g('--ink'),MUT=g('--muted');const SF=g('--surface');if(ratio(INK,SF)<3.2){INK=lum(SF)<.35?'#eef0f4':'#1d2129';MUT=`color-mix(in srgb,${INK} 62%,${SF})`}else if(ratio(MUT,SF)<2.2)MUT=`color-mix(in srgb,${INK} 62%,${SF})`;
+  const v=`--bg:${g('--bg')};--surface:${g('--surface')};--sunk:${g('--sunk')};--fg:${INK};--ink:${INK};--muted:${MUT};--line:${g('--line')};--accent:${INK};--accent-ink:${g('--surface')};--gm-bg:${g('--sunk')};--mka:${g('--accent')};--mkd:${g('--display')};font-family:${g('--body')}`;
   st.textContent=`html.embed body{background:${g('--bg')}}html.embed .rail,html.embed .main>.bar,html.embed .pop,html.embed .toast{${v}}`;
   const th=P.document.documentElement.getAttribute('data-theme');if(th)D.setAttribute('data-theme',th);else D.removeAttribute('data-theme')}catch(e){}};
  sync();try{P.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>setTimeout(sync,30));new P.MutationObserver(sync).observe(P.document.documentElement,{attributes:true,attributeFilter:['data-theme']})}catch(e){}
@@ -543,6 +547,26 @@ html.embed .rail .logs{max-height:calc(100vh - 330px);min-height:180px}
 #mtFound .li{cursor:pointer;grid-template-columns:minmax(0,1fr)}
 .main .log{width:100%}
 html.fitlog .main .log{max-width:min(100%,1000px)!important}
+/* 세션 정보 */
+.li .mtep{display:inline-block;font-size:.72rem;font-weight:700;padding:0 6px;margin-right:5px;border-radius:99px;background:var(--mka,var(--accent));color:var(--bg,#111);vertical-align:1px}
+.li .mttag{font-size:.7rem;padding:0 6px;border-radius:99px;border:1px solid var(--line)}
+.li .mtbtns{display:flex;flex-direction:column;gap:2px}
+.mtsort{display:flex;gap:6px;align-items:center;font-size:.78rem;color:var(--muted)}
+.mtsort select{font-size:.78rem;padding:2px 6px;border-radius:6px;border:1px solid var(--line);background:var(--sunk);color:inherit}
+.mthid{font-size:.75rem;color:var(--muted);text-decoration:underline;cursor:pointer;background:none;border:0;padding:0}
+dialog.mtdlg{border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff);color:var(--fg,#111);padding:16px 18px;width:min(460px,92vw);font:14px/1.5 var(--f-body,system-ui)}
+dialog.mtdlg::backdrop{background:rgba(0,0,0,.45)}
+dialog.mtdlg h3{margin:0 0 10px;font-size:1rem}
+dialog.mtdlg label{display:flex;flex-direction:column;gap:3px;font-size:.8rem;color:var(--muted);margin-bottom:8px}
+dialog.mtdlg input[type=text],dialog.mtdlg input[type=date],dialog.mtdlg textarea{font:inherit;font-size:.9rem;color:var(--fg,#111);background:var(--sunk,#f4f4f4);border:1px solid var(--line);border-radius:7px;padding:6px 8px}
+dialog.mtdlg .two{display:grid;grid-template-columns:110px 1fr;gap:10px}
+dialog.mtdlg .ck{flex-direction:row;align-items:center;gap:6px}
+dialog.mtdlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.log .log-sess{margin:8px 0 2px;font-size:.88em;color:var(--muted)}
+.log .log-sess b{color:var(--fg)}
+.log .log-sess p{margin:6px 0 0;white-space:pre-wrap;color:var(--fg);opacity:.85}
+.mthit{outline:2px solid var(--mka,var(--accent));outline-offset:3px;border-radius:4px;transition:outline-color 1.6s}
+#mtFound .mtsn{font-size:.74rem;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 지문(*…*) 글꼴 · 색 · 기울임 */
 .mtem{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 </style>
@@ -558,15 +582,16 @@ html.fitlog .main .log{max-width:min(100%,1000px)!important}
  const ymd=t=>{const d=new Date(+t||0);return +t?`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`:''};
 
  /* 로그 메타에 만든 날 · 고친 날을 남긴다 */
- const oEntry=indexEntry;indexEntry=function(log){const e=oEntry.apply(this,arguments);e.created=log.created||0;e.upd=log.updated||0;return e};
+ const oEntry=indexEntry;indexEntry=function(log){const e=oEntry.apply(this,arguments);e.created=log.created||0;e.upd=log.updated||0;e.meta=log.meta||null;e.nc=!!log.noCloud;return e};
+ const HID=()=>ls.get('mtl-hidden',[])||[];
  const oTouch=touch;touch=function(log){if(log)log.updated=Date.now();const r=oTouch.apply(this,arguments);if(log)queue(log.id);return r};
 
  /* 이 로그가 쓰는 그림: http(s) 주소는 다 · data: 그림은 합쳐서 1.5MB 까지 */
  function imgsFor(log){const out={};let budget=1500000;const keys=new Set();for(const m of log.messages||[]){if(m.asset)keys.add(m.asset);if(m.name)keys.add('spk:'+m.name)}
   for(const k of keys){const v=img(k);if(!v)continue;if(/^https?:/i.test(v))out[k]=v;else if(/^data:image\//.test(v)&&v.length<budget){out[k]=v;budget-=v.length}}return out}
  const setSt=(id,s)=>{CL.st.set(id,s);paint()};
- async function upload(id){const log=S.logs[id]||await idb.get('log:'+id);if(!log||isSample(log.title))return;const e=S.index.find(x=>x.id===id)||{};
-  const data={v:1,title:log.title,folder:e.folder||null,created:log.created||0,updated:log.updated||Date.now(),count:(log.messages||[]).filter(m=>m.type!=='bgm').length,messages:(log.messages||[]).filter(m=>!(m.type==='bgm'&&m.audioId&&!m.url)),imgs:imgsFor(log)};
+ async function upload(id){const log=S.logs[id]||await idb.get('log:'+id);if(!log||isSample(log.title))return;if(log.noCloud){setSt(id,'');return}const e=S.index.find(x=>x.id===id)||{};
+  const data={v:1,title:log.title,meta:log.meta||null,folder:e.folder||null,created:log.created||0,updated:log.updated||Date.now(),count:(log.messages||[]).filter(m=>m.type!=='bgm').length,messages:(log.messages||[]).filter(m=>!(m.type==='bgm'&&m.audioId&&!m.url)),imgs:imgsFor(log)};
   setSt(id,'up');try{await put('mtlog',id,data);CL.idx.set(id,{u:data.updated,title:data.title});setSt(id,'ok')}catch(err){CL.err=err.message;setSt(id,'err');console.warn('보관소 올리기',err)}}
  const upT=new Map();
  function queue(id){if(!UP()||!CL.ready)return;clearTimeout(upT.get(id));upT.set(id,setTimeout(()=>{upT.delete(id);upload(id)},2500));CL.st.set(id,'wait')}
@@ -574,6 +599,7 @@ html.fitlog .main .log{max-width:min(100%,1000px)!important}
  /* 지우기: 올리는 브라우저면 보관소에서도 (지운 목록 gone 에 남겨 다른 기기가 다시 올리지 않게) */
  const oRm=removeLogData;removeLogData=async function(id){const r=await oRm.apply(this,arguments);
   if(UP()&&CL.idx.has(id)){try{await api(`docs?kind=eq.mtlog&id=eq.${encodeURIComponent(id)}`,{method:'DELETE'});CL.idx.delete(id);CL.gone=[...new Set([...CL.gone,id])].slice(-500);treeDirty=true}catch(err){toast('보관소에서 지우지 못했어요: '+err.message)}}
+  else if(!UP()&&CL.idx.has(id)){ls.set('mtl-hidden',[...new Set([...HID(),id])]);toast('이 브라우저에서만 지웠어요 — 보관소에는 남아 있어요 (숨긴 로그로 다시 볼 수 있어요)');setTimeout(paint,0)}
   CL.st.delete(id);return r};
 
  /* 본문은 열 때 받는다: 이 브라우저에 없거나 보관소 쪽이 더 새것이면 */
@@ -588,56 +614,99 @@ html.fitlog .main .log{max-width:min(100%,1000px)!important}
  const treeOf=()=>({folders:S.folders.map(f=>({id:f.id,name:f.name})),order:S.index.map(e=>[e.id,e.folder||null]),gone:CL.gone});
  function checkTree(){if(!CL.ready)return;const sig=JSON.stringify(treeOf());if(sig!==treeSig){treeSig=sig;treeDirty=true}if(treeDirty&&UP()){treeDirty=false;clearTimeout(checkTree.t);checkTree.t=setTimeout(async()=>{const at=Date.now();try{await put('mtlogmeta','tree',Object.assign(treeOf(),{at}));ls.set('mtl-tree-at',at)}catch(err){CL.err=err.message;paint()}},1500)}}
 
+ /* 등장인물 설정(색 · 표시 이름 · GM · 숨김 · 직접 넣은 초상)도 보관소에 — 'mtlogmeta/speakers' */
+ let spkSig='';
+ function spkOf(){const imgs={};let budget=3000000;for(const n of Object.keys(S.speakers)){const v=S.imgs['spk:'+n];if(!v)continue;if(/^https?:/i.test(v))imgs['spk:'+n]=v;else if(/^data:image\//.test(v)&&v.length<Math.min(400000,budget)){imgs['spk:'+n]=v;budget-=v.length}}return {speakers:S.speakers,imgs}}
+ function checkSpk(){if(!CL.ready||!UP())return;const d=spkOf();const sig=JSON.stringify(d.speakers)+Object.keys(d.imgs).join('|')+Object.values(d.imgs).map(v=>v.length).join(',');if(sig===spkSig)return;spkSig=sig;clearTimeout(checkSpk.t);checkSpk.t=setTimeout(async()=>{const at=Date.now();try{await put('mtlogmeta','speakers',Object.assign(spkOf(),{at}));ls.set('mtl-spk-at',at)}catch(err){CL.err=err.message;paint()}},2000)}
+ async function applySpk(d){if(!d||(+d.at||0)<=(+ls.get('mtl-spk-at',0)||0))return;for(const [n,c] of Object.entries(d.speakers||{}))S.speakers[n]=Object.assign({},S.speakers[n]||{},c);for(const [k,v] of Object.entries(d.imgs||{}))S.imgs[k]=v;ls.set('mtl-spk-at',+d.at);try{await idb.set('speakers',S.speakers);await idb.set('imgs',S.imgs);if(typeof rebuildNames==='function')rebuildNames()}catch(e){}try{renderSpeakers();renderLog()}catch(e){}}
+
  /* 부팅 뒤: 보관소 목록을 읽어 섞는다 */
  async function pull(quiet){if(CL.busy)return;CL.busy=true;CL.err='';paint();
-  try{const [rows,meta]=await Promise.all([api('docs?kind=eq.mtlog&select=id,title:data->>title,folder:data->>folder,count:data->>count,created:data->>created,updated:data->>updated&order=id'),api('docs?kind=eq.mtlogmeta&id=eq.tree&select=data').catch(()=>[])]);
-   const tree=meta&&meta[0]&&meta[0].data||null;CL.gone=(tree&&tree.gone)||CL.gone;
-   CL.idx=new Map(rows.map(r=>[r.id,{u:+r.updated||0,title:r.title,folder:r.folder,count:+r.count||0,created:+r.created||0}]));
+  try{const [rows,meta]=await Promise.all([api('docs?kind=eq.mtlog&select=id,title:data->>title,folder:data->>folder,count:data->>count,created:data->>created,updated:data->>updated,meta:data->meta&order=id'),api('docs?kind=eq.mtlogmeta&select=id,data').catch(()=>[])]);
+   const tree=(meta||[]).find(x=>x.id==='tree');const spk=(meta||[]).find(x=>x.id==='speakers');applySpk(spk&&spk.data);const T0=tree&&tree.data||null;CL.gone=(T0&&T0.gone)||CL.gone;const hid=new Set(HID());
+   CL.idx=new Map(rows.map(r=>[r.id,{u:+r.updated||0,title:r.title,folder:r.folder,count:+r.count||0,created:+r.created||0,meta:r.meta||null}]));
    let add=0,up=0;
    for(const [id,c] of CL.idx){const e=S.index.find(x=>x.id===id);
-    if(!e){S.index.push({id,title:c.title||'로그',count:c.count,assets:[],names:[],folder:c.folder&&c.folder!=='null'?c.folder:null,created:c.created,upd:c.u,remote:1});add++}
-    else{if(e.remote){e.title=c.title||e.title;e.count=c.count}if(c.u>(e.upd||0)+1000)e.stale=1;CL.st.set(id,e.stale?'new':'ok')}}
+    if(hid.has(id))continue;
+    if(!e){S.index.push({id,title:c.title||'로그',count:c.count,assets:[],names:[],folder:c.folder&&c.folder!=='null'?c.folder:null,created:c.created,upd:c.u,meta:c.meta,remote:1});add++}
+    else{if(e.remote){e.title=c.title||e.title;e.count=c.count;e.meta=c.meta}if(c.u>(e.upd||0)+1000)e.stale=1;CL.st.set(id,e.stale?'new':'ok')}}
    /* 이 브라우저에만 있는 로그 · 이쪽이 더 새 로그는 올린다 (올리는 브라우저만, 예시 · 지운 것 빼고) */
-   if(UP())for(const e of S.index){if(e.remote||isSample(e.title)||CL.gone.includes(e.id))continue;const c=CL.idx.get(e.id);if(!c||(e.upd||0)>c.u+1000){queue(e.id);up++}}
+   if(UP())for(const e of S.index){if(e.remote||e.nc||isSample(e.title)||CL.gone.includes(e.id))continue;const c=CL.idx.get(e.id);if(!c||(e.upd||0)>c.u+1000){queue(e.id);up++}}
    /* 폴더 · 순서: 보관소 쪽이 더 새것이면 따른다 */
-   if(tree&&(+tree.at||0)>(+ls.get('mtl-tree-at',0)||0)){const F=new Map(S.folders.map(f=>[f.id,f]));S.folders=(tree.folders||[]).map(f=>Object.assign(F.get(f.id)||{open:false},{id:f.id,name:f.name}));
+   if(T0&&(+T0.at||0)>(+ls.get('mtl-tree-at',0)||0)){const tree=T0;const F=new Map(S.folders.map(f=>[f.id,f]));S.folders=(tree.folders||[]).map(f=>Object.assign(F.get(f.id)||{open:false},{id:f.id,name:f.name}));
     const pos=new Map((tree.order||[]).map(([id,fd],i)=>[id,[i,fd]]));for(const e of S.index){const p=pos.get(e.id);if(p)e.folder=p[1]&&S.folders.some(f=>f.id===p[1])?p[1]:null}
     S.index.sort((a,b)=>(pos.has(a.id)?pos.get(a.id)[0]:1e9)-(pos.has(b.id)?pos.get(b.id)[0]:1e9));ls.set('mtl-tree-at',+tree.at);await idb.set('folders',S.folders)}
-   await idb.set('index',S.index);CL.ready=true;treeSig=JSON.stringify(treeOf());renderList();
+   await idb.set('index',S.index);CL.ready=true;treeSig=JSON.stringify(treeOf());try{const d=spkOf();spkSig=JSON.stringify(d.speakers)+Object.keys(d.imgs).join('|')+Object.values(d.imgs).map(v=>v.length).join(',')}catch(e){}renderList();
    if(!quiet&&(add||up))toast(`보관소: ${add?`새 로그 ${add}개를 목록에 더했어요`:''}${add&&up?' · ':''}${up?`${up}개를 올리는 중`:''}`)}
   catch(err){CL.err=err.message;console.warn('보관소 읽기',err)}finally{CL.busy=false;CL.ready=true;paint()}}
 
  /* ---------- 목록 ---------- */
  const panel=document.querySelector('#logList')&&document.querySelector('#logList').closest('.panel');
  if(panel){const box=document.createElement('div');box.className='mtc';box.innerHTML=`<div class="mth"><b>☁ 캠페인 보관소</b><button class="btn" type="button" id="mtPull" title="보관소 목록을 다시 읽는다">새로 읽기</button></div><span class="st" id="mtSt" style="margin-top:-4px"></span>
-   <label class="mtup"><input type="checkbox" id="mtUp"> 이 브라우저에서 보관소에 올리기 <span style="opacity:.75">(GM 컴퓨터에서만)</span></label><input type="search" class="mtfind" id="mtQ" placeholder="로그 이름 · 등장인물로 찾기">`;
+   <label class="mtup"><input type="checkbox" id="mtUp"> 이 브라우저에서 보관소에 올리기 <span style="opacity:.75">(GM 컴퓨터에서만)</span></label><input type="search" class="mtfind" id="mtQ" placeholder="이름 · 등장인물 · 태그 · 본문으로 찾기"><div class="mtsort">정렬<select id="mtSort"><option value="">직접 정한 순서</option><option value="ep">화 순서</option><option value="date">날짜 순서</option><option value="title">이름 순서</option></select><button class="btn" type="button" id="mtSortGo" style="height:24px;font-size:12px;padding:0 8px">정렬하기</button><span style="flex:1"></span><button type="button" class="mthid" id="mtHid" hidden></button></div>`;
   const sb=panel.querySelector('.selbar');(sb||$('logList')).before(box);const fd=document.createElement('div');fd.className='logs';fd.id='mtFound';fd.hidden=true;$('logList').after(fd);
   $('mtUp').checked=UP();$('mtUp').onchange=()=>{ls.set('mtl-cloud-up',$('mtUp').checked);if($('mtUp').checked){toast('이 브라우저의 로그를 보관소에 올려요');pull()}else paint()};
-  $('mtPull').onclick=()=>pull();$('mtQ').oninput=()=>find();
+  $('mtPull').onclick=()=>pull();$('mtQ').oninput=()=>{clearTimeout(find.t);find.t=setTimeout(find,180)};
+  $('mtSortGo').onclick=()=>sortBy($('mtSort').value);
+  $('mtHid').onclick=()=>{if(!confirm(`숨긴 로그 ${HID().length}개를 목록에 다시 보일까요?`))return;ls.set('mtl-hidden',[]);pull()};
   const hint=[...panel.querySelectorAll('p.hint')].find(p=>/이 브라우저에 저장/.test(p.textContent));if(hint)hint.textContent='로그는 이 브라우저에 두고, 「보관소에 올리기」를 켠 브라우저는 보관소(Supabase)에도 올려요. 다른 기기에서는 목록에 뜨고, 열 때 내려받아요. 등장인물 설정과 스타일은 이 브라우저에만 남아요.'}
- function paint(){const s=$('mtSt');if(s){const n=CL.idx.size;const up=[...CL.st.values()].filter(v=>v==='wait'||v==='up').length;s.textContent=CL.err?`⚠ ${CL.err.slice(0,60)}`:CL.busy?'읽는 중…':`${n}개${up?` · 올리는 중 ${up}`:''}${UP()?' · 올리기 켬':' · 보기만'}`}decorate()}
- const BADGE={ok:['☁','보관소에 있어요'],wait:['↑','곧 보관소에 올려요'],up:['↑','올리는 중'],down:['↓','받는 중'],err:['⚠','보관소와 맞추지 못했어요'],new:['☁•','보관소에 더 새 내용이 있어요 — 열면 받아요'],remote:['☁↓','보관소에만 있어요 — 열면 받아요']};
+ function paint(){const hb=$('mtHid');if(hb){const n=HID().length;hb.hidden=!n;hb.textContent=`숨긴 로그 ${n}`}const s=$('mtSt');if(s){const n=CL.idx.size;const up=[...CL.st.values()].filter(v=>v==='wait'||v==='up').length;s.textContent=CL.err?`⚠ ${CL.err.slice(0,60)}`:CL.busy?'읽는 중…':`${n}개${up?` · 올리는 중 ${up}`:''}${UP()?' · 올리기 켬':' · 보기만'}`}decorate()}
+ const BADGE={nc:['🔒','보관소에 올리지 않는 로그'],ok:['☁','보관소에 있어요'],wait:['↑','곧 보관소에 올려요'],up:['↑','올리는 중'],down:['↓','받는 중'],err:['⚠','보관소와 맞추지 못했어요'],new:['☁•','보관소에 더 새 내용이 있어요 — 열면 받아요'],remote:['☁↓','보관소에만 있어요 — 열면 받아요']};
+ const epOf=e=>{const m=e&&e.meta;return m&&m.ep!==''&&m.ep!=null?String(m.ep):''};
  function decorate(){document.querySelectorAll('#logList .li[data-kind="log"]').forEach(row=>{const id=row.dataset.id;const e=S.index.find(x=>x.id===id);if(!e)return;
    const t=row.querySelector(':scope>.t');if(t&&!row.querySelector('.mtx')){const w=document.createElement('span');w.className='mtx';t.replaceWith(w);w.appendChild(t);const sm=document.createElement('small');w.appendChild(sm);
-    const rb=document.createElement('button');rb.type='button';rb.className='mtren';rb.textContent='✎';rb.title='로그 이름 바꾸기 (제목을 두 번 눌러도 돼요)';row.appendChild(rb)}
-   const sm=row.querySelector('.mtx small');if(!sm)return;const st=e.remote?'remote':CL.st.get(id)||(CL.idx.has(id)?'ok':'');const b=BADGE[st];
-   const bits=[ymd(e.created||(S.logs[id]||{}).created),(e.names||[]).length?`${e.names.length}명`:'',`${(e.count||0).toLocaleString()}줄`].filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join('<span>·</span>');
-   sm.innerHTML=bits+(b?`<span class="mtb${st==='err'?' err':''}" title="${esc(b[1])}">${b[0]}</span>`:'<span class="mtb" title="이 브라우저에만 있어요" style="opacity:.5">💻</span>');
+    const bx=document.createElement('span');bx.className='mtbtns';bx.innerHTML='<button type="button" class="mtren" title="로그 이름 바꾸기 (제목을 두 번 눌러도 돼요)">✎</button><button type="button" class="mtren mtinfo" title="세션 정보 — 화 · 날짜 · 참가자 · 태그 · 요약 · 보관소">ⓘ</button>';row.appendChild(bx)}
+   const tt=row.querySelector('.mtx .t');const m=e.meta||{};const ep=epOf(e);if(tt&&!tt.querySelector('.mtep')&&ep)tt.insertAdjacentHTML('afterbegin',`<span class="mtep">${esc(ep)}화</span>`);
+   row.title=m.summary?String(m.summary).slice(0,300):'';
+   const sm=row.querySelector('.mtx small');if(!sm)return;const st=e.nc?'nc':e.remote?'remote':CL.st.get(id)||(CL.idx.has(id)?'ok':'');const b=BADGE[st];
+   const bits=[m.date?String(m.date).replace(/-/g,'.'):ymd(e.created||(S.logs[id]||{}).created),m.players?String(m.players):(e.names||[]).length?`${e.names.length}명`:'',`${(e.count||0).toLocaleString()}줄`].filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join('<span>·</span>');
+   const tags=(Array.isArray(m.tags)?m.tags:[]).slice(0,4).map(x=>`<span class="mttag">#${esc(x)}</span>`).join('');
+   sm.innerHTML=bits+(b?`<span class="mtb${st==='err'?' err':''}" title="${esc(b[1])}">${b[0]}</span>`:'<span class="mtb" title="이 브라우저에만 있어요" style="opacity:.5">💻</span>')+tags;
    row.classList.toggle('remote',!!e.remote)})}
  const oList=renderList;renderList=function(){const r=oList.apply(this,arguments);try{decorate();checkTree();if($('mtQ')&&$('mtQ').value.trim())find()}catch(err){console.warn(err)}return r};
 
  /* 이름 바꾸기 */
- $('logList').addEventListener('click',e=>{const b=e.target.closest('.mtren');if(!b)return;e.stopPropagation();e.preventDefault();rename(b.closest('.li').dataset.id,b.closest('.li'))},true);
+ $('logList').addEventListener('click',e=>{const b=e.target.closest('.mtren');if(!b)return;e.stopPropagation();e.preventDefault();const row=b.closest('.li');if(b.classList.contains('mtinfo'))info(row.dataset.id);else rename(row.dataset.id,row)},true);
  $('logList').addEventListener('dblclick',e=>{const t=e.target.closest('.li[data-kind="log"] .t');if(!t)return;e.preventDefault();rename(t.closest('.li').dataset.id,t.closest('.li'))});
  function rename(id,row){const e=S.index.find(x=>x.id===id);if(!e||!row)return;const w=row.querySelector('.mtx .t')||row.querySelector('.t');const inp=document.createElement('input');inp.className='mtrn';inp.value=e.title;w.replaceWith(inp);inp.focus();inp.select();
   let done=false;const fin=async ok=>{if(done)return;done=true;const v=inp.value.trim();if(ok&&v&&v!==e.title){const log=await getLog(id);if(log){log.title=v;touch(log);flush()}else e.title=v;if(S.cur===id)renderLog();toast('이름을 바꿨어요')}renderList()};
   inp.addEventListener('keydown',ev=>{ev.stopPropagation();if(ev.isComposing)return;if(ev.key==='Enter')fin(true);if(ev.key==='Escape')fin(false)});inp.addEventListener('blur',()=>fin(true));inp.addEventListener('click',ev=>ev.stopPropagation());inp.addEventListener('pointerdown',ev=>ev.stopPropagation())}
 
  /* 찾기: 이름 · 등장인물 (폴더 안까지) */
- function find(){const q=$('mtQ').value.trim().toLowerCase();const F=$('mtFound');if(!q){F.hidden=true;$('logList').hidden=false;return}
-  const hit=S.index.filter(e=>String(e.title||'').toLowerCase().includes(q)||(e.names||[]).some(n=>String(n).toLowerCase().includes(q)));
-  F.innerHTML=hit.map(e=>{const f=e.folder&&S.folders.find(x=>x.id===e.folder);return `<div class="li${e.id===S.cur?' cur':''}" data-fid="${esc(e.id)}"><span class="mtx"><span class="t">${esc(e.title)}</span><small>${esc([f?'📁 '+f.name:'',ymd(e.created),(e.count||0).toLocaleString()+'줄'].filter(Boolean).join(' · '))}</small></span></div>`}).join('')||'<p class="hint">찾는 로그가 없어요</p>';
-  F.hidden=false;$('logList').hidden=true;F.querySelectorAll('[data-fid]').forEach(r=>r.onclick=()=>selectLog(r.dataset.fid))}
+ const msgText=m=>(m.tokens||[]).map(t=>t.v||((t.expr||'')+' '+(t.res||''))).join('')+(m.title?' '+m.title:'');
+ async function find(){const q=$('mtQ').value.trim().toLowerCase();const F=$('mtFound');if(!q){F.hidden=true;$('logList').hidden=false;return}const tok=find.tok=(find.tok||0)+1;
+  const res=[];for(const e of S.index){const m=e.meta||{};const head=[e.title,(e.names||[]).join(' '),m.players,(m.tags||[]).join(' '),m.summary,epOf(e)?epOf(e)+'화':''].join(' ').toLowerCase();let snip='',hit=head.includes(q);
+   if(!e.remote){const log=S.logs[e.id]||await idb.get('log:'+e.id);if(tok!==find.tok)return;if(log){const mm=(log.messages||[]).find(x=>msgText(x).toLowerCase().includes(q));if(mm){const tx=msgText(mm);const i=tx.toLowerCase().indexOf(q);snip=(mm.name?mm.name+': ':'')+(i>20?'…':'')+tx.slice(Math.max(0,i-20),i+60);hit=true}}}
+   if(hit)res.push([e,snip])}
+  F.innerHTML=res.map(([e,sn])=>{const f=e.folder&&S.folders.find(x=>x.id===e.folder);const ep=epOf(e);return `<div class="li${e.id===S.cur?' cur':''}" data-fid="${esc(e.id)}"><span class="mtx"><span class="t">${ep?`<span class="mtep">${esc(ep)}화</span>`:''}${esc(e.title)}</span><small>${esc([f?'📁 '+f.name:'',(e.meta&&e.meta.date)||ymd(e.created),(e.count||0).toLocaleString()+'줄'].filter(Boolean).join(' · '))}</small>${sn?`<span class="mtsn">“${esc(sn)}”</span>`:''}</span></div>`}).join('')||`<p class="hint">찾는 로그가 없어요${S.index.some(e=>e.remote)?' · 보관소에만 있는 로그는 한 번 열어야 본문까지 찾아요':''}</p>`;
+  F.hidden=false;$('logList').hidden=true;F.querySelectorAll('[data-fid]').forEach(r=>r.onclick=async()=>{await selectLog(r.dataset.fid);setTimeout(()=>jump(q),120)})}
+ /* 찾은 글이 있는 줄로 굴리고 잠깐 표시 */
+ function jump(q){const L=$('log');if(!L)return;const el=[...L.querySelectorAll('.line,.gm,.roll')].find(x=>x.textContent.toLowerCase().includes(q));if(!el)return;el.scrollIntoView({block:'center',behavior:'smooth'});el.classList.add('mthit');setTimeout(()=>el.classList.remove('mthit'),1800)}
+
+ /* ---------- 정렬 (한 번 정렬해 순서를 저장 — 그 뒤엔 끌어서 다시 바꿀 수 있다) ---------- */
+ async function sortBy(k){if(!k)return toast('정렬 기준을 골라 주세요');const key=e=>{const m=e.meta||{};if(k==='ep'){const n=parseFloat(m.ep);return isNaN(n)?1e9:n}if(k==='date')return m.date?Date.parse(m.date):(e.created||0);return String(e.title||'')};
+  const cmp=(a,b)=>{const x=key(a),y=key(b);return typeof x==='string'?x.localeCompare(y,'ko',{numeric:true}):x-y};S.index.sort(cmp);await idb.set('index',S.index);renderList();toast({ep:'화 순서',date:'날짜 순서',title:'이름 순서'}[k]+'로 정렬했어요')}
+
+ /* ---------- 세션 정보 ---------- */
+ const dlg=document.createElement('dialog');dlg.className='mtdlg';document.body.appendChild(dlg);
+ async function info(id){const log=await getLog(id);if(!log)return toast('로그를 열지 못했어요');const m=log.meta||{};
+  dlg.innerHTML=`<h3>세션 정보</h3><div style="font-size:.85rem;margin:-4px 0 10px;opacity:.8">${esc(log.title)}</div>
+   <div class="two"><label>화 번호<input type="text" id="mdEp" value="${esc(m.ep??'')}" placeholder="예) 4"></label><label>플레이한 날<input type="date" id="mdDate" value="${esc(m.date||'')}"></label></div>
+   <label>참가자<input type="text" id="mdPl" value="${esc(m.players||'')}" placeholder="예) 느긋하게 · 마히루 · 퓨리나"></label>
+   <label>태그 <span style="opacity:.7">쉼표로 나눠요</span><input type="text" id="mdTag" value="${esc((m.tags||[]).join(', '))}" placeholder="예) 무진, 등대, 보스전"></label>
+   <label>한 줄 요약 · 메모<textarea id="mdSum" rows="4" placeholder="이번 세션에 있었던 일">${esc(m.summary||'')}</textarea></label>
+   <label class="ck"><input type="checkbox" id="mdNc" ${log.noCloud?'checked':''}> 이 로그는 보관소에 올리지 않음 (GM 개인 메모 등)</label>
+   <div class="acts"><button type="button" class="btn" id="mdX">취소</button><button type="button" class="btn primary" id="mdOk">저장</button></div>`;
+  dlg.showModal();$('mdX').onclick=()=>dlg.close();
+  $('mdOk').onclick=async()=>{const nm={ep:$('mdEp').value.trim(),date:$('mdDate').value,players:$('mdPl').value.trim(),tags:$('mdTag').value.split(/[,，]/).map(x=>x.trim().replace(/^#/,'')).filter(Boolean),summary:$('mdSum').value.trim()};
+   const nc=$('mdNc').checked;const wasCloud=CL.idx.has(id);log.meta=Object.values(nm).some(v=>Array.isArray(v)?v.length:v)?nm:null;log.noCloud=nc||undefined;dlg.close();touch(log);flush();
+   if(nc&&wasCloud&&UP()){try{await api(`docs?kind=eq.mtlog&id=eq.${encodeURIComponent(id)}`,{method:'DELETE'});CL.idx.delete(id);toast('보관소에서 내렸어요 — 이 브라우저에만 남아요')}catch(err){toast('보관소에서 내리지 못했어요: '+err.message)}}
+   else toast('세션 정보를 저장했어요');renderList();if(S.cur===id)renderLog()}}
+
+ /* 로그 머리에 세션 정보 (저장한 HTML 에도) */
+ const oBuild=buildLog;buildLog=function(log){const r=oBuild.apply(this,arguments);try{const m=log&&log.meta;if(m&&r&&r.html){const bits=[m.ep?`<b>${esc(m.ep)}화</b>`:'',m.date?esc(String(m.date).replace(/-/g,'.')):'',m.players?esc(m.players):'',(m.tags||[]).map(t=>'#'+esc(t)).join(' ')].filter(Boolean).join(' · ');
+   const add=`<div class="log-sess">${bits}${m.summary?`<p>${esc(m.summary)}</p>`:''}</div>`;r.html=r.html.replace('<div class="log-meta">',add+'<div class="log-meta">')}}catch(e){}return r};
+ $('logcss').textContent+='\n.log-sess{margin:8px 0 2px;font-size:.88em;color:var(--muted)}.log-sess b{color:var(--fg)}.log-sess p{margin:6px 0 0;white-space:pre-wrap;color:var(--fg);opacity:.85}';
 
  /* ---------- 보기: 화면에 맞춤 (좌우 여백 없이) ---------- */
  (()=>{const lw=$('sLw');if(!lw)return;lw.max='1600';const fld=lw.closest('.field');if(!fld)return;const lab=document.createElement('label');lab.className='hint';lab.style.cssText='display:flex;gap:6px;align-items:center;margin-top:4px';
@@ -645,7 +714,7 @@ html.fitlog .main .log{max-width:min(100%,1000px)!important}
   $('mtFit').onchange=()=>{ls.set('mtl-fit',$('mtFit').checked);document.documentElement.classList.toggle('fitlog',$('mtFit').checked)}})();
 
  const go=()=>pull(true);(window.OM_LOG_IMPORT&&window.OM_LOG_IMPORT.boot?window.OM_LOG_IMPORT.boot:Promise.resolve()).then(()=>setTimeout(go,600));
- setInterval(checkTree,4000);addEventListener('pagehide',()=>{for(const [id,t] of upT){clearTimeout(t);upload(id)}});
+ setInterval(()=>{checkTree();checkSpk()},4000);addEventListener('pagehide',()=>{for(const [id,t] of upT){clearTimeout(t);upload(id)}});
  /* ---------- 지문(*…*) 글꼴 · 색 · 기울임 (10-25 망령) — 저장한 HTML 에도 들어간다 ---------- */
  (()=>{const fg=$('fGm');const fld=fg&&fg.closest('.field');if(!fld)return;
   const box=document.createElement('div');box.innerHTML=`<div class="field"><span>지문 글꼴</span><select id="fEm"></select><span></span></div>
