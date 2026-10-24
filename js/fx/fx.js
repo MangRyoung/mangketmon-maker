@@ -40,7 +40,16 @@ window.OM_FX=(()=>{
  /* 포켓몬의 포텐셜/특성/소지품에 붙은 자동화: 개별 구문(m.auto[name]) → 레디메이드 */
  function autoOf(m,kind,name){name=String(name||'').replace(/『|』/g,'').trim();const own=(m&&m.auto||{})[name];if(own&&own.ops)return Object.assign({name,src:'own'},own);
   if(kind==='pot'&&m&&m.tid){const bt=(((window.OM_APP||{}).ST||{}).state||{}).battle;const tr=bt&&bt.trainers&&bt.trainers[m.tid];const u=tr&&(tr.unique||[]).find(x=>x&&String(x.name||'').replace(/『|』/g,'').trim()===name);if(u&&u.auto&&u.auto.ops&&u.auto.ops.length)return Object.assign({name,src:'unique'},u.auto)}
-  const key=kind==='trait'?'특성 : '+name:kind==='item'?'소지품 : '+name:name;const r=rm(key)||(kind!=='pot'?rm(name):null);if(!r)return null;return Object.assign({name,src:'rm',key},r)}
+  const key=kind==='trait'?'특성 : '+name:kind==='item'?'소지품 : '+name:name;const r=rm(key)||(kind!=='pot'?rm(name):null);if(!r)return null;
+  /* 10-24 망령: 레디메이드 특성 · 소지품은 글(text)이 빈 것이 많아 확률(N할로) · 【등장】 표식을 못 읽었다 — 비었으면 DB 효과 글을 채워 준다 */
+  if(!r.text&&kind!=='pot'){const t=effOf(kind,name);if(t)return Object.assign({name,src:'rm',key},r,{text:t,textDb:1})}
+  return Object.assign({name,src:'rm',key},r)}
+ /* 특성 · 소지품의 DB 효과 글: 오레마스(OM_DB.traits · items) → 제작기(MKM_DB.abil · items) */
+ function effOf(kind,name){try{const D=window.OM_DB||{};const M=window.MKM_DB||{};
+   if(kind==='trait'){const t=(D.traits||{})[name];if(t)return String(t.multi||t.single||'');const r=(M.abil||[]).find(x=>x&&x[1]===name);return r?String(r[2]||''):''}
+   if(kind==='item'){const t=(D.items||{})[name];if(t)return String(t.eff||'');const r=(M.items||[]).find(x=>x&&x[1]===name);return r?String(r[4]||''):''}}catch(e){}return ''}
+ /* 레디메이드 발동 확률: 레디메이드에 적어 둔 확률(p, 1~100)이 먼저, 없으면 효과 글(N할로 · N% 확률 · 저/중/고확률 · 드물게)에서. 0 = 확률 없음 */
+ function rmChance(a,text){const p=a&&a.p;if(p!=null&&p!==''&&isFinite(+p)&&+p>0)return Math.min(100,+p);const t=String((a&&a.text)||text||'');const c=chanceOf(t);if(c)return c;const pl=timing(t).percent;return pl?percentOf(pl):0}
 
  /* ===== 대상 고르기 ===== */
  function sideMons(b,side){return Object.values(b.mons||{}).filter(m=>m.side===side&&m.entry&&alive(m))}
@@ -409,5 +418,5 @@ window.OM_FX=(()=>{
   return L}
  /* 사람이 읽는 설명 (미리보기·로그) */
  function describe(ops){return unparse(ops)}
- return {rollP,lineChance,release,nextOf,scopeKo,chanceOf,setAb,resetAb,stMod,untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,magicRoom,itemOff,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
+ return {effOf,rmChance,rollP,lineChance,release,nextOf,scopeKo,chanceOf,setAb,resetAb,stMod,untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,magicRoom,itemOff,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
 })();

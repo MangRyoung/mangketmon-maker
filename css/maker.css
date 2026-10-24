@@ -1032,3 +1032,11 @@ html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 #mk .tfh.nest{outline:3px dashed var(--ink,#111);outline-offset:3px;position:relative}
 #mk .tfh.nest::after{content:'📂 이 폴더 안으로';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#111;color:#ffe100;font-size:13px;padding:6px 12px;border-radius:6px;pointer-events:none;z-index:3;white-space:nowrap}
 #mk .tfh.fnone.nest::after{content:'⤴ 맨 위로 꺼내기'}
+/* 10-24 한 장 요약 편집 */
+.pcd .pce{all:unset;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 4px;margin-left:6px;border-radius:6px;font-size:12px;line-height:1;vertical-align:middle;background:var(--sunk2,#0001);color:var(--ink);border:1px solid var(--line,#8884);font-weight:600}
+.pcd .pce:hover{border-color:var(--accent,#c33);color:var(--accent,#c33)}
+.pcd .pce.add{background:var(--accent,#c33);color:#fff;border-color:transparent}
+.pcd .pce.del{opacity:.7}.pcd .pce.del:hover{opacity:1;color:#d33;border-color:#d33}
+.pcd-ed .pcd{outline:2px dashed color-mix(in srgb,var(--accent,#c33) 45%,transparent);outline-offset:4px}
+.pcd .pcd-mh .pce{margin-left:auto}
+.pcd .pcd-nm .pce{font-size:12px!important;font-family:inherit}
