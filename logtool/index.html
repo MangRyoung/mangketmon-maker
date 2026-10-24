@@ -1705,5 +1705,135 @@ html.embed .main>.bar .mkopen{margin-left:2px}
 })();
 </script>
 <!-- ===== 제작기 안 화면 2 끝 ===== -->
+<!-- ===== 캠페인 로그 보관소 · 목록 다듬기 (2026-10-25 망령) =====
+  · 로그를 제작기와 같은 Supabase(docs 표, kind 'mtlog')에 올려 두고, 어느 기기에서 열어도 목록에 나온다. 본문은 열 때만 받는다(이그레스 아끼기).
+  · 올리기는 「이 브라우저에서 보관소에 올리기」를 켠 브라우저만 한다 (기본 꺼짐 — 플레이어 화면이 개인 로그를 올리지 않게). 보기는 누구나.
+  · 폴더 · 순서는 'mtlogmeta/tree' 하나에. 올린 사람이 지운 로그는 보관소에서도 지운다.
+  · 목록: 로그 이름 바꾸기 · 날짜 · 보관소 상태 · 찾기. 보기: 「화면에 맞춤」으로 좌우 여백 없이 -->
+<style>
+.mtc{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:color-mix(in srgb,var(--accent) 5%,transparent)}
+.mtc .row{gap:8px;align-items:center;flex-wrap:wrap}
+.mtc b{font-size:.9rem}
+.mtc .st{font-size:.8rem;color:var(--muted)}
+.mtfind{width:100%;box-sizing:border-box}
+.li .mtx{display:flex;flex-direction:column;min-width:0;flex:1}
+.li .mtx .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .mtx small{font-size:.72rem;color:var(--muted);line-height:1.2}
+.li .mtb{font-size:.75rem;flex:none;opacity:.8}
+.li .mtb.err{color:#d55}
+.li .mtren{all:unset;cursor:pointer;font-size:.75rem;padding:1px 5px;border-radius:5px;border:1px solid var(--line);color:var(--muted);flex:none;opacity:0;transition:opacity .12s}
+.li:hover .mtren,.li.cur .mtren,.li:focus-within .mtren{opacity:1}
+.li input.mtrn{flex:1;min-width:0;font:inherit;padding:2px 6px}
+.li.remote .t{font-style:italic}
+#mtFound .li{cursor:pointer}
+.main .log{width:100%}
+html.fitlog .main .log{max-width:none!important}
+.li[data-kind="log"]{grid-template-columns:auto minmax(0,1fr) auto auto auto}
+#mtFound .li{grid-template-columns:minmax(0,1fr) auto}
+.logs{max-height:min(55vh,560px)}
+</style>
+<script>
+(()=>{
+ const OM={url:'https://jsnvqcvwspxzfnhdethl.supabase.co',key:'sb_publishable_HDcgWnb1QS1P6GOiBPqdAA_yBJNhU7R'};
+ const H={apikey:OM.key,Authorization:'Bearer '+OM.key};
+ async function api(path,opt){opt=opt||{};const r=await fetch(`${OM.url}/rest/v1/${path}`,Object.assign({},opt,{headers:Object.assign({},H,opt.headers||{})}));if(!r.ok)throw new Error(`${r.status} ${(await r.text()).slice(0,160)}`);const t=await r.text();return t?JSON.parse(t):null}
+ const put=(kind,id,data)=>api('docs?on_conflict=kind,id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify([{kind,id,data}])});
+ const UP=()=>!!ls.get('mtl-cloud-up',false);
+ const CL={idx:new Map(),st:new Map(),err:'',busy:false,ready:false,gone:[]};
+ const isSample=t=>/\(예시\)\s*$/.test(String(t||''));
+ const ymd=t=>{const d=new Date(+t||0);return +t?`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`:''};
 
-</body></html>
+ /* 로그 메타에 만든 날 · 고친 날을 남긴다 */
+ const oEntry=indexEntry;indexEntry=function(log){const e=oEntry.apply(this,arguments);e.created=log.created||0;e.upd=log.updated||0;return e};
+ const oTouch=touch;touch=function(log){if(log)log.updated=Date.now();const r=oTouch.apply(this,arguments);if(log)queue(log.id);return r};
+
+ /* 이 로그가 쓰는 그림: http(s) 주소는 다 · data: 그림은 합쳐서 1.5MB 까지 */
+ function imgsFor(log){const out={};let budget=1500000;const keys=new Set();for(const m of log.messages||[]){if(m.asset)keys.add(m.asset);if(m.name)keys.add('spk:'+m.name)}
+  for(const k of keys){const v=img(k);if(!v)continue;if(/^https?:/i.test(v))out[k]=v;else if(/^data:image\//.test(v)&&v.length<budget){out[k]=v;budget-=v.length}}return out}
+ const setSt=(id,s)=>{CL.st.set(id,s);paint()};
+ async function upload(id){const log=S.logs[id]||await idb.get('log:'+id);if(!log||isSample(log.title))return;const e=S.index.find(x=>x.id===id)||{};
+  const data={v:1,title:log.title,folder:e.folder||null,created:log.created||0,updated:log.updated||Date.now(),count:(log.messages||[]).filter(m=>m.type!=='bgm').length,messages:(log.messages||[]).filter(m=>!(m.type==='bgm'&&m.audioId&&!m.url)),imgs:imgsFor(log)};
+  setSt(id,'up');try{await put('mtlog',id,data);CL.idx.set(id,{u:data.updated,title:data.title});setSt(id,'ok')}catch(err){CL.err=err.message;setSt(id,'err');console.warn('보관소 올리기',err)}}
+ const upT=new Map();
+ function queue(id){if(!UP()||!CL.ready)return;clearTimeout(upT.get(id));upT.set(id,setTimeout(()=>{upT.delete(id);upload(id)},2500));CL.st.set(id,'wait')}
+
+ /* 지우기: 올리는 브라우저면 보관소에서도 (지운 목록 gone 에 남겨 다른 기기가 다시 올리지 않게) */
+ const oRm=removeLogData;removeLogData=async function(id){const r=await oRm.apply(this,arguments);
+  if(UP()&&CL.idx.has(id)){try{await api(`docs?kind=eq.mtlog&id=eq.${encodeURIComponent(id)}`,{method:'DELETE'});CL.idx.delete(id);CL.gone=[...new Set([...CL.gone,id])].slice(-500);treeDirty=true}catch(err){toast('보관소에서 지우지 못했어요: '+err.message)}}
+  CL.st.delete(id);return r};
+
+ /* 본문은 열 때 받는다: 이 브라우저에 없거나 보관소 쪽이 더 새것이면 */
+ const oGet=getLog;getLog=async function(id){let l=await oGet.apply(this,arguments);const e=S.index.find(x=>x.id===id);
+  if((!l||(e&&e.stale))&&CL.idx.has(id)){try{setSt(id,'down');const rows=await api(`docs?kind=eq.mtlog&id=eq.${encodeURIComponent(id)}&select=data`);const d=rows&&rows[0]&&rows[0].data;
+    if(d){for(const [k,v] of Object.entries(d.imgs||{}))if(!S.imgs[k])S.imgs[k]=v;l={id,title:d.title||'로그',messages:d.messages||[],created:d.created||0,updated:d.updated||0};S.logs[id]=l;await idb.set('log:'+id,l);await idb.set('imgs',S.imgs);
+     if(e){const f=e.folder;Object.assign(e,indexEntry(l));e.folder=f;delete e.stale;delete e.remote}await idb.set('index',S.index)}setSt(id,'ok')}catch(err){setSt(id,'err');toast('보관소에서 받지 못했어요: '+err.message)}}
+  return l};
+
+ /* 폴더 · 순서 */
+ let treeDirty=false,treeSig='';
+ const treeOf=()=>({folders:S.folders.map(f=>({id:f.id,name:f.name})),order:S.index.map(e=>[e.id,e.folder||null]),gone:CL.gone});
+ function checkTree(){if(!CL.ready)return;const sig=JSON.stringify(treeOf());if(sig!==treeSig){treeSig=sig;treeDirty=true}if(treeDirty&&UP()){treeDirty=false;clearTimeout(checkTree.t);checkTree.t=setTimeout(async()=>{const at=Date.now();try{await put('mtlogmeta','tree',Object.assign(treeOf(),{at}));ls.set('mtl-tree-at',at)}catch(err){CL.err=err.message;paint()}},1500)}}
+
+ /* 부팅 뒤: 보관소 목록을 읽어 섞는다 */
+ async function pull(quiet){if(CL.busy)return;CL.busy=true;CL.err='';paint();
+  try{const [rows,meta]=await Promise.all([api('docs?kind=eq.mtlog&select=id,title:data->>title,folder:data->>folder,count:data->>count,created:data->>created,updated:data->>updated&order=id'),api('docs?kind=eq.mtlogmeta&id=eq.tree&select=data').catch(()=>[])]);
+   const tree=meta&&meta[0]&&meta[0].data||null;CL.gone=(tree&&tree.gone)||CL.gone;
+   CL.idx=new Map(rows.map(r=>[r.id,{u:+r.updated||0,title:r.title,folder:r.folder,count:+r.count||0,created:+r.created||0}]));
+   let add=0,up=0;
+   for(const [id,c] of CL.idx){const e=S.index.find(x=>x.id===id);
+    if(!e){S.index.push({id,title:c.title||'로그',count:c.count,assets:[],names:[],folder:c.folder&&c.folder!=='null'?c.folder:null,created:c.created,upd:c.u,remote:1});add++}
+    else{if(e.remote){e.title=c.title||e.title;e.count=c.count}if(c.u>(e.upd||0)+1000)e.stale=1;CL.st.set(id,e.stale?'new':'ok')}}
+   /* 이 브라우저에만 있는 로그 · 이쪽이 더 새 로그는 올린다 (올리는 브라우저만, 예시 · 지운 것 빼고) */
+   if(UP())for(const e of S.index){if(e.remote||isSample(e.title)||CL.gone.includes(e.id))continue;const c=CL.idx.get(e.id);if(!c||(e.upd||0)>c.u+1000){queue(e.id);up++}}
+   /* 폴더 · 순서: 보관소 쪽이 더 새것이면 따른다 */
+   if(tree&&(+tree.at||0)>(+ls.get('mtl-tree-at',0)||0)){const F=new Map(S.folders.map(f=>[f.id,f]));S.folders=(tree.folders||[]).map(f=>Object.assign(F.get(f.id)||{open:false},{id:f.id,name:f.name}));
+    const pos=new Map((tree.order||[]).map(([id,fd],i)=>[id,[i,fd]]));for(const e of S.index){const p=pos.get(e.id);if(p)e.folder=p[1]&&S.folders.some(f=>f.id===p[1])?p[1]:null}
+    S.index.sort((a,b)=>(pos.has(a.id)?pos.get(a.id)[0]:1e9)-(pos.has(b.id)?pos.get(b.id)[0]:1e9));ls.set('mtl-tree-at',+tree.at);await idb.set('folders',S.folders)}
+   await idb.set('index',S.index);CL.ready=true;treeSig=JSON.stringify(treeOf());renderList();
+   if(!quiet&&(add||up))toast(`보관소: ${add?`새 로그 ${add}개를 목록에 더했어요`:''}${add&&up?' · ':''}${up?`${up}개를 올리는 중`:''}`)}
+  catch(err){CL.err=err.message;console.warn('보관소 읽기',err)}finally{CL.busy=false;CL.ready=true;paint()}}
+
+ /* ---------- 목록 ---------- */
+ const panel=document.querySelector('#logList')&&document.querySelector('#logList').closest('.panel');
+ if(panel){const box=document.createElement('div');box.className='mtc';box.innerHTML=`<div class="row"><b>☁ 캠페인 보관소</b><span class="st" id="mtSt"></span><span class="sp" style="flex:1"></span><button class="btn" type="button" id="mtPull" title="보관소 목록을 다시 읽는다">새로 읽기</button></div>
+   <label class="st"><input type="checkbox" id="mtUp"> 이 브라우저에서 보관소에 올리기 (GM 컴퓨터에서 켜 두세요)</label><input type="search" class="mtfind" id="mtQ" placeholder="로그 이름 · 등장인물로 찾기">`;
+  const sb=panel.querySelector('.selbar');(sb||$('logList')).before(box);const fd=document.createElement('div');fd.className='logs';fd.id='mtFound';fd.hidden=true;$('logList').after(fd);
+  $('mtUp').checked=UP();$('mtUp').onchange=()=>{ls.set('mtl-cloud-up',$('mtUp').checked);if($('mtUp').checked){toast('이 브라우저의 로그를 보관소에 올려요');pull()}else paint()};
+  $('mtPull').onclick=()=>pull();$('mtQ').oninput=()=>find();
+  const hint=[...panel.querySelectorAll('p.hint')].find(p=>/이 브라우저에 저장/.test(p.textContent));if(hint)hint.textContent='로그는 이 브라우저에 두고, 「보관소에 올리기」를 켠 브라우저는 보관소(Supabase)에도 올려요. 다른 기기에서는 목록에 뜨고, 열 때 내려받아요. 등장인물 설정과 스타일은 이 브라우저에만 남아요.'}
+ function paint(){const s=$('mtSt');if(s){const n=CL.idx.size;const up=[...CL.st.values()].filter(v=>v==='wait'||v==='up').length;s.textContent=CL.err?`⚠ ${CL.err.slice(0,60)}`:CL.busy?'읽는 중…':`${n}개${up?` · 올리는 중 ${up}`:''}${UP()?' · 올리기 켬':' · 보기만'}`}decorate()}
+ const BADGE={ok:['☁','보관소에 있어요'],wait:['↑','곧 보관소에 올려요'],up:['↑','올리는 중'],down:['↓','받는 중'],err:['⚠','보관소와 맞추지 못했어요'],new:['☁•','보관소에 더 새 내용이 있어요 — 열면 받아요'],remote:['☁↓','보관소에만 있어요 — 열면 받아요']};
+ function decorate(){document.querySelectorAll('#logList .li[data-kind="log"]').forEach(row=>{const id=row.dataset.id;const e=S.index.find(x=>x.id===id);if(!e)return;
+   const t=row.querySelector(':scope>.t');if(t&&!row.querySelector('.mtx')){const w=document.createElement('span');w.className='mtx';t.replaceWith(w);w.appendChild(t);const sm=document.createElement('small');w.appendChild(sm);
+    const rb=document.createElement('button');rb.type='button';rb.className='mtren';rb.textContent='이름';rb.title='로그 이름 바꾸기';row.querySelector('.n').before(rb);const bd=document.createElement('span');bd.className='mtb';row.querySelector('.n').after(bd)}
+   const sm=row.querySelector('.mtx small');if(sm){const d=ymd(e.created||(S.logs[id]||{}).created);sm.textContent=[d,(e.names||[]).length?`${e.names.length}명`:''].filter(Boolean).join(' · ')}
+   const st=e.remote?'remote':CL.st.get(id)||(CL.idx.has(id)?'ok':'');const bd=row.querySelector('.mtb');if(bd){const b=BADGE[st];bd.textContent=b?b[0]:'';bd.title=b?b[1]:'이 브라우저에만 있어요';bd.classList.toggle('err',st==='err')}
+   row.classList.toggle('remote',!!e.remote)})}
+ const oList=renderList;renderList=function(){const r=oList.apply(this,arguments);try{decorate();checkTree();if($('mtQ')&&$('mtQ').value.trim())find()}catch(err){console.warn(err)}return r};
+
+ /* 이름 바꾸기 */
+ $('logList').addEventListener('click',e=>{const b=e.target.closest('.mtren');if(!b)return;e.stopPropagation();e.preventDefault();rename(b.closest('.li').dataset.id,b.closest('.li'))},true);
+ $('logList').addEventListener('dblclick',e=>{const t=e.target.closest('.li[data-kind="log"] .t');if(!t)return;e.preventDefault();rename(t.closest('.li').dataset.id,t.closest('.li'))});
+ function rename(id,row){const e=S.index.find(x=>x.id===id);if(!e||!row)return;const w=row.querySelector('.mtx')||row.querySelector('.t');const inp=document.createElement('input');inp.className='mtrn';inp.value=e.title;w.replaceWith(inp);inp.focus();inp.select();
+  let done=false;const fin=async ok=>{if(done)return;done=true;const v=inp.value.trim();if(ok&&v&&v!==e.title){const log=await getLog(id);if(log){log.title=v;touch(log);flush()}else e.title=v;if(S.cur===id)renderLog();toast('이름을 바꿨어요')}renderList()};
+  inp.addEventListener('keydown',ev=>{ev.stopPropagation();if(ev.isComposing)return;if(ev.key==='Enter')fin(true);if(ev.key==='Escape')fin(false)});inp.addEventListener('blur',()=>fin(true));inp.addEventListener('click',ev=>ev.stopPropagation());inp.addEventListener('pointerdown',ev=>ev.stopPropagation())}
+
+ /* 찾기: 이름 · 등장인물 (폴더 안까지) */
+ function find(){const q=$('mtQ').value.trim().toLowerCase();const F=$('mtFound');if(!q){F.hidden=true;$('logList').hidden=false;return}
+  const hit=S.index.filter(e=>String(e.title||'').toLowerCase().includes(q)||(e.names||[]).some(n=>String(n).toLowerCase().includes(q)));
+  F.innerHTML=hit.map(e=>{const f=e.folder&&S.folders.find(x=>x.id===e.folder);return `<div class="li${e.id===S.cur?' cur':''}" data-fid="${esc(e.id)}"><span class="mtx"><span class="t">${esc(e.title)}</span><small>${esc([f?'📁 '+f.name:'',ymd(e.created)].filter(Boolean).join(' · '))}</small></span><span class="n">${e.count}줄</span></div>`}).join('')||'<p class="hint">찾는 로그가 없어요</p>';
+  F.hidden=false;$('logList').hidden=true;F.querySelectorAll('[data-fid]').forEach(r=>r.onclick=()=>selectLog(r.dataset.fid))}
+
+ /* ---------- 보기: 화면에 맞춤 (좌우 여백 없이) ---------- */
+ (()=>{const lw=$('sLw');if(!lw)return;lw.max='1600';const fld=lw.closest('.field');if(!fld)return;const lab=document.createElement('label');lab.className='hint';lab.style.cssText='display:flex;gap:6px;align-items:center;margin-top:4px';
+  lab.innerHTML='<input type="checkbox" id="mtFit"> 화면에 맞춤 (보기만 · 저장한 HTML 은 로그 폭을 따른다)';fld.after(lab);const on=!!ls.get('mtl-fit',true);$('mtFit').checked=on;document.documentElement.classList.toggle('fitlog',on);
+  $('mtFit').onchange=()=>{ls.set('mtl-fit',$('mtFit').checked);document.documentElement.classList.toggle('fitlog',$('mtFit').checked)}})();
+
+ const go=()=>pull(true);(window.OM_LOG_IMPORT&&window.OM_LOG_IMPORT.boot?window.OM_LOG_IMPORT.boot:Promise.resolve()).then(()=>setTimeout(go,600));
+ setInterval(checkTree,4000);addEventListener('pagehide',()=>{for(const [id,t] of upT){clearTimeout(t);upload(id)}});
+ window.MTL_CLOUD={pull,upload,CL};
+})();
+</script>
+<!-- ===== 캠페인 로그 보관소 끝 ===== -->
+
+</body></html>
