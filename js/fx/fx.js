@@ -44,7 +44,9 @@ window.OM_FX=(()=>{
 
  /* ===== 대상 고르기 ===== */
  function sideMons(b,side){return Object.values(b.mons||{}).filter(m=>m.side===side&&m.entry&&alive(m))}
- async function targets(b,self,tgt,ctx){const my=self.side,op=my==='left'?'right':'left';const allies=sideMons(b,my),enemies=sideMons(b,op);
+ /* 10-24 망령: 개인전 — 트레이너에 solo 가 켜져 있으면 같은 진영이어도 그 트레이너 혼자 한 편 (오레마스 OM_TEAM 과 같은 규칙) */
+ function teamOf(b,m){const t=((b&&b.trainers)||{})[m&&m.tid];return t&&t.solo?'solo:'+m.tid:(m&&m.side)||''}
+ async function targets(b,self,tgt,ctx){const tm=teamOf(b,self);const live=Object.values(b.mons||{}).filter(m=>m.entry&&alive(m));const allies=live.filter(m=>teamOf(b,m)===tm),enemies=live.filter(m=>teamOf(b,m)!==tm);
   const pick=async(list,label)=>{if(!list.length)return [];if(list.length===1)return [list[0]];if(ctx.pick)return [await ctx.pick(list,label)].filter(Boolean);return [list[0]]};
   const rnd=list=>list.length?[list[Math.floor(Math.random()*list.length)]]:[];
   switch(tgt){case 'self':return [self];case 'ally':return allies.length?allies:[self];case 'enemy':return enemies;case 'others':return [...allies,...enemies].filter(m=>m.id!==self.id);case 'all':return [...allies,...enemies];
@@ -84,7 +86,7 @@ window.OM_FX=(()=>{
   async function runOp(op){
     switch(op.k){
      case 'confirm':{const ok=ctx.confirm?await ctx.confirm(op.q):true;if(!ok){L.push(`「${name}」 조건을 만족하지 않아 발동하지 않았다 (${op.q})`);stop=true}break}
-     case 'cond':{let ok=true;if(op.c==='ally_fainted')ok=Object.values(b.mons||{}).some(m=>m.side===self.side&&m.id!==self.id&&m.hp.cur<=0);
+     case 'cond':{let ok=true;if(op.c==='ally_fainted')ok=Object.values(b.mons||{}).some(m=>teamOf(b,m)===teamOf(b,self)&&m.id!==self.id&&m.hp.cur<=0);
        else if(op.c==='self_state'){ok=!!((self.states||{})[op.st]);if(!ok){L.push(`「${name}」 ${self.name}이(가) 「${stKo(op.st)}」 상태가 아니라 발동하지 않았다`);stop=true;break}}
        else if(op.c==='hp_le')ok=self.hp.cur<=frac(self.hp.max,op.frac);if(!ok){L.push(`「${name}」 조건(${op.c==='ally_fainted'?'빈사 상태인 아군':'HP '+op.frac+' 이하'})을 만족하지 않아 발동하지 않았다`);stop=true}break}
      case 'choice':{let idx=[0];if(ctx.choose)idx=await ctx.choose(op.opts.map(o=>o.label),!!(op.multi||op.opts.some(o=>o.multi)));if(!idx||!idx.length){stop=true;break}
