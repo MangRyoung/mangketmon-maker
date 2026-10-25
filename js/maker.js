@@ -73,7 +73,7 @@ const TAGS_DEF=[
 const TAGS_V=3;
 const TPL_DEF=[
  ['공통','*','메인','4','기존 시트 기본값','4'],
- ['통솔','D','통솔점','6','룰북 · 1인(2체)은 6체의 1/3 반올림','2'],['통솔','C','통솔점','6','룰북 · 1인(2체)은 6체의 1/3 반올림','2'],['통솔','B-','통솔점','7','룰북 · 1인(2체)은 6체의 1/3 반올림','2'],['통솔','B','통솔점','8','룰북 · 1인(2체)은 6체의 1/3 반올림','3'],['통솔','A','통솔점','10','룰북 · 1인(2체)은 6체의 1/3 반올림','3'],['통솔','AA','통솔점','12','룰북 · 1인(2체)은 6체의 1/3 반올림','4'],
+ ['통솔','D','통솔점','6','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','3'],['통솔','C','통솔점','6','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','1'],['통솔','B-','통솔점','7','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','1.5'],['통솔','B','통솔점','8','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','2'],['통솔','A','통솔점','10','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','3'],['통솔','AA','통솔점','12','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','4'],
  ['육성','D','분배레벨','5','룰북 · 1인(2체)은 6체의 1/3 반올림','2'],['육성','C','분배레벨','10','룰북 · 1인(2체)은 6체의 1/3 반올림','3'],['육성','B-','분배레벨','10','룰북 · 1인(2체)은 6체의 1/3 반올림','3'],['육성','B','분배레벨','15','룰북 · 1인(2체)은 6체의 1/3 반올림','5'],['육성','A','분배레벨','20','룰북 · 1인(2체)은 6체의 1/3 반올림','7'],
  ['공통','*','「기술 할인점」','6','공통 요소 · 1인(2체)은 6의 1/3 = 2','2'],['공통','*','【1/시】','3','공통 요소 · 1인은 1','1']
 ];
@@ -94,6 +94,8 @@ function tplNormalize(db){const strip0=r=>String(r||'').replace(/[+-]/g,'');
  if((db.tplSoloV||0)<4){const T={D:'2',C:'2','B-':'2',B:'3',A:'3',AA:'4'};for(const r of db.tpl)if(r[2]==='통솔점'&&T[r[1]]!=null){r[5]=T[r[1]];r[4]='룰북 · 1인(2체)은 6체의 1/3 반올림'}db.tplSoloV=4}
  /* 1인(2체) 분배레벨 = 6체의 1/3 반올림: D 2 · C·B- 3 · B 5 · A 7, 「기술 할인점」 2 */
  if((db.tplSoloV||0)<5){const T={D:'2',C:'3','B-':'3',B:'5',A:'7'};for(const r of db.tpl){if(r[2]==='분배레벨'&&T[r[1]]!=null)r[5]=T[r[1]];if(r[2]==='「기술 할인점」'&&String(r[5])==='3')r[5]='2'}db.tplSoloV=5}
+ /* 10-25 종족치 개편: 1인(2체) 통솔점 = 룰북 표 D 3 / C 3 / B 4 / A 5 에서 파트너 할인(2체 × 1점, D는 없음)을 뺀 값 */
+ if((db.tplSoloV||0)<6){const T={D:'3',C:'1','B-':'1.5',B:'2',A:'3',AA:'4'};for(const r of db.tpl)if(r[2]==='통솔점'&&T[r[1]]!=null){r[5]=T[r[1]];r[4]='룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값'}db.tplSoloV=6}
  for(const r of db.tpl){if(r[5]==null||r[5]===''||r[5]==='1인'){const d=TPL_DEF.find(d=>d[0]===r[0]&&d[1]===r[1]&&d[2]===r[2])||TPL_DEF.find(d=>d[2]===r[2]&&strip0(d[1])===strip0(r[1]));r[5]=d?d[5]:r[3]}}
  if(!Array.isArray(db.ilock))db.ilock=[];
  for(const r of db.tpl)if(typeof r[4]==='string')r[4]=r[4].replace(/\s*\(\d{4}-\d{2}-\d{2}[^)]*\)/g,'');
@@ -128,7 +130,7 @@ const DBS={
  abil:{t:'특성',key:1,cols:['소켓','특성','효과','틀깨기','방호 특성'],show:[1,0,3,4,2],eff:2},
  items:{t:'소지품',key:1,cols:['종류','도구','별칭','소모(O)','효과','소켓','비고','구문'],show:[1,0,2,3,5,4,7,6],eff:4},   /* 구문 = 오레마스 소지품 자동화 (js/fx/itemrule.js, 10-24 망령) */
  pots:{t:'포텐셜',key:1,cols:['종류(순서)','이름','효과','비고'],show:[1,0,2,3],eff:2},
- old:{t:'올드 타입',key:1,cols:['지역','포켓몬','Name','타입1','타입2','특성1','특성2','숨겨진 특성','알그룹1','알그룹2','메가','HP','공격','방어','특공','특방','스피드'],show:[1,0,3,4,5,6,7,8,9,11,12,13,14,15,16],eff:-1},
+ old:{t:'올드 타입',key:1,cols:['지역','포켓몬','Name','타입1','타입2','특성1','특성2','숨겨진 특성','알그룹1','알그룹2','메가','HP','공격','방어','특공','특방','스피드','프라이드'],show:[1,0,3,4,5,6,7,8,9,11,12,13,14,15,16,17],eff:-1},
  points:{t:'포인트',key:4,cols:['번호','분류','세부','소모 항목','이름','효과','소모 포인트','상시 공개'],show:[4,1,2,3,6,5,7],eff:5},
  rm:{t:'레디메이드',key:0,cols:['이름','효과 글','구문','손으로','확률'],show:[0,1,4,2,3],eff:1},   /* 확률 = 발동 확률 % (비우면 효과 글의 「N할로」 등에서, 10-24 망령) */
  st:{t:'상태 변화',key:0,cols:['키(영문)','이름','그룹','기본 턴','최대 턴','턴 굴림','진행','상태 이상','불리','배턴','설명','메모','아이콘'],show:[12,1,0,2,3,4,6,7,8,9,10],eff:10}
@@ -256,7 +258,6 @@ const classOf=p=>{const i=potIdx(p,'분류',1);return i<0?'':p.pots[i]};
 function moveSock(p,m){if(!m||!m.name)return 0;if((roleOf(p)==='커맨더'||roleOf(p)==='어시스트')&&NOSOCK.includes(m.name))return 0;const r=idx.moves.get(m.name);return (r&&r[0]!==''&&!isNaN(+r[0])?+r[0]:3)-(m.half?0.5:0)}
 const OLDK=['올드 타입','리전 폼','다이맥스','메가진화','고대종','공명종','전설종'];
 function moveCap(t,p){const k=classOf(p);const filled=p.moves.filter(m=>m.name);let used=filled.reduce((a,m)=>a+moveSock(p,m),0);
- if(!OLDK.includes(k)&&dualType(p)){const fr=filled.map(m=>moveSock(p,m)).filter(v=>v<=1);if(fr.length)used-=Math.max(...fr)}
  let mode='socket',cap;
  if(OLDK.includes(k)){mode='count';cap=4;return {used:filled.length,cap:p.sockMax!==''&&p.sockMax!=null?+p.sockMax:cap,mode,auto:cap,pt:oldSock()}}
  if(['적응종','델타종'].includes(k))cap=7;
@@ -267,57 +268,158 @@ function moveCap(t,p){const k=classOf(p);const filled=p.moves.filter(m=>m.name);
 const oldSock=()=>{const v=+(S.db.oldSock??5.5);return isNaN(v)?5.5:v};
 const capTxt=(c,none='-',sep=' / ')=>c.mode==='count'?`${c.used}개(${c.pt})`:`${c.used}${sep}${c.cap??none}`;
 function ptSockets(t){let u=0;for(const p of t.pokemon){const c=moveCap(t,p);u+=c.mode==='count'?c.pt:c.used}return Math.round(u*100)/100}
-/* 룰북 「포켓몬 제작」: 프라이드 표 — 테이블·계산식 탭에서 고친다 */
-const PRIDE_DEF={rows:[['C','480','1','1','40','50','괄호 값: 종족치 525 · 특성 TO 0.5'],['B','525','2','1','45','55','괄호 값: 종족치 480 · 특성 TO 1.5'],['A','570','3','1.5','50','60','괄호 값: 종족치 525 · 특성 TO 2'],['EX','630','4','2','55','65','본가 전설종 또는 그에 준하는 스펙']],hiCap:600,fire:110,dual:95,sum3:150,friendly:6};
-const PR=()=>(S.db&&S.db.pride)||PRIDE_DEF;
-function prideMigrate(db){const pr=db&&db.pride;if(!pr||!Array.isArray(pr.rows)||db.prideExV)return;if(!pr.rows.some(r=>r[0]==='EX'))pr.rows.push(clone(PRIDE_DEF.rows.find(r=>r[0]==='EX')));db.prideExV=1}
-const prRow=k=>PR().rows.find(r=>r[0]===k);
+/* ---------- 프라이드 · 계산 종족치 (2026-10-25 종족치 분배 개편) ----------
+   룰북 「포켓몬 제작」. 숫자는 전부 테이블·계산식 탭 「종족치 · 프라이드 규칙」에서 고친다 (공유 설정 meta/set.pride).
+   커스텀: 계산 종족치 = 실제 합 + 하한분(공격·특공·스피드, 선공 하한) + 내구 할증 + HP 할증 + 화력·스피드 할증 − 쌍두 할인 + 특성 TO 조정
+           → 그 값을 담을 수 있는 가장 낮은 계단이 프라이드.
+   올드 타입: 실제 합을 버림해서 계단을 고른다(할증 없음). 480 미만은 0.5점(짓궂은마음 제외), 『프렌들리 몬스터』는 B 이하일 때 합 −10,
+           올드 타입 DB 「프라이드」 칸이 있으면 그 값. */
+const PRIDE_V=2;
+const PRIDE_DEF={v:PRIDE_V,
+ rows:[['C','1','480','40','1',''],['C+','1.5','503','43','1','최소종족치 임시'],['B','2','525','45','1',''],['B+','2.5','548','48','1','최소종족치 임시'],['A','3','570','50','1.5','특성 TO 덤 0.5 · 되팔 수 없음'],['EX','4','630','55','2','본가 전설종 또는 그에 준하는 스펙 · 직접 지정']],
+ oldLow:{lab:'0.5',pt:'0.5',prank:'짓궂은마음'},oldCap:'600',
+ friendly:{name:'프렌들리 몬스터',d:'10',max:'B'},
+ toStep:'45',toFloor:'1',realMin:'400',absMin:'31',opp:'0.4',weakAtk:'60',
+ bulk:{lo:'85',hi:'105',k1:'0.5',k2:'0.75'},
+ hp:{lo:'95',hi:'120',k1:'0.5',k2:'0.75'},
+ fs:{lo:'105',hi:'120',k1:'0.5',k2:'1',slo:'90',shi:'140'},
+ dual:{lo:'90',hi:'120',k:'1'},
+ prio:{pow:'50',rows:[['상시','60','70','85'],['조건부','55','60','70']],abil:'짓궂은마음:60, 질풍날개:60'}};
+const PR=()=>(S.db&&S.db.pride&&S.db.pride.v>=PRIDE_V)?S.db.pride:PRIDE_DEF;
+/* 옛 프라이드 표(C/B/A/EX · 화력균형 · 최소종족치 1개)는 개편 규칙으로 바꾼다 */
+function prideMigrate(db){const pr=db&&db.pride;if(!pr||!pr.v||pr.v<PRIDE_V){db.pride=clone(PRIDE_DEF);db.prideExV=1;return}
+ const d=PRIDE_DEF;for(const k in d){if(pr[k]==null)pr[k]=clone(d[k]);else if(d[k]&&typeof d[k]==='object'&&!Array.isArray(d[k]))for(const j in d[k])if(pr[k][j]==null)pr[k][j]=clone(d[k][j])}}
+const pnum=(x,d)=>{const v=parseFloat(x);return isNaN(v)?d:v};
+const two=(x,o)=>pnum(o.k1,0.5)*Math.max(0,Math.min(x,pnum(o.hi,0))-pnum(o.lo,0))+pnum(o.k2,1)*Math.max(0,x-pnum(o.hi,0));
+const prSteps=()=>PR().rows.filter(r=>r&&r[0]).map(r=>({lab:String(r[0]).trim(),pt:pnum(r[1],0),v:pnum(r[2],0),floor:pnum(r[3],40),to:pnum(r[4],1),note:r[5]||''})).sort((a,b)=>a.v-b.v);
+const isEX=s=>/^EX$/i.test(s.lab);
+function prRow(k){if(!k)return null;const L=PR().oldLow||{};if(String(k)===String(L.lab||'0.5'))return [String(L.lab||'0.5'),String(L.pt||'0.5'),'','','',''];return PR().rows.find(r=>r[0]===k)||null}
+const prStep=k=>prSteps().find(s=>s.lab===k)||null;
 const isOld=p=>OLDK.includes(classOf(p));
 const baseTot=p=>p.base.reduce((a,b)=>a+(+b||0),0);
-function prideAuto(p){const tot=baseTot(p);const rows=[...PR().rows].filter(r=>r[0]).sort((a,b)=>+a[1]-+b[1]);if(!rows.length)return 'C';if(!tot)return rows[0][0];
- if(isOld(p)){let r=rows[0];for(const x of rows)if(+x[1]<=tot)r=x;return r[0]}
- const s=abSock(p);const fit=s==null?rows:rows.filter(x=>s<=planOf(x,s).to);const cand=fit.length?fit:rows;
- let best=cand[0];for(const x of cand)if(Math.abs(tot-planOf(x,s).tot)<=Math.abs(tot-planOf(best,s).tot))best=x;return best[0]}
-/* 룰북 「포켓몬 제작」 괄호 값: 특성 소켓에 따라 종족치 합과 특성 TO가 바뀐다 (C 525·0.5 / B 480·1.5 / A 525·2). 값은 프라이드 표 비고 칸에서 읽는다 */
-function prideAlt(r){const m=String(r&&r[6]||'').match(/종족치\s*(\d+)[^\d]*?특성\s*TO\s*([\d.]+)/);return m?{tot:+m[1],to:+m[2]}:null}
+const baseNums=p=>[0,1,2,3,4,5].map(i=>+p.base[i]||0);
+const listOf=s=>String(s||'').split(/[,，\n]/).map(x=>x.trim()).filter(Boolean);
 function abSock(p){const ab=idx.abil&&idx.abil.get(p.ability);return ab&&ab[0]!==''&&!isNaN(+ab[0])?+ab[0]:null}
-function planOf(r,s){const b={tot:+r[1],to:+r[3],alt:false};const a=prideAlt(r);if(!a||s==null)return b;const A={tot:a.tot,to:a.to,alt:true};if(a.to>b.to)return s>b.to&&s<=a.to?A:b;return s<=a.to?A:b}
-function planTot(p){if(isOld(p))return null;const r=prRow(prideOf(p));return r?planOf(r,abSock(p)):null}
-function planRange(p){const pl=planTot(p);if(!pl)return null;const hi=prideOf(p)==='A'&&!pl.alt?Math.max(pl.tot,+PR().hiCap||pl.tot):pl.tot;return {lo:pl.tot,hi,alt:pl.alt,to:pl.to}}
+const hasPotName=(p,re)=>(p.pots||[]).some(n=>n&&re.test(n));
+/* 쌍두: 물리기·특수기를 각각 1개 이상 */
+function dualMoves(p){const cats=new Set((p.moves||[]).filter(m=>m.name).map(m=>(idx.moves.get(m.name)||[])[6]));return cats.has('물리')&&cats.has('특수')}
+function dualType(p){const D=PR().dual;const b=baseNums(p);return dualMoves(p)&&Math.min(b[1],b[3])>pnum(D.lo,90)}
+/* 선공 하한: 선공기(우선도 +1 이상 · 자신/자기 진영 대상 제외) · 특성 · 포텐셜에서 가장 높은 스피드 하한 */
+const PRIO_SELF=/^(자신|아군|자진|아군 전체|필드 전체|자기 필드|아군 필드|자신 · 아군)$/;
+function prioInfo(p){const P=PR().prio||PRIDE_DEF.prio;const rows=P.rows||PRIDE_DEF.prio.rows;const powT=pnum(P.pow,50);let best={floor:0,src:'',kind:''};
+ const take=(f,src,kind)=>{if(f>best.floor)best={floor:f,src,kind}};const cell=(cond,col)=>pnum((rows[cond?1:0]||[])[col],0);const KN=['','약','강','초'];
+ for(const m of p.moves||[]){if(!m.name)continue;const r=idx.moves.get(m.name);if(!r)continue;const pr=String(r[11]??'');const ns=(pr.match(/-?\d+(\.\d+)?/g)||[]).map(Number);if(!ns.length)continue;const pv=Math.max(...ns);if(pv<1)continue;if(PRIO_SELF.test(String(r[9]||'').trim()))continue;
+  const cond=/~/.test(pr)||/실패/.test(String(r[13]||''));const pow=+r[7]||0;const col=pv>=2&&pow>=powT?3:pow>=powT?2:1;take(cell(cond,col),m.name,(cond?'조건부':'상시')+'·'+KN[col])}
+ for(const pair of listOf(P.abil)){const [n,v]=pair.split(/[:：=]/).map(x=>x&&x.trim());if(n&&p.ability===n)take(pnum(v,0),'특성 '+n,'특성')}
+ (p.pots||[]).forEach((n,i)=>{if(!n)return;const eff=String(potEffOf(p,i)||'');if(!/우선도\s*[:：]?\s*\+\s*\d/.test(eff))return;const cond=/【\s*\d+\s*\/\s*시\s*】|【\s*1\/시\s*】/.test(eff);take(cell(cond,2),'『'+n+'』',(cond?'조건부':'상시')+'·강 (포텐셜)')});
+ return best}
+/* 커스텀 포켓몬 계산 종족치 — 계단마다 하한이 달라서 낮은 계단부터 맞춰 본다 */
+function customCalc(p){const R=PR(),b=baseNums(p),real=b.reduce((a,c)=>a+c,0);const main=Math.max(b[1],b[3]);
+ const bulk=two(Math.min(b[2],b[4]),R.bulk),hp=two(b[0],R.hp);
+ const F=R.fs,fs=two(main,{lo:F.lo,hi:F.hi,k1:F.k1,k2:F.k2})*Math.max(0,Math.min(1,(Math.min(b[5],pnum(F.shi,140))-pnum(F.slo,90))/Math.max(1,pnum(F.shi,140)-pnum(F.slo,90))));
+ const D=R.dual,dualOk=dualMoves(p),dualRaw=pnum(D.k,1)*Math.max(0,Math.min(Math.min(b[1],b[3]),pnum(D.hi,120))-pnum(D.lo,90)),dual=dualOk?dualRaw:0;
+ const pri0=prioInfo(p),ov=String(p.prioOv??'').trim(),pri=ov===''?pri0:{floor:Math.max(0,pnum(ov,0)),src:pnum(ov,0)?'직접 지정':'직접 지정 · 없음',kind:'예외',auto:pri0,ov:true},opp=Math.round(main*pnum(R.opp,0.4)),s=abSock(p),per=pnum(R.toStep,45)*2,toF=pnum(R.toFloor,1);
+ const steps=prSteps().filter(x=>!isEX(x));let last=null;
+ for(const st of steps){const fa=Math.max(0,Math.max(st.floor,b[1]<main?opp:0)-b[1]),fc=Math.max(0,Math.max(st.floor,b[3]<main?opp:0)-b[3]);const sf=Math.max(st.floor,pri.floor),fsp=Math.max(0,sf-b[5]);
+  const to=s==null?st.to:s;const toAdj=per*Math.max(0,to-st.to)-per*Math.max(0,toF-to);
+  const ct=real+fa+fc+fsp+bulk+hp+fs-dual+toAdj;last={real,b,fa,fc,fsp,sf,off:fa+fc+fsp,opp,bulk,hp,fs,dual,dualRaw,dualOk,pri,to,toBase:st.to,toAdj,ct,step:st,ok:ct<=st.v+1e-9};if(last.ok)return last}
+ return last||{real,b,ct:real,step:null,ok:false,off:0,bulk:0,hp:0,fs:0,dual:0,toAdj:0,pri,opp,fa:0,fc:0,fsp:0,sf:0}}
+/* 올드 타입 */
+function oldDbPride(p){const r=idx.old&&idx.old.get(p.name);const v=r?String(r[17]??'').trim():'';return v&&prRow(v)?v:''}
+function oldCalc(p){const R=PR(),real=baseTot(p),steps=prSteps(),L=R.oldLow||PRIDE_DEF.oldLow,Fr=R.friendly||PRIDE_DEF.friendly;
+ const db=oldDbPride(p);if(db)return {real,t:real,lab:db,src:'db'};
+ const stepOf=t=>{let st=null;for(const s of steps)if(!isEX(s)&&t>=s.v)st=s;return st};
+ const cap=pnum(R.oldCap,600);if(real>cap){const ex=steps.find(isEX);return {real,t:real,lab:ex?ex.lab:'EX',src:'cap'}}
+ const st0=stepOf(real),maxS=prStep(String(Fr.max||'B'));const fName=String(Fr.name||'프렌들리 몬스터').replace(/[『』]/g,'');
+ const fr=hasPotName(p,new RegExp(fName.replace(/\s+/g,'\\s*')))&&(!st0||!maxS||st0.v<=maxS.v);const t=real-(fr?pnum(Fr.d,10):0);
+ const st=stepOf(t);const prank=listOf(L.prank).includes(p.ability);
+ if(!st){const low=steps.find(s=>!isEX(s));return prank?{real,t,lab:low?low.lab:'C',src:'prank',friendly:fr}:{real,t,lab:String(L.lab||'0.5'),src:'low',friendly:fr}}
+ return {real,t,lab:st.lab,src:'floor',friendly:fr}}
+function prideAuto(p){if(!baseTot(p))return (prSteps()[0]||{lab:'C'}).lab;if(isOld(p))return oldCalc(p).lab;const c=customCalc(p);return c.step?c.step.lab:'C'}
 function prideOf(p){const v=strip(p.pride);return prRow(v)?v:prideAuto(p)}
 const prideIsAuto=p=>!prRow(strip(p.pride));
-/* 룰북: 프라이드 C/B/A/EX = 통솔점 1/2/3/4, 통솔 C 이상이면 파트너는 1점 할인 */
-function prideCost(t,p){const r=prRow(prideOf(p));const c=r?+r[2]||0:0;return Math.max(0,c-(p.partner&&(RV[strip(t.ranks['통솔'])]??0)>=0?1:0))}
-/* 메인: 자질을 C에서 한 단계 올릴 때마다 1점 */
-function dualType(p){const pr=PR();const a=+p.base[1]||0,c=+p.base[3]||0;if(a<pr.dual||c<pr.dual)return false;
- const cats=new Set(p.moves.filter(m=>m.name).map(m=>(idx.moves.get(m.name)||[])[6]));return cats.has('물리')&&cats.has('특수')}
-function pokeChecks(t,p){const out=[],pr=PR(),pk=prideOf(p),row=prRow(pk);const tot=baseTot(p);const w=(x)=>out.push({w:1,t:x}),i=(x)=>out.push({w:0,t:x});
- if(!tot)return out;
- i(`종족치 합 ${tot} → 프라이드 ${pk}${prideIsAuto(p)?` (자동 · ${isOld(p)?'올드 타입이라 버림':'반올림'})`:' (직접 지정)'} · 통솔점 ${prideCost(t,p)}`);
- if(pk==='A'&&tot>pr.hiCap)w(`프라이드 A는 종족치 합 ${pr.hiCap}까지입니다 · 그 이상은 EX`);
- if(pk==='EX')i(`프라이드 EX · 본가 전설종이나 그에 준하는 스펙 자리입니다`);
- if(!row)return out;
- const ab=idx.abil.get(p.ability);const pl=planRange(p);if(ab&&ab[0]!==''&&!isNaN(+ab[0])&&!isOld(p)&&pl){if(+ab[0]>pl.to)w(`특성 소켓 ${ab[0]}이(가) 특성 TO ${pl.to}을(를) 넘습니다`);else i(`특성 소켓 ${ab[0]} / 특성 TO ${pl.to}${pl.alt?' (괄호 값 적용)':''}`)}
- if(pl&&(tot<pl.lo||tot>pl.hi))w(`종족치 합 ${tot} · 규칙상 예정 합계 ${pl.lo}${pl.hi!==pl.lo?'~'+pl.hi:''}${pl.alt?` (특성 소켓 ${abSock(p)} → 괄호 값)`:''}`);
- const old=isOld(p);const mn=+row[4];if(!old){const low=p.base.map((v,k)=>[STATS[k],+v||0]).filter(([,v])=>v<mn);if(low.length)w(`최소종족치 ${mn} 미만: ${low.map(([n,v])=>n+' '+v).join(', ')}`);
- const atMin=p.base.filter(v=>v!==''&&grade(+v)===grade(mn)).length;if(atMin>1)w(`최소종족치(${grade(mn)}) 구간의 종족치가 ${atMin}개입니다 · 1체당 1개만`)}
- const s3=(+p.base[1]||0)+(+p.base[3]||0)+(+p.base[5]||0);if(!old&&s3<pr.sum3)w(`공격+특공+스피드 합 ${s3} · 최소 ${pr.sum3}`);
- const fire=+row[5];const A=+p.base[1]||0,C=+p.base[3]||0;
- if(!old&&A>=pr.fire&&C<fire)w(`화력균형: 공격 ${A}(고화력)이라 특공이 ${fire} 이상이어야 합니다 (현재 ${C})`);
- if(!old&&C>=pr.fire&&A<fire)w(`화력균형: 특공 ${C}(고화력)이라 공격이 ${fire} 이상이어야 합니다 (현재 ${A})`);
- if(dualType(p))i(`쌍두형: 기술 소켓 1 이하 기술 1개 무료 (자동 반영)`);
+/* 화면용: 커스텀이면 계산 종족치 / 계단 기준 */
+function planRange(p){if(isOld(p)||!baseTot(p))return null;const c=customCalc(p);const st=prStep(prideOf(p))||c.step;return st?{ct:c.ct,v:st.v,lab:st.lab,ok:c.ct<=st.v+1e-9}:null}
+/* 룰북: 계단의 통솔점, 통솔 C 이상이면 파트너는 1점 할인 */
+function prideCost(t,p){const r=prRow(prideOf(p));const c=r?pnum(r[1],0):0;return Math.max(0,c-((p.partner||t.solo)&&(RV[strip(t.ranks['통솔'])]??0)>=0?1:0))}
+const fmtN=x=>String(Math.round(x*100)/100);
+function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);const w=(x,k)=>out.push({w:1,t:x,k}),i=(x,k)=>out.push({w:0,t:x,k});
+ if(!tot)return out;const b=baseNums(p);
+ const low=b.map((v,k)=>[STATS[k],v]).filter(([,v])=>v<pnum(R.absMin,31));if(low.length)w(`절대 하한 ${pnum(R.absMin,31)} 미만: ${low.map(([n,v])=>n+' '+v).join(', ')}`);
+ if(isOld(p)){const o=oldCalc(p);
+  i(`올드 타입 · 실제 합 ${tot}${o.friendly?` − 『프렌들리 몬스터』 ${pnum((R.friendly||{}).d,10)} = ${o.t}`:''} → ${o.src==='db'?'DB 프라이드 칸':o.src==='cap'?'상한 초과':o.src==='low'?'최저 계단 미만':o.src==='prank'?'짓궂은마음이라 최저 계단':'버림'} ${o.lab}${prideIsAuto(p)?'':` · 직접 지정 ${pk}`} · 통솔점 ${prideCost(t,p)}`);
+  if(!prideIsAuto(p)){const a=prStep(o.lab),m=prStep(pk);if(a&&m&&m.v<a.v)w(`직접 지정한 프라이드 ${pk}가 계산값 ${o.lab}보다 낮습니다`)}
+  if(pk==='EX')i('프라이드 EX · 본가 전설종이나 그에 준하는 스펙 자리입니다');
+  if(p.pots.some(n=>n&&/포켓\s*파워/.test(n)))w('『포켓 파워』 속별은 금지입니다');
+  return out}
+ const c=customCalc(p);const parts=[`실제 합 ${c.real}`];if(c.off)parts.push(`하한 +${fmtN(c.off)}`);if(c.bulk)parts.push(`내구 +${fmtN(c.bulk)}`);if(c.hp)parts.push(`HP +${fmtN(c.hp)}`);if(c.fs)parts.push(`화력·스피드 +${fmtN(c.fs)}`);if(c.dual)parts.push(`쌍두 −${fmtN(c.dual)}`);if(c.toAdj)parts.push(`특성 TO ${c.to} ${c.toAdj>0?'+':'−'}${fmtN(Math.abs(c.toAdj))}`);
+ i(`계산 종족치 ${fmtN(c.ct)} (${parts.join(' · ')}) → 프라이드 ${c.step?c.step.lab:'-'}${c.ok?` (남는 점수 ${fmtN(c.step.v-c.ct)})`:''}${prideIsAuto(p)?'':` · 직접 지정 ${pk}`} · 통솔점 ${prideCost(t,p)}`,'calc');
+ if(!c.ok&&c.step)w(`계산 종족치 ${fmtN(c.ct)}가 커스텀 상한 ${c.step.lab}(${c.step.v})를 ${fmtN(c.ct-c.step.v)} 넘습니다 · 능력치를 덜거나 특성 소켓을 낮춰 주세요`);
+ if(!prideIsAuto(p)){const m=prStep(pk);if(m&&!isEX(m)&&m.v<c.ct-1e-9)w(`직접 지정한 프라이드 ${pk}(${m.v})는 계산 종족치 ${fmtN(c.ct)}를 담지 못합니다`)}
+ if(c.real<pnum(R.realMin,400))w(`실제 종족치 합 ${c.real} · ${pnum(R.realMin,400)} 이상이어야 합니다`);
+ const hint=[];if(c.fa)hint.push(`공격 ${b[1]} → ${b[1]+c.fa}`);if(c.fc)hint.push(`특공 ${b[3]} → ${b[3]+c.fc}`);if(c.fsp)hint.push(`스피드 ${b[5]} → ${c.sf}`);if(hint.length)i(`하한까지 계산: ${hint.join(', ')} (낮게 찍어도 돌려받는 점수는 없습니다)`,'calc');
+ if(c.pri.floor)i(`선공 하한 ${c.pri.floor}: ${c.pri.src} (${c.pri.kind})`,'calc');
+ if(c.dualRaw&&!c.dualOk)i(`물리기·특수기를 각각 1개 이상 들면 쌍두 할인 −${fmtN(c.dualRaw)}`,'calc');
  if(p.pots.some(n=>n&&/포켓\s*파워/.test(n)))w('『포켓 파워』 속별은 금지입니다');
- {const fl=+(prRow('C')||[0,480])[1]+(+pr.friendly||0);if(isOld(p)&&tot<=fl)i(`『프렌들리 몬스터』 취득 가능 (종족치 합 ${tot} ≤ ${fl})`)}
  return out}
-function ptChecks(t){const n=t.pokemon.filter(p=>p.base.filter(v=>v!==''&&/^D/.test(grade(+v))).length>=2).length;return n>1?[`D 등급 종족치가 2개 이상인 포켓몬이 ${n}체입니다 · 여러 체 넣지 않습니다`]:[]}
+/* PT: 공격·특공이 둘 다 기준 미만인 커스텀 포켓몬은 1체까지 (올드 타입은 세지 않음) */
+function ptChecks(t){const th=pnum(PR().weakAtk,60);const L=t.pokemon.filter(p=>!isOld(p)&&baseTot(p)&&(+p.base[1]||0)<th&&(+p.base[3]||0)<th);return L.length>1?[`공격·특공이 둘 다 ${th} 미만인 포켓몬이 ${L.length}체입니다 (${L.map(p=>p.name||'이름 없음').join(', ')}) · PT에 1체까지`]:[]}
+/* 능력치 막대: 하한·할증·할인 구간 (0~200 눈금) */
+function statMarks(p,i){if(isOld(p)||!baseTot(p))return '';const R=PR(),c=customCalc(p),b=c.b,main=Math.max(b[1],b[3]);const X=v=>Math.max(0,Math.min(100,v/2));
+ const zone=(lo,hi,cls,tip)=>hi>lo?`<span class="zn ${cls}" style="left:${X(lo)}%;width:${X(Math.min(hi,200))-X(lo)}%" title="${esc(tip)}"></span>`:'';
+ const line=(v,cls,tip)=>`<span class="fl ${cls}" style="left:${X(v)}%" title="${esc(tip)}"></span>`;let h='';
+ if(i===0){const o=R.hp;h+=zone(pnum(o.lo,95),pnum(o.hi,120),'z1 hp',`HP 할증 ×${o.k1} 구간`)+zone(pnum(o.hi,120),200,'z2 hp',`HP 할증 ×${o.k2} 구간`)}
+ if(i===2||i===4){const o=R.bulk;h+=zone(pnum(o.lo,85),pnum(o.hi,105),'z1 bulk',`내구 할증 ×${o.k1} (방어·특방 중 낮은 쪽 기준)`)+zone(pnum(o.hi,105),200,'z2 bulk',`내구 할증 ×${o.k2} (방어·특방 중 낮은 쪽 기준)`)}
+ if(i===1||i===3){const isMain=b[i]===main&&main>0;if(isMain){const F=R.fs;h+=zone(pnum(F.lo,105),pnum(F.hi,120),'z1 fs',`화력·스피드 할증 화력 점수 ×${F.k1}`)+zone(pnum(F.hi,120),200,'z2 fs',`화력·스피드 할증 화력 점수 ×${F.k2}`)}
+  else{const D=R.dual;h+=zone(pnum(D.lo,90),pnum(D.hi,120),'dl',`쌍두 할인 ×${D.k} 구간${c.dualOk?'':' (물리기·특수기 각 1개 이상 필요)'}`)}
+  const fl=c.step&&!isMain?Math.max(c.step.floor,c.opp):0;if(fl)h+=line(fl,'off',`하한 ${fl}${!isMain&&c.opp>=(c.step||{}).floor?` (주력 공격 ${main}의 ${R.opp})`:''} · 이보다 낮아도 ${fl}로 계산`)}
+ if(i===5){const F=R.fs;h+=zone(pnum(F.slo,90),pnum(F.shi,140),'sp',`화력·스피드 할증 스피드 비율 0→1 구간`);if(c.sf)h+=line(c.sf,'off',`하한 ${c.sf}${c.pri.floor>=(c.step||{}).floor?` (선공: ${c.pri.src})`:''} · 이보다 낮아도 ${c.sf}로 계산`)}
+ return h}
+
+/* 능력치 칸 아래 「계산 종족치」 현황판 — 항목별 값 · 막대 · 선공 하한 예외 입력 */
+function calcPanel(t,p,P){if(!baseTot(p))return '';const R=PR();
+ if(isOld(p)){const o=oldCalc(p);const st=prStep(o.lab);return `<div class="cpanel old"><div class="cph"><b>프라이드 계산</b><span class="kindb">올드 타입</span><span class="sp"></span><span class="cpr">${esc(prideOf(p))}</span><span class="small muted">통솔점 ${prideCost(t,p)}</span></div>
+  <div class="cprow"><span class="cpc base">실제 합 <b>${o.real}</b></span>${o.friendly?`<span class="cpc dl">『프렌들리 몬스터』 <b>−${pnum((R.friendly||{}).d,10)}</b></span>`:''}<span class="cpop">→</span><span class="cpc tot">${o.src==='db'?'DB 프라이드 칸':o.src==='cap'?'상한 초과':o.src==='low'?'최저 계단 미만 · '+esc((R.oldLow||{}).pt||'0.5')+'점':o.src==='prank'?'짓궂은마음 · 최저 계단':'버림'} <b>${esc(o.lab)}</b>${st&&o.src==='floor'?` <small>(${st.v} · 격차 ${o.t-st.v})</small>`:''}</span></div>
+  <p class="small muted" style="margin:6px 0 0">올드 타입은 하한·할증·할인을 계산하지 않습니다. 예외는 DB 관리 → 올드 타입 「프라이드」 칸으로 정합니다.</p></div>`}
+ const c=customCalc(p);const st=prStep(prideOf(p))||c.step;const cap=st?st.v:c.ct;
+ const items=[['base','실제 합',c.real,''],['off','하한',c.off,[c.fa?`공격 +${c.fa}`:'',c.fc?`특공 +${c.fc}`:'',c.fsp?`스피드 +${c.fsp}`:''].filter(Boolean).join(' · ')||'없음'],['bulk','내구',c.bulk,`방어·특방 중 낮은 쪽 ${Math.min(c.b[2],c.b[4])}`],['hp','HP',c.hp,`HP ${c.b[0]}`],['fs','화력·스피드',c.fs,`주력 ${Math.max(c.b[1],c.b[3])} · 스피드 ${c.b[5]}`],['dl','쌍두',-c.dual,c.dualOk?`낮은 쪽 ${Math.min(c.b[1],c.b[3])}`:c.dualRaw?`물리·특수기 각 1개 필요 (−${fmtN(c.dualRaw)})`:'해당 없음'],['to','특성 TO',c.toAdj,`TO ${c.to} / 기본 ${c.toBase}`]];
+ const pos=items.filter(x=>x[0]!=='dl'&&x[2]>0);const W=Math.max(cap,c.ct,1);
+ const bar=pos.map(x=>`<i class="${x[0]}" style="width:${x[2]/W*100}%" title="${esc(x[1]+' '+fmtN(x[2]))}"></i>`).join('');
+ const auto=c.pri.ov?c.pri.auto:c.pri;const ov=String(p.prioOv??'');
+ return `<div class="cpanel"><div class="cph"><b>계산 종족치</b><span class="sp"></span><span class="cpr ${c.ok?'':'warn'}">${c.step?esc(c.step.lab):'-'}</span><span class="small muted">${c.ok?`남는 점수 <b class="num">${fmtN(c.step.v-c.ct)}</b>`:`<b class="warn">상한 초과 ${fmtN(c.ct-(c.step||{v:0}).v)}</b>`} · 통솔점 ${prideCost(t,p)}</span></div>
+  <div class="cpbar" title="계산 종족치 ${fmtN(c.ct)} / ${cap}">${bar}<span class="cpcap" style="left:${Math.min(100,cap/W*100)}%"></span></div>
+  <div class="cpgrid">${items.map(([k,l,v,d])=>`<div class="cpc ${k} ${v?'':'zero'}"><span>${l}</span><b class="num">${k==='base'?v:(v>0?'+':v<0?'−':'')+fmtN(Math.abs(v))}</b><small>${esc(d)}</small></div>`).join('')}<div class="cpc tot"><span>계산 종족치</span><b class="num">${fmtN(c.ct)}</b><small>${st?`${esc(st.lab)} 계단 ${st.v}`:''}</small></div></div>
+  <div class="cppri"><span class="small"><b>선공 하한</b> ${auto.floor?`자동 ${auto.floor} · ${esc(auto.src)} (${esc(auto.kind)})`:'자동: 선공기 없음'}</span><label class="row small" style="gap:4px">예외<select data-p="${P}.prioOv" title="자동 판정이 맞지 않을 때 이 포켓몬만 직접 정합니다"><option value="" ${ov===''?'selected':''}>자동</option><option value="0" ${ov==='0'?'selected':''}>없음 (하한 안 올림)</option>${[...new Set([...(R.prio.rows||[]).flatMap(r=>r.slice(1)),ov].filter(x=>x!==''&&x!=='0'&&!isNaN(+x)).map(Number))].sort((a,b)=>a-b).map(v=>`<option value="${v}" ${ov===String(v)?'selected':''}>${v}</option>`).join('')}</select></label>${c.pri.ov?'<span class="kindb">예외 적용 중</span>':''}</div></div>`}
+/* 테이블·계산식 탭 · 종족치 · 프라이드 규칙 (2026-10-25 개편) */
+function prideRulePanel(){const R=PR();const f=(path,v,w,ph)=>`<input data-p="db.pride.${path}" value="${esc(v??'')}" style="width:${w||'56px'}" ${ph?`placeholder="${esc(ph)}"`:''} inputmode="decimal">`;
+ const L=(t,path,v,w,note)=>`<label class="row small" style="gap:4px">${t}${f(path,v,w)}${note?`<span class="faint">${note}</span>`:''}</label>`;
+ const grp=(t,o,key,extra)=>`<div class="prg"><b>${t}</b>${L('시작',key+'.lo',o.lo)}${L('경계',key+'.hi',o.hi)}${L('시작~경계 ×',key+'.k1',o.k1)}${L('경계 위 ×',key+'.k2',o.k2)}${extra||''}</div>`;
+ return `<div class="panel" style="grid-column:1/-1"><h3>종족치 · 프라이드 규칙 · 룰북 「포켓몬 제작」<span class="sp"></span><button class="btn sm" data-tact="prRowAdd">+ 계단</button><button class="btn sm" data-tact="prReset">기본값</button></h3>
+  <p class="small muted" style="margin:0 0 8px">포켓몬 프라이드를 「자동」으로 두면 커스텀은 <b>계산 종족치</b>(실제 합 + 하한분 + 내구·HP·화력·스피드 할증 − 쌍두 할인 + 특성 TO 조정)를 담을 수 있는 가장 낮은 계단, 올드 타입은 실제 합을 버림한 계단이 됩니다. 여기 숫자를 바꾸면 모든 시트의 계산 · 막대 표시 · 경고 · 통솔점 자동 소모가 바로 따라갑니다. EX 계단은 자동으로 고르지 않고 직접 지정할 때만 씁니다.</p>
+  <div class="tw"><table><tr><th>계단</th><th class="n">통솔점</th><th class="n">종족치 합</th><th class="n">최소종족치 (하한)</th><th class="n">기본 특성 TO</th><th>비고</th><th></th></tr>${R.rows.map((r,i)=>`<tr>${[0,1,2,3,4,5].map(j=>`<td${j&&j<5?' class="n"':''}><input data-p="db.pride.rows.${i}.${j}" value="${esc(r[j]??'')}" style="width:${j===0?'52px':j===5?'100%':'64px'}" ${j&&j<5?'inputmode="decimal"':''}></td>`).join('')}<td><button class="btn sm ghost danger" data-tact="prRowDel" data-i="${i}" aria-label="계단 삭제">✕</button></td></tr>`).join('')}</table></div>
+  <div class="prgrid">
+   <div class="prg"><b>공통</b>${L('절대 하한','absMin',R.absMin)}${L('실제 합 하한','realMin',R.realMin)}${L('반대쪽 공격 하한 = 주력 ×','opp',R.opp)}${L('특성 TO 0.5당','toStep',R.toStep,'','점')}${L('되팔기 기준 TO','toFloor',R.toFloor)}${L('PT 1체 제한: 공·특공 둘 다 미만','weakAtk',R.weakAtk)}</div>
+   ${grp('내구 할증 · 방어·특방 중 낮은 쪽',R.bulk,'bulk')}
+   ${grp('HP 할증',R.hp,'hp')}
+   ${grp('화력·스피드 할증 · 화력 점수',R.fs,'fs',`${L('스피드 비율 0','fs.slo',R.fs.slo)}${L('스피드 비율 1','fs.shi',R.fs.shi)}`)}
+   <div class="prg"><b>쌍두 할인 · 공·특공 중 낮은 쪽</b>${L('시작','dual.lo',R.dual.lo)}${L('끝','dual.hi',R.dual.hi)}${L('×','dual.k',R.dual.k)}<span class="small faint">물리기·특수기 각 1개 이상</span></div>
+   <div class="prg"><b>올드 타입</b>${L('최저 계단 미만 통솔점','oldLow.pt',R.oldLow.pt)}${L('그 표시','oldLow.lab',R.oldLow.lab)}${L('제외 특성 (쉼표)','oldLow.prank',R.oldLow.prank,'140px')}${L('A 상한 (넘으면 EX)','oldCap',R.oldCap)}${L('『프렌들리』 이름','friendly.name',R.friendly.name,'120px')}${L('합 −','friendly.d',R.friendly.d)}${L('적용 최대 계단','friendly.max',R.friendly.max)}</div>
+  </div>
+  <div class="prg" style="margin-top:10px"><b>선공 하한 · 선공기가 있으면 스피드 하한을 이 값으로</b>
+   <div class="tw" style="margin:6px 0"><table><tr><th>사용 조건</th><th class="n">약 (위력 미만)</th><th class="n">강 (위력 이상 · +1)</th><th class="n">초 (위력 이상 · +2 이상)</th></tr>${(R.prio.rows||[]).map((r,i)=>`<tr><td><input data-p="db.pride.prio.rows.${i}.0" value="${esc(r[0])}" style="width:80px"></td>${[1,2,3].map(j=>`<td class="n"><input data-p="db.pride.prio.rows.${i}.${j}" value="${esc(r[j]??'')}" style="width:56px" inputmode="decimal"></td>`).join('')}</tr>`).join('')}</table></div>
+   <div class="row" style="gap:14px;flex-wrap:wrap">${L('강·초 기준 위력','prio.pow',R.prio.pow)}<label class="row small" style="gap:4px;flex:1;min-width:260px">선공 특성 (이름:하한, 쉼표)<input data-p="db.pride.prio.abil" value="${esc(R.prio.abil||'')}" style="flex:1"></label></div>
+   <p class="small muted" style="margin:6px 0 0">기술 DB의 우선도가 1 이상인 기술(자신·자기 진영 대상 제외)을 자동으로 읽습니다. 우선도에 「~」가 있거나 설명에 「실패」가 있으면 조건부로 봅니다. 포텐셜 효과에 「우선도 : +N」이 있으면 강 칸(【N/시】면 조건부). 맞지 않는 포켓몬은 시트의 「계산 종족치」 칸에서 예외로 바꿉니다.</p></div></div>`}
+/* 메인: 자질을 C에서 한 단계 올릴 때마다 1점 */
 const rankSteps=t=>QUAL.reduce((a,q)=>a+Math.max(0,RV[strip(t.ranks[q])]??0),0);
 const discUsed=t=>t.pokemon.reduce((a,p)=>a+p.moves.filter(m=>m.name&&m.half).length,0);
 function ptMaxDef(t){if(t.solo){const v=(S.db.soloSock||{})[strip(t.ranks['육성'])];if(v!=null&&v!=='')return +v}const r=sockRow(t.ranks['육성']);return r?+r[4]:0}
 function ptMax(t){if(t.ptMax!==''&&t.ptMax!=null)return +t.ptMax;return ptMaxDef(t)}
 /* 트레이너 포인트 항목: [이름, 기본값, 자동 소모 방식] — 테이블·계산식 탭에서 고친다 */
 const PTI_DEF=[['메인','4','rank'],['통솔점','6','pride'],['「기술 할인점」','6','disc'],['【1/시】','3','once'],['분배레벨','10','dist']];
-function ptiMigrate(db){if((db.ptiV||0)<1){for(const r of db.ptItems||[])if(r[0]==='【1/시】'&&!r[2])r[2]='once';db.ptiV=1}}
-const PTI_AUTO={'':'없음',rank:'자질 투자 (C에서 한 단계당 1)',pride:'포켓몬 프라이드 (C1·B2·A3·EX4, 파트너 −1)',disc:'기술 「할인」 체크 수',dist:'포켓몬 분배 레벨 합',once:'포켓몬 【1/시】 포텐셜 수 (전용 제외)'};
+function ptiMigrate(db){if((db.ptiV||0)<1){for(const r of db.ptItems||[])if(r[0]==='【1/시】'&&!r[2])r[2]='once';db.ptiV=1}
+ /* 10-25 망령: 통솔점은 기본적으로 포켓몬 프라이드에서 자동 계산 */
+ if((db.ptiV||0)<2){db.ptItems=db.ptItems||clone(PTI_DEF);if(!db.ptItems.some(r=>r[2]==='pride')){const r=db.ptItems.find(r=>/통솔/.test(r[0]||''));if(r)r[2]='pride';else db.ptItems.splice(1,0,['통솔점','6','pride'])}db.ptiV=2}}
+const PTI_AUTO={'':'없음',rank:'자질 투자 (C에서 한 단계당 1)',pride:'포켓몬 프라이드 (계단별 통솔점, 파트너 −1)',disc:'기술 「할인」 체크 수',dist:'포켓몬 분배 레벨 합',once:'포켓몬 【1/시】 포텐셜 수 (전용 제외)'};
 const ptItems=()=>(S.db&&S.db.ptItems)||PTI_DEF;
 function autoUse(t,a){if(a==='rank')return rankSteps(t);if(a==='pride')return t.pokemon.reduce((x,p)=>x+prideCost(t,p),0);if(a==='disc')return discUsed(t);if(a==='dist')return t.pokemon.reduce((x,p)=>x+Math.max(0,+p.dist||0),0);if(a==='once')return t.pokemon.reduce((x,p)=>x+onceCount(p),0);return 0}
 const onceCount=p=>p.pots.reduce((n,name,i)=>n+(name&&/【1\s*\/\s*시】/.test(potEffOf(p,i)||'')?1:0),0);
@@ -720,7 +822,7 @@ function rowHTML(kind,r,sel){const D=DBS[kind];
  if(kind==='moves')return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[2])}"><div><div class="t1">${tchip(r[5])}<b>${esc(r[2])}</b><span class="kindb">${esc(r[6])}</span>${S.custom.moves.includes(r[2])?'<span class="kindb">오리지널</span>':''}</div><div class="t2">${rich(r[13])}</div></div><div class="meta">${rangeGrid(r[9])}<span>위력 ${esc(r[7])} · 명중 ${esc(r[8])}</span><span>${esc(r[9])} · 우선도 ${esc(r[11])} · 소켓 <b>${esc(r[0])}</b></span></div></div>`;
  if(kind==='abil')return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1"><b>${esc(r[1])}</b>${r[3]==='O'?'<span class="kindb">틀깨기 대상</span>':''}${r[4]==='O'?'<span class="kindb">방호</span>':''}${fxRmChip('trait',r[1])}</div><div class="t2">${rich(r[2])}</div></div><div class="meta">소켓 <b>${esc(r[0])}</b></div></div>`;
  if(kind==='items')return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1"><b>${esc(r[1])}</b><span class="kindb">${esc(r[0])}</span>${r[3]==='O'?'<span class="kindb">소모</span>':''}${ilockChip(r[1])}${fxRmChip('item',r[1])}</div><div class="t2">${rich(r[4])}${r[6]&&r[6]!=='-'?` <span class="faint">· ${esc(r[6])}</span>`:''}</div></div><div class="meta">소켓 <b>${esc(r[5])}</b></div></div>`;
- if(kind==='old'){const tot=r.slice(11,17).reduce((a,b)=>a+(+b||0),0);return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1">${tchip(r[3])}${tchip(r[4])}<b>${esc(r[1])}</b>${r[10]==='O'?'<span class="kindb">메가</span>':''}<span class="kindb">${esc(r[0])}</span></div><div class="t2">${[r[5],r[6],r[7]].filter(a=>a&&a!=='-').map(esc).join(' / ')} · 알그룹 ${esc(r[8])}${r[9]&&r[9]!=='-'?' / '+esc(r[9]):''} <span class="faint">${esc(r[2])}</span></div></div><div class="meta num"><span>${r.slice(11,17).map(esc).join('-')}</span><span>합 <b>${tot}</b></span></div></div>`}
+ if(kind==='old'){const tot=r.slice(11,17).reduce((a,b)=>a+(+b||0),0);return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1">${tchip(r[3])}${tchip(r[4])}<b>${esc(r[1])}</b>${r[10]==='O'?'<span class="kindb">메가</span>':''}<span class="kindb">${esc(r[0])}</span></div><div class="t2">${[r[5],r[6],r[7]].filter(a=>a&&a!=='-').map(esc).join(' / ')} · 알그룹 ${esc(r[8])}${r[9]&&r[9]!=='-'?' / '+esc(r[9]):''} <span class="faint">${esc(r[2])}</span></div></div><div class="meta num"><span>${r.slice(11,17).map(esc).join('-')}</span><span>합 <b>${tot}</b>${String(r[17]??'').trim()?` · 프라이드 <b>${esc(r[17])}</b>`:''}</span></div></div>`}
  if(kind==='points')return `<div tabindex="0" role="button" data-kbd class="pkr" data-pick="${esc(r[4])}"><div><div class="t1"><b>${esc(r[4])}</b><span class="kindb">${esc(r[1])}</span></div><div class="t2">${esc(r[5])}</div></div><div class="meta">${esc(r[3])} −${esc(r[6])}</div></div>`;
  return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1"><span class="kindb">${esc(r[0])}</span><b>${esc(r[1])}</b>${kind==='pots'?fxRmChip('pot',r[1]):''}</div><div class="t2">${rich(r[2])}${r[3]?` <span class="faint">· ${esc(r[3])}</span>`:''}</div></div><div class="meta"></div></div>`}
 /* ---------- 소지품 해금 표: [장소, 품목(쉼표), 조건 메모, '열림'|'잠김'] ---------- */
@@ -1426,8 +1528,8 @@ function folderHead(f,name,n,open,pv,kids){const fid=f?f.id:'',key=fid||'_none',
  const av=n.slice(0,8).map(([t])=>`<span class="fch" title="${esc(t.name||'')}"><span class="fav">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="" loading="lazy">`:esc([...(t.name||'?')][0]||'?')}</span><span class="fcn">${esc(t.name||'이름 없음')}</span></span>`).join('')+(n.length>8?`<span class="fch more">+${n.length-8}</span>`:'')||'<span class="fch none">아직 트레이너가 없다</span>';
  const A=pv?'':` data-ftog="${esc(key)}" data-fdrop="${esc(key)}" ${fid?'data-grab':''} tabindex="0" role="button" data-kbd aria-expanded="${open}" aria-label="${esc(name)} 폴더 펼치기/접기"`;
  return `<div class="tfh ftile tcard ${f?tDecoCls(f):''} ${fid?'':'fnone'}" style="${f?tDecoVars(f):''}"${A}><span class="caret">▸</span><span class="ficon">${d.icon?`<b class="fem">${esc(d.icon)}</b>`:FOLDER_SVG}</span>
-  <div class="fmain"><div class="fl1"><span class="fname${fid?'':' muted'}">${esc(name)}</span>${f&&f.priv?`<span class="kindb privchip" title="${esc('비공개 · '+(f.ownerName||'')+(ME.gm?' (GM 열람)':''))}">🔒</span>`:''}</div>${d.title?`<div class="fsub">${esc(d.title)}</div>`:''}<div class="fmeta">${kids?`하위 폴더 ${kids}개 · `:''}트레이너 ${n.length}명 · 포켓몬 ${pk}체</div></div>
-  <div class="fbot"><div class="favs flist">${av}</div>
+  <div class="fmain"><div class="fl1"><span class="fname${fid?'':' muted'}">${esc(name)}</span>${f&&f.priv?`<span class="kindb privchip" title="${esc('비공개 · '+(f.ownerName||'')+(ME.gm?' (GM 열람)':''))}">🔒</span>`:''}</div>${d.title?`<div class="fsub">${esc(d.title)}</div>`:''}<div class="fmeta" title="${esc((kids?`하위 폴더 ${kids}개 · `:'')+`트레이너 ${n.length}명 · 포켓몬 ${pk}체`)}">${kids?`폴더 ${kids}개 · ${n.length}명 · ${pk}체`:`트레이너 ${n.length}명 · 포켓몬 ${pk}체`}</div></div>
+  <div class="fbot"><div class="favs flist" data-n="${n.length}">${av}</div>
   ${pv?'':`<div class="facts"><button class="btn sm" data-act="addTin" data-f="${esc(fid)}" title="이 폴더에 트레이너 추가">+ 트레이너</button>${fid?`<button class="btn sm ghost fsubb" data-act="addFin" data-f="${esc(fid)}" title="이 폴더 안에 폴더 만들기">+ 폴더</button>`:''}${fid?`<span class="facts2"><button class="btn sm ghost fic" data-act="moveF" data-f="${esc(fid)}" title="다른 폴더 안으로 옮기기 · 맨 위로 꺼내기" aria-label="폴더 옮기기">📂</button><button class="btn sm ghost fic" data-act="decoF" data-f="${esc(fid)}" title="폴더 꾸미기 (색 · 아이콘 · 부제 · 무늬 · 배경 그림)" aria-label="폴더 꾸미기">🎨</button><button class="btn sm ghost fic" data-act="privF" data-f="${esc(fid)}" title="${f&&f.priv?'지금 비공개 — 눌러서 공개로':'지금 공개 — 눌러서 비공개로 (만든 사람과 GM 에게만 보임)'}" aria-label="${f&&f.priv?'공개로':'비공개로'}">${f&&f.priv?'🔒':'🌐'}</button><button class="btn sm ghost fic" data-act="renF" data-f="${esc(fid)}" title="이름 바꾸기" aria-label="이름 바꾸기">✏️</button><button class="btn sm ghost fic danger" data-act="delF" data-f="${esc(fid)}" title="폴더 삭제 (안의 트레이너는 「폴더 없음」으로)" aria-label="폴더 삭제">🗑</button></span>`:''}</div>`}</div></div>`}
 function renderChar(){const root=$('#v-char');
  const inF=fid=>S.trainers.map((t,ti)=>[t,ti]).filter(([t])=>tFolder(t)===fid&&tVis(t));const hiddenN=S.trainers.filter(t=>!tVis(t)).length;
@@ -1443,7 +1545,7 @@ function renderChar(){const root=$('#v-char');
  <button class="btn pri" data-act="addT">+ 트레이너</button><button class="btn" data-act="addF">+ 폴더</button><button class="btn" data-act="impText">복사용 텍스트 붙여넣기</button></div>
  ${body}`;fitFlist(root)}
 /* 폴더 카드 트레이너 칩: 한 줄에 이름까지 안 들어가면 얼굴만 (10-24 망령) — 글꼴이 늦게 오거나 창 크기가 바뀌면 다시 잰다 */
-function fitFlist(root){const run=()=>(root||document).querySelectorAll('.ftile .flist').forEach(l=>{l.classList.remove('ico');if(l.scrollWidth>l.clientWidth+1)l.classList.add('ico')});run();setTimeout(run,350)}
+function fitFlist(root){const over=l=>l.scrollWidth>l.clientWidth+1;const run=()=>(root||document).querySelectorAll('.ftile .flist').forEach(l=>{l.classList.remove('ico');l.querySelectorAll('.fch.fx').forEach(x=>x.remove());const ch=[...l.querySelectorAll('.fch:not(.more):not(.none)')];ch.forEach(x=>x.style.display='');const mo=l.querySelector('.fch.more');if(mo)mo.style.display='';if(!l.clientWidth||!over(l))return;l.classList.add('ico');if(!over(l))return;const tot=+l.dataset.n||ch.length;const x=document.createElement('span');x.className='fch more fx';l.append(x);if(mo)mo.style.display='none';let vis=ch.length;while(vis>1){ch[--vis].style.display='none';x.textContent='+'+(tot-vis);if(!over(l))break}});run();setTimeout(run,350)}
 {let ft=null;addEventListener('resize',()=>{clearTimeout(ft);ft=setTimeout(()=>{const r=document.getElementById('v-char');if(r)fitFlist(r)},150)})}
 /* 이름 입력 창 */
 function askText(title,label,val=''){return new Promise(res=>{const l=openModal(`<div class="mhead"><h2>${esc(title)}</h2></div><div class="mbody"><label class="lbl" for="ask-txt">${esc(label)}<input id="ask-txt" value="${esc(val)}" maxlength="60" autocomplete="off"></label></div><div class="mfoot"><span class="sp"></span><button class="btn" data-x="no">취소</button><button class="btn pri" data-x="ok">확인</button></div>`,{onClose:()=>res(null)});
@@ -1480,7 +1582,7 @@ const TD_PAT=[['','없음'],['stripe','줄무늬'],['dot','점'],['grid','격자
 function tDecoVars(t){const d=t.deco||{};const c=safeCss(d.color);const bg=safeImg(d.bg);return [c?`--tc:${c}`:'',bg?`--tbg:url('${cssu(bg)}')`:''].filter(Boolean).join(';')}
 function tDecoCls(t){const d=t.deco||{};return [safeCss(d.color)?'tdc':'',safeImg(d.bg)?'tdb':'',TD_PAT.some(x=>x[0]&&x[0]===d.pat)?'tdp-'+d.pat:''].filter(Boolean).join(' ')}
 function tPartyHTML(t,ti){const ms=t.pokemon.slice(0,6);if(!ms.length)return '';const ring=p=>{const a=tyCol(p.t1)||'var(--sunk2)',b=tyCol(p.t2)||a;return `background:conic-gradient(${a} 0 50%,${b} 50% 100%)`};
- return `<div class="tparty" aria-label="소지 포켓몬">${ms.map((p,j)=>`<button type="button" class="tpm ${p.partner?'ptn':''}" data-act="tpk" data-i="${ti}" data-j="${j}" title="${esc((p.name||'(이름 없음)')+' · '+[p.t1,p.t2].filter(x=>x&&x!=='-').join('/')+(p.partner?' · 파트너':''))}"><span class="tpr" style="${ring(p)}"><span class="tpi">${safeImg(p.image)?`<img src="${safeImg(p.image)}" alt="" loading="lazy">`:`<b>${esc([...(p.name||'?')][0]||'?')}</b>`}</span></span>${p.partner?'<i class="tps">★</i>':''}<small>${esc(p.name||'')}</small></button>`).join('')}${Array.from({length:Math.max(0,6-ms.length)},()=>'<span class="tpm empty"><span class="tpr"><span class="tpi"></span></span><small>&nbsp;</small></span>').join('')}</div>`}
+ return `<div class="tparty" aria-label="소지 포켓몬">${ms.map((p,j)=>`<button type="button" class="tpm ${p.partner?'ptn':''}" data-act="tpk" data-i="${ti}" data-j="${j}" title="${esc((p.name||'(이름 없음)')+' · '+[p.t1,p.t2].filter(x=>x&&x!=='-').join('/')+(p.partner?' · 파트너':''))}"><span class="tpr" style="${ring(p)}"><span class="tpi">${safeImg(p.image)?`<img src="${safeImg(p.image)}" alt="" loading="lazy">`:`<b>${esc([...(p.name||'?')][0]||'?')}</b>`}</span></span>${p.partner?'<i class="tps">★</i>':''}<small>${esc(p.name||'')}</small>${baseTot(p)?`<em class="tpc" title="프라이드 ${esc(prideOf(p))} · 통솔점 ${prideCost(t,p)}">${esc(prideOf(p))} · ${prideCost(t,p)}</em>`:''}</button>`).join('')}${Array.from({length:Math.max(0,6-ms.length)},()=>'<span class="tpm empty"><span class="tpr"><span class="tpi"></span></span><small>&nbsp;</small></span>').join('')}</div>`}
 function tUqHTML(t,ti){const U=(t.unique||[]).map((u,j)=>({u,j})).filter(x=>x.u&&x.u.name&&x.u.name.trim());if(!U.length)return '';
  return `<div class="tuql">${U.slice(0,3).map(({u,j})=>{const c=safeCss(u.color)||UQ_COL[0];return `<button type="button" class="tuqc" style="--uc:${c}" data-act="tuq" data-i="${ti}" data-j="${j}" title="${esc(String(u.eff||'').replace(/<br\s*\/?>/gi,' ').slice(0,300))}"><em>${u.icon?esc(u.icon):'UNIQUE'}</em><b>${esc(u.name)}</b>${u.sub?`<small>${esc(u.sub)}</small>`:''}</button>`}).join('')}${U.length>3?`<button type="button" class="tuqc more" data-act="tuq" data-i="${ti}" data-j="${U[3].j}" title="나머지 고유 포텐셜 보기">+${U.length-3}</button>`:''}</div>`}
 /* 10-22 망령: 트레이너 카드의 고유 칩 → 고유 정보창. 위쪽 단추로 다른 고유로 넘기고, 편집 · 꾸미기로 바로 간다 */
@@ -1628,7 +1730,7 @@ function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=inve
  return `<section class="folder ${t.open?'open':''}" id="tr-${t.id}" data-ti="${ti}" data-si="${ti}">
  <header class="fh tcard ${tDecoCls(t)}" style="${tDecoVars(t)}" data-tog="${P}" data-grab tabindex="0" role="button" data-kbd aria-expanded="${!!t.open}" aria-label="${esc(t.name||'트레이너')} 펼치기/접기"><span class="caret">▸</span><span class="avatar">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="">`:esc([...(t.name||'?')][0]||'?')}</span>
   <div class="tmain"><div class="tl1"><span class="tname">${esc(t.name)}</span>${t.kind==='npc'?'<span class="plchip npc" title="NPC — 오레마스 관계도에 NPC 노드로 들어간다">NPC</span>':''}${t.priv?`<span class="kindb privchip" title="${esc('비공개 · '+(t.ownerName||'')+(ME.gm?' (GM 열람)':''))}">🔒</span>`:''}${(t.pl||'').trim()?`<span class="plchip" title="PL">PL <b>${esc(t.pl.trim())}</b></span>`:''}</div>${(t.deco||{}).title?`<div class="ttitle">${esc(t.deco.title)}</div>`:''}
-   <div class="tl3"><span class="row trk">${QUAL.map(q=>rkChip(q,t.ranks[q])).join('')}</span><span class="small muted tmeta">포켓몬 ${t.pokemon.length}체 · PT 기술점 <b class="${pu>pm?'warn':''} num">${pu}/${pm}</b></span></div></div>
+   <div class="tl3"><span class="row trk">${QUAL.map(q=>rkChip(q,t.ranks[q])).join('')}</span><span class="small muted tmeta">${(()=>{const n=(ptItems().find(r=>r[2]==='pride')||[])[0];if(!n)return `포켓몬 ${t.pokemon.length}체`;const u=Math.round((use[n]||0)*100)/100,m=+t.base[n]||0;return `통솔점 <b class="${u>m?'warn':''} num">${u}/${m}</b>`})()} · PT 기술점 <b class="${pu>pm?'warn':''} num">${pu}/${pm}</b></span></div></div>
   ${tPartyHTML(t,ti)}${tUqHTML(t,ti)}<span class="sp"></span>
   <div class="tacts">${S.folders.length?`<select class="tmove" data-tmove="${ti}" aria-label="폴더 이동" title="폴더 이동"><option value="">폴더 없음</option>${[fTreeOpts(tFolder(t))].join('')}</select>`:''}<button class="btn sm ghost" data-act="decoT" data-i="${ti}" title="카드 색 · 칭호 · 배경 그림 · 무늬">🎨 꾸미기</button><button class="btn sm ghost" data-act="privT" data-i="${ti}" title="비공개 트레이너는 만든 사람(같은 비밀구)과 GM 에게만 보입니다">${t.priv?'공개로':'비공개'}</button><button class="btn sm ghost" data-act="dupT" data-i="${ti}">복제</button><button class="btn sm ghost danger" data-act="delT" data-i="${ti}">삭제</button></div></header>
  ${t.open?`<div class="fb"><div class="tgrid">
@@ -1688,7 +1790,7 @@ function pokeHTML(t,ti,p,pi){const v=formView(p);const P=`T.${ti}.pokemon.${pi}`
   <div class="row pmain" style="min-width:0;gap:9px;flex-wrap:nowrap"><button type="button" class="pavb" data-act="pimgPick" data-i="${ti}" data-j="${pi}" title="포켓몬 이미지 넣기 (클릭 · 끌어다 놓기 · 붙여넣기)">${safeImg(v.image)?`<img class="pav" src="${safeImg(v.image)}" alt="">`:'<span class="pav ph0" aria-hidden="true"></span>'}${v.partner?'<i class="pstb" aria-hidden="true">★</i>':''}</button><div style="min-width:0"><div class="pname">${v.partner?'<span class="pstar" title="파트너">★</span>':''}<span class="pnm">${esc(v.name||'(이름 없음)')}</span>${genderGlyph(v.gender)}${formBtns(p,ti,pi)}</div><div class="pnrow"><span class="chips pntypes">${tchip(v.t1)}${tchip(v.t2)}${tchip(v.t3)}</span><span class="lvb">Lv.${lv(t,v)}</span></div><div class="psub pscs"><span class="psc psr">${esc(roleOf(v)||'역할 없음')}</span>${classOf(v)?`<span class="psc psk">${esc(classOf(v))}</span>`:''}${prideOf(p)?`<span class="psc psp" title="프라이드 ${esc(prideOf(p))}${prideIsAuto(p)?' (자동)':''} · 통솔점 ${prideCost(t,p)}점"><i>프라이드</i><b>${esc(prideOf(p))}</b></span>`:''}${pokeChecks(t,p).some(c=>c.w)?' <span class="warn" title="기본·능력치 탭의 경고를 확인하세요">⚠</span>':''}</div></div></div>
   <div class="hide-s ptyab"><div class="pab"><span class="pabk">특성</span><b>${esc(v.ability||'특성 없음')}</b>${v.item?`<span class="faint"> · ${esc(v.item)}</span>`:''}</div>${abE?`<div class="pabe" title="${esc(abE)}">${esc(abE)}</div>`:''}</div>
   <div class="pexcl ${XL.length?'':'none'} ${XL.length>1?'multi':''}">${XL.map(x=>{const e=oneLn(x.eff);return `<div class="pxi"><div class="pxn"><span class="pxk">전용</span><b>${esc(x.name)}</b></div>${e?`<div class="pxe" title="${esc(e)}">${esc(e)}</div>`:''}</div>`}).join('')}</div>
-  <div class="hide-s pkstat">${radar(v)}<div style="min-width:0">${miniGrades(v,t)}<div class="psub" style="margin-top:3px">종족치 합 <b class="num">${tot||'-'}</b>${(()=>{const pl=v._form?null:planRange(v);if(!pl||!tot)return '';const ok=tot>=pl.lo&&tot<=pl.hi;return `<span class="${ok?'faint':'warn'}" title="규칙상 예정 합계"> / ${pl.lo}${pl.hi!==pl.lo?'~'+pl.hi:''}</span>`})()} · 기술 <span class="${c.cap!=null&&c.used>c.cap?'warn':''}">${capTxt(c,'-','/')}</span> · 포텐셜 ${npot}</div></div></div>
+  <div class="hide-s pkstat">${radar(v)}<div style="min-width:0">${miniGrades(v,t)}<div class="psub" style="margin-top:3px">종족치 합 <b class="num">${tot||'-'}</b>${(()=>{const pl=v._form?null:planRange(v);if(!pl||!tot)return '';return `<span class="${pl.ok?'faint':'warn'}" title="계산 종족치 / 계단 기준"> · 계산 ${fmtN(pl.ct)}/${pl.v}</span>`})()} · 기술 <span class="${c.cap!=null&&c.used>c.cap?'warn':''}">${capTxt(c,'-','/')}</span> · 포텐셜 ${npot}</div></div></div>
   <div class="pact"><button class="btn sm ghost" data-act="pcard" data-i="${ti}" data-j="${pi}" title="이 포켓몬을 한 장으로 요약해서 본다 (PNG 저장)">한 장</button><button class="btn sm ghost" data-act="copy" data-i="${ti}" data-j="${pi}" title="복사용 텍스트 복사">복사</button><button class="btn sm ghost" data-act="dupP" data-i="${ti}" data-j="${pi}">복제</button><button class="btn sm danger pdel" data-act="delP" data-i="${ti}" data-j="${pi}" title="이 포켓몬 시트 삭제">🗑 삭제</button></div></div>
  ${p.open?`<div class="pbody"><nav class="ptabs">${[['base','기본<span class="wide-only">·능력치</span>',''],['moves','기술',filled],['pots','포텐셜',npot],['tune','상세<span class="wide-only"> 조정</span>',tuneCount(p)||''],['text','<span class="wide-only">복사용 </span>텍스트','']].map(([k,n,cn])=>`<button data-ptab="${k}" data-i="${ti}" data-j="${pi}" class="${p.tab===k?'on':''}">${n}${cn!==''?`<span class="cnt">${cn}</span>`:''}</button>`).join('')}</nav>
  ${p.tab==='moves'?movesTab(t,ti,p,pi,P,c):p.tab==='pots'?potsTab(t,ti,p,pi):p.tab==='tune'?tuneTab(t,ti,p,pi):p.tab==='text'?textTab(t,ti,p,pi,P):baseTab(t,ti,p,pi,P)}</div>`:''}</article>`}
@@ -1701,7 +1803,7 @@ function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=itemRow(p),own
   <div class="fgrid">
    <label class="lbl" for="nm-${id}" style="grid-column:span 2">이름${inp(P+'.name',p.name,{id:'nm-'+id})}</label>
    <label class="lbl" for="dist-${id}">레벨 <span class="faint">기본 ${baseLevel(t.ranks['육성'])} + 분배</span><span class="row"><b class="num" style="font-size:15px">${lv(t,p)}</b>${inp(P+'.dist',p.dist,{id:'dist-'+id,w:'56px',num:1})}</span></label>
-   <label class="lbl" for="pr-${id}">프라이드 <span class="faint">통솔점 ${prideCost(t,p)}</span><select data-p="${P}.pride" id="pr-${id}"><option value="" ${prideIsAuto(p)?'selected':''}>자동 (${esc(prideAuto(p))})</option>${PR().rows.map(r=>`<option ${!prideIsAuto(p)&&strip(p.pride)===r[0]?'selected':''}>${esc(r[0])}</option>`).join('')}</select></label>
+   <label class="lbl" for="pr-${id}">프라이드 <span class="faint">통솔점 ${prideCost(t,p)}</span><select data-p="${P}.pride" id="pr-${id}"><option value="" ${prideIsAuto(p)?'selected':''}>자동 (${esc(prideAuto(p))})</option>${[...(isOld(p)?[[PR().oldLow.lab]]:[]),...PR().rows].filter(r=>r&&r[0]).map(r=>`<option ${!prideIsAuto(p)&&strip(p.pride)===r[0]?'selected':''}>${esc(r[0])}</option>`).join('')}</select></label>
    <label class="lbl" for="pt-${id}">파트너<span class="row small" style="min-height:30px"><input type="checkbox" id="pt-${id}" data-p="${P}.partner" ${p.partner?'checked':''}>통솔점 1 할인</span></label>
    <label class="lbl" for="ge-${id}">성별${sel(P+'.gender',p.gender,['-','♂','♀','무성'],{id:'ge-'+id})}</label>
    ${['t1','t2','t3','tera'].map((k,n)=>`<label class="lbl" for="${k}-${id}">${['타입1','타입2','타입3','테라스탈'][n]}${sel(`${P}.${k}`,p[k],types,{id:k+'-'+id})}</label>`).join('')}
@@ -1716,11 +1818,11 @@ function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=itemRow(p),own
   ${itemSlotsHtml(p,ti,pi)}
   ${formsHtml(t,ti,p,pi,P)}
  </div>
- <div class="panel" style="min-width:0"><h3>능력치<span class="sp"></span><span class="small muted">종족치 합 <b class="num">${tot}</b>${(()=>{const et=effB(t,p).reduce((a,b)=>a+(+b||0),0);return et!==tot?` → 특성 · 포텐셜 반영 <b class="num">${et}</b>`:''})()}${(()=>{const pl=planRange(p);if(!pl)return '';const ok=tot>=pl.lo&&tot<=pl.hi;return ` · 예정 <b class="num${ok?'':' warn'}">${pl.lo}${pl.hi!==pl.lo?'~'+pl.hi:''}</b>${pl.alt?' <span class="faint">(괄호 값)</span>':''}`})()}</span></h3>
-  <div class="stwrap"><div class="bigr">${radarBig(p)}</div><div class="stats">${STATS.map((s,i)=>{const eb=effB(t,p)[i];const tip=buTip(t,p,i);const g=grade(eb);const v=+eb||0;return `<div class="st s${i}${tip?' bup':''}"><span class="k">${s}</span>${inp(`${P}.base.${i}`,p.base[i],{num:1,ph:'종족치'})}<div class="bar"><i style="width:${Math.min(100,v/200*100)}%"></i></div><span class="v">${stat(t,p,i)}</span><span class="gb" style="background:${gcol(g)}" ${tip?`title="${esc(tip)}"`:''}>${tip?'▲':''}${esc(g)}</span></div>`}).join('')}</div>${(()=>{const U=baseUp(t,p).up;return U.length?`<div class="bupnote small">${U.map(u=>`<span><b>${STATS[u.i]}</b> ${u.from} ${esc(grade(u.from))} → <b class="num">${u.to}</b> ${esc(grade(u.to))} <span class="faint">${esc(u.by.join(' · '))}</span></span>`).join('')}</div>`:''})()}</div>
-  <div class="stfoot"><span>물리 내구 <b class="num">${(stat(t,p,0)*stat(t,p,2)).toLocaleString()}</b></span><span>특수 내구 <b class="num">${(stat(t,p,0)*stat(t,p,4)).toLocaleString()}</b></span><span class="faint">실수치 = 테이블(더블) 식 · Lv.${lv(t,p)}${p.ivs?' · 개체값 포함':''}</span></div>
+ <div class="panel" style="min-width:0"><h3>능력치<span class="sp"></span><span class="small muted">종족치 합 <b class="num">${tot}</b>${(()=>{const et=effB(t,p).reduce((a,b)=>a+(+b||0),0);return et!==tot?` → 특성 · 포텐셜 반영 <b class="num">${et}</b>`:''})()}${(()=>{const pl=planRange(p);if(!pl)return '';return ` · 계산 <b class="num${pl.ok?'':' warn'}">${fmtN(pl.ct)}</b> / ${esc(pl.lab)} ${pl.v}`})()}</span></h3>
+  <div class="stwrap"><div class="bigr">${radarBig(p)}</div><div class="stats">${STATS.map((s,i)=>{const eb=effB(t,p)[i];const tip=buTip(t,p,i);const g=grade(eb);const v=+eb||0;return `<div class="st s${i}${tip?' bup':''}"><span class="k">${s}</span>${inp(`${P}.base.${i}`,p.base[i],{num:1,ph:'종족치'})}<div class="bar" data-drag="${P}.base.${i}" title="좌우로 끌어서 종족치 조절"><i style="width:${Math.min(100,v/200*100)}%"></i>${statMarks(p,i)}</div><span class="v">${stat(t,p,i)}</span><span class="gb" style="background:${gcol(g)}" ${tip?`title="${esc(tip)}"`:''}>${tip?'▲':''}${esc(g)}</span></div>`}).join('')}</div>${(()=>{const U=baseUp(t,p).up;return U.length?`<div class="bupnote small">${U.map(u=>`<span><b>${STATS[u.i]}</b> ${u.from} ${esc(grade(u.from))} → <b class="num">${u.to}</b> ${esc(grade(u.to))} <span class="faint">${esc(u.by.join(' · '))}</span></span>`).join('')}</div>`:''})()}</div>
+  <div class="stfoot"><span>물리 내구 <b class="num">${(stat(t,p,0)*stat(t,p,2)).toLocaleString()}</b></span><span>특수 내구 <b class="num">${(stat(t,p,0)*stat(t,p,4)).toLocaleString()}</b></span><span class="faint">실수치 = 테이블(더블) 식 · Lv.${lv(t,p)}${p.ivs?' · 개체값 포함':''}</span>${isOld(p)?'':'<span class="stlg faint"><i class="lg-fl"></i>하한 <i class="lg-z1"></i>할증 구간 <i class="lg-z2"></i>더 센 구간 <i class="lg-dl"></i>쌍두 할인 · 막대를 끌어서 조절</span>'}</div>
   ${ivHtml(t,ti,p,pi)}
-  ${(()=>{const ck=pokeChecks(t,p);return ck.length?`<div class="checks">${ck.map(c=>`<div class="${c.w?'warn':'muted'}">${c.w?'⚠ ':'· '}${esc(c.t)}</div>`).join('')}</div>`:''})()}</div></div>`}
+  ${calcPanel(t,p,P)}${(()=>{const ck=pokeChecks(t,p).filter(c=>c.w||c.k!=='calc');return ck.length?`<div class="checks">${ck.map(c=>`<div class="${c.w?'warn':'muted'}">${c.w?'⚠ ':'· '}${esc(c.t)}</div>`).join('')}</div>`:''})()}</div></div>`}
 function movesTab(t,ti,p,pi,P,c){const ms=p.moves;const over=c.cap!=null&&c.used>c.cap;
  return `<div class="capline"><b>${c.mode==='count'?'기술 개수':'기술 소켓'}</b><span class="num ${over?'warn':''}">${capTxt(c,'종족치 입력 필요')}</span>${c.mode==='count'?`<span class="small muted">『${esc(classOf(p))}』 · PT 기술점 ${c.pt} 고정</span>`:''}${c.cap?`<div class="meter ${over?'over':''}"><i style="width:${Math.min(100,c.used/c.cap*100)}%"></i></div>`:''}
   <span class="small muted">상한 직접 지정</span>${inp(P+'.sockMax',p.sockMax,{w:'56px',num:1,ph:String(c.auto??'')})}<span class="sp"></span><button class="btn pri sm" data-act="pickMove" data-i="${ti}" data-j="${pi}">+ 기술 검색·추가</button></div>
@@ -1818,7 +1920,7 @@ function fitLog(){for(const [fi,vi] of [['#logFrame','#v-log'],['#ruleFrame','#v
 function fitFrame(f){const top=f.getBoundingClientRect().top+window.scrollY;let bot=0;const tb=$('#mk .tabs');if(tb){const r=tb.getBoundingClientRect();if(getComputedStyle(tb).position==='fixed'&&r.top>innerHeight/2)bot=r.height}f.style.height=Math.max(420,Math.floor(innerHeight-top-bot))+'px'}
 addEventListener('resize',()=>{clearTimeout(fitLog.t);fitLog.t=setTimeout(fitLog,80)});
 const LOGV='20261025d';   /* 로그 정리기 판 (캐시 깨기) */
-function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v='+LOGV;requestAnimationFrame(fitLog);return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=20261026';requestAnimationFrame(fitLog);return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
+function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v='+LOGV;requestAnimationFrame(fitLog);return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=20261025b';requestAnimationFrame(fitLog);return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
 let rT=null;
 let composing=false;
 $('#v-char').addEventListener('compositionstart',()=>{composing=true;clearTimeout(rT)});
@@ -1826,6 +1928,13 @@ $('#v-char').addEventListener('compositionend',e=>{composing=false;const t=trOf(
 $('#v-char').addEventListener('input',e=>{if(e.target.dataset.tuneitem){const t=S.trainers[+e.target.dataset.i];const P=t&&t.pokemon[+e.target.dataset.j];if(!P)return;const T0=tuneOf(P);T0.item=e.target.value;T0.itemName=T0.item.trim()?P.item:'';save();const pv=$('#tunePrev-'+P.id);if(pv&&fxReady())pv.innerHTML=tuneItemPrev(T0.item);return}
  const p=e.target.dataset.p;if(!p)return;const[o,k]=getRef(p);if(!o)return;o[k]=e.target.type==='checkbox'?e.target.checked:e.target.value;save();
  const t=trOf(e.target);if(e.target.tagName==='TEXTAREA'||e.isComposing||composing)return;clearTimeout(rT);rT=setTimeout(()=>t&&refreshTrainer(t),550)});
+/* 10-25 망령: 능력치 막대를 좌우로 끌어 종족치 조절 (0~200 눈금 · 놓으면 저장하고 다시 그림) */
+{let dg=null;const valAt=(bar,x)=>{const r=bar.getBoundingClientRect();return Math.max(1,Math.min(200,Math.round((x-r.left)/r.width*200)))};
+ const mv=e=>{if(!dg||e.pointerId!==dg.id)return;const v=valAt(dg.bar,e.clientX);dg.o[dg.k]=String(v);if(dg.inp)dg.inp.value=v;const fi=dg.bar.querySelector('i');if(fi)fi.style.width=Math.min(100,v/2)+'%';dg.bar.title='종족치 '+v};
+ $('#v-char').addEventListener('pointerdown',e=>{const bar=e.target.closest('.bar[data-drag]');if(!bar||e.button!==0)return;const path=bar.dataset.drag;const[o,k]=getRef(path);if(!o)return;e.preventDefault();try{bar.setPointerCapture(e.pointerId)}catch(err){}
+  dg={bar,o,k,id:e.pointerId,t:trOf(bar),inp:bar.parentNode.querySelector(`[data-p="${CSS.escape(path)}"]`)};clearTimeout(rT);mv(e)});
+ $('#v-char').addEventListener('pointermove',mv);
+ const end=e=>{if(!dg||e.pointerId!==dg.id)return;const t=dg.t;dg=null;save();if(t)refreshTrainer(t)};$('#v-char').addEventListener('pointerup',end);$('#v-char').addEventListener('pointercancel',end)}
 $('#v-char').addEventListener('change',e=>{const el=e.target;
  if(el.dataset.tunecr){const t=S.trainers[+el.dataset.i];const P=t&&t.pokemon[+el.dataset.j];if(!P)return;const c=tuneOf(P).crit;const k=el.dataset.tunecr;const v=el.type==='checkbox'?el.checked:String(el.value).trim();if(v===''||v===false||(k!=='tbl'&&k!=='dmg'&&el.type==='number'&&!+v))delete c[k];else c[k]=el.type==='checkbox'?1:v;save();return}
  if(el.dataset.tunest){const t=S.trainers[+el.dataset.i];const P=t&&t.pokemon[+el.dataset.j];if(!P)return;const v=el.value.replace(/\s+/g,'');const x=tuneOf(P).st.find(q=>q.st===el.dataset.tunest);if(!x)return;if(!FRAC_RE.test(v)||!(+v.split('/')[1]>0)){toast('비율을 1/6 처럼 적어 주세요');el.value=x.v;return}x.v=v;save();refreshTrainer(t);return}
@@ -1918,7 +2027,7 @@ document.addEventListener('drop',e=>{const z=e.target.closest&&e.target.closest(
 function readImg(f,max,type,cb){const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,max/Math.max(im.width,im.height));c.width=Math.max(1,Math.round(im.width*s));c.height=Math.max(1,Math.round(im.height*s));const g=c.getContext('2d');if(type==='image/jpeg'){g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height)}g.drawImage(im,0,0,c.width,c.height);let u=c.toDataURL(type,.85);if(type!=='image/jpeg'&&/^data:image\/jpeg/.test(u))u=c.toDataURL('image/png');cb(u)};im.onerror=()=>toast('이미지를 읽지 못했습니다');im.src=rd.result};rd.readAsDataURL(f)}
 $('#v-char').addEventListener('click',async e=>{
  if(Date.now()-dragEnd<300)return;
- const ft=e.target.closest('[data-ftog]');if(ft&&!e.target.closest('button,input,select,label,textarea')){S.ui.fclosed=S.ui.fclosed||{};const k=ft.dataset.ftog;S.ui.fclosed[k]=!S.ui.fclosed[k];save();renderChar();return}
+ const ft=e.target.closest('[data-ftog]');if(ft&&!e.target.closest('button,input,select,label,textarea')){S.ui.fclosed=S.ui.fclosed||{};const k=ft.dataset.ftog;S.ui.fclosed[k]=!S.ui.fclosed[k];if(S.ui.fclosed[k]){const ids=k==='_none'?['']:[k,...fDesc(k)];for(const id of ids)if(id)S.ui.fclosed[id]=true;for(const t of S.trainers)if(ids.includes(tFolder(t))){t.open=false;for(const p of t.pokemon)p.open=false}}save();renderChar();return}
  const tg=e.target.closest('[data-tog]');if(tg&&!e.target.closest('button,input,select,label,textarea')){const[o,k]=getRef(tg.dataset.tog);o[k].open=!o[k].open;save();const t=trOf(tg);t?refreshTrainer(t):renderChar();return}
  const pt=e.target.closest('[data-ptab]');if(pt){const T=S.trainers[+pt.dataset.i];T.pokemon[+pt.dataset.j].tab=pt.dataset.ptab;save();refreshTrainer(T);return}
  const b=e.target.closest('[data-act]');if(!b)return;const i=+b.dataset.i,j=+b.dataset.j,k=b.dataset.k,T=S.trainers[i],P=T&&T.pokemon[j];
@@ -2274,10 +2383,7 @@ function renderTbl(){$('#v-tbl').innerHTML=`<div class="intro"><h1>테이블·�
   <p class="small muted" style="margin:0 0 6px">자질 랭크를 바꾸면 해당 자질의 행이 트레이너 포인트 기본값에 자동으로 들어갑니다. 「공통 / *」 행은 새 트레이너와 「템플릿 다시 적용」 때 들어갑니다. 트레이너의 「1인 기준 (2체)」가 켜져 있으면 「값 (1인)」을, 꺼져 있으면 「값 (6체)」를 씁니다. 1인 값은 룰북 「1인 기준 (2체)」 장의 시안이 기본값으로 들어가 있고, 빈 칸은 다시 열 때 기본값(없으면 6체 값)으로 채워집니다. 비고가 「추정」「시안」인 값은 룰북을 보고 맞춰 주세요.</p>
   <div class="tw"><table><tr><th>자질</th><th>랭크</th><th>항목</th><th class="n">값 (6체)</th><th class="n">값 (1인)</th><th>비고</th><th></th></tr>${S.db.tpl.map((r,i)=>`<tr><td>${sel(`db.tpl.${i}.0`,r[0],['공통',...QUAL],{style:'width:76px'})}</td><td><input data-p="db.tpl.${i}.1" value="${esc(r[1])}" style="width:60px"></td><td><input data-p="db.tpl.${i}.2" value="${esc(r[2])}" list="L-tplitems"></td><td class="n"><input data-p="db.tpl.${i}.3" value="${esc(r[3])}" inputmode="decimal" style="width:60px"></td><td class="n"><input data-p="db.tpl.${i}.5" value="${esc(r[5]??'')}" inputmode="decimal" style="width:60px"></td><td><input data-p="db.tpl.${i}.4" value="${esc(r[4])}"></td><td><button class="btn sm ghost danger" data-tact="tplDel" data-i="${i}" aria-label="삭제">✕</button></td></tr>`).join('')}</table></div>
   <datalist id="L-tplitems">${ptItems().map(r=>`<option value="${esc(r[0])}">`).join('')}</datalist></div>
- <div class="panel" style="grid-column:1/-1"><h3>프라이드 규칙 · 룰북 「포켓몬 제작」<span class="sp"></span><button class="btn sm" data-tact="prReset">기본값</button></h3>
-  <p class="small muted" style="margin:0 0 6px">포켓몬의 프라이드를 「자동」으로 두면 종족치 합에서 가장 가까운 기준으로 반올림하고, 『올드 타입』 계열은 버림합니다. 통솔점·특성 TO·최소종족치·화력균형은 기본·능력치 탭의 점검과 포인트 자동 소모에 쓰입니다.</p>
-  <div class="tw"><table><tr><th>프라이드</th><th class="n">종족치 합</th><th class="n">통솔점</th><th class="n">특성 TO</th><th class="n">최소종족치</th><th class="n">화력균형</th><th>비고</th></tr>${PR().rows.map((r,i)=>`<tr>${r.map((v,j)=>`<td${j&&j<6?' class="n"':''}><input data-p="db.pride.rows.${i}.${j}" value="${esc(v)}" style="width:${j===0?'48px':j===6?'100%':'64px'}" ${j&&j<6?'inputmode="decimal"':''}></td>`).join('')}</tr>`).join('')}</table></div>
-  <div class="row small" style="margin-top:8px;gap:14px">${[['hiCap','프라이드 A 종족치 상한'],['fire','고화력 기준 (공격·특공)'],['dual','쌍두형 기준 (공격·특공 모두)'],['sum3','공격+특공+스피드 최소'],['friendly','『프렌들리 몬스터』: C 기준 +']].map(([k,l])=>`<label class="row" style="gap:4px">${l}<input data-p="db.pride.${k}" value="${esc(PR()[k])}" inputmode="decimal" style="width:56px"></label>`).join('')}</div></div>
+ ${prideRulePanel()}
  <div class="panel" style="grid-column:1/-1"><h3>트레이너 포인트 항목<span class="sp"></span><button class="btn sm" data-tact="ptiAdd">+ 항목</button><button class="btn sm" data-tact="ptiApply" title="모든 트레이너의 기본값을 이 표와 랭크 템플릿으로 다시 맞춥니다">모든 트레이너에 적용</button><button class="btn sm" data-tact="ptiReset">기본값</button></h3>
   <p class="small muted" style="margin:0 0 6px">캐릭터 시트의 「포인트」 표에 나오는 항목입니다. 기본값은 새 트레이너에 들어가고, 자질 랭크에 따라 바뀌는 값은 아래 「랭크별 기초 템플릿」이 덮어씁니다. 이름을 바꾸면 모든 트레이너의 같은 항목 이름도 함께 바뀝니다.</p>
   <div class="tw"><table><tr><th>항목 이름</th><th class="n">기본값</th><th>자동 소모</th><th></th></tr>${ptItems().map((r,i)=>`<tr><td><input data-pti="${i}.0" value="${esc(r[0])}"></td><td class="n"><input data-pti="${i}.1" value="${esc(r[1])}" inputmode="decimal" style="width:64px"></td><td><select data-pti="${i}.2">${Object.entries(PTI_AUTO).map(([v,l])=>`<option value="${v}" ${(r[2]||'')===v?'selected':''}>${esc(l)}</option>`).join('')}</select></td><td><button class="btn sm ghost danger" data-tact="ptiDel" data-i="${i}" aria-label="삭제">✕</button></td></tr>`).join('')}</table></div></div>
@@ -2322,7 +2428,9 @@ $('#v-tbl').addEventListener('keydown',e=>{if(e.isComposing)return;if(e.target.i
 $('#v-tbl').addEventListener('change',e=>{if(e.target.id==='banRawTa'){BANED=-1;const t=$('#banBox details');const open=t&&t.open;banRefresh();const t2=$('#banBox details');if(t2&&open)t2.open=true}});
 $('#v-tbl').addEventListener('click',async e=>{const b=e.target.closest('[data-tact]');if(!b)return;const a=b.dataset.tact,i=+b.dataset.i;
  if(a==='tplAdd')S.db.tpl.push(['지시','C','','','','']);if(a==='tplDel')S.db.tpl.splice(i,1);
- if(a==='prReset'){if(!await ask('프라이드 규칙을 룰북 기본값으로 되돌릴까요?','되돌리기'))return;S.db.pride=clone(PRIDE_DEF);S.db.prideExV=1}
+ if(a==='prReset'){if(!await ask('종족치 · 프라이드 규칙을 룰북 기본값으로 되돌릴까요?','되돌리기'))return;S.db.pride=clone(PRIDE_DEF);S.db.prideExV=1}
+ if(a==='prRowAdd'){prideMigrate(S.db);S.db.pride.rows.push(['','','','','1',''])}
+ if(a==='prRowDel'){prideMigrate(S.db);S.db.pride.rows.splice(i,1)}
  if(a==='ptiAdd'){let n='새 항목',k=2;while(S.db.ptItems.some(r=>r[0]===n))n='새 항목 '+(k++);S.db.ptItems.push([n,'0',''])}
  if(a==='ptiDel'){const n=S.db.ptItems[i][0];if(!await ask(`포인트 항목 「${esc(n)}」을(를) 지울까요? 트레이너에 적힌 값도 함께 지워집니다.`,'삭제'))return;S.db.ptItems.splice(i,1);for(const t of S.trainers)delete t.base[n];save()}
  if(a==='ptiReset'){if(!await ask('포인트 항목을 기본값으로 되돌릴까요?','되돌리기'))return;S.db.ptItems=clone(PTI_DEF)}

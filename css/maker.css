@@ -1054,3 +1054,30 @@ html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 .mkspcut-t{align-self:flex-start;background:#000;color:#fff;font-size:11px;padding:1px 8px;border-radius:999px}
 .mkspcut b{font-size:18px;letter-spacing:.04em}
 .mkspcut-l{align-self:flex-start;background:#fff;color:#000;font-size:12px;padding:2px 8px}
+
+/* 10-25 종족치 개편: 능력치 막대 구간 · 계산 종족치 현황판 · 규칙 표 */
+#mk .bar[data-drag]{position:relative;cursor:ew-resize;touch-action:pan-y}
+#mk .bar .zn{position:absolute;bottom:0;height:4px;pointer-events:none}
+#mk .bar .zn.z1{opacity:.55}#mk .bar .zn.z2{opacity:1}
+#mk .bar .zn.hp{background:#E3A43A}#mk .bar .zn.bulk{background:#2FB386}#mk .bar .zn.fs{background:#A86BE0}#mk .bar .zn.dl{background:#25B3C1;opacity:.9}
+#mk .bar .zn.sp{background:linear-gradient(90deg,rgba(168,107,224,.15),#A86BE0)}
+#mk .bar .fl{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#E5484D;box-shadow:0 0 0 1px rgba(0,0,0,.25);pointer-events:none}
+#mk .stlg{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 6px;font-size:11px}
+#mk .stlg i{display:inline-block;width:12px;height:4px;border-radius:2px}#mk .stlg .lg-fl{width:2px;height:10px;background:#E5484D}#mk .stlg .lg-z1{background:#2FB386;opacity:.55}#mk .stlg .lg-z2{background:#2FB386}#mk .stlg .lg-dl{background:#25B3C1}
+#mk .tpm .tpc{font-style:normal;font-size:9.5px;line-height:1.1;font-family:var(--mono,monospace);color:var(--muted);white-space:nowrap}
+#mk .cpanel{margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:8px;min-width:0}
+#mk .cph{display:flex;align-items:center;gap:8px;flex-wrap:wrap}#mk .cph .sp{flex:1}
+#mk .cpr{font-size:20px;font-weight:700;line-height:1;padding:3px 10px;border-radius:7px;background:var(--ink);color:var(--bg,#fff)}#mk .cpr.warn{background:#E5484D;color:#fff}
+#mk .cpbar{position:relative;display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--sunk2)}
+#mk .cpbar i{display:block;height:100%}#mk .cpbar .base{background:var(--muted);opacity:.55}#mk .cpbar .off{background:#4F7BD8}#mk .cpbar .bulk{background:#2FB386}#mk .cpbar .hp{background:#E3A43A}#mk .cpbar .fs{background:#A86BE0}#mk .cpbar .to{background:#8A8F98}
+#mk .cpcap{position:absolute;top:-1px;bottom:-1px;width:2px;margin-left:-1px;background:var(--ink)}
+#mk .cpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:6px}
+#mk .cpc{border-radius:8px;padding:6px 8px;background:var(--sunk2);display:grid;gap:1px;border-top:3px solid var(--cc,var(--line));min-width:0}
+#mk .cpc span{font-size:11px;color:var(--muted)}#mk .cpc b{font-size:15px}#mk .cpc small{font-size:10.5px;color:var(--muted);overflow-wrap:anywhere}
+#mk .cpc.zero{opacity:.55}#mk .cpc.base{--cc:var(--muted)}#mk .cpc.off{--cc:#4F7BD8}#mk .cpc.bulk{--cc:#2FB386}#mk .cpc.hp{--cc:#E3A43A}#mk .cpc.fs{--cc:#A86BE0}#mk .cpc.dl{--cc:#25B3C1}#mk .cpc.to{--cc:#8A8F98}#mk .cpc.tot{--cc:var(--ink)}
+#mk .cpanel.old .cprow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}#mk .cpanel.old .cpc{display:inline-flex;gap:6px;align-items:baseline}#mk .cpop{color:var(--muted)}
+#mk .cppri{display:flex;flex-wrap:wrap;align-items:center;gap:8px}#mk .cppri select{max-width:200px}
+#mk .prgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:10px;margin-top:10px}
+#mk .prg{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;align-content:flex-start;border:1px solid var(--line);border-radius:8px;padding:8px 10px}#mk .prg>b{flex:1 1 100%;font-size:13px}
+#mk .ftile .fmeta,#mk .tfold:not(.open)>.ftile .fname,#mk .tfold:not(.open)>.ftile .fsub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#mk .ftile .fl1{min-width:0}
