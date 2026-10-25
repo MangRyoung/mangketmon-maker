@@ -1056,14 +1056,23 @@ html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 .mkspcut-l{align-self:flex-start;background:#fff;color:#000;font-size:12px;padding:2px 8px}
 
 /* 10-25 종족치 개편: 능력치 막대 구간 · 계산 종족치 현황판 · 규칙 표 */
-#mk .bar[data-drag]{position:relative;cursor:ew-resize;touch-action:pan-y}
-#mk .bar .zn{position:absolute;bottom:0;height:4px;pointer-events:none}
-#mk .bar .zn.z1{opacity:.55}#mk .bar .zn.z2{opacity:1}
-#mk .bar .zn.hp{background:#E3A43A}#mk .bar .zn.bulk{background:#2FB386}#mk .bar .zn.fs{background:#A86BE0}#mk .bar .zn.dl{background:#25B3C1;opacity:.9}
-#mk .bar .zn.sp{background:linear-gradient(90deg,rgba(168,107,224,.15),#A86BE0)}
-#mk .bar .fl{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#E5484D;box-shadow:0 0 0 1px rgba(0,0,0,.25);pointer-events:none}
-#mk .stlg{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 6px;font-size:11px}
-#mk .stlg i{display:inline-block;width:12px;height:4px;border-radius:2px}#mk .stlg .lg-fl{width:2px;height:10px;background:#E5484D}#mk .stlg .lg-z1{background:#2FB386;opacity:.55}#mk .stlg .lg-z2{background:#2FB386}#mk .stlg .lg-dl{background:#25B3C1}
+#mk .bar[data-drag]{position:relative;cursor:ew-resize;touch-action:pan-y;overflow:visible}
+#mk .bar[data-drag]>i{position:relative;z-index:0}
+#mk .bar .zn{position:absolute;top:0;bottom:0;pointer-events:none;z-index:1;--zc:#2FB386;background:color-mix(in srgb,var(--zc) 14%,transparent);box-shadow:inset 1px 0 0 color-mix(in srgb,var(--zc) 70%,transparent)}
+#mk .bar .zn.on{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--zc) 85%,transparent) 0 3px,transparent 3px 6px)}
+#mk .bar .zn.z2.on{background:repeating-linear-gradient(135deg,var(--zc) 0 4px,transparent 4px 6px)}
+#mk .bar .zn.hp{--zc:#E3A43A}#mk .bar .zn.bulk{--zc:#2FB386}#mk .bar .zn.fs,#mk .bar .zn.sp{--zc:#A86BE0}#mk .bar .zn.dl{--zc:#25B3C1}
+#mk .bar .fl{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:#E5484D;box-shadow:0 0 0 1px rgba(0,0,0,.25);pointer-events:none;z-index:2}
+#mk .bar .zt{position:absolute;right:0;bottom:calc(100% + 2px);display:flex;gap:3px;font-style:normal;pointer-events:none;z-index:2}
+#mk .bar .zt span{font:700 9px/1 var(--mono,monospace);padding:1px 4px;border-radius:4px;color:#fff;background:#333;white-space:nowrap}
+#mk .bar .zt .hp{background:#B97D12}#mk .bar .zt .bulk{background:#1F8A62}#mk .bar .zt .fs{background:#8746C4}#mk .bar .zt .dl{background:#127F8A}#mk .bar .zt .off{background:#C9302C}
+#mk .bar .knob{position:absolute;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#fff;border:2px solid var(--ink,#111);box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:grab;touch-action:none;z-index:3;transition:transform .1s}
+#mk .bar[data-drag]:hover .knob{transform:scale(1.12)}#mk .bar.dragging .knob{cursor:grabbing;transform:scale(1.2)}
+@media (pointer:coarse){#mk .bar .knob{width:22px;height:22px;margin:-11px 0 0 -11px}}
+/* 휴대폰: 막대를 한 줄 아래로 내려 폭을 넓게 (끌기 쉽게) */
+@media (max-width:600px){#mk .st{grid-template-columns:44px 104px minmax(0,1fr) 34px!important;grid-template-areas:"k in v g" "bar bar bar bar";row-gap:14px!important;padding-bottom:4px}#mk .st>.k{grid-area:k}#mk .st>:nth-child(2){grid-area:in}#mk .st>.bar{grid-area:bar;margin:0 11px}#mk .st>.v{grid-area:v;text-align:right}#mk .st>.gb{grid-area:g}#mk .stats{gap:12px}}
+#mk .stlg{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 12px;font-size:11px}#mk .stlg>span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+#mk .stlg i{display:inline-block;width:14px;height:8px;border-radius:2px}#mk .stlg .lg-fl{width:2px;height:10px;background:#E5484D}#mk .stlg .lg-on{background:repeating-linear-gradient(135deg,#2FB386 0 3px,transparent 3px 6px)}#mk .stlg .lg-off{background:color-mix(in srgb,#2FB386 18%,transparent);box-shadow:inset 1px 0 0 #2FB386}#mk .stlg .lg-dl{background:repeating-linear-gradient(135deg,#25B3C1 0 3px,transparent 3px 6px)}
 #mk .tpm .tpc{font-style:normal;font-size:9.5px;line-height:1.1;font-family:var(--mono,monospace);color:var(--muted);white-space:nowrap}
 #mk .cpanel{margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:8px;min-width:0}
 #mk .cph{display:flex;align-items:center;gap:8px;flex-wrap:wrap}#mk .cph .sp{flex:1}

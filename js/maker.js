@@ -365,16 +365,23 @@ function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);
 /* PT: 공격·특공이 둘 다 기준 미만인 커스텀 포켓몬은 1체까지 (올드 타입은 세지 않음) */
 function ptChecks(t){const th=pnum(PR().weakAtk,60);const L=t.pokemon.filter(p=>!isOld(p)&&baseTot(p)&&(+p.base[1]||0)<th&&(+p.base[3]||0)<th);return L.length>1?[`공격·특공이 둘 다 ${th} 미만인 포켓몬이 ${L.length}체입니다 (${L.map(p=>p.name||'이름 없음').join(', ')}) · PT에 1체까지`]:[]}
 /* 능력치 막대: 하한·할증·할인 구간 (0~200 눈금) */
-function statMarks(p,i){if(isOld(p)||!baseTot(p))return '';const R=PR(),c=customCalc(p),b=c.b,main=Math.max(b[1],b[3]);const X=v=>Math.max(0,Math.min(100,v/2));
- const zone=(lo,hi,cls,tip)=>hi>lo?`<span class="zn ${cls}" style="left:${X(lo)}%;width:${X(Math.min(hi,200))-X(lo)}%" title="${esc(tip)}"></span>`:'';
- const line=(v,cls,tip)=>`<span class="fl ${cls}" style="left:${X(v)}%" title="${esc(tip)}"></span>`;let h='';
- if(i===0){const o=R.hp;h+=zone(pnum(o.lo,95),pnum(o.hi,120),'z1 hp',`HP 할증 ×${o.k1} 구간`)+zone(pnum(o.hi,120),200,'z2 hp',`HP 할증 ×${o.k2} 구간`)}
- if(i===2||i===4){const o=R.bulk;h+=zone(pnum(o.lo,85),pnum(o.hi,105),'z1 bulk',`내구 할증 ×${o.k1} (방어·특방 중 낮은 쪽 기준)`)+zone(pnum(o.hi,105),200,'z2 bulk',`내구 할증 ×${o.k2} (방어·특방 중 낮은 쪽 기준)`)}
- if(i===1||i===3){const isMain=b[i]===main&&main>0;if(isMain){const F=R.fs;h+=zone(pnum(F.lo,105),pnum(F.hi,120),'z1 fs',`화력·스피드 할증 화력 점수 ×${F.k1}`)+zone(pnum(F.hi,120),200,'z2 fs',`화력·스피드 할증 화력 점수 ×${F.k2}`)}
-  else{const D=R.dual;h+=zone(pnum(D.lo,90),pnum(D.hi,120),'dl',`쌍두 할인 ×${D.k} 구간${c.dualOk?'':' (물리기·특수기 각 1개 이상 필요)'}`)}
-  const fl=c.step&&!isMain?Math.max(c.step.floor,c.opp):0;if(fl)h+=line(fl,'off',`하한 ${fl}${!isMain&&c.opp>=(c.step||{}).floor?` (주력 공격 ${main}의 ${R.opp})`:''} · 이보다 낮아도 ${fl}로 계산`)}
- if(i===5){const F=R.fs;h+=zone(pnum(F.slo,90),pnum(F.shi,140),'sp',`화력·스피드 할증 스피드 비율 0→1 구간`);if(c.sf)h+=line(c.sf,'off',`하한 ${c.sf}${c.pri.floor>=(c.step||{}).floor?` (선공: ${c.pri.src})`:''} · 이보다 낮아도 ${c.sf}로 계산`)}
- return h}
+/* 10-25 망령: 능력치 막대 표시 — 줄무늬 = 지금 계산에 더해지는(쌍두는 빠지는) 부분, 옅은 칸 = 그 구간이지만 지금은 영향 없음, 빨간 선 = 하한. 오른쪽 끝 작은 글씨 = 이 칸 때문에 붙는 값 */
+function statMarks(p,i){if(isOld(p)||!baseTot(p))return '';const R=PR(),c=customCalc(p),b=c.b,main=Math.max(b[1],b[3]),v=b[i];const X=x=>Math.max(0,Math.min(100,x/2));
+ const seg=(l,r,cls,tip)=>r>l?`<span class="zn ${cls}" style="left:${X(l)}%;width:${X(r)-X(l)}%" title="${esc(tip)}"></span>`:'';
+ const zone=(lo,hi,cls,on,tip)=>{hi=Math.min(hi,200);if(hi<=lo)return '';const m=on?Math.max(lo,Math.min(v,hi)):lo;return seg(lo,m,cls+' on',tip)+seg(m,hi,cls,tip)};
+ const line=(x,tip)=>`<span class="fl" style="left:${X(x)}%" title="${esc(tip)}"></span>`;const chips=[];let h='';
+ if(i===0){const o=R.hp,lo=pnum(o.lo,95),hi=pnum(o.hi,120),on=v>lo;h+=zone(lo,hi,'z1 hp',on,`HP 할증 · ${lo}~${hi} 구간 ×${o.k1}`)+zone(hi,200,'z2 hp',v>hi,`HP 할증 · ${hi} 초과 ×${o.k2}`);if(c.hp)chips.push(['hp','+'+fmtN(c.hp)])}
+ if(i===2||i===4){const o=R.bulk,lo=pnum(o.lo,85),hi=pnum(o.hi,105),low=Math.min(b[2],b[4]),isLow=v===low,j=i===2?4:2;
+  const why=isLow?'':` · 지금은 ${STATS[j]}(${b[j]})가 낮은 쪽이라 이 칸은 영향 없음`;
+  h+=zone(lo,hi,'z1 bulk',isLow&&v>lo,`내구 할증 · 방어·특방 중 낮은 쪽 ${lo}~${hi} ×${o.k1}${why}`)+zone(hi,200,'z2 bulk',isLow&&v>hi,`내구 할증 · 낮은 쪽 ${hi} 초과 ×${o.k2}${why}`);if(isLow&&c.bulk&&(i===2||b[2]!==b[4]))chips.push(['bulk','+'+fmtN(c.bulk)])}
+ if(i===1||i===3){const isMain=v===main&&main>0;
+  if(isMain){const F=R.fs,lo=pnum(F.lo,105),hi=pnum(F.hi,120),on=c.fs>0,why=on?'':` · 지금은 스피드 ${b[5]}(${pnum(F.slo,90)} 이하)라 0`;h+=zone(lo,hi,'z1 fs',on&&v>lo,`화력·스피드 할증 · 주력 공격 ${lo}~${hi} ×${F.k1} × 스피드 비율${why}`)+zone(hi,200,'z2 fs',on&&v>hi,`화력·스피드 할증 · 주력 공격 ${hi} 초과 ×${F.k2} × 스피드 비율${why}`);if(c.fs&&(i===1||b[1]!==b[3]))chips.push(['fs','+'+fmtN(c.fs)])}
+  else{const D=R.dual,lo=pnum(D.lo,90),hi=pnum(D.hi,120);h+=zone(lo,hi,'dl',c.dualOk&&v>lo,`쌍두 할인 · 낮은 쪽 공격 ${lo}~${hi} ×${D.k} (빼 줌)${c.dualOk?'':' · 물리기·특수기를 각각 1개 이상 들어야 받음'}`);if(c.dual)chips.push(['dl','−'+fmtN(c.dual)])}
+  const fl=c.step&&!isMain?Math.max(c.step.floor,c.opp):c.step?c.step.floor:0;if(fl&&!isMain)h+=line(fl,`하한 ${fl}${c.opp>=c.step.floor?` (주력 공격 ${main} × ${R.opp})`:''} · 이보다 낮게 찍어도 ${fl}로 계산`);
+  const lack=i===1?c.fa:c.fc;if(lack)chips.push(['off','하한 +'+fmtN(lack)])}
+ if(i===5){const F=R.fs,slo=pnum(F.slo,90),shi=pnum(F.shi,140);h+=zone(slo,shi,'sp',c.fs>0,`화력·스피드 할증의 스피드 비율 · ${slo}에서 0, ${shi}에서 1${c.fs>0?'':' · 지금은 주력 공격이 낮아 0'}`);
+  if(c.sf)h+=line(c.sf,`하한 ${c.sf}${c.pri&&c.pri.floor>=((c.step||{}).floor||0)?` (선공: ${c.pri.src})`:''} · 이보다 낮게 찍어도 ${c.sf}로 계산`);if(c.fsp)chips.push(['off','하한 +'+fmtN(c.fsp)])}
+ return h+(chips.length?`<em class="zt">${chips.map(([k,t])=>`<span class="${k}">${esc(t)}</span>`).join('')}</em>`:'')}
 
 /* 능력치 칸 아래 「계산 종족치」 현황판 — 항목별 값 · 막대 · 선공 하한 예외 입력 */
 function calcPanel(t,p,P){if(!baseTot(p))return '';const R=PR();
@@ -1819,8 +1826,8 @@ function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=itemRow(p),own
   ${formsHtml(t,ti,p,pi,P)}
  </div>
  <div class="panel" style="min-width:0"><h3>능력치<span class="sp"></span><span class="small muted">종족치 합 <b class="num">${tot}</b>${(()=>{const et=effB(t,p).reduce((a,b)=>a+(+b||0),0);return et!==tot?` → 특성 · 포텐셜 반영 <b class="num">${et}</b>`:''})()}${(()=>{const pl=planRange(p);if(!pl)return '';return ` · 계산 <b class="num${pl.ok?'':' warn'}">${fmtN(pl.ct)}</b> / ${esc(pl.lab)} ${pl.v}`})()}</span></h3>
-  <div class="stwrap"><div class="bigr">${radarBig(p)}</div><div class="stats">${STATS.map((s,i)=>{const eb=effB(t,p)[i];const tip=buTip(t,p,i);const g=grade(eb);const v=+eb||0;return `<div class="st s${i}${tip?' bup':''}"><span class="k">${s}</span>${inp(`${P}.base.${i}`,p.base[i],{num:1,ph:'종족치'})}<div class="bar" data-drag="${P}.base.${i}" title="좌우로 끌어서 종족치 조절"><i style="width:${Math.min(100,v/200*100)}%"></i>${statMarks(p,i)}</div><span class="v">${stat(t,p,i)}</span><span class="gb" style="background:${gcol(g)}" ${tip?`title="${esc(tip)}"`:''}>${tip?'▲':''}${esc(g)}</span></div>`}).join('')}</div>${(()=>{const U=baseUp(t,p).up;return U.length?`<div class="bupnote small">${U.map(u=>`<span><b>${STATS[u.i]}</b> ${u.from} ${esc(grade(u.from))} → <b class="num">${u.to}</b> ${esc(grade(u.to))} <span class="faint">${esc(u.by.join(' · '))}</span></span>`).join('')}</div>`:''})()}</div>
-  <div class="stfoot"><span>물리 내구 <b class="num">${(stat(t,p,0)*stat(t,p,2)).toLocaleString()}</b></span><span>특수 내구 <b class="num">${(stat(t,p,0)*stat(t,p,4)).toLocaleString()}</b></span><span class="faint">실수치 = 테이블(더블) 식 · Lv.${lv(t,p)}${p.ivs?' · 개체값 포함':''}</span>${isOld(p)?'':'<span class="stlg faint"><i class="lg-fl"></i>하한 <i class="lg-z1"></i>할증 구간 <i class="lg-z2"></i>더 센 구간 <i class="lg-dl"></i>쌍두 할인 · 막대를 끌어서 조절</span>'}</div>
+  <div class="stwrap"><div class="bigr">${radarBig(p)}</div><div class="stats">${STATS.map((s,i)=>{const eb=effB(t,p)[i];const tip=buTip(t,p,i);const g=grade(eb);const v=+eb||0;return `<div class="st s${i}${tip?' bup':''}"><span class="k">${s}</span>${inp(`${P}.base.${i}`,p.base[i],{num:1,ph:'종족치'})}<div class="bar" data-drag="${P}.base.${i}" title="막대나 끝의 손잡이를 좌우로 끌어서 종족치 조절"><i style="width:${Math.min(100,v/200*100)}%"></i>${statMarks(p,i)}<b class="knob" style="left:${Math.min(100,v/200*100)}%" aria-hidden="true"></b></div><span class="v">${stat(t,p,i)}</span><span class="gb" style="background:${gcol(g)}" ${tip?`title="${esc(tip)}"`:''}>${tip?'▲':''}${esc(g)}</span></div>`}).join('')}</div>${(()=>{const U=baseUp(t,p).up;return U.length?`<div class="bupnote small">${U.map(u=>`<span><b>${STATS[u.i]}</b> ${u.from} ${esc(grade(u.from))} → <b class="num">${u.to}</b> ${esc(grade(u.to))} <span class="faint">${esc(u.by.join(' · '))}</span></span>`).join('')}</div>`:''})()}</div>
+  <div class="stfoot"><span>물리 내구 <b class="num">${(stat(t,p,0)*stat(t,p,2)).toLocaleString()}</b></span><span>특수 내구 <b class="num">${(stat(t,p,0)*stat(t,p,4)).toLocaleString()}</b></span><span class="faint">실수치 = 테이블(더블) 식 · Lv.${lv(t,p)}${p.ivs?' · 개체값 포함':''}</span>${isOld(p)?'':'<span class="stlg faint"><span><i class="lg-on"></i>줄무늬 = 계산에 더해지는 부분</span><span><i class="lg-dl"></i>쌍두 할인 (빼 줌)</span><span><i class="lg-off"></i>옅은 칸 = 그 구간이지만 지금은 0</span><span><i class="lg-fl"></i>하한</span><span>막대 위 숫자 = 그 칸 때문에 붙는 값</span><span>○ 손잡이를 끌어서 조절</span></span>'}</div>
   ${ivHtml(t,ti,p,pi)}
   ${calcPanel(t,p,P)}${(()=>{const ck=pokeChecks(t,p).filter(c=>c.w||c.k!=='calc');return ck.length?`<div class="checks">${ck.map(c=>`<div class="${c.w?'warn':'muted'}">${c.w?'⚠ ':'· '}${esc(c.t)}</div>`).join('')}</div>`:''})()}</div></div>`}
 function movesTab(t,ti,p,pi,P,c){const ms=p.moves;const over=c.cap!=null&&c.used>c.cap;
@@ -1930,11 +1937,11 @@ $('#v-char').addEventListener('input',e=>{if(e.target.dataset.tuneitem){const t=
  const t=trOf(e.target);if(e.target.tagName==='TEXTAREA'||e.isComposing||composing)return;clearTimeout(rT);rT=setTimeout(()=>t&&refreshTrainer(t),550)});
 /* 10-25 망령: 능력치 막대를 좌우로 끌어 종족치 조절 (0~200 눈금 · 놓으면 저장하고 다시 그림) */
 {let dg=null;const valAt=(bar,x)=>{const r=bar.getBoundingClientRect();return Math.max(1,Math.min(200,Math.round((x-r.left)/r.width*200)))};
- const mv=e=>{if(!dg||e.pointerId!==dg.id)return;const v=valAt(dg.bar,e.clientX);dg.o[dg.k]=String(v);if(dg.inp)dg.inp.value=v;const fi=dg.bar.querySelector('i');if(fi)fi.style.width=Math.min(100,v/2)+'%';dg.bar.title='종족치 '+v};
+ const mv=e=>{if(!dg||e.pointerId!==dg.id)return;const v=valAt(dg.bar,e.clientX);dg.o[dg.k]=String(v);if(dg.inp)dg.inp.value=v;const fi=dg.bar.querySelector('i');if(fi)fi.style.width=Math.min(100,v/2)+'%';const kn=dg.bar.querySelector('.knob');if(kn)kn.style.left=Math.min(100,v/2)+'%';dg.bar.classList.add('dragging');dg.bar.title='종족치 '+v};
  $('#v-char').addEventListener('pointerdown',e=>{const bar=e.target.closest('.bar[data-drag]');if(!bar||e.button!==0)return;const path=bar.dataset.drag;const[o,k]=getRef(path);if(!o)return;e.preventDefault();try{bar.setPointerCapture(e.pointerId)}catch(err){}
   dg={bar,o,k,id:e.pointerId,t:trOf(bar),inp:bar.parentNode.querySelector(`[data-p="${CSS.escape(path)}"]`)};clearTimeout(rT);mv(e)});
  $('#v-char').addEventListener('pointermove',mv);
- const end=e=>{if(!dg||e.pointerId!==dg.id)return;const t=dg.t;dg=null;save();if(t)refreshTrainer(t)};$('#v-char').addEventListener('pointerup',end);$('#v-char').addEventListener('pointercancel',end)}
+ const end=e=>{if(!dg||e.pointerId!==dg.id)return;const t=dg.t;dg.bar.classList.remove('dragging');dg=null;save();if(t)refreshTrainer(t)};$('#v-char').addEventListener('pointerup',end);$('#v-char').addEventListener('pointercancel',end)}
 $('#v-char').addEventListener('change',e=>{const el=e.target;
  if(el.dataset.tunecr){const t=S.trainers[+el.dataset.i];const P=t&&t.pokemon[+el.dataset.j];if(!P)return;const c=tuneOf(P).crit;const k=el.dataset.tunecr;const v=el.type==='checkbox'?el.checked:String(el.value).trim();if(v===''||v===false||(k!=='tbl'&&k!=='dmg'&&el.type==='number'&&!+v))delete c[k];else c[k]=el.type==='checkbox'?1:v;save();return}
  if(el.dataset.tunest){const t=S.trainers[+el.dataset.i];const P=t&&t.pokemon[+el.dataset.j];if(!P)return;const v=el.value.replace(/\s+/g,'');const x=tuneOf(P).st.find(q=>q.st===el.dataset.tunest);if(!x)return;if(!FRAC_RE.test(v)||!(+v.split('/')[1]>0)){toast('비율을 1/6 처럼 적어 주세요');el.value=x.v;return}x.v=v;save();refreshTrainer(t);return}
