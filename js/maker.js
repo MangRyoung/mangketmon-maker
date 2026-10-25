@@ -566,10 +566,57 @@ function openFieldEditor(o,k,done){const isNew=k==null;const f=isNew?{type:0,nam
   const v=fieldsFix([{type:st.type,name,loc:$('#fe-l',l).value.trim(),img:$('#fe-i',l).value.trim(),eff:$('#fe-e',l).value.replace(/\r/g,'').trim(),count:+$('#fe-c',l).value,color:st.color}])[0];
   o.fields=o.fields||[];if(isNew)o.fields.push(v);else o.fields[k]=v;closeModal();done&&done();toast(isNew?'필드를 넣었습니다':'고쳤습니다')};
  $('#fe-ok',l).onclick=ok;box.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();ok()}})}
+/* SP · 서포터 (10-25 망령) — 오레마스 배틀에서 밖의 조력자가 돕는 한 수. 트레이너마다 여러 개. 발동하면 확률을 굴려 고유 포텐셜처럼 컷인 + 로그.
+   t.sps = [{name, prob(%), theme(한 줄), eff(한 줄에 하나), img(컷 그림), line(컷인 대사), color, auto(자동화 구문 DSL — 고유 포텐셜과 같은 꼴)}] */
+const SP_COLS=['#e4002b','#ff8a00','#ffd12e','#3ddc84','#4aa3ff','#9b5cff','#ff4fa3','#222'];
+const spFix=a=>(Array.isArray(a)?a:[]).filter(x=>x&&typeof x==='object'&&String(x.name||'').trim()).map(x=>({name:String(x.name).trim().slice(0,60),prob:x.prob===''||x.prob==null?100:Math.max(0,Math.min(100,Math.round(+x.prob)||0)),theme:String(x.theme||'').slice(0,120),eff:String(x.eff||'').slice(0,4000),img:String(x.img||'').slice(0,600),line:String(x.line||'').slice(0,80),color:String(x.color||'').slice(0,20),auto:String(x.auto||'').slice(0,4000)}));
+function spHtml(t,ti){const L=t.sps||[];
+ return `<div class="mksp"><div class="row" style="margin-top:12px;gap:6px;align-items:baseline"><b class="small">SP · 서포터</b><span class="small muted">밖에서 돕는 조력자 — 오레마스 배틀에서 확률로 발동</span><span class="sp"></span><button type="button" class="btn sm" data-act="spAdd" data-i="${ti}">+ SP</button></div>
+ ${L.map((e,k)=>{const img=/^https?:\/\//.test(e.img)?e.img:'';return `<div class="mksc" tabindex="0" role="button" data-kbd data-act="spEdit" data-i="${ti}" data-k="${k}" style="--spc:${safeCss(e.color)||'#ffd12e'}"><i class="mkspi" ${img?`style="background-image:url('${esc(img)}')"`:''}>${img?'':'SP'}</i><div class="mkspb"><div class="row" style="gap:6px"><b>『${esc(e.name)}』</b><span class="mkspp">${e.prob>=100?'확정':e.prob+'%'}</span>${String(e.auto||'').trim()?'<span class="kindb" title="자동화 구문 있음">⚙ 구문</span>':''}<span class="sp"></span><button type="button" class="btn sm ghost danger" data-act="spDel" data-i="${ti}" data-k="${k}" aria-label="삭제">✕</button></div>${e.theme?`<div class="small muted mkspt">${esc(e.theme)}</div>`:''}${e.eff?`<div class="small">${esc(e.eff).replace(/\n/g,'<br>')}</div>`:''}</div></div>`}).join('')||'<p class="small faint" style="margin:4px 0 0">아직 없습니다 — 「+ SP」</p>'}</div>`}
+function openSpEditor(t,k,done){const isNew=k==null;const e=isNew?{name:'',prob:100,theme:'',eff:'',img:'',line:'',color:'#ffd12e',auto:''}:Object.assign({},t.sps[k]);let busy=false;let col=e.color||'#ffd12e';
+ const l=openModal(`<div class="mhead"><h2>${isNew?'SP 추가':'SP 수정'}</h2><span class="small muted">${esc(t.name||'')}</span><span class="sp"></span><button class="btn ghost" data-x="no">닫기</button></div><div class="mbody"><div class="fed">
+  <div class="fedf">
+   <label class="lbl">이름<input id="sp-n" value="${esc(e.name)}" placeholder="예) 옛 동료의 지원 사격" maxlength="60" autocomplete="off"></label>
+   <div class="row" style="gap:10px;flex-wrap:nowrap"><label class="lbl" style="flex:1;min-width:0">확률 (%)<input id="sp-p" type="number" min="0" max="100" value="${e.prob}"></label><label class="lbl" style="flex:3;min-width:0">테마<input id="sp-t" value="${esc(e.theme)}" placeholder="누가 · 어떻게 돕는지 한 줄" maxlength="120" autocomplete="off"></label></div>
+   <div class="small faint" style="margin:-4px 0 4px">확률 100 이면 굴리지 않고 바로 발동 · 그 밖에는 d100 을 굴려 그 값 이하면 성공</div>
+   <label class="lbl">효과 <span class="small faint" style="font-weight:400">한 줄에 하나 — 배틀 로그에 그대로</span><textarea id="sp-e" rows="4" placeholder="예) 상대 전체 방어 −1 랭크">${esc(e.eff)}</textarea></label>
+   <label class="lbl">컷인 대사 <span class="small faint" style="font-weight:400">비우면 테마가 나온다</span><input id="sp-l" value="${esc(e.line)}" maxlength="80" autocomplete="off"></label>
+   <div class="lbl">색</div><div class="row" style="gap:6px">${SP_COLS.map(c=>`<button type="button" class="mkspcol ${c===col?'on':''}" data-spc="${c}" style="background:${c}"></button>`).join('')}</div>
+   <div class="lbl">컷 그림 <span class="small faint" style="font-weight:400">끌어다 놓기 · 붙여넣기(Ctrl+V) · 파일 · 주소 — 비우면 트레이너 그림</span></div>
+   <div class="feddrop" id="sp-d" tabindex="0" role="button" data-kbd><span id="sp-dt">여기에 그림을 끌어다 놓거나 눌러서 고르기</span></div>
+   <div class="row" style="gap:4px;flex-wrap:nowrap"><input id="sp-i" value="${esc(e.img)}" placeholder="https://…" style="flex:1;min-width:0" autocomplete="off"><button type="button" class="btn sm ghost" id="sp-x" title="그림 지우기">✕</button><input type="file" id="sp-f" accept="image/*" hidden></div>
+   <details class="autobox" ${String(e.auto||'').trim()?'open':''}><summary>⚙ 자동화 구문 <span class="small muted" id="sp-ah"></span></summary>
+    <div class="small muted" style="margin:4px 0">발동에 성공하면 오레마스가 자동으로 처리할 내용 — 배틀에서 기준이 될 내 포켓몬을 고르고, 거기서 대상(자신 · 상대1체 · 아군전체 …)을 잡는다. 한 줄에 명령 하나 — 예: <code>랭크 공격+1 임시 아군전체</code> · <code>상태확률 화상 30% 상대1체</code></div>
+    <textarea id="sp-a" rows="4" style="width:100%;font-family:var(--mono,monospace);font-size:12.5px" placeholder="(비우면 효과 글만 로그에)">${esc(e.auto||'')}</textarea>
+    <div class="small" id="sp-ap" style="white-space:pre-wrap;margin-top:4px"></div><div id="sp-ag"></div>
+    <details><summary class="small">구문 도움말</summary><pre class="small" style="white-space:pre-wrap">${esc(AUTO_HELP)}</pre></details></details>
+  </div>
+  <div class="fedp"><div class="small muted">미리보기 — 오레마스 「SP」</div><div id="sp-pv"></div></div>
+ </div></div><div class="mfoot"><span class="small faint">Ctrl+Enter 로 ${isNew?'추가':'저장'}</span><span class="sp"></span><button class="btn" data-x="no">취소</button><button class="btn pri" id="sp-ok">${isNew?'추가':'저장'}</button></div>`,{wide:true});
+ const prev=()=>{const u=$('#sp-i',l).value.trim();const img=/^https?:\/\//.test(u)?u:(/^https?:\/\//.test(t.image||'')?t.image:'');const nm=$('#sp-n',l).value.trim()||'이름 없음';const p=Math.max(0,Math.min(100,Math.round(+$('#sp-p',l).value)||0));const th=$('#sp-t',l).value.trim(),ln=$('#sp-l',l).value.trim();const eff=$('#sp-e',l).value.replace(/\r/g,'').split('\n').map(x=>x.trim()).filter(Boolean);
+  $('#sp-pv',l).innerHTML=`<div class="mkspcut" style="--spc:${col}"><i ${img?`style="background-image:url('${esc(img)}')"`:''}></i><div><span class="mkspcut-t">${esc(t.name||'')}의 서포터!</span><b>『${esc(nm)}』</b>${ln||th?`<span class="mkspcut-l">${esc(ln||th)}</span>`:''}</div></div>
+   <div class="fedlog" style="--fc:${col}"><div class="row" style="gap:6px"><span class="mkspp" style="--spc:${col}">SP</span><b>${esc(t.name||'')}의 서포터 『${esc(nm)}』</b><span class="small muted">${p>=100?'확정':p+'%'}</span></div>${th?`<div class="small muted" style="font-style:italic">${esc(th)}</div>`:''}${eff.length?`<div class="small fedeff">${eff.map(x=>`<div>· ${esc(x)}</div>`).join('')}</div>`:'<div class="small faint">효과 글 없음</div>'}</div>`;
+  l.querySelectorAll('[data-spc]').forEach(b=>b.classList.toggle('on',b.dataset.spc===col));$('#sp-dt',l).textContent=busy?'올리는 중…':u?'다른 그림을 끌어다 놓거나 눌러서 바꾸기':'여기에 그림을 끌어다 놓거나 눌러서 고르기';
+  const K=window.OM_FX,ta=$('#sp-a',l);if(K&&ta){const r=K.parse(ta.value);$('#sp-ap',l).innerHTML=(r.ops.length?'미리보기: '+esc(K.unparse(r.ops).join(' / ')):'')+(r.errs.length?` <span class="warn">모르는 줄: ${esc(r.errs.join(' / '))}</span>`:'');$('#sp-ah',l).textContent=r.ops.length?'구문 있음':'없음'}else $('#sp-ah',l).textContent=String(ta&&ta.value||'').trim()?'구문 있음':'없음'};
+ l.addEventListener('input',prev);prev();
+ l.querySelectorAll('[data-spc]').forEach(b=>b.onclick=()=>{col=b.dataset.spc;prev()});
+ {const gh=$('#sp-ag',l),ta=$('#sp-a',l);if(gh&&ta&&window.OM_FX_UI&&OM_FX_UI.mountGen)OM_FX_UI.mountGen(gh,ta,{toast})}
+ const up=async fl=>{if(!fl)return;if(!/^image\//.test(fl.type))return toast('그림 파일만');if(fl.size>8*1024*1024)return toast('8MB 이하만');busy=true;prev();
+  try{$('#sp-i',l).value=await putImg(`sp/${t.id}_${Date.now().toString(36)}`,fl);toast('올렸습니다')}catch(err){toast('올리지 못했습니다: '+err.message)}busy=false;prev()};
+ $('#sp-d',l).onclick=()=>$('#sp-f',l).click();$('#sp-f',l).onchange=ev=>{const fl=ev.target.files[0];ev.target.value='';up(fl)};$('#sp-x',l).onclick=()=>{$('#sp-i',l).value='';prev()};
+ const box=$('.mbox',l)||l;const dz=$('#sp-d',l);
+ box.addEventListener('dragover',ev=>{if([...(ev.dataTransfer&&ev.dataTransfer.items||[])].some(x=>x.kind==='file')){ev.preventDefault();dz.classList.add('over')}});box.addEventListener('dragleave',ev=>{if(ev.target===dz)dz.classList.remove('over')});
+ box.addEventListener('drop',ev=>{dz.classList.remove('over');const fl=ev.dataTransfer&&[...ev.dataTransfer.files].find(x=>/^image\//.test(x.type));if(fl){ev.preventDefault();ev.stopPropagation();up(fl)}});
+ box.addEventListener('paste',ev=>{const it=[...(ev.clipboardData&&ev.clipboardData.items||[])].find(x=>x.type.startsWith('image/'));if(it){ev.preventDefault();ev.stopPropagation();up(it.getAsFile())}});
+ l.querySelectorAll('[data-x="no"]').forEach(b=>b.onclick=()=>closeModal());
+ const ok=()=>{if(busy)return toast('그림을 올리는 중입니다');const name=$('#sp-n',l).value.trim();if(!name){toast('이름을 적어 주세요');$('#sp-n',l).focus();return}
+  const v=spFix([{name,prob:$('#sp-p',l).value,theme:$('#sp-t',l).value.trim(),eff:$('#sp-e',l).value.replace(/\r/g,'').trim(),img:$('#sp-i',l).value.trim(),line:$('#sp-l',l).value.trim(),color:col,auto:$('#sp-a',l).value.trim()}])[0];
+  t.sps=t.sps||[];if(isNew)t.sps.push(v);else t.sps[k]=v;closeModal();done&&done();toast(isNew?'SP 를 넣었습니다':'고쳤습니다')};
+ $('#sp-ok',l).onclick=ok;box.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&(ev.ctrlKey||ev.metaKey)){ev.preventDefault();ok()}})}
 function newTrainer(){const t={id:uid(),open:true,name:'새 트레이너',kind:'pc',pl:'',folder:'',image:'',ranks:{지시:'C',육성:'C',통솔:'C',능력:'C'},detail:{지시:'',육성:'',통솔:'',능력:''},solo:false,
- pts:[],extra:{},base:Object.fromEntries(ptItems().map(([n,d])=>[n,+d||0])),unique:[{name:'',eff:''}],ptMax:'',fields:[],pokemon:[]};applyTpl(t);return t}
+ pts:[],extra:{},base:Object.fromEntries(ptItems().map(([n,d])=>[n,+d||0])),unique:[{name:'',eff:''}],ptMax:'',fields:[],sps:[],pokemon:[]};applyTpl(t);return t}
 function fixT(t){if(t.base)delete t.base['소지품 소켓'];const n=newTrainer();for(const k in n)if(t[k]==null)t[k]=n[k];for(const k in n.base)if(t.base[k]==null)t.base[k]=n.base[k];
- if(t.extra){for(const k in t.extra)if(!+t.extra[k])delete t.extra[k]}t.image=safeImg(t.image);if(!t.id)t.id=uid();t.stands=standsFix(t.stands);t.fields=fieldsFix(t.fields);if(!(+t.standActive>=0))t.standActive=0;t.pokemon.forEach(fixP);return t}
+ if(t.extra){for(const k in t.extra)if(!+t.extra[k])delete t.extra[k]}t.image=safeImg(t.image);if(!t.id)t.id=uid();t.stands=standsFix(t.stands);t.fields=fieldsFix(t.fields);t.sps=spFix(t.sps);if(!(+t.standActive>=0))t.standActive=0;t.pokemon.forEach(fixP);return t}
 /* 같은 id가 두 번 나오면(예전 백업을 「추가」로 불러온 경우 등) 뒤의 것에 새 id를 준다 */
 function dedupeIds(){const seen=new Set();for(const t of S.trainers){if(seen.has('t'+t.id))t.id=uid();seen.add('t'+t.id);for(const p of t.pokemon){if(seen.has('p'+p.id))p.id=uid();seen.add('p'+p.id)}}}
 function applyTpl(t,only){const rows=S.db.tpl;for(const r of rows){const [q,rk,item,v6,,v1]=r;const val=t.solo&&v1!=null&&v1!==''?v1:v6;if(!item)continue;
@@ -1600,7 +1647,7 @@ function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=inve
    ${ptItems().map(([k,d])=>{if(t.base[k]==null)t.base[k]=+d||0;const r=(+t.base[k]||0)-(use[k]||0);return `<tr><td>${esc(k)}</td><td class="n">${inp(`${P}.base.${seg(k)}`,t.base[k],{w:'52px',num:1})}</td><td class="n">${use[k]||0}</td><td class="n ${r<0?'warn':''}">${r}</td></tr>`}).join('')}</table>
    <div class="row" style="margin-top:8px"><b class="small">포인트 사용 항목</b><span class="sp"></span><button class="btn sm" data-act="addPt" data-i="${ti}">+ 항목</button></div>
    <p class="small muted" style="margin:6px 0 0">자동 소모 · ${ptItems().filter(x=>x[2]).map(([n,,a])=>`${esc(n)} ${autoUse(t,a)} (${esc(PTI_AUTO[a]||a)})`).join(' · ')||'없음'}</p>
-   ${t.pts.map((n,i)=>{const r=idx.points.get(n);return `<div class="row small" style="margin-top:4px"><span style="flex:1;min-width:0"><b>${esc(n)}</b> <span class="muted">${r?esc(r[3]+' −'+r[6]):''}</span></span><button class="btn sm ghost" data-act="delPt" data-i="${ti}" data-j="${i}" aria-label="삭제">✕</button></div>`}).join('')||'<p class="small faint" style="margin:4px 0 0">사용한 항목이 없습니다.</p>'}</div>
+   ${t.pts.map((n,i)=>{const r=idx.points.get(n);return `<div class="row small" style="margin-top:4px"><span style="flex:1;min-width:0"><b>${esc(n)}</b> <span class="muted">${r?esc(r[3]+' −'+r[6]):''}</span></span><button class="btn sm ghost" data-act="delPt" data-i="${ti}" data-j="${i}" aria-label="삭제">✕</button></div>`}).join('')||'<p class="small faint" style="margin:4px 0 0">사용한 항목이 없습니다.</p>'}${spHtml(t,ti)}</div>
  </div></div>
  <div class="panel uqpanel"><h3>『고유 포텐셜』<span class="small muted" style="font-weight:400">능력 ${esc(t.ranks['능력'])} · 최대 ${esc(abilLimits(t.ranks['능력']).u)}개</span><span class="sp"></span><button class="btn sm" data-act="addU" data-i="${ti}">+ 고유 포텐셜</button></h3><div class="uql">
   ${t.unique.map((u,i)=>uqCard(u,i,ti)).join('')||'<p class="small faint" style="margin:4px 0 0">아직 없습니다 — 「+ 고유 포텐셜」</p>'}</div></div>
@@ -1892,6 +1939,8 @@ $('#v-char').addEventListener('click',async e=>{
   case 'ivHatch':if(P)openIvHatch(T,P);break;
   case 'ivClear':if(P&&await ask('개체값을 비울까요? (0 으로)','비우기')){delete P.ivs;delete P.ivLog;rf()}break;
   case 'fldAdd':case 'fldEdit':{if(e.target.closest('[data-act="fldDel"]'))break;const o=P||T;if(!o)break;openFieldEditor(o,b.dataset.act==='fldEdit'?+b.dataset.k:null,rf);break}
+  case 'spAdd':case 'spEdit':{if(e.target.closest('[data-act="spDel"]'))break;if(!T)break;openSpEditor(T,b.dataset.act==='spEdit'?+b.dataset.k:null,rf);break}
+  case 'spDel':{const x=T&&(T.sps||[])[+b.dataset.k];if(!x)break;if(await ask(`SP 『${esc(x.name)}』를 지울까요?`,'삭제')){T.sps.splice(+b.dataset.k,1);rf()}break}
   case 'fldDel':{const o=P||T;const f=o&&(o.fields||[])[+b.dataset.k];if(!f)break;if(await ask(`필드 《${esc(f.name)}》를 지울까요?`,'삭제')){o.fields.splice(+b.dataset.k,1);rf()}break}
   case 'sdef':case 'sdel':case 'sadd':{const R=stRef(b.dataset.sk);const o=R.o;if(!o)break;o.stands=o.stands||[];const k2=+b.dataset.k;
    if(b.dataset.act==='sdef')o.standActive=k2;
