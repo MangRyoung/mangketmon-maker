@@ -301,7 +301,11 @@ const isOld=p=>OLDK.includes(classOf(p));
 const baseTot=p=>p.base.reduce((a,b)=>a+(+b||0),0);
 const baseNums=p=>[0,1,2,3,4,5].map(i=>+p.base[i]||0);
 const listOf=s=>String(s||'').split(/[,，\n]/).map(x=>x.trim()).filter(Boolean);
-function abSock(p){const ab=idx.abil&&idx.abil.get(p.ability);return ab&&ab[0]!==''&&!isNaN(+ab[0])?+ab[0]:null}
+/* 특성 소켓. 「1.5/2.5」처럼 둘이면 비자속/자속 — 효과 글의 첫 타입 「X」가 포켓몬 타입에 있으면 뒤 값 (10-26 망령: 트랜지스터 · 용의턱) */
+function abStabType(eff){const T=new Set((S.db.types||[]).map(x=>x[0]));for(const m of String(eff||'').matchAll(/「([^」]+)」/g))if(T.has(m[1]))return m[1];return ''}
+function abSock(p){const ab=idx.abil&&idx.abil.get(p.ability);if(!ab)return null;const v=String(ab[0]??'').trim();
+ const two=v.match(/^(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);if(two){const ty=abStabType(ab[2]);return +(ty&&[p.t1,p.t2,p.t3].includes(ty)?two[2]:two[1])}
+ return v!==''&&!isNaN(+v)?+v:null}
 const hasPotName=(p,re)=>(p.pots||[]).some(n=>n&&re.test(n));
 /* 쌍두: 물리기·특수기를 각각 1개 이상 */
 function dualMoves(p){const cats=new Set((p.moves||[]).filter(m=>m.name).map(m=>(idx.moves.get(m.name)||[])[6]));return cats.has('물리')&&cats.has('특수')}
