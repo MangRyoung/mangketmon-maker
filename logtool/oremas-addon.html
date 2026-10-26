@@ -186,6 +186,8 @@
 
  /* ================= 오레마스 =================  */
  const say=t=>{const e=$('omMsg');if(e)e.textContent=t};
+ /* 10-26 오레마스 상태 나누기: 배틀 · 포켓몬이 따로 담겨 om_get_state 로 합쳐 읽는다. 함수가 없는 옛 DB 면 표에서 */
+ async function omState(id){try{const r=await fetch(`${OM.url}/rest/v1/rpc/om_get_state`,{method:'POST',headers:{apikey:OM.key,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({p_room:id})});if(r.ok){const j=await r.json();if(j&&j.data)return [{data:j.data}]}}catch(e){}return rest(`om_state?room=eq.${encodeURIComponent(id)}&select=data`)}
  async function rest(path){const r=await fetch(`${OM.url}/rest/v1/${path}`,{headers:{apikey:OM.key,Accept:'application/json'}});if(!r.ok)throw new Error(`${r.status} ${(await r.text()).slice(0,120)}`);return r.json()}
  function roomIdOf(s){s=String(s||'').trim();const m=s.match(/[#?&]r=([A-Za-z0-9_-]+)/)||s.match(/^([A-Za-z0-9_-]{4,})$/);return m?m[1]:''}
  const hm=at=>{const d=new Date(at);return isNaN(d)?'':`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
@@ -245,7 +247,7 @@
  async function importRoom(raw,o,auto){const id=roomIdOf(raw);if(!id){say('방 링크나 ID를 넣어 줘');return}
   say('방을 읽는 중…');
   try{
-   const [rooms,states]=await Promise.all([rest(`om_rooms?id=eq.${encodeURIComponent(id)}&select=id,name`),rest(`om_state?room=eq.${encodeURIComponent(id)}&select=data`)]);
+   const [rooms,states]=await Promise.all([rest(`om_rooms?id=eq.${encodeURIComponent(id)}&select=id,name`),omState(id)]);
    if(!rooms.length){say('그런 방이 없다');return}
    const state=(states[0]&&states[0].data)||{};const cut=o.cut?0:(+((state.rp||{}).logClearAt)||0);
    const PAGES=500;let rows=[],after=cut,capped=false;
