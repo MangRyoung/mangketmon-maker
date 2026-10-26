@@ -266,7 +266,7 @@ function moveCap(t,p){const k=classOf(p);const filled=p.moves.filter(m=>m.name);
  else{const gs=S.db.sock.map(x=>x[0]);const g=s=>{const m=(grade(s)||'').match(/[A-Z]+/);const i=m?gs.indexOf(m[0]==='EX'&&!gs.includes('EX')?'S':m[0]):-1;return i<0?99:i};
   const i=Math.min(g(p.base[1]),g(p.base[3]));
   if(i===99)cap=null;else{const tot=p.base.reduce((a,b)=>a+(+b||0),0);cap=+S.db.sock[i][tot>=570?3:tot>=525?2:1]}}
- const ov=nz(p.sockMax);return {used,cap:ov?+p.sockMax:cap,mode,auto:cap,ov}}
+ const bon=sockBonus(p).mv;if(cap!=null&&bon)cap=+(cap+bon).toFixed(2);const ov=nz(p.sockMax);return {used,cap:ov?+p.sockMax:cap,mode,auto:cap,ov,bon}}
 const oldSock=()=>{const v=+(S.db.oldSock??5.5);return isNaN(v)?5.5:v};
 const capTxt=(c,none='-',sep=' / ')=>c.mode==='count'?`${c.used}개(${c.pt})`:`${c.used}${sep}${c.cap??none}`;
 function ptSockets(t){let u=0;for(const p of t.pokemon){const c=moveCap(t,p);u+=c.mode==='count'?c.pt:c.used}return Math.round(u*100)/100}
@@ -307,6 +307,10 @@ function abSock(p){const ab=idx.abil&&idx.abil.get(p.ability);if(!ab)return null
  const two=v.match(/^(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);if(two){const ty=abStabType(ab[2]);return +(ty&&[p.t1,p.t2,p.t3].includes(ty)?two[2]:two[1])}
  return v!==''&&!isNaN(+v)?+v:null}
 const hasPotName=(p,re)=>(p.pots||[]).some(n=>n&&re.test(n));
+/* 10-26 망령: 소켓 보너스 — 전용 · 포텐셜 · 특성 글에 「특성」「기술」 소켓에 「+0.5」 같은 문장이 있으면 자동으로 읽고, 칸에 직접 적으면 그 값이 우선. {ab, mv, src:[…]} */
+function sockBonus(p){const out={ab:0,mv:0,src:[]};const texts=[];(p.pots||[]).forEach((n,i)=>{if(n)texts.push([n,String(potEffOf(p,i)||'')])});if(p.excl&&p.excl.eff)texts.push([p.excl.name||'전용',String(p.excl.eff)]);const abr=idx.abil&&idx.abil.get(p.ability);if(abr)texts.push([p.ability,String(abr[2]||'')]);
+ for(const [nm,tx] of texts){for(const m of tx.matchAll(/「?(특성|기술)」?(?:\s*(?:과|와|·|,)\s*「?(특성|기술)」?)?\s*소켓」?(?:에|을|를)?\s*「?\s*([+＋])\s*(\d+(?:\.\d+)?)\s*」?/g)){const v=+m[4];const ks=[m[1],m[2]].filter(Boolean);if(ks.includes('특성'))out.ab+=v;if(ks.includes('기술'))out.mv+=v;out.src.push(`『${nm}』 ${ks.join('·')} +${v}`)}}
+ if(nz(p.sockBonAb)){out.ab=+p.sockBonAb;out.manual=1}if(nz(p.sockBonMv)){out.mv=+p.sockBonMv;out.manual=1}return out}
 /* 쌍두: 물리기·특수기를 각각 1개 이상 */
 function dualMoves(p){const cats=new Set((p.moves||[]).filter(m=>m.name).map(m=>(idx.moves.get(m.name)||[])[6]));return cats.has('물리')&&cats.has('특수')}
 function dualType(p){const D=PR().dual;const b=baseNums(p);return dualMoves(p)&&Math.min(b[1],b[3])>pnum(D.lo,90)}
@@ -324,11 +328,11 @@ function customCalc(p){const R=PR(),b=baseNums(p),real=b.reduce((a,c)=>a+c,0);co
  const bulk=two(Math.min(b[2],b[4]),R.bulk),hp=two(b[0],R.hp);
  const F=R.fs,fs=two(main,{lo:F.lo,hi:F.hi,k1:F.k1,k2:F.k2})*Math.max(0,Math.min(1,(Math.min(b[5],pnum(F.shi,140))-pnum(F.slo,90))/Math.max(1,pnum(F.shi,140)-pnum(F.slo,90))));
  const D=R.dual,dualOk=dualMoves(p),dualRaw=pnum(D.k,1)*Math.max(0,Math.min(Math.min(b[1],b[3]),pnum(D.hi,120))-pnum(D.lo,90)),dual=dualOk?dualRaw:0;
- const pri0=prioInfo(p),ov=String(p.prioOv??'').trim(),pri=ov===''?pri0:{floor:Math.max(0,pnum(ov,0)),src:pnum(ov,0)?'직접 지정':'직접 지정 · 없음',kind:'예외',auto:pri0,ov:true},opp=Math.round(main*pnum(R.opp,0.4)),s=abSock(p),per=pnum(R.toStep,45)*2,toF=pnum(R.toFloor,1);
+ const pri0=prioInfo(p),ov=String(p.prioOv??'').trim(),pri=ov===''?pri0:{floor:Math.max(0,pnum(ov,0)),src:pnum(ov,0)?'직접 지정':'직접 지정 · 없음',kind:'예외',auto:pri0,ov:true},opp=Math.round(main*pnum(R.opp,0.4)),s0=abSock(p),sb=sockBonus(p).ab,s=s0==null?null:Math.max(0,+(s0-sb).toFixed(2)),per=pnum(R.toStep,45)*2,toF=pnum(R.toFloor,1);
  const steps=prSteps().filter(x=>!isEX(x));let last=null;
  for(const st of steps){const fa=Math.max(0,Math.max(st.floor,b[1]<main?opp:0)-b[1]),fc=Math.max(0,Math.max(st.floor,b[3]<main?opp:0)-b[3]);const sf=Math.max(st.floor,pri.floor),fsp=Math.max(0,sf-b[5]);
   const to=s==null?st.to:s;const toAdj=per*Math.max(0,to-st.to)-per*Math.max(0,toF-to);
-  const ct=real+fa+fc+fsp+bulk+hp+fs-dual+toAdj;last={real,b,fa,fc,fsp,sf,off:fa+fc+fsp,opp,bulk,hp,fs,dual,dualRaw,dualOk,pri,to,toBase:st.to,toAdj,ct,step:st,ok:ct<=st.v+1e-9};if(last.ok)return last}
+  const ct=real+fa+fc+fsp+bulk+hp+fs-dual+toAdj;last={real,b,fa,fc,fsp,sf,off:fa+fc+fsp,opp,bulk,hp,fs,dual,dualRaw,dualOk,pri,to,toRaw:s0,toBon:sb,toBase:st.to,toAdj,ct,step:st,ok:ct<=st.v+1e-9};if(last.ok)return last}
  return last||{real,b,ct:real,step:null,ok:false,off:0,bulk:0,hp:0,fs:0,dual:0,toAdj:0,pri,opp,fa:0,fc:0,fsp:0,sf:0}}
 /* 올드 타입 */
 function oldDbPride(p){const r=idx.old&&idx.old.get(p.name);const v=r?String(r[17]??'').trim():'';return v&&prRow(v)?v:''}
@@ -417,7 +421,7 @@ function calcPanel(t,p,P){if(!baseTot(p))return '';const R=PR();
   <div class="cprow"><span class="cpc base">실제 합 <b>${o.real}</b></span>${o.friendly?`<span class="cpc dl">『프렌들리 몬스터』 <b>−${pnum((R.friendly||{}).d,10)}</b></span>`:''}<span class="cpop">→</span><span class="cpc tot">${o.src==='db'?'DB 프라이드 칸':o.src==='cap'?'상한 초과':o.src==='low'?'최저 계단 미만 · '+esc((R.oldLow||{}).pt||'0.5')+'점':o.src==='prank'?'짓궂은마음 · 최저 계단':'버림'} <b>${esc(o.lab)}</b>${st&&o.src==='floor'?` <small>(${st.v} · 격차 ${o.t-st.v})</small>`:''}</span></div>
   <p class="small muted" style="margin:6px 0 0">올드 타입은 하한·할증·할인을 계산하지 않습니다. 예외는 DB 관리 → 올드 타입 「프라이드」 칸으로 정합니다.</p></div>`}
  const c=customCalc(p);const st=prStep(prideOf(p))||c.step;const cap=st?st.v:c.ct;
- const items=[['base','실제 합',c.real,''],['off','하한',c.off,[c.fa?`공격 +${c.fa}`:'',c.fc?`특공 +${c.fc}`:'',c.fsp?`스피드 +${c.fsp}`:''].filter(Boolean).join(' · ')||'없음'],['bulk','내구',c.bulk,`방어·특방 중 낮은 쪽 ${Math.min(c.b[2],c.b[4])}`],['hp','HP',c.hp,`HP ${c.b[0]}`],['fs','화력·스피드',c.fs,`주력 ${Math.max(c.b[1],c.b[3])} · 스피드 ${c.b[5]}`],['dl','쌍두',-c.dual,c.dualOk?`낮은 쪽 ${Math.min(c.b[1],c.b[3])}`:c.dualRaw?`물리·특수기 각 1개 필요 (−${fmtN(c.dualRaw)})`:'해당 없음'],['to','특성 TO',c.toAdj,`TO ${c.to} / 기본 ${c.toBase}`]];
+ const items=[['base','실제 합',c.real,''],['off','하한',c.off,[c.fa?`공격 +${c.fa}`:'',c.fc?`특공 +${c.fc}`:'',c.fsp?`스피드 +${c.fsp}`:''].filter(Boolean).join(' · ')||'없음'],['bulk','내구',c.bulk,`방어·특방 중 낮은 쪽 ${Math.min(c.b[2],c.b[4])}`],['hp','HP',c.hp,`HP ${c.b[0]}`],['fs','화력·스피드',c.fs,`주력 ${Math.max(c.b[1],c.b[3])} · 스피드 ${c.b[5]}`],['dl','쌍두',-c.dual,c.dualOk?`낮은 쪽 ${Math.min(c.b[1],c.b[3])}`:c.dualRaw?`물리·특수기 각 1개 필요 (−${fmtN(c.dualRaw)})`:'해당 없음'],['to','특성 TO',c.toAdj,`TO ${c.to}${c.toBon?` (특성 ${c.toRaw} − 보너스 ${c.toBon})`:''} / 기본 ${c.toBase}`]];
  const pos=items.filter(x=>x[0]!=='dl'&&x[2]>0);const W=Math.max(cap,c.ct,1);
  const bar=pos.map(x=>`<i class="${x[0]}" style="width:${x[2]/W*100}%" title="${esc(x[1]+' '+fmtN(x[2]))}"></i>`).join('');
  const auto=c.pri.ov?c.pri.auto:c.pri;const ov=String(p.prioOv??'');
@@ -1911,7 +1915,7 @@ function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=itemRow(p),own
   ${calcPanel(t,p,P)}${(()=>{const ck=pokeChecks(t,p).filter(c=>c.w||c.k!=='calc');return ck.length?`<div class="checks">${ck.map(c=>`<div class="${c.w?'warn':'muted'}">${c.w?'⚠ ':'· '}${esc(c.t)}</div>`).join('')}</div>`:''})()}</div></div>`}
 function movesTab(t,ti,p,pi,P,c){const ms=p.moves;const over=c.cap!=null&&c.used>c.cap;
  return `<div class="capline"><b>${c.mode==='count'?'기술 개수':'기술 소켓'}</b><span class="num ${over?'warn':''}">${capTxt(c,'종족치 입력 필요')}</span>${c.mode==='count'?`<span class="small muted">『${esc(classOf(p))}』 · PT 기술점 ${c.pt} 고정</span>`:''}${c.cap?`<div class="meter ${over?'over':''}"><i style="width:${Math.min(100,c.used/c.cap*100)}%"></i></div>`:''}
-  <span class="small muted">상한 직접 지정</span>${inp(P+'.sockMax',p.sockMax,{w:'56px',num:1,ph:String(c.auto??'')})}<span class="sp"></span><button class="btn pri sm" data-act="pickMove" data-i="${ti}" data-j="${pi}">+ 기술 검색·추가</button></div>
+  <span class="small muted">상한 직접 지정</span>${inp(P+'.sockMax',p.sockMax,{w:'56px',num:1,ph:String(c.auto??'')})}${(()=>{const b=sockBonus(p);return `<span class="small muted" title="전용 · 포텐셜 · 특성 글의 「특성/기술 소켓 +0.5」를 자동으로 읽어요. 직접 적으면 그 값이 우선이에요${b.src.length?'\n'+b.src.join('\n'):''}">보너스 특성${inp(P+'.sockBonAb',p.sockBonAb,{w:'44px',num:1,ph:String(b.manual?'':b.ab||0)})} 기술${inp(P+'.sockBonMv',p.sockBonMv,{w:'44px',num:1,ph:String(b.manual?'':b.mv||0)})}${b.src.length?` <span class="faint">${esc(b.src.join(' · '))}</span>`:''}</span>`})()}<span class="sp"></span><button class="btn pri sm" data-act="pickMove" data-i="${ti}" data-j="${pi}">+ 기술 검색·추가</button></div>
  <div class="mlist" data-sort="moves" data-i="${ti}" data-j="${pi}">${ms.map((m,i)=>{const r=idx.moves.get(m.name);return `<div class="mv" data-si="${i}" data-grab style="border-left-color:${r&&tyCol(r[5])||'var(--line)'}"><div class="row mvt" style="gap:3px;flex-wrap:nowrap">${r?tchip(r[5])+`<span class="mcat ${r[6]==='물리'?'phy':r[6]==='특수'?'spe':'sta'}">${esc(r[6]||'')}</span>`:'<span class="kindb">DB 없음</span>'}</div><div class="mvn"><div class="nm"><span class="mvchip">${r?tchip(r[5]):'<span class="kindb">DB 없음</span>'}</span>${esc(m.name)}</div><div class="small muted rgwrap">${r?rangeGrid(r[9])+esc(r[6]+' · '+r[9]+(r[10]&&r[10]!=='-'?' · 접촉 '+r[10]:'')):''}</div></div>
   <div class="st2">${r?esc(r[7]):'-'}<small>위력</small></div><div class="st2">${r?esc(r[8]):'-'}<small>명중</small></div><div class="st2">${r?esc(r[11]):'-'}<small>우선도</small></div><div class="st2">${moveSock(p,m)}<small>소켓</small></div>
   <div class="ef">${r?rich(r[13]):''}</div><div class="row mva" style="gap:2px;flex-wrap:nowrap"><label class="small row" title="「기술 할인점」 1점을 써서 이 기술의 소켓을 0.5 할인합니다 (올드 타입 계열은 교배기·유전기 습득용)" style="gap:2px"><input type="checkbox" data-p="${P}.moves.${i}.half" ${m.half?'checked':''}>할인</label><label class="small row" title="켜면 이 기술은 한 장 요약 · 오레마스 한 장 요약 · 남의 도감에 안 나온다 (시트 · 배틀에는 그대로)" style="gap:2px"><input type="checkbox" data-p="${P}.moves.${i}.hide" ${m.hide?'checked':''}>숨김</label>
