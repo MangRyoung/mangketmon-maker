@@ -347,7 +347,8 @@ function prideCost(t,p){const r=prRow(prideOf(p));const c=r?pnum(r[1],0):0;retur
 const fmtN=x=>String(Math.round(x*100)/100);
 function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);const w=(x,k)=>out.push({w:1,t:x,k}),i=(x,k)=>out.push({w:0,t:x,k});
  if(!tot)return out;const b=baseNums(p);
- const low=b.map((v,k)=>[STATS[k],v]).filter(([,v])=>v<pnum(R.absMin,31));if(low.length)w(`절대 하한 ${pnum(R.absMin,31)} 미만: ${low.map(([n,v])=>n+' '+v).join(', ')}`);
+ /* 10-26 망령: 『올드 타입』은 절대 하한도 따지지 않는다 (본가 종족치 그대로) */
+ const low=isOld(p)?[]:b.map((v,k)=>[STATS[k],v]).filter(([,v])=>v<pnum(R.absMin,31));if(low.length)w(`절대 하한 ${pnum(R.absMin,31)} 미만: ${low.map(([n,v])=>n+' '+v).join(', ')}`);
  if(isOld(p)){const o=oldCalc(p);
   i(`올드 타입 · 실제 합 ${tot}${o.friendly?` − 『프렌들리 몬스터』 ${pnum((R.friendly||{}).d,10)} = ${o.t}`:''} → ${o.src==='db'?'DB 프라이드 칸':o.src==='cap'?'상한 초과':o.src==='low'?'최저 계단 미만':o.src==='prank'?'짓궂은마음이라 최저 계단':'버림'} ${o.lab}${prideIsAuto(p)?'':` · 직접 지정 ${pk}`} · 통솔점 ${prideCost(t,p)}`);
   if(!prideIsAuto(p)){const a=prStep(o.lab),m=prStep(pk);if(a&&m&&m.v<a.v)w(`직접 지정한 프라이드 ${pk}가 계산값 ${o.lab}보다 낮습니다`)}
