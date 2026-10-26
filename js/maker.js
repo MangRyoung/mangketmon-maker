@@ -181,7 +181,7 @@ function baseLevel(rank){const r=S.db.lvl.find(x=>x[0]===rank)||S.db.lvl.find(x=
 function sockRow(rank){return S.db.sock.find(x=>x[0]===strip(rank))||S.db.sock.find(x=>x[0]==='C')}
 function grade(v){if(v===''||v==null||isNaN(+v))return '-';let g='-';for(const [b,c] of S.db.grade){if(b===''||isNaN(+b))continue;if(+b<=+v)g=c;else break}return g}
 function gcol(g){const s=strip(g);return {S:'var(--g-s)',AAA:'var(--g-aaa)',AA:'var(--g-aa)',A:'var(--g-a)',B:'var(--g-b)',C:'var(--g-c)',D:'var(--g-d)',E:'var(--g-e)',EX:'var(--g-s)'}[s]||'var(--g-e)'}
-function lv(t,p){return baseLevel(t.ranks['육성'])+(+p.dist||0)}
+function lv(t,p){return baseLevel(t.ranks['육성'])+(Math.round(+p.dist)||0)}
 /* 테이블(더블) Q198:Q203 — 개체치·노력치·성격 미사용(0 / 0 / 1.0) */
 /* 10-22 망령: 특성 · 포텐셜 · 전용에 적힌 「○○의 종족치를 N랭크 상승(감소)시킨다」 → 실수치 · 등급 · 종족치 합에 반영.
    1랭크 = 알파벳 등급 하나 (C → B). 그 등급의 칸(- · 무 · +)과 칸 안의 위치는 비율로 유지 (공격 70 C → 96 B, 84 C+ → 106 B+).
@@ -261,12 +261,12 @@ function moveSock(p,m){if(!m||!m.name)return 0;if((roleOf(p)==='커맨더'||role
 const OLDK=['올드 타입','리전 폼','다이맥스','메가진화','고대종','공명종','전설종'];
 function moveCap(t,p){const k=classOf(p);const filled=p.moves.filter(m=>m.name);let used=filled.reduce((a,m)=>a+moveSock(p,m),0);
  let mode='socket',cap;
- if(OLDK.includes(k)){mode='count';cap=4;return {used:filled.length,cap:p.sockMax!==''&&p.sockMax!=null?+p.sockMax:cap,mode,auto:cap,pt:oldSock()}}
+ if(OLDK.includes(k)){mode='count';cap=4;return {used:filled.length,cap:nz(p.sockMax)?+p.sockMax:cap,mode,auto:cap,pt:oldSock()}}
  if(['적응종','델타종'].includes(k))cap=7;
- else{const gs=S.db.sock.map(x=>x[0]);const g=s=>{const m=(grade(s)||'').match(/[A-Z]+/);const i=m?gs.indexOf(m[0]):-1;return i<0?99:i};
+ else{const gs=S.db.sock.map(x=>x[0]);const g=s=>{const m=(grade(s)||'').match(/[A-Z]+/);const i=m?gs.indexOf(m[0]==='EX'&&!gs.includes('EX')?'S':m[0]):-1;return i<0?99:i};
   const i=Math.min(g(p.base[1]),g(p.base[3]));
   if(i===99)cap=null;else{const tot=p.base.reduce((a,b)=>a+(+b||0),0);cap=+S.db.sock[i][tot>=570?3:tot>=525?2:1]}}
- const ov=p.sockMax!==''&&p.sockMax!=null;return {used,cap:ov?+p.sockMax:cap,mode,auto:cap,ov}}
+ const ov=nz(p.sockMax);return {used,cap:ov?+p.sockMax:cap,mode,auto:cap,ov}}
 const oldSock=()=>{const v=+(S.db.oldSock??5.5);return isNaN(v)?5.5:v};
 const capTxt=(c,none='-',sep=' / ')=>c.mode==='count'?`${c.used}개(${c.pt})`:`${c.used}${sep}${c.cap??none}`;
 function ptSockets(t){let u=0;for(const p of t.pokemon){const c=moveCap(t,p);u+=c.mode==='count'?c.pt:c.used}return Math.round(u*100)/100}
@@ -349,7 +349,7 @@ const prideIsAuto=p=>!prRow(prKey(p.pride));
 /* 화면용: 커스텀이면 계산 종족치 / 계단 기준 */
 function planRange(p){if(isOld(p)||!baseTot(p))return null;const c=customCalc(p);const st=prStep(prideOf(p))||c.step;return st?{ct:c.ct,v:st.v,lab:st.lab,ok:c.ct<=st.v+1e-9}:null}
 /* 룰북: 계단의 통솔점, 통솔 C 이상이면 파트너는 1점 할인 */
-function prideCost(t,p){const r=prRow(prideOf(p));const c=r?pnum(r[1],0):0;return Math.max(0,c-((p.partner||t.solo)&&(RV[strip(t.ranks['통솔'])]??0)>=0?1:0))}
+function prideCost(t,p){const r=prRow(prideOf(p));const c=r?pnum(r[1],0):0;return Math.max(0,c-((p.partner||t.solo)&&(RV[strip(t.ranks['통솔'])]??-9)>=0?1:0))}
 const fmtN=x=>String(Math.round(x*100)/100);
 function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);const w=(x,k)=>out.push({w:1,t:x,k}),i=(x,k)=>out.push({w:0,t:x,k});
  if(!tot)return out;const b=baseNums(p);
@@ -448,7 +448,8 @@ function prideRulePanel(){const R=PR();const f=(path,v,w,ph)=>`<input data-p="db
 const rankSteps=t=>QUAL.reduce((a,q)=>a+Math.max(0,RV[strip(t.ranks[q])]??0),0);
 const discUsed=t=>t.pokemon.reduce((a,p)=>a+p.moves.filter(m=>m.name&&m.half).length,0);
 function ptMaxDef(t){if(t.solo){const v=(S.db.soloSock||{})[strip(t.ranks['육성'])];if(v!=null&&v!=='')return +v}const r=sockRow(t.ranks['육성']);return r?+r[4]:0}
-function ptMax(t){if(t.ptMax!==''&&t.ptMax!=null)return +t.ptMax;return ptMaxDef(t)}
+const nz=v=>v!==''&&v!=null&&!isNaN(+v);
+function ptMax(t){if(nz(t.ptMax))return +t.ptMax;return ptMaxDef(t)}
 /* 트레이너 포인트 항목: [이름, 기본값, 자동 소모 방식] — 테이블·계산식 탭에서 고친다 */
 const PTI_DEF=[['메인','4','rank'],['통솔점','6','pride'],['「기술 할인점」','6','disc'],['【1/시】','3','once'],['분배레벨','10','dist']];
 function ptiMigrate(db){if((db.ptiV||0)<1){for(const r of db.ptItems||[])if(r[0]==='【1/시】'&&!r[2])r[2]='once';db.ptiV=1}
@@ -2131,7 +2132,7 @@ $('#v-char').addEventListener('click',async e=>{
    if(await ask(`폴더 「${esc(f.name)}」를 삭제할까요?<br><span class="small muted">안에 있던 트레이너 ${n}명${kids.length?`과 하위 폴더 ${kids.length}개`:''}는 지워지지 않고 ${up?`상위 폴더 「${esc(up.name||'')}」`:'「폴더 없음」'}으로 옮겨집니다.</span>`,'폴더 삭제')){S.trainers.forEach(t=>{if(t.folder===f.id)t.folder=up?up.id:''});kids.forEach(k=>{if(up)k.parent=up.id;else delete k.parent});S.folders=S.folders.filter(x=>x!==f);save();renderChar()}break}
   case 'addFin':{const p=fById(b.dataset.f);if(!p)break;const name=await askText('하위 폴더',`「${p.name||''}」 안에 만들 폴더 이름`);if(name){const at=S.folders.indexOf(p)+1+fDesc(p.id).length;S.folders.splice(at,0,{id:uid(),name,parent:p.id});S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed[p.id];save();renderChar()}break}
   case 'moveF':{const f=fById(b.dataset.f);if(!f)break;const v=await askFolder(`「${f.name||''}」 옮기기`,'어느 폴더 안으로 옮길까요?',fPar(f),f.id);if(v==null)break;if(v)f.parent=v;else delete f.parent;S.ui.fclosed=S.ui.fclosed||{};if(v)delete S.ui.fclosed[v];save();renderChar();const p=fById(v);toast(`「${f.name}」 → ${p?fPath(p):'맨 위'}`);break}
-  case 'delT':if(await ask(`트레이너 「${esc(T.name)}」와 소속 포켓몬 ${T.pokemon.length}체를 모두 삭제할까요?`,'삭제')){S.trainers.splice(i,1);save();renderChar()}break;
+  case 'delT':if(await ask(`트레이너 「${esc(T.name)}」와 소속 포켓몬 ${T.pokemon.length}체를 모두 삭제할까요?`,'삭제')){S.trainers=S.trainers.filter(x=>x!==T);save();renderChar()}break;
   case 'dupT':{const c=clone(T);c.id=uid();c.name+=' (복사)';c.pokemon.forEach(p=>p.id=uid());S.trainers.splice(i+1,0,c);save();renderChar();break}
   case 'noimg':T.image='';rf();break;
   case 'ivHatch':if(P)openIvHatch(T,P);break;
@@ -2143,8 +2144,8 @@ $('#v-char').addEventListener('click',async e=>{
   case 'deckCard':{if(!T||!T.deck)break;const x=T.deck[+b.dataset.k];if(!x)break;const i=S.db.cards.findIndex(r=>r[1]===x.n);if(i>=0)openEdit('cards',i,{onSaved:rf});else openEdit('cards',-1,{preset:{1:x.n},onSaved:rf});break}
   case 'deckDel':{if(!T||!T.deck)break;T.deck.splice(+b.dataset.k,1);rf();break}
   case 'tordPick':{const t=T;if(!t||!t.orders)break;const kind=b.dataset.kind,k=b.dataset.key,n=soloOrdN(kind);const o=Object.assign({},t.orders);const pk=Object.assign({},o.pick||{});let L=(Array.isArray(pk[kind])?pk[kind]:[]).slice();if(L.includes(k))L=L.filter(x=>x!==k);else{L.push(k);while(L.length>n)L.shift()}pk[kind]=L;o.pick=pk;t.orders=o;rf();break}
-  case 'spDel':{const x=T&&(T.sps||[])[+b.dataset.k];if(!x)break;if(await ask(`SP 『${esc(x.name)}』를 지울까요?`,'삭제')){T.sps.splice(+b.dataset.k,1);rf()}break}
-  case 'fldDel':{const o=P||T;const f=o&&(o.fields||[])[+b.dataset.k];if(!f)break;if(await ask(`필드 《${esc(f.name)}》를 지울까요?`,'삭제')){o.fields.splice(+b.dataset.k,1);rf()}break}
+  case 'spDel':{const x=T&&(T.sps||[])[+b.dataset.k];if(!x)break;if(await ask(`SP 『${esc(x.name)}』를 지울까요?`,'삭제')){T.sps=T.sps.filter(y=>y!==x);rf()}break}
+  case 'fldDel':{const o=P||T;const f=o&&(o.fields||[])[+b.dataset.k];if(!f)break;if(await ask(`필드 《${esc(f.name)}》를 지울까요?`,'삭제')){o.fields=o.fields.filter(y=>y!==f);rf()}break}
   case 'sdef':case 'sdel':case 'sadd':{const R=stRef(b.dataset.sk);const o=R.o;if(!o)break;o.stands=o.stands||[];const k2=+b.dataset.k;
    if(b.dataset.act==='sdef')o.standActive=k2;
    else if(b.dataset.act==='sdel'){const s=o.stands[k2];if(!s||!await ask(`스탠딩 「${esc(s.label||'기본')}」을(를) 지울까요?`,'삭제'))break;o.stands.splice(k2,1);if(+o.standActive>k2||+o.standActive>=o.stands.length)o.standActive=Math.max(0,(+o.standActive||0)-1)}
@@ -2169,7 +2170,7 @@ $('#v-char').addEventListener('click',async e=>{
   case 'tuneItemClr':{const T0=tuneOf(P);T0.item='';T0.itemName='';rf();break}
   case 'addP':{const p=newPoke();applySheetTpl(T,p);T.pokemon.push(p);rf();break}
   case 'stpl':{const n=applySheetTpl(T,P);rf();toast(n?`템플릿 포텐셜 ${n}개를 넣었습니다`:'더 넣을 템플릿 포텐셜이 없습니다');break}
-  case 'delP':if(await ask(`포켓몬 시트 「${esc(P.name||'이름 없음')}」을(를) 삭제할까요?`,'삭제')){T.pokemon.splice(j,1);rf()}break;
+  case 'delP':if(await ask(`포켓몬 시트 「${esc(P.name||'이름 없음')}」을(를) 삭제할까요?`,'삭제')){T.pokemon=T.pokemon.filter(x=>x!==P);rf()}break;
   case 'dupP':{const c=clone(P);c.id=uid();T.pokemon.splice(j+1,0,c);rf();break}
   case 'noPimg':P.image='';rf();break;
   case 'pstadd':{const l=($('#pstl-'+P.id)||{}).value||'',u=(($('#pstu-'+P.id)||{}).value||'').trim();if(!/^https?:\/\//.test(u)){toast('그림 주소(https://…)가 필요합니다. 파일은 「올리기」로');break}P.stands=P.stands||[];P.stands.push({label:l.trim()||'기본',src:u,point:0});if(P.stands.length===1)P.standActive=0;rf();break}
@@ -2195,7 +2196,7 @@ $('#v-char').addEventListener('click',async e=>{
   case 'addForm':P.forms=P.forms||[];P.forms.push(newForm());rf();break;
   case 'tordReset':{const t=T;if(!t||!t.orders||!t.orders.type)break;const ty=Object.assign({},t.orders.type);for(const k of Object.keys(ty))if(k.startsWith(b.dataset.kind+'_'))delete ty[k];t.orders=Object.assign({},t.orders);if(Object.keys(ty).length)t.orders.type=ty;else delete t.orders.type;save();refreshTrainer(t);break}
   case 'addFormOld':openPicker('old',{title:'올드 타입 일람에서 폼 고르기',onPick:n=>{const r=idx.old.get(n);if(!r)return;P.forms=P.forms||[];P.forms.push(formFromOld(r));rf();toast(`「${r[1]}」 폼을 넣었습니다`)}});break;
-  case 'delForm':{const k=+b.dataset.k;const f=(P.forms||[])[k];if(!f)break;if(await ask(`폼 「${esc(f.name||'이름 없음')}」을(를) 지울까요?`,'삭제')){P.forms.splice(k,1);rf()}break}
+  case 'delForm':{const k=+b.dataset.k;const f=(P.forms||[])[k];if(!f)break;if(await ask(`폼 「${esc(f.name||'이름 없음')}」을(를) 지울까요?`,'삭제')){P.forms=P.forms.filter(x=>x!==f);rf()}break}
   case 'addFormPot':{const f=(P.forms||[])[+b.dataset.k];if(!f)break;f.pots=f.pots||[];const used=f.pots.map(x=>+x.slot);let sl=[4,5,6,7,8].find(i=>!used.includes(i));if(sl==null)sl=0;f.pots.push({slot:sl,name:'',eff:''});rf();break}
   case 'delFormPot':{const f=(P.forms||[])[+b.dataset.k];if(!f)break;f.pots.splice(+b.dataset.x,1);rf();break}
   case 'pickFormPot':{const f=(P.forms||[])[+b.dataset.k];const x=f&&f.pots[+b.dataset.x];if(!x)break;openPicker('pots',{onPick:n=>{x.name=n;x.eff='';rf()}});break}
@@ -2267,7 +2268,7 @@ function moveTrainersFromDom(d){const moved=trOfRow(d.item);
  const seen=new Set(),order=[];
  $$('#trs [data-sort="trainers"]').forEach(l=>{const fid=l.dataset.fid||'';[...l.children].forEach(x=>{if(x.dataset.si==null)return;const t=trOfRow(x);if(t&&!seen.has(t)){seen.add(t);t.folder=fid;order.push(t)}})});
  S.trainers.forEach(t=>{if(!seen.has(t))order.push(t)});S.trainers=order;save();renderChar()}
-function applySort(list,order){const re=a=>order.map(i=>a[i]);const kind=list.dataset.sort;if(kind==='trainers'){S.trainers=re(S.trainers);save();renderChar();return}
+function applySort(list,order){const re=a=>order.map(i=>a[i]);const kind=list.dataset.sort;if(kind==='trainers'){/* 10-26 점검: 안 보이는(남의 비공개) 트레이너가 정렬에서 빠져 지워지던 것 */const picked=order.map(i=>S.trainers[i]).filter(Boolean);const rest=S.trainers.filter(t=>!picked.includes(t));S.trainers=picked.concat(rest);save();renderChar();return}
  if(kind==='folders'){const slots=[...order].sort((a,b)=>a-b);const nf=S.folders.slice();slots.forEach((p,k)=>{nf[p]=S.folders[order[k]]});S.folders=nf;save();renderChar();return}   /* 10-24: 하위 폴더 줄은 그 폴더들 자리끼리만 */const T=S.trainers[+list.dataset.i];if(!T)return;
  if(kind==='poke')T.pokemon=re(T.pokemon);
  else{const P=T.pokemon[+list.dataset.j];if(!P)return;if(kind==='moves')P.moves=re(P.moves);else if(kind==='pots'){const full=[...order,...P.pots.map((_,i)=>i).filter(i=>!order.includes(i))];for(const a of ['pots','potEff','potKind'])P[a]=full.map(i=>P[a][i])}}
@@ -2683,7 +2684,7 @@ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.tar
 /* ---------- 백업 · 엑셀 ---------- */
 function customDB(){const o={};for(const k in DBS)o[k]=S.db[k].filter(r=>S.custom[k].includes(r[DBS[k].key]));return o}
 function backupObj(){return {app:'mangketmon-maker',v:3,saved:new Date().toISOString(),trainers:S.trainers,folders:S.folders.map(folderOut),custom:S.custom,customRows:customDB(),dbEdits:[...dbEditDocs().values()],ban:S.db.ban??'',tpl:S.db.tpl,tplV:S.db.tplV||0,tags:S.db.tags,tagsV:S.db.tagsV||0,stpl:S.db.stpl,stplV:S.db.stplV||0,oldSock:S.db.oldSock,ptItems:S.db.ptItems,ptiV:S.db.ptiV||0,pride:S.db.pride,prideExV:S.db.prideExV||0,ilock:S.db.ilock||[],soloSock:S.db.soloSock||clone(SOLO_SOCK_DEF),tplSoloV:S.db.tplSoloV||0,rules:RULES()}}
-const folderOut=f=>{const o={id:f.id,name:f.name||''};if(f.parent)o.parent=f.parent;if(f.priv)o.priv=true;if(f.owner){o.owner=f.owner;o.ownerName=f.ownerName||''}return o};
+const folderOut=f=>{const o={id:f.id,name:f.name||''};if(f.parent)o.parent=f.parent;if(f.deco&&typeof f.deco==='object'&&Object.keys(f.deco).length)o.deco=clone(f.deco);if(f.priv)o.priv=true;if(f.owner){o.owner=f.owner;o.ownerName=f.ownerName||''}return o};
 /* dbEdits: 원본 DB와 다른 행(수정·추가·삭제). 덮어쓰기는 원본에서 다시 짓고, 추가는 지금 DB 위에 얹는다 */
 function applyDbEdits(edits,fromDefault){for(const k in DBS){const eds=edits.filter(d=>d&&d.kind===k);if(!eds.length&&!fromDefault)continue;const K=DBS[k].key;
   let rows=fromDefault?clone(DEF[k]||[]):S.db[k];const cust=new Set(fromDefault?[]:S.custom[k]||[]);
@@ -2695,7 +2696,7 @@ const freshIds=list=>list.map(t=>{t.id=uid();(t.pokemon||[]).forEach(p=>{p.id=ui
 function restore(o,mode){if(!o||o.app!=='mangketmon-maker'){if(o&&o.db&&o.trainers){const tr=(o.trainers||[]).map(fixT);if(mode==='add'){S.trainers=S.trainers.concat(freshIds(tr))}else{S.db=o.db;for(const k in DEF)if(!S.db[k])S.db[k]=clone(DEF[k]);if(!S.db.tags)S.db.tags=clone(TAGS_DEF);if(!S.db.tpl)S.db.tpl=clone(TPL_DEF);S.trainers=tr}}else throw new Error('형식')}
  else{if(Array.isArray(o.dbEdits))applyDbEdits(o.dbEdits,mode!=='add');if(o.ban!=null&&mode!=='add')S.db.ban=o.ban;
   for(const k in DBS){for(const r of (o.customRows&&o.customRows[k])||[]){const key=r[DBS[k].key];const i=S.db[k].findIndex(x=>x[DBS[k].key]===key);if(i>=0)S.db[k][i]=r;else S.db[k].unshift(r);if(!S.custom[k].includes(key))S.custom[k].push(key)}}
-  if(o.tpl){S.db.tpl=o.tpl;if(o.tplSoloV!=null)S.db.tplSoloV=+o.tplSoloV||0}if(o.soloSock&&typeof o.soloSock==='object')S.db.soloSock=o.soloSock;if(o.rules&&typeof o.rules==='object')S.db.rules=o.rules;if(o.tags)S.db.tags=o.tags;if(o.stpl){S.db.stpl=stplMigrate(o.stpl,o.stplV);S.db.stplV=STPL_V}if(o.oldSock!=null)S.db.oldSock=o.oldSock;if(o.ptItems)S.db.ptItems=o.ptItems;if(o.pride){S.db.pride=o.pride;S.db.prideExV=o.prideExV||0;prideMigrate(S.db)}if(Array.isArray(o.ilock))S.db.ilock=o.ilock;if(Array.isArray(o.folders)){const fs=o.folders.filter(f=>f&&f.id).map(f=>folderOut({id:String(f.id),name:String(f.name||''),priv:!!f.priv,owner:f.owner?String(f.owner):'',ownerName:String(f.ownerName||'')}));if(mode==='add'){for(const f of fs)if(!S.folders.some(x=>x.id===f.id))S.folders.push(f)}else S.folders=fs}
+  if(o.tpl){S.db.tpl=o.tpl;if(o.tplSoloV!=null)S.db.tplSoloV=+o.tplSoloV||0}if(o.soloSock&&typeof o.soloSock==='object')S.db.soloSock=o.soloSock;if(o.rules&&typeof o.rules==='object')S.db.rules=o.rules;if(o.tags)S.db.tags=o.tags;if(o.stpl){S.db.stpl=stplMigrate(o.stpl,o.stplV);S.db.stplV=STPL_V}if(o.oldSock!=null)S.db.oldSock=o.oldSock;if(o.ptItems)S.db.ptItems=o.ptItems;if(o.pride){S.db.pride=o.pride;S.db.prideExV=o.prideExV||0;prideMigrate(S.db)}if(Array.isArray(o.ilock))S.db.ilock=o.ilock;if(Array.isArray(o.folders)){const fs=o.folders.filter(f=>f&&f.id).map(f=>folderOut({id:String(f.id),name:String(f.name||''),parent:f.parent?String(f.parent):'',deco:f.deco&&typeof f.deco==='object'?f.deco:null,priv:!!f.priv,owner:f.owner?String(f.owner):'',ownerName:String(f.ownerName||'')}));if(mode==='add'){for(const f of fs)if(!S.folders.some(x=>x.id===f.id))S.folders.push(f)}else S.folders=fs}
   tplNormalize(S.db);const tr=(o.trainers||[]).map(fixT);S.trainers=mode==='add'?S.trainers.concat(freshIds(tr)):tr}
  S.trainers.forEach(fixT);dedupeIds();reindex();save(true);refreshAll()}
 /* 백업 불러오기: 바뀌는 내용 미리보기 · 「지금 목록에 추가」가 빨간 기본 버튼 · 덮어쓰기는 두 번 눌러야 함 · 불러오기 전 지금 데이터 자동 백업 */
@@ -2806,7 +2807,7 @@ $('#xlsxIn').addEventListener('change',async e=>{const f=e.target.files[0];e.tar
    펼침·탭 같은 화면 상태(open, tab)는 사람마다 따로 둔다. */
 const SH={on:false,ready:false,db:null,canWrite:true,init:{},buf:{},ed:new Map(),meta:null,synced:new Map(),flushing:false,again:false,dbDirty:true,dbDocs:null,last:''};
 const SH_KINDS=['trainers','pokemon','dbedit','meta','folders'];
-const UIK=new Set(['open','tab']);
+const UIK=new Set(['open','tab','effTxt','baseUp']);/* 10-26 점검: 공유에서 받은 effTxt · baseUp 이 눌러붙어 옛 값이 다시 올라가던 것 */
 const nowHM=()=>new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
 function shStatus(t){SH.last=t;const el=$('#saved');if(el)el.innerHTML=`<span class="shpill ${SH.canWrite?'':'ro'}">공유</span> ${esc(t)}`}
 const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(x=>[x,v[x]])):v);
@@ -2873,7 +2874,7 @@ function shPutTrainer(id,d){let t=S.trainers.find(x=>x.id===id);const data=clone
  const all=new Map(t.pokemon.map(p=>[p.id,p]));for(const [pid,p] of SH.orph)if(p._tid===id){all.set(pid,p);SH.orph.delete(pid)}
  const list=pids.map(x=>all.get(x)).filter(Boolean);for(const p of all.values())if(!list.includes(p))list.push(p);t.pokemon=list}
 function shPutPoke(id,d){let p=null,owner=null;for(const t of S.trainers){const x=t.pokemon.find(q=>q.id===id);if(x){p=x;owner=t;break}}if(!p)p=SH.orph.get(id);
- if(!p)p={id,open:false,tab:'base'};replaceFields(p,clone(d.data||{}),KEEP_P);p.id=id;p._tid=d.tid;fixP(p);
+ if(!p)p={id,open:false,tab:'base'};{const dd=clone(d.data||{});delete dd.effTxt;delete dd.baseUp;replaceFields(p,dd,KEEP_P)}p.id=id;p._tid=d.tid;fixP(p);
  const t=S.trainers.find(x=>x.id===d.tid);
  if(owner&&owner!==t)owner.pokemon=owner.pokemon.filter(q=>q!==p);
  if(t){if(!t.pokemon.includes(p)){const pos=(t._pids||[]).indexOf(id);if(pos>=0){const after=t.pokemon.filter(q=>(t._pids||[]).indexOf(q.id)>=0&&(t._pids||[]).indexOf(q.id)<pos).length;t.pokemon.splice(after,0,p)}else t.pokemon.push(p)}SH.orph.delete(id)}
