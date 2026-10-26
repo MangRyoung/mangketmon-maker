@@ -1692,7 +1692,7 @@ html.embed .main>.bar .mkopen{margin-left:2px}
   const lum=c=>{const v=rgb(c).map(x=>{x/=255;return x<=.03928?x/12.92:((x+.055)/1.055)**2.4});return .2126*v[0]+.7152*v[1]+.0722*v[2]};const ratio=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
   let INK=g('--ink'),MUT=g('--muted');const SF=g('--surface');if(ratio(INK,SF)<3.2){INK=lum(SF)<.35?'#eef0f4':'#1d2129';MUT=`color-mix(in srgb,${INK} 62%,${SF})`}else if(ratio(MUT,SF)<2.2)MUT=`color-mix(in srgb,${INK} 62%,${SF})`;
   const v=`--bg:${g('--bg')};--surface:${g('--surface')};--sunk:${g('--sunk')};--fg:${INK};--ink:${INK};--muted:${MUT};--line:${g('--line')};--accent:${INK};--accent-ink:${g('--surface')};--gm-bg:${g('--sunk')};--mka:${g('--accent')};--mkd:${g('--display')};font-family:${g('--body')}`;
-  st.textContent=`html.embed body{background:${g('--bg')}}html.embed .rail,html.embed .main>.bar,html.embed .pop,html.embed .toast{${v}}`;
+  st.textContent=`html.embed body{background:${g('--bg')}}html.embed .rail,html.embed .main>.bar,html.embed .pop,html.embed .toast{${v};color:${INK}}`;   /* 10-26: 글자색은 body 에서 물려받아 어두운 테마에서 목록 글자가 칸과 같은 색이 되던 것 */
   const th=P.document.documentElement.getAttribute('data-theme');if(th)D.setAttribute('data-theme',th);else D.removeAttribute('data-theme')}catch(e){}};
  sync();try{P.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>setTimeout(sync,30));new P.MutationObserver(sync).observe(P.document.documentElement,{attributes:true,attributeFilter:['data-theme']})}catch(e){}
  /* 넓은 화면: 오른쪽 줄 */

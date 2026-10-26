@@ -1129,3 +1129,5 @@ html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 .mksppanel .mksp{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:0 10px}
 .mksppanel .mksp>.row:first-child,.mksppanel .mksp>p{grid-column:1/-1}
 @media(max-width:640px){.mkdgrid{grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px 6px}}
+/* 10-26 망령: 좁은 화면(1180px 이하)에서 파티 그림 줄이 이름 · 자질 칩 칸을 40px 로 눌러 겹치던 것 — 이름 칸에 최소 폭을 주면 파티 줄이 다음 줄로 내려간다 */
+@media (max-width:1180px){#mk .tcard .tmain{min-width:min(300px,100%)}}
