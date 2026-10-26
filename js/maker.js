@@ -1681,15 +1681,20 @@ function openUqInfo(T,j){const U=(T.unique||[]).map((u,k)=>({u,k})).filter(x=>x.
   $('[data-uqdeco]',body).onclick=()=>{closeModal();openUqDeco(T,cur,()=>refreshTrainer(T))}};
  draw();l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>closeModal())}
 /* 트레이너 상세 (10-26 망령): 백스토리 · 성격 · 말투 · 선호하는 전법 등 — t.bio=[{k,v}] · 오레마스 캐릭터 탭 「상세」에 그대로 */
-const BIO_DEF=['백스토리','성격','말투','선호하는 전법'];
-function bioOf(t){const L=(Array.isArray(t.bio)?t.bio:[]).filter(x=>x&&(x.k||x.v)).map(x=>({k:String(x.k||''),v:String(x.v||'')}));for(const k of BIO_DEF)if(!L.some(x=>x.k===k))L.push({k,v:''});const o=k=>{const i=BIO_DEF.indexOf(k);return i<0?99:i};return L.sort((a,b)=>o(a.k)-o(b.k))}
-const bioN=t=>(Array.isArray(t.bio)?t.bio:[]).filter(x=>x&&String(x.v||'').trim()).length;
+/* 10-26 망령: 세션 노트 공개 칸과 하나로 — 노트 PC/NPC 시트의 공개 칸 = 이 「상세」(t.bio). 예전 노트 칸(t.rp)은 처음 열 때 여기로 옮겨진다 */
+const BIO_DEF=['백스토리','성격','말투','겉모습','목표 · 동기','인간관계','선호하는 전법','메모'],BIO_NPC=['PL 이 아는 것'];
+const bioDef=t=>t&&t.kind==='npc'?BIO_DEF.concat(BIO_NPC):BIO_DEF;
+const RP2BIO=(t,k)=>({bg:'백스토리',goal:'목표 · 동기',bond:'인간관계',style:'말투',note:t&&t.kind==='npc'?'PL 이 아는 것':'메모'})[k];
+function bioOf(t){const D=bioDef(t);const L=(Array.isArray(t.bio)?t.bio:[]).filter(x=>x&&(x.k||x.v)).map(x=>({k:String(x.k||''),v:String(x.v||'')}));
+ const rp=t.rp||{};for(const k in rp){const lab=RP2BIO(t,k);const v=String(rp[k]||'').trim();if(!lab||!v)continue;const e=L.find(x=>x.k===lab);if(!e)L.push({k:lab,v});else if(!String(e.v).trim())e.v=v}
+ for(const k of D)if(!L.some(x=>x.k===k))L.push({k,v:''});const o=k=>{const i=D.indexOf(k);return i<0?99:i};return L.sort((a,b)=>o(a.k)-o(b.k))}
+const bioN=t=>bioOf(t).filter(x=>String(x.v||'').trim()).length;
 function openBio(T,done){let L=bioOf(T);
  const row=(x,i)=>`<div class="bior" data-bi="${i}" style="border:1px solid var(--line,#ddd);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:6px">
-  <div class="row" style="gap:6px;align-items:center">${BIO_DEF.includes(x.k)?`<b style="flex:1">${esc(x.k)}</b>`:`<input data-bk value="${esc(x.k)}" placeholder="항목 이름 (예: 외모 · 좋아하는 것 · 대사)" style="flex:1;min-width:0">`}${BIO_DEF.includes(x.k)?'':`<button type="button" class="btn sm ghost danger" data-bdel aria-label="이 항목 지우기">✕</button>`}</div>
+  <div class="row" style="gap:6px;align-items:center">${bioDef(T).includes(x.k)?`<b style="flex:1">${esc(x.k)}</b>`:`<input data-bk value="${esc(x.k)}" placeholder="항목 이름 (예: 외모 · 좋아하는 것 · 대사)" style="flex:1;min-width:0">`}${bioDef(T).includes(x.k)?'':`<button type="button" class="btn sm ghost danger" data-bdel aria-label="이 항목 지우기">✕</button>`}</div>
   <textarea data-bv rows="${x.k==='백스토리'?7:3}" placeholder="${esc(x.k==='말투'?'예) 존댓말 · 말끝을 흐림 · 자주 쓰는 말':x.k==='선호하는 전법'?'예) 날씨 파티 · 교대전 · 먼저 깔고 버틴다':x.k==='성격'?'예) 겁이 많지만 동료를 위해서는 물러서지 않는다':'')}">${esc(x.v)}</textarea></div>`;
  const l=openModal(`<div class="mhead"><h2>상세 · ${esc(T.name||'트레이너')}</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
-  <div class="mbody"><p class="small muted" style="margin:0">빈 칸은 보이지 않는다 · 오레마스 캐릭터 탭의 「상세」에 그대로 나온다 (「제작기 동기화」 뒤)</p><div data-bl style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
+  <div class="mbody"><p class="small muted" style="margin:0">빈 칸은 보이지 않는다 · 세션 노트 PC/NPC 시트의 공개 칸과 같은 칸 · 오레마스 캐릭터 탭 「상세」에도 나온다 (「제작기 동기화」 뒤)</p><div data-bl style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
    <button type="button" class="btn sm" data-badd style="margin-top:8px">+ 항목</button></div>
   <div class="mfoot"><span class="sp"></span><button class="btn" data-x>취소</button><button class="btn pri" data-bsave>저장</button></div>`,{wide:true});
  const read=()=>{$$('[data-bi]',l).forEach(el=>{const x=L[+el.dataset.bi];if(!x)return;const k=$('[data-bk]',el);if(k)x.k=k.value.trim();x.v=$('[data-bv]',el).value})};
@@ -1697,7 +1702,7 @@ function openBio(T,done){let L=bioOf(T);
  l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))return closeModal();
   if(e.target.closest('[data-badd]')){read();L.push({k:'',v:''});draw();const ins=$$('[data-bk]',l);if(ins.length)ins[ins.length-1].focus();return}
   const d=e.target.closest('[data-bdel]');if(d){read();L.splice(+d.closest('[data-bi]').dataset.bi,1);draw();return}
-  if(e.target.closest('[data-bsave]')){read();T.bio=L.map(x=>({k:x.k.trim()||'메모',v:x.v.replace(/\s+$/,'')})).filter(x=>BIO_DEF.includes(x.k)||x.v.trim());closeModal();done&&done();toast('상세를 저장했습니다')}})}
+  if(e.target.closest('[data-bsave]')){read();T.bio=L.map(x=>({k:x.k.trim()||'메모',v:x.v.replace(/\s+$/,'')})).filter(x=>x.v.trim());delete T.rp;delete T.rpAt;closeModal();done&&done();toast('상세를 저장했습니다')}})}
 function openTDeco(T,done,FD){const d=T.deco||{};const st={color:safeCss(d.color)||'',title:d.title||'',bg:safeImg(d.bg)||'',pat:d.pat||'',icon:d.icon||''};   /* FD: 폴더 꾸미기 (10-24) */
  const l=openModal(`<div class="mhead"><h2>${FD?'폴더 꾸미기':'트레이너 카드 꾸미기'}</h2></div><div class="mbody"><div class="tdprev" data-tdprev></div>
   <div class="lbl" style="margin-top:12px">카드 색</div><div class="row uqsw" style="gap:6px;align-items:center"><button type="button" class="uqsw1 none" data-tc="" aria-label="기본" title="기본">✕</button>${UQ_COL.map(c=>`<button type="button" class="uqsw1" data-tc="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}<label class="small muted row" style="gap:4px">직접<input type="color" data-tcc value="${st.color.length===7?st.color:'#7b4fd6'}"></label></div>
@@ -1851,7 +1856,7 @@ function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=inve
    ${standsHtml(t,'t:'+ti)}</div>
   <div class="tright"><div class="panel"><h3>자질<span class="sp"></span><button class="btn sm" data-act="tpl" data-i="${ti}" title="랭크 템플릿(테이블·계산식 탭)을 포인트 기본값에 다시 적용">템플릿 다시 적용</button></h3>
    <table><tr><th>자질</th><th>랭크 <span class="small faint" style="font-weight:400">직접 입력 가능</span></th><th>상세 사항</th></tr>${QUAL.map(q=>`<tr><td><b>${q}</b></td><td>${inp(`${P}.ranks.${q}`,t.ranks[q],{w:'76px',list:'mk-ranks'})}</td><td>${inp(`${P}.detail.${q}`,t.detail[q],{ph:'메모'})}</td></tr>`).join('')}</table>
-   <datalist id="mk-ranks">${RANKS.map(r=>`<option value="${r}">`).join('')}</datalist>${rpFold(t,P)}<div class="invest ${iv.msg.length?'bad':''}">${iv.msg.length?iv.msg.map(esc).join(' · '):`자질 투자 ${iv.steps}/${iv.allow}회 · 규칙 이상 없음`}</div>
+   <datalist id="mk-ranks">${RANKS.map(r=>`<option value="${r}">`).join('')}</datalist><div class="invest ${iv.msg.length?'bad':''}">${iv.msg.length?iv.msg.map(esc).join(' · '):`자질 투자 ${iv.steps}/${iv.allow}회 · 규칙 이상 없음`}</div>
    <p class="small muted" style="margin:6px 0 0">육성 ${esc(t.ranks['육성'])} → 기본 레벨 <b>${baseLevel(t.ranks['육성'])}</b> · 포켓몬 기술 소켓 상한 ${esc((sockRow(t.ranks['육성'])||[])[6]??'-')}</p>
    <label class="plrow"><span>PL</span>${inp(P+'.pl',t.pl,{ph:'플레이어 이름'})}</label>
    <label class="plrow" title="오레마스 방으로 가져갈 때 관계도·휴대폰에서 PC(플레이어)인지 NPC 인지"><span>구분</span><select data-p="${P}.kind"><option value="pc" ${t.kind!=='npc'?'selected':''}>PC (플레이어 캐릭터)</option><option value="npc" ${t.kind==='npc'?'selected':''}>NPC</option></select></label>${tOrdHTML(t,ti)}</div>
