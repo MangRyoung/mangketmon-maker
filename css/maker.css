@@ -1124,3 +1124,8 @@ html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 .mkdtb{display:flex;gap:3px;margin-top:3px}
 .mkdtb button{flex:1;min-width:0;font:inherit;font-size:12px;line-height:1;padding:3px 0;border:1px solid var(--line,#ddd);border-radius:5px;background:transparent;color:inherit;cursor:pointer}
 .mkdtb button:hover{border-color:var(--acc,#ffd12e)}.mkdtb button.danger{color:var(--warn,#d33)}
+/* SP · 서포터 가로 칸 (10-26) — 필드 전개처럼. SP 카드는 넓으면 2~3열 */
+.mksppanel .mksp>.row:first-child{margin-top:0!important}
+.mksppanel .mksp{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:0 10px}
+.mksppanel .mksp>.row:first-child,.mksppanel .mksp>p{grid-column:1/-1}
+@media(max-width:640px){.mkdgrid{grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px 6px}}
