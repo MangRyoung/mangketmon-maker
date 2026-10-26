@@ -1680,6 +1680,24 @@ function openUqInfo(T,j){const U=(T.unique||[]).map((u,k)=>({u,k})).filter(x=>x.
   $('[data-uqedit]',body).onclick=()=>{closeModal();openPotEditor(T,null,{unique:cur})};
   $('[data-uqdeco]',body).onclick=()=>{closeModal();openUqDeco(T,cur,()=>refreshTrainer(T))}};
  draw();l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>closeModal())}
+/* 트레이너 상세 (10-26 망령): 백스토리 · 성격 · 말투 · 선호하는 전법 등 — t.bio=[{k,v}] · 오레마스 캐릭터 탭 「상세」에 그대로 */
+const BIO_DEF=['백스토리','성격','말투','선호하는 전법'];
+function bioOf(t){const L=(Array.isArray(t.bio)?t.bio:[]).filter(x=>x&&(x.k||x.v)).map(x=>({k:String(x.k||''),v:String(x.v||'')}));for(const k of BIO_DEF)if(!L.some(x=>x.k===k))L.push({k,v:''});const o=k=>{const i=BIO_DEF.indexOf(k);return i<0?99:i};return L.sort((a,b)=>o(a.k)-o(b.k))}
+const bioN=t=>(Array.isArray(t.bio)?t.bio:[]).filter(x=>x&&String(x.v||'').trim()).length;
+function openBio(T,done){let L=bioOf(T);
+ const row=(x,i)=>`<div class="bior" data-bi="${i}" style="border:1px solid var(--line,#ddd);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:6px">
+  <div class="row" style="gap:6px;align-items:center">${BIO_DEF.includes(x.k)?`<b style="flex:1">${esc(x.k)}</b>`:`<input data-bk value="${esc(x.k)}" placeholder="항목 이름 (예: 외모 · 좋아하는 것 · 대사)" style="flex:1;min-width:0">`}${BIO_DEF.includes(x.k)?'':`<button type="button" class="btn sm ghost danger" data-bdel aria-label="이 항목 지우기">✕</button>`}</div>
+  <textarea data-bv rows="${x.k==='백스토리'?7:3}" placeholder="${esc(x.k==='말투'?'예) 존댓말 · 말끝을 흐림 · 자주 쓰는 말':x.k==='선호하는 전법'?'예) 날씨 파티 · 교대전 · 먼저 깔고 버틴다':x.k==='성격'?'예) 겁이 많지만 동료를 위해서는 물러서지 않는다':'')}">${esc(x.v)}</textarea></div>`;
+ const l=openModal(`<div class="mhead"><h2>상세 · ${esc(T.name||'트레이너')}</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
+  <div class="mbody"><p class="small muted" style="margin:0">빈 칸은 보이지 않는다 · 오레마스 캐릭터 탭의 「상세」에 그대로 나온다 (「제작기 동기화」 뒤)</p><div data-bl style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
+   <button type="button" class="btn sm" data-badd style="margin-top:8px">+ 항목</button></div>
+  <div class="mfoot"><span class="sp"></span><button class="btn" data-x>취소</button><button class="btn pri" data-bsave>저장</button></div>`,{wide:true});
+ const read=()=>{$$('[data-bi]',l).forEach(el=>{const x=L[+el.dataset.bi];if(!x)return;const k=$('[data-bk]',el);if(k)x.k=k.value.trim();x.v=$('[data-bv]',el).value})};
+ const draw=()=>{$('[data-bl]',l).innerHTML=L.map(row).join('')};draw();
+ l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))return closeModal();
+  if(e.target.closest('[data-badd]')){read();L.push({k:'',v:''});draw();const ins=$$('[data-bk]',l);if(ins.length)ins[ins.length-1].focus();return}
+  const d=e.target.closest('[data-bdel]');if(d){read();L.splice(+d.closest('[data-bi]').dataset.bi,1);draw();return}
+  if(e.target.closest('[data-bsave]')){read();T.bio=L.map(x=>({k:x.k.trim()||'메모',v:x.v.replace(/\s+$/,'')})).filter(x=>BIO_DEF.includes(x.k)||x.v.trim());closeModal();done&&done();toast('상세를 저장했습니다')}})}
 function openTDeco(T,done,FD){const d=T.deco||{};const st={color:safeCss(d.color)||'',title:d.title||'',bg:safeImg(d.bg)||'',pat:d.pat||'',icon:d.icon||''};   /* FD: 폴더 꾸미기 (10-24) */
  const l=openModal(`<div class="mhead"><h2>${FD?'폴더 꾸미기':'트레이너 카드 꾸미기'}</h2></div><div class="mbody"><div class="tdprev" data-tdprev></div>
   <div class="lbl" style="margin-top:12px">카드 색</div><div class="row uqsw" style="gap:6px;align-items:center"><button type="button" class="uqsw1 none" data-tc="" aria-label="기본" title="기본">✕</button>${UQ_COL.map(c=>`<button type="button" class="uqsw1" data-tc="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}<label class="small muted row" style="gap:4px">직접<input type="color" data-tcc value="${st.color.length===7?st.color:'#7b4fd6'}"></label></div>
@@ -1826,7 +1844,7 @@ function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=inve
   ${tPartyHTML(t,ti)}${tUqHTML(t,ti)}<span class="sp"></span>
   <div class="tacts">${S.folders.length?`<select class="tmove" data-tmove="${ti}" aria-label="폴더 이동" title="폴더 이동"><option value="">폴더 없음</option>${[fTreeOpts(tFolder(t))].join('')}</select>`:''}<button class="btn sm ghost" data-act="decoT" data-i="${ti}" title="카드 색 · 칭호 · 배경 그림 · 무늬">🎨 꾸미기</button><button class="btn sm ghost" data-act="privT" data-i="${ti}" title="비공개 트레이너는 만든 사람(같은 비밀구)과 GM 에게만 보입니다">${t.priv?'공개로':'비공개'}</button><button class="btn sm ghost" data-act="dupT" data-i="${ti}">복제</button><button class="btn sm ghost danger" data-act="delT" data-i="${ti}">삭제</button></div></header>
  ${t.open?`<div class="fb"><div class="tgrid">
-  <div class="panel"><h3>프로필</h3><label class="lbl" for="tn-${t.id}">이름${inp(P+'.name',t.name,{id:'tn-'+t.id})}</label>
+  <div class="panel"><h3>프로필<span class="sp"></span><button class="btn sm" data-act="bioT" data-i="${ti}" title="백스토리 · 성격 · 말투 · 선호하는 전법 · 그 밖에 — 오레마스 캐릭터 탭에 그대로 보인다">상세${bioN(t)?` <b class="num">${bioN(t)}</b>`:''}</button></h3><label class="lbl" for="tn-${t.id}">이름${inp(P+'.name',t.name,{id:'tn-'+t.id})}</label>
    <div class="imgbox" style="margin-top:8px">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="트레이너 이미지">`:'<span class="small">이미지 없음</span>'}</div>
    <div class="row" style="margin-top:6px"><label class="btn sm" for="img-${t.id}" tabindex="0" role="button" data-kbd>이미지 삽입</label><input type="file" id="img-${t.id}" accept="image/*" data-img="${ti}" hidden>${t.image?`<button class="btn sm ghost" data-act="noimg" data-i="${ti}">제거</button>`:''}</div>
    <h3 style="margin-top:14px"><span style="white-space:nowrap;flex:none">스탠딩</span> <span class="small muted" style="font-weight:normal">오레마스 무대용 · 전신 투명 PNG</span></h3>
@@ -2196,6 +2214,7 @@ $('#v-char').addEventListener('click',async e=>{
   case 'tuneFxK':{const C=tuneCands(P);const n=b.dataset.name;const c=C.find(x=>FXK(x.name)===n);fxOpen(T,P,c?c.kind:'pot',c?c.name:n,c?c.slot:null);break}
   case 'fx':{e.stopPropagation();const sl=b.dataset.slot;fxOpen(T,P,b.dataset.kind,b.dataset.name,sl===''?null:/^\d+$/.test(sl)?+sl:sl);break}
   case 'decoT':{e.stopPropagation();openTDeco(T,rf);break}
+  case 'bioT':{e.stopPropagation();openBio(T,rf);break}
   case 'tpk':{e.stopPropagation();if(!P)break;openPokeCard(T,P);break}
   case 'tuq':{e.stopPropagation();openUqInfo(T,j);break}
   case 'fimgPick':{e.stopPropagation();let inp=$('#fimg-any');if(!inp){inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.id='fimg-any';inp.hidden=true;inp.addEventListener('change',()=>{const f=inp.files[0];if(f)setFormImg(inp.dataset.fimg,f)});MKROOT().appendChild(inp)}inp.dataset.fimg=`${b.dataset.i}.${b.dataset.j}.${b.dataset.k}`;inp.value='';inp.click();break}
