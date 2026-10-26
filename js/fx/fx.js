@@ -276,7 +276,10 @@ window.OM_FX=(()=>{
   if(e.pmin&&!(q.pow>=e.pmin))return false;if(e.pmax&&!(q.pow<=e.pmax))return false;
   if(e.ro&&e.ro.length&&!(q.roles||[]).some(r=>e.ro.includes(r)))return false;
   if(e.eg&&!(q.egg||[]).some(g=>e.eg.split(',').includes(g)))return false;
-  if(e.st&&q.stance&&e.st!==q.stance)return false;return true}
+  /* 10-26 망령: 【수세】 = 효과를 가진 쪽이 공격을 지시받지 않았을 때, 【공세】 = 그 상대(대상)가 공격을 지시받지 않았을 때.
+     q.atkAtk · q.defAtk = 공격하는 쪽 · 맞는 쪽이 이번 턴 공격을 지시받았나 (오레마스가 공개된 지시로 채운다). 없으면 예전처럼 따지지 않는다 */
+  if(e.st&&(q.atkAtk!==undefined||q.defAtk!==undefined)){const hold=e.kind==='guard'?!!q.defAtk:!!q.atkAtk,other=e.kind==='guard'?!!q.atkAtk:!!q.defAtk;if(e.st==='def'&&hold)return false;if(e.st==='off'&&other)return false}
+  else if(e.st&&q.stance&&e.st!==q.stance)return false;return true}
  function attackMods(atk,def,q){const out={boost:1,guard:1,cg:0,cr:0,cx:'',names:[]};
   for(const e of liveMods(atk)){if(e.kind!=='boost')continue;const qq=Object.assign({},q,{roles:(def.fx&&def.fx.roles)||[],egg:def.egg||[]});if(!matchMod(e,qq))continue;out.boost*=e.v;out.cr+=e.cr||0;if(e.cx)out.cx=e.cx;if(e.sure)out.sure=1;if(e.uturn)out.uturn=1;out.names.push({key:e.key,who:atk.id,txt:e.next?`${atk.name} 「${e.name}」 다음 기술: ${nextTxt(e)}`:`${atk.name} 「${e.name}」 ×${e.v}`})}
   for(const e of liveMods(def)){if(e.kind!=='guard')continue;const qq=Object.assign({},q,{roles:(atk.fx&&atk.fx.roles)||[],egg:atk.egg||[]});if(!matchMod(e,qq))continue;const onlyCx=+e.v===1&&!e.cg;if(onlyCx&&(atk.id===def.id||(q&&q.cat==='변화')))continue;/* 급소만 막는 효과(조가비갑옷 …)는 자기 기술 · 변화기에선 이름을 안 띄운다 */out.guard*=e.v;if(e.ed)out.endure=1;out.cg+=e.cg||0;if(e.cx==='none')out.cx='none';out.names.push({key:e.key,who:def.id,txt:`${def.name} 「${e.name}」 ${e.ed?(+e.v===1?'':'×'+e.v+' · ')+'빈사 견딤':onlyCx&&e.cx==='none'?'급소 없음':'×'+e.v}`})}
