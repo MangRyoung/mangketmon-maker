@@ -713,7 +713,12 @@ dialog.mtdlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
   lab.innerHTML='<input type="checkbox" id="mtFit"> 넓게 보기 (화면 폭에 맞춰 최대 1000px · 저장한 HTML 은 로그 폭을 따른다)';fld.after(lab);const on=!!ls.get('mtl-fit',true);$('mtFit').checked=on;document.documentElement.classList.toggle('fitlog',on);
   $('mtFit').onchange=()=>{ls.set('mtl-fit',$('mtFit').checked);document.documentElement.classList.toggle('fitlog',$('mtFit').checked)}})();
 
- const go=()=>pull(true);(window.OM_LOG_IMPORT&&window.OM_LOG_IMPORT.boot?window.OM_LOG_IMPORT.boot:Promise.resolve()).then(()=>setTimeout(go,600));
+ /* 10-26 망령: ?view=로그ID — 세션 노트 「기록」 탭에서 열기. 보관소 목록을 읽은 뒤 그 로그를 고른다(본문은 getLog 가 받아 온다). 주소에서는 지운다 */
+ const VIEW_ID=new URLSearchParams(location.search).get('view');
+ if(VIEW_ID){try{const u=new URL(location.href);u.searchParams.delete('view');history.replaceState(null,'',u.pathname+u.search+u.hash)}catch(e){}}
+ const go=async()=>{await pull(true);if(VIEW_ID){if(!S.index.some(x=>x.id===VIEW_ID)){const c=CL.idx.get(VIEW_ID);if(c)S.index.push({id:VIEW_ID,title:c.title||'로그',count:c.count,assets:[],names:[],folder:null,created:c.created,upd:c.u,meta:c.meta,remote:1})}
+   if(S.index.some(x=>x.id===VIEW_ID)){await selectLog(VIEW_ID);const el=document.querySelector(`.li[data-fid="${CSS.escape(VIEW_ID)}"]`);if(el)el.scrollIntoView({block:'center'});const lg=document.getElementById('log')||document.querySelector('.log,#out,main');if(lg)lg.scrollIntoView({behavior:'smooth',block:'start'})}else toast('보관소에 그 로그가 없어요')}};
+ (window.OM_LOG_IMPORT&&window.OM_LOG_IMPORT.boot?window.OM_LOG_IMPORT.boot:Promise.resolve()).then(()=>setTimeout(go,600));
  setInterval(()=>{checkTree();checkSpk()},4000);addEventListener('pagehide',()=>{for(const [id,t] of upT){clearTimeout(t);upload(id)}});
  /* ---------- 지문(*…*) 글꼴 · 색 · 기울임 (10-25 망령) — 저장한 HTML 에도 들어간다 ---------- */
  (()=>{const fg=$('fGm');const fld=fg&&fg.closest('.field');if(!fld)return;
