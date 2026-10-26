@@ -207,7 +207,8 @@ window.OM_FX=(()=>{
     if(k==='critical_buff'){m.critBuff=(+m.critBuff||0)+v;parts.push(`급소 방호 ${v>0?'+':''}${v}`);continue}
     m.rank=m.rank||{};const lim=k==='critical'?4:6;const before=+m.rank[k]||0;const after=Math.max(-lim,Math.min(lim,before+v));m.rank[k]=after;if(op.temp){m.tempRank=m.tempRank||{};m.tempRank[k]=(+m.tempRank[k]||0)+(after-before)}
     parts.push(`${STAT_KO[k]} ${v>0?'+':''}${v}${after!==before+v?' (한계 '+after+')':''}`)}
-   else{m.mod=m.mod||{};m.mod[k]=Math.round(((+m.mod[k]||1)*v)*1000)/1000;if(op.temp){m.tempMod=m.tempMod||{};m.tempMod[k]=Math.round(((+m.tempMod[k]||1)*v)*1000)/1000}parts.push(`${STAT_KO[k]} ×${v}`);
+   else{/* 10-26 망령: 같은 출처(같은 효과 ← 같은 포켓몬)의 같은 능력 배율은 겹치지 않는다 — 상시 · 고유를 다시 눌러 0.75×0.75 가 되던 것 */{const F0=fx(m);const e0=F0.mults.find(x=>x.key===name+' ← '+self.name);if(e0&&e0.stats&&e0.stats[k]!=null){L.push(`${m.name} 「${name}」 ${STAT_KO[k]} 배율은 이미 걸려 있다`);continue}}
+    m.mod=m.mod||{};m.mod[k]=Math.round(((+m.mod[k]||1)*v)*1000)/1000;if(op.temp){m.tempMod=m.tempMod||{};m.tempMod[k]=Math.round(((+m.tempMod[k]||1)*v)*1000)/1000}parts.push(`${STAT_KO[k]} ×${v}`);
     /* 배율 출처를 남겨서 나중에 해제할 수 있게 */ const F=fx(m);const key=name+' ← '+self.name;let e=F.mults.find(x=>x.key===key);if(!e){e={key,name,stats:{},temp:!!op.temp};F.mults.push(e)}e.stats[k]=Math.round(((+e.stats[k]||1)*v)*1000)/1000}}
   if(parts.length)L.push(`${m.name} 「${name}」 ${parts.join(' · ')}${op.temp?' (턴 종료까지)':''}`);return L}
  function setState(m,en,count,forced,self,name){if(!en)return `${m.name} 모르는 상태`;m.states=m.states||{};if(m.states[en])return `${m.name} 이미 「${stKo(en)}」`;
