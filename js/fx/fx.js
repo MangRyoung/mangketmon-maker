@@ -14,7 +14,9 @@ window.OM_FX=(()=>{
  const DB=()=>window.OM_DB||{}, B=()=>window.OM_BATTLE, S=()=>window.OM_STATS;
  /* 특성 바꾸기 · 되돌리기 (10-24 망령): 이름만 바꾸면 효과 글(abilityEff)이 예전 특성 그대로 남는다 — 새 특성은 DB 글, 되돌릴 땐 원래 글(제작기 사본 포함)로 */
  const abEff=n=>{const a=(DB().traits||{})[n]||{};return String(a.multi||a.single||'').replace(/<br\s*\/?>/gi,'\n')};
- function setAb(m,n,by){if(m.abilityOrig==null){m.abilityOrig=m.ability||'';m.abilityEffOrig=m.abilityEff||''}if(by!=null)m.abilityBy=by;m.ability=n||'';m.abilityEff=abEff(n);if(m.abilityOrig===m.ability)resetAb(m)}
+ /* 10-26 (서서 VS 마리 시험): 특성이 바뀌면 옛 특성이 걸어 둔 자기 효과(내진의 땅 반감 등)를 푼다 */
+ function dropAbFx(m,old){if(!old||!m||!m.fx)return;const F=fx(m);const key=old+' ← '+m.name;const hit=e=>e&&(e.key===key||String(e.key||'').startsWith(key+' ('));for(const e of (F.mults||[]).filter(hit))unmult(m,e);F.mults=(F.mults||[]).filter(e=>!hit(e));for(const k of ['mods','noind','prio','immune','nodrop','chance'])if(Array.isArray(F[k]))F[k]=F[k].filter(e=>!hit(e))}
+ function setAb(m,n,by){const old0=m.ability;if(old0&&old0!==(n||''))dropAbFx(m,old0);if(m.abilityOrig==null){m.abilityOrig=m.ability||'';m.abilityEffOrig=m.abilityEff||''}if(by!=null)m.abilityBy=by;m.ability=n||'';m.abilityEff=abEff(n);if(m.abilityOrig===m.ability)resetAb(m)}
  function resetAb(m){if(m.abilityOrig==null)return false;m.ability=m.abilityOrig;m.abilityEff=m.abilityEffOrig!=null?m.abilityEffOrig:abEff(m.ability);delete m.abilityOrig;delete m.abilityEffOrig;delete m.abilityBy;return true}
  const STATS=['attack','defense','specialattack','specialdefense','speed','accuracy','evasion','critical','critical_buff'];
  const STAT_KO={attack:'공격',defense:'방어',specialattack:'특공',specialdefense:'특방',speed:'스피드',accuracy:'명중',evasion:'회피',critical:'급소',critical_buff:'급소방호'};
@@ -120,7 +122,7 @@ window.OM_FX=(()=>{
      case 'dmg':{const ts=await targets(b,self,op.tgt||'enemy1',ctx);for(const m of ts){if(op.st&&!(m.states||{})[op.st]){L.push(`${m.name} 「${stKo(op.st)}」 상태가 아니라 대미지 없음`);continue}if(op.xtype&&typesOf(m).includes(op.xtype)){L.push(`${m.name} ${TYPE_KO[op.xtype]||op.xtype} 타입이라 대미지 없음`);continue}
        let v=0;if(op.basis==='cur')v=frac(m.hp.cur,op.value);else if(op.basis==='type'){const ats=(op.atypes&&op.atypes.length?op.atypes:[op.atype]).filter(Boolean);/* 복합 타입 (10-23 망령): 타입마다 상성을 곱한다 */const mul=ats.reduce((a,t)=>a*B().effectiveness([t],m,{}).value,1);if(mul<=0){L.push(`${m.name} ${ats.map(t=>TYPE_KO[t]||t).join('·')} 타입 효과 없음`);continue}v=Math.max(1,Math.floor(frac(m.hp.max,op.value)*mul))}else if(op.basis==='last')v=frac((self.lastDealt||{}).total||0,op.value);else v=frac(m.hp.max,op.value);
        if(noind(m,'')){L.push(`${m.name} 비례 대미지를 받지 않는다 (${noindName(m,'')})`);continue}const floor=(op.nofaint||noind(m,'noko'))?1:0;const d=Math.max(0,Math.min(v,m.hp.cur-floor));m.hp.latest=m.hp.cur;m.hp.cur-=d;L.push(`${m.name} 「${name}」 대미지 −${d} (HP ${m.hp.cur}/${m.hp.max})${m.hp.cur<=0?' 빈사!':''}`);if(m.hp.cur<=0)m.entry=''}break}
-     case 'weather':{const f=field(b);if(op.w==='random'){const W=['맑음','비','모래바람','눈','짙은안개','밤','별하늘'];op=Object.assign({},op,{w:W[Math.floor(Math.random()*W.length)]})}const ext=op.w&&+op.count<1000?itemExt(self,op.w):'';f.weather={type:op.w||'',count:op.w?(+op.count||5)+(ext?3:0):0};L.push(op.w?`날씨 「${op.w}」 ${op.count>=1000?'계속':((+op.count||5)+(ext?3:0))+'턴'}${ext?' (「'+ext+'」 +3)':''}`:'날씨 초기화');break}
+     case 'weather':{const f=field(b);/* 10-26: 「특성 : X」로 전개하는 「날씨」가 「날씨 : Y」가 된다 (폭풍요의 조작 등) */{const ov=[...((self&&self.pots)||[]),...(self&&self.excl?[self.excl]:[]),...((self&&self.exclX)||[])].map(p=>String((p&&p.eff)||'').match(/「특성\s*:\s*([^」]+)」(?:로|으로)\s*전개하는\s*「날씨」가\s*「날씨\s*:\s*([^」]+)」가\s*된다/)).find(r=>r&&self&&r[1].trim()===String(self.ability||'').trim());if(ov&&op.w)op=Object.assign({},op,{w:ov[2].trim()})}if(op.w==='random'){const W=['맑음','비','모래바람','눈','짙은안개','밤','별하늘'];op=Object.assign({},op,{w:W[Math.floor(Math.random()*W.length)]})}const ext=op.w&&+op.count<1000?itemExt(self,op.w):'';f.weather={type:op.w||'',count:op.w?(+op.count||5)+(ext?3:0):0};L.push(op.w?`날씨 「${op.w}」 ${op.count>=1000?'계속':((+op.count||5)+(ext?3:0))+'턴'}${ext?' (「'+ext+'」 +3)':''}`:'날씨 초기화');break}
      case 'terrain':{const f=field(b);if(op.room){if(!op.t){f.rooms={};L.push('룸 초기화')}else{f.rooms[op.t]=+op.count||5;L.push(`「${op.t}」 ${op.count>=1000?'계속':op.count+'턴'}`)}}else{const ext=op.t&&+op.count<1000?itemExt(self,'필드'):'';f.terrain={type:op.t||'',count:op.t?(+op.count||5)+(ext?3:0):0};L.push(op.t?`「${op.t}」 ${op.count>=1000?'계속':((+op.count||5)+(ext?3:0))+'턴'}${ext?' (「'+ext+'」 +3)':''}`:'필드 초기화')}break}
      case 'etc':{const f=field(b);if(!op.e){f.etc={};L.push('필드의 상태 초기화')}else{f.etc[op.e]=+op.count||5;L.push(`「${op.e}」 ${op.count>=1000?'계속':op.count+'턴'}`)}break}
      case 'clearobj':{const f=field(b);const sides=op.side==='both'?['left','right']:[op.side==='enemy'?(self.side==='left'?'right':'left'):self.side];const G=OBJ_GROUP[op.what||'hazard']||[];
@@ -178,7 +180,7 @@ window.OM_FX=(()=>{
  function holdSnap(b){const s={mons:{},f:JSON.parse(JSON.stringify(b.field||{}))};for(const id in b.mons||{}){const m=b.mons[id];const F=m.fx||{};s.mons[id]={keys:HL.map(k=>(F[k]||[]).map(e=>e.key)),st:Object.assign({},m.states||{}),rank:Object.assign({},m.rank||{}),iu:F.ignoreUp?F.ignoreUp.name:'',fl:!!F.float,ty:!!m.typesOrig,ab:m.abilityOrig!=null,ro:(F.roles||[]).slice()}}return s}
  function holdDiff(b,self,s,name){const H=self.holds=self.holds||[];const push=x=>H.push(Object.assign({name},x));
   for(const id in b.mons||{}){const m=b.mons[id];const o=s.mons[id];if(!o)continue;const F=m.fx||{};
-   HL.forEach((k,i)=>{for(const e of (F[k]||[]))if(!o.keys[i].includes(e.key))push({mid:id,list:k,key:e.key})});
+   HL.forEach((k,i)=>{for(const e of (F[k]||[]))if(!o.keys[i].includes(e.key))push({mid:id,list:k,key:e.key,e:JSON.parse(JSON.stringify(e)),rel:id===self.id?'self':teamOf(b,m)===teamOf(b,self)?'ally':'enemy'})});
    for(const k in m.states||{})if(o.st[k]==null)push({mid:id,st:k});
    const dr={};for(const k in Object.assign({},o.rank,m.rank||{})){const d=(+((m.rank||{})[k])||0)-(+o.rank[k]||0);if(d)dr[k]=d}if(Object.keys(dr).length)push({mid:id,rank:dr});
    if(F.ignoreUp&&F.ignoreUp.name!==o.iu)push({mid:id,iu:F.ignoreUp.name});if(F.float&&!o.fl)push({mid:id,fl:1});if(m.typesOrig&&!o.ty)push({mid:id,ty:1});if(m.abilityOrig!=null&&!o.ab)push({mid:id,ab:1});
@@ -186,6 +188,18 @@ window.OM_FX=(()=>{
   const f=b.field||{},g=s.f||{};if(f.weather&&f.weather.type&&f.weather.type!==((g.weather||{}).type))push({fld:'weather',v:f.weather.type});if(f.terrain&&f.terrain.type&&f.terrain.type!==((g.terrain||{}).type))push({fld:'terrain',v:f.terrain.type});
   for(const k in f.rooms||{})if(!(g.rooms||{})[k])push({fld:'rooms',v:k});for(const k in f.etc||{})if(!(g.etc||{})[k])push({fld:'etc',v:k});
   for(const sd of ['left','right'])for(const k in ((f.objects||{})[sd]||{}))if(!(((g.objects||{})[sd]||{})[k]))push({fld:'obj',sd,v:k})}
+ /* 10-26 (서서 VS 마리 시험): 「필드 위에 있는 한」 효과(재앙의그릇 · 승리의별 …)는 나중에 들어온 포켓몬에게도 — 등장할 때 필드의 다른 포켓몬이 걸어 둔 효과를 같은 관계(아군/상대)로 옮겨 건다 */
+ function reAura(b,nm){const L=[];if(!nm||!nm.entry)return L;for(const x of Object.values(b.mons||{})){if(!x||x.id===nm.id||!x.entry||!alive(x)||!(x.holds||[]).length)continue;const rel=teamOf(b,x)===teamOf(b,nm)?'ally':'enemy';const done=new Set();
+   for(const h of x.holds){if(!h.list||!h.e||!h.rel||h.rel==='self'||h.rel!==rel||done.has(h.list+'|'+h.key))continue;done.add(h.list+'|'+h.key);const F=fx(nm);if((F[h.list]||[]).some(e=>e.key===h.key))continue;const e=JSON.parse(JSON.stringify(h.e));F[h.list].push(e);
+    if(h.list==='mults'){nm.mod=nm.mod||{};for(const k in e.stats||{}){nm.mod[k]=Math.round(((+nm.mod[k]||1)*(+e.stats[k]||1))*1000)/1000;if(Math.abs(nm.mod[k]-1)<0.002)delete nm.mod[k]}}
+    x.holds.push(Object.assign({},h,{mid:nm.id}));L.push(`${nm.name} 「${h.name}」 ${h.list==='mults'?Object.entries(e.stats||{}).map(([k,v])=>(STAT_KO[k]||k)+' ×'+v).join(' · '):'효과'} — ${x.name}이(가) 필드에 있는 동안`)}}
+  /* 「있는한」 기록이 없는 상시 효과(특성 · 포텐셜 이름으로 걸린 것)는 같은 관계의 다른 포켓몬에게 걸린 것을 본떠 건다 — 기술 효과는 옮기지 않는다 */
+  for(const x of Object.values(b.mons||{})){if(!x||x.id===nm.id||!x.entry||!alive(x))continue;const srcN=new Set([x.ability,...((x.pots||[]).map(p=>p&&p.name)),...(x.excl?[x.excl.name]:[])].filter(Boolean).map(n=>String(n).replace(/『|』/g,'').trim()));const rel=teamOf(b,x)===teamOf(b,nm)?'ally':'enemy';
+   for(const y of Object.values(b.mons||{})){if(!y||y.id===nm.id||y.id===x.id||!y.entry||!alive(y)||!y.fx)continue;if((teamOf(b,x)===teamOf(b,y)?'ally':'enemy')!==rel)continue;
+    for(const k of HL)for(const e0 of (y.fx[k]||[])){const kk=String(e0.key||'');const tail=' ← '+x.name;if(!kk.endsWith(tail)||e0.temp||e0.next||(e0.until!=null&&+e0.until>=0)||(+e0.turn>0))continue;const nmS=kk.slice(0,-tail.length).trim();if(!srcN.has(nmS))continue;const F=fx(nm);if((F[k]||[]).some(e=>e.key===kk))continue;const e=JSON.parse(JSON.stringify(e0));F[k].push(e);
+     if(k==='mults'){nm.mod=nm.mod||{};for(const s2 in e.stats||{}){nm.mod[s2]=Math.round(((+nm.mod[s2]||1)*(+e.stats[s2]||1))*1000)/1000;if(Math.abs(nm.mod[s2]-1)<0.002)delete nm.mod[s2]}}
+     L.push(`${nm.name} 「${nmS}」 ${k==='mults'?Object.entries(e.stats||{}).map(([q,v])=>(STAT_KO[q]||q)+' ×'+v).join(' · '):'효과'} — ${x.name}이(가) 필드에 있는 동안`)}}}
+  return L}
  /* 필드를 떠날 때 (교대 · 퇴장 · 빈사): 돌려줌 = 로그 줄 */
  function release(b,self){const H=(self&&self.holds)||[];if(!H.length)return [];const L=[];const names=new Set();
   for(const h of H){names.add(h.name);const m=h.mid?b.mons[h.mid]:null;
@@ -424,5 +438,5 @@ window.OM_FX=(()=>{
   return L}
  /* 사람이 읽는 설명 (미리보기·로그) */
  function describe(ops){return unparse(ops)}
- return {effOf,rmChance,rollP,lineChance,release,nextOf,scopeKo,chanceOf,setAb,resetAb,stMod,untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,magicRoom,itemOff,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
+ return {reAura,effOf,rmChance,rollP,lineChance,release,nextOf,scopeKo,chanceOf,setAb,resetAb,stMod,untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,magicRoom,itemOff,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
 })();
