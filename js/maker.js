@@ -2013,7 +2013,7 @@ $('#v-char').addEventListener('change',e=>{const el=e.target;
  if(el.dataset.tordx!=null||el.dataset.tordadd!=null){const t=S.trainers[+(el.dataset.tordx??el.dataset.tordadd)];if(!t||!t.orders)return;const kind=el.dataset.kind;let k=el.dataset.key,f=+el.value;if(el.dataset.tordadd!=null){if(!el.value)return;[k,f]=el.value.split(':');f=+f}
   const o=Object.assign({},t.orders);const tc=tOrdTc(t),def=kind==='o'?TORD.tordOf(tc):tc;const ty=Object.assign({},o.type||{});if(f===def)delete ty[kind+'_'+k];else ty[kind+'_'+k]=f;if(Object.keys(ty).length)o.type=ty;else delete o.type;t.orders=o;save();refreshTrainer(t);return}
  if(el.dataset.tord!=null){const t=S.trainers[+el.dataset.tord];if(!t)return;const k=el.dataset.k;const o=Object.assign({},t.orders||{});if(k==='preset'){if(!el.value){delete t.orders;save();refreshTrainer(t);return}o.preset=el.value;if(o.preset==='manual'&&o.tc==null){const tc=TORD.presetTc((t.orders||{}).preset,(t.ranks||{})['지시']);o.tc=isNaN(tc)?0:tc}}else if(k==='tc')o.tc=+el.value||0;else o.base=Math.max(0,Math.min(9,Math.round(+el.value||0)));if(o.base==null)o.base=1;t.orders=o;save();refreshTrainer(t);return}
- if(el.dataset.tmove!=null){const t=S.trainers[+el.dataset.tmove];if(t){t.folder=el.value;S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed[el.value||'_none'];save();renderChar();const f=S.folders.find(x=>x.id===el.value);toast(`「${t.name}」 → ${f?f.name:'폴더 없음'}`)}return}
+ if(el.dataset.tmove!=null){const t=trOfRow(el.closest('section.folder'))||S.trainers[+el.dataset.tmove];if(t){t.folder=el.value;S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed[el.value||'_none'];save();renderChar();const f=S.folders.find(x=>x.id===el.value);toast(`「${t.name}」 → ${f?f.name:'폴더 없음'}`)}return}
  if(el.dataset.p){const t=trOf(el);const m=el.dataset.p.match(/^T\.\d+\.ranks\.(.+)$/);if(m&&t){if(el.tagName==='INPUT'){const v=el.value.trim().toUpperCase().replace(/\s+/g,'').replace(/＋/g,'+').replace(/[－−]/g,'-')||'C';el.value=v;t.ranks[m[1]]=v}applyTpl(t,m[1]);save()}
   if(t&&/^T\.\d+\.solo$/.test(el.dataset.p)){for(const [n,d] of ptItems())t.base[n]=+d||0;applyTpl(t);save();toast(t.solo?'1인 기준 (2체) 템플릿을 적용했습니다':'6체 기준 템플릿을 적용했습니다')}clearTimeout(rT);if(t)setTimeout(()=>refreshTrainer(t),0);return}
  if(el.dataset.img){const f=el.files[0];if(!f)return;const t=S.trainers[+el.dataset.img];readImg(f,640,'image/webp',u=>setImgOf(t,'t',u,t))}
@@ -2238,10 +2238,12 @@ function endDrag(e){if(!drag||e.pointerId!==drag.id)return;const d=drag;drag=nul
  const order=[...d.list.children].filter(x=>x.dataset.si!=null).map(x=>+x.dataset.si);if(order.every((v,i)=>!i||order[i-1]<v))return;applySort(d.list,order)}
 document.addEventListener('pointerup',endDrag);document.addEventListener('pointercancel',endDrag);
 /* 폴더가 있을 때: 화면에 보이는 순서·소속대로 트레이너 목록을 다시 짠다 (접힌 폴더의 트레이너는 그대로 유지) */
-function moveTrainersFromDom(d){const moved=S.trainers[+d.item.dataset.si];
+/* 10-26 망령: 줄의 번호(data-si)가 아니라 id(section#tr-<id>)로 찾는다 — 공유 저장소에서 트레이너가 끼어들어 번호가 밀리면 엉뚱한 트레이너의 폴더가 바뀌던 사고를 막는다 */
+const trOfRow=x=>{const id=x&&x.id&&x.id.startsWith('tr-')?x.id.slice(3):null;return (id&&S.trainers.find(t=>t.id===id))||(x&&x.dataset.si!=null?S.trainers[+x.dataset.si]:null)};
+function moveTrainersFromDom(d){const moved=trOfRow(d.item);
  if(d.fdrop!=null){if(moved){moved.folder=d.fdrop==='_none'?'':d.fdrop;S.trainers=S.trainers.filter(t=>t!==moved).concat([moved]);S.ui.fclosed=S.ui.fclosed||{};const f=S.folders.find(x=>x.id===moved.folder);toast(`「${moved.name}」 → ${f?f.name:'폴더 없음'}`)}save();renderChar();return}
  const seen=new Set(),order=[];
- $$('#trs [data-sort="trainers"]').forEach(l=>{const fid=l.dataset.fid||'';[...l.children].forEach(x=>{if(x.dataset.si==null)return;const t=S.trainers[+x.dataset.si];if(t&&!seen.has(t)){seen.add(t);t.folder=fid;order.push(t)}})});
+ $$('#trs [data-sort="trainers"]').forEach(l=>{const fid=l.dataset.fid||'';[...l.children].forEach(x=>{if(x.dataset.si==null)return;const t=trOfRow(x);if(t&&!seen.has(t)){seen.add(t);t.folder=fid;order.push(t)}})});
  S.trainers.forEach(t=>{if(!seen.has(t))order.push(t)});S.trainers=order;save();renderChar()}
 function applySort(list,order){const re=a=>order.map(i=>a[i]);const kind=list.dataset.sort;if(kind==='trainers'){S.trainers=re(S.trainers);save();renderChar();return}
  if(kind==='folders'){const slots=[...order].sort((a,b)=>a-b);const nf=S.folders.slice();slots.forEach((p,k)=>{nf[p]=S.folders[order[k]]});S.folders=nf;save();renderChar();return}   /* 10-24: 하위 폴더 줄은 그 폴더들 자리끼리만 */const T=S.trainers[+list.dataset.i];if(!T)return;
