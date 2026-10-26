@@ -18,7 +18,7 @@ window.OM_FX_UI=(()=>{
 날씨 비 5 · 날씨 해제        필드 그래스필드 5 · 룸 트릭룸 5 · 필드상태 중력 5        설치기 [아군|상대] 리플렉터 5
 타입 [대상] 추가|변경|원래 불꽃,비행        특성 [대상] 변경 X · 특성 원래        역할 추가|제거 에이스,블로커        추격 [숨김]
 비례무시 [대상] [빈사|설치기|설치기피해|반동] [N턴]        우선도 +1 [대상] [타입:X] [물리|특수|변화] [태그:회복] [이번턴]
-면역 [대상] 잠듦,마비 · 면역 이상        감소무시 [대상] [공격] [N턴]        강화무시 [공격시|받음|양방향] [방어 회피 공격 명중|양쪽] [감소|모두]        하늘위 [대상] [N턴]
+면역 [대상] 잠듦,마비 · 면역 이상        감소무시 [대상] [공격] [N턴]  (내 능력이 깎이지 않음)        강화무시 [공격시|받음|양방향] [방어 회피 공격 명중|양쪽] [감소|모두] [랭크|배율]  (상대 능력 변화를 계산에서 뺌 · 상승·감소 = 랭크 ±N · 강화·저하 = 배율 ×)        하늘위 [대상] [N턴]
 랭크 [대상] 무작위2개+1 [명중회피포함]        상태턴 [대상] 혼란|전부|부정 +1|-1|=2        다음기술 [대상] 필중 유턴 추격 우선도+1 급소+1 확정급소 위력×1.5        확률 +20% [대상] [N회] [N턴] · 확률 반드시 · 확률 해제
 줄 앞 확률: 5할 상태 혼란 상대1체 · 30% 랭크 공격+1 · 저확률 상태 풀죽음 상대1체        줄 끝 「있는한」: 그 효과는 쓴 포켓몬이 필드를 떠나면 풀린다 (효과 글에 「필드 위에 있는 한」이 있으면 저절로)
 종족치 방어,특방 +1 · 종족치 스피드 최대 (시트 종족치에 반영)        상태수정 아쿠아링 1/6 (이 포켓몬의 상태 변화 비율)
@@ -36,7 +36,7 @@ window.OM_FX_UI=(()=>{
   ['HP',[['heal','회복'],['dmg','대미지 (비례 · 타입)'],['future','예고 공격']]],
   ['필드',[['weather','날씨'],['terrain','필드 · 룸'],['etc','필드의 상태'],['object','설치기 · 벽'],['clearobj','철거']]],
   ['행동',[['prio','우선도'],['pursuit','추격'],['freesw','반드시 교대']]],
-  ['무시',[['ignoreup','강화 · 감소 무시'],['nodrop','감소 무시'],['noind','비례 · 설치기 무시'],['float','하늘 위']]],
+  ['무시',[['ignoreup','상대 상승·강화 / 감소·저하 무시 (계산에서 뺌)'],['nodrop','감소 무시 (내 능력이 안 깎임)'],['noind','비례 · 설치기 무시'],['float','하늘 위']]],
   ['모습',[['type','타입'],['trait','특성'],['transform','변신'],['role','역할']]],
   ['발동 조건',[['choice','선택지'],['chance','확률 보정'],['confirm','확인 질문'],['cond','자동 조건']]],
   ['시트',[['baseup','종족치']]]];
@@ -86,7 +86,7 @@ window.OM_FX_UI=(()=>{
    case 'prio':return `<div class="row">대상 ${tgSel('g_tgt')} <label>우선도 <input type="number" step="0.5" class="n xs" data-g="v" value="1"></label> ${sel('g_mode',[['add','더하기'],['set','고정'],['off','해제']],'add')} 분류 ${sel('g_cat',[['all','모두'],['물리','물리'],['특수','특수'],['변화','변화']],'all')} 타입 ${tySel('g_type','', '제한 없음')} <label>태그 <input type="text" data-g="tag" placeholder="회복,드레인"></label> ${sel('g_dur',[['keep','해제 전까지'],['turn','이번 턴']],'keep')}</div>`;
    case 'immune':return `<div class="row">대상 ${tgSel('g_tgt')} <label>상태 (쉼표) <input type="text" data-g="states" placeholder="잠듦,마비 · 이상"></label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
    case 'nodrop':return `<div class="row">대상 ${tgSel('g_tgt')} 능력 ${sel('g_st',[['','모든 능력'],...STATS.slice(0,7).map(k=>[k,ko[k]])],'')} <label>턴 <input type="number" class="n xs" data-g="turns" value="-1"></label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
-   case 'ignoreup':return `<div class="row">${sel('g_dir',[['atk','공격할 때 상대의'],['recv','받을 때 상대의'],['both','주고받을 때 상대의 (천진)']],'atk')} <label><input type="checkbox" data-g="sc_def" checked> 방어</label> <label><input type="checkbox" data-g="sc_eva" checked> 회피</label> <label><input type="checkbox" data-g="sc_atk"> 공격</label> <label><input type="checkbox" data-g="sc_acc"> 명중</label> ${sel('g_iud',[['up','상승 무시'],['down','감소(저하) 무시'],['all','상승 · 감소 모두 무시']],'up')} <label>역할 상대 <input type="text" data-g="ro" placeholder="에이스"></label> <label><input type="checkbox" data-g="off"> 해제</label></div><div class="small dim">공격할 때는 상대의 방어 · 회피, 받을 때는 상대의 공격 · 명중이 쓰인다</div>`;
+   case 'ignoreup':return `<div class="row">${sel('g_dir',[['atk','공격할 때 상대의'],['recv','받을 때 상대의'],['both','주고받을 때 상대의 (천진)']],'atk')} <label><input type="checkbox" data-g="sc_def" checked> 방어</label> <label><input type="checkbox" data-g="sc_eva" checked> 회피</label> <label><input type="checkbox" data-g="sc_atk"> 공격</label> <label><input type="checkbox" data-g="sc_acc"> 명중</label> ${sel('g_iud',[['up','상승·강화 무시'],['down','감소·저하 무시'],['all','변화 모두 무시']],'up')} ${sel('g_lv',[['','랭크 + 배율'],['rank','랭크만 (상승·감소 ±N)'],['mod','배율만 (강화·저하 ×)']],'')} <label>역할 상대 <input type="text" data-g="ro" placeholder="에이스"></label> <label><input type="checkbox" data-g="off"> 해제</label></div><div class="small dim">공격할 때는 상대의 방어 · 회피, 받을 때는 상대의 공격 · 명중이 쓰인다</div>`;
    case 'noind':return `<div class="row">대상 ${tgSel('g_tgt')} ${sel('g_kind',[['','비례 대미지를 받지 않는다'],['noko','비례 대미지로는 빈사가 되지 않는다'],['hazard','설치기를 무시한다'],['hazdmg','설치기의 비례 대미지를 받지 않는다'],['recoil','반동 비례 대미지를 받지 않는다'],['switch','강제 교대를 받지 않는다']],'')} <label>턴 <input type="number" class="n xs" data-g="turns" value="-1"></label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
    case 'float':return `<div class="row">대상 ${tgSel('g_tgt')} <label>턴 <input type="number" class="n xs" data-g="turns" value="-1"></label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
    case 'role':return `<div class="row">${sel('g_mode',[['add','추가'],['remove','제거'],['clear','초기화']],'add')} <label>역할 (쉼표) <input type="text" data-g="roles" placeholder="에이스,블로커"></label></div>`;
@@ -126,7 +126,7 @@ window.OM_FX_UI=(()=>{
    case 'prio':{const m=s('g_mode');return '우선도 '+(m==='set'?'=':(+g('v')>0?'+':''))+(+g('v')||0)+tg(s('g_tgt'))+(s('g_type')?' 타입:'+K.TYPE_KO[s('g_type')]:'')+(s('g_cat')!=='all'?' '+s('g_cat'):'')+(g('tag')?' 태그:'+tyK(g('tag')):'')+(s('g_dur')==='turn'?' 이번턴':'')+(m==='off'?' 해제':'')}
    case 'immune':return '면역'+tg(s('g_tgt'))+' '+(tyK(g('states'))||'이상')+(g('off')?' 해제':'');
    case 'nodrop':return '감소무시'+tg(s('g_tgt'))+(s('g_st')?' '+K.STAT_KO[s('g_st')]:'')+(+g('turns')>0?' '+g('turns')+'턴':'')+(g('off')?' 해제':'');
-   case 'ignoreup':{const sc=[['def','방어'],['eva','회피'],['atk','공격'],['acc','명중']].filter(([k])=>g('sc_'+k)).map(x=>x[1]);if(!sc.length)return '';const d=s('g_iud');return '강화무시 '+(s('g_dir')==='both'?'양방향':s('g_dir')==='recv'?'받음':'공격시')+' '+(sc.length===4?'양쪽':sc.join(' '))+(d==='all'?' 모두':d==='down'?' 감소':'')+(tyK(g('ro'))?' 역할:'+tyK(g('ro')):'')+(g('off')?' 해제':'')}
+   case 'ignoreup':{const sc=[['def','방어'],['eva','회피'],['atk','공격'],['acc','명중']].filter(([k])=>g('sc_'+k)).map(x=>x[1]);if(!sc.length)return '';const d=s('g_iud');return '강화무시 '+(s('g_dir')==='both'?'양방향':s('g_dir')==='recv'?'받음':'공격시')+' '+(sc.length===4?'양쪽':sc.join(' '))+(d==='all'?' 모두':d==='down'?' 감소':'')+(s('g_lv')==='rank'?' 랭크':s('g_lv')==='mod'?' 배율':'')+(tyK(g('ro'))?' 역할:'+tyK(g('ro')):'')+(g('off')?' 해제':'')}
    case 'noind':if(s('g_kind')==='switch')return '교대무시'+tg(s('g_tgt'))+(+g('turns')>0?' '+g('turns')+'턴':'')+(g('off')?' 해제':'');return '비례무시'+tg(s('g_tgt'))+({'':'',noko:' 빈사',hazard:' 설치기',hazdmg:' 설치기피해',recoil:' 반동'})[s('g_kind')]+(+g('turns')>0?' '+g('turns')+'턴':'')+(g('off')?' 해제':'');
    case 'float':return '하늘위'+tg(s('g_tgt'))+(+g('turns')>0?' '+g('turns')+'턴':'')+(g('off')?' 해제':'');
    case 'role':return '역할 '+({add:'추가',remove:'제거',clear:'초기화'})[s('g_mode')]+' '+tyK(g('roles'));
