@@ -1131,3 +1131,23 @@ html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 @media(max-width:640px){.mkdgrid{grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px 6px}}
 /* 10-26 망령: 좁은 화면(1180px 이하)에서 파티 그림 줄이 이름 · 자질 칩 칸을 40px 로 눌러 겹치던 것 — 이름 칸에 최소 폭을 주면 파티 줄이 다음 줄로 내려간다 */
 @media (max-width:1180px){#mk .tcard .tmain{min-width:min(300px,100%)}}
+
+/* ===== 즐겨찾기 레일 (10-26) ===== */
+#mk .favstar{background:none;border:0;color:var(--muted);font-size:15px;cursor:pointer;padding:0 4px;line-height:1;vertical-align:middle}
+#mk .favstar.on{color:#f0b429}
+#mk .favstar:hover{color:#f0b429}
+#mkFav{position:fixed;left:10px;top:120px;width:210px;max-height:calc(100vh - 160px);overflow:auto;background:var(--surface,#fff);color:var(--ink,#222);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.12);z-index:30;font-size:13px}
+#mkFav .favh{all:unset;display:flex;align-items:center;gap:6px;width:100%;box-sizing:border-box;padding:8px 10px;font-weight:700;color:#d9962a;cursor:pointer;border-bottom:1px solid var(--line)}
+#mkFav .favh small{color:var(--muted);font-weight:500}
+#mkFav.closed{width:auto}
+#mkFav.closed .favh{border-bottom:0;writing-mode:vertical-rl;padding:10px 6px}
+#mkFav .favl{display:flex;flex-direction:column;padding:4px}
+#mkFav .favi{all:unset;display:flex;align-items:center;gap:6px;padding:6px 6px;cursor:pointer;border-radius:6px;color:var(--ink,#222)}
+#mkFav .favi:hover{background:var(--sunk,rgba(0,0,0,.05))}
+#mkFav .favi i{font-style:normal;flex:none;width:18px;text-align:center}
+#mkFav .favi span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mkFav .favi em{font-style:normal;color:var(--muted);opacity:0;padding:0 4px}
+#mkFav .favi:hover em{opacity:1}
+#mk .favflash{outline:3px solid #f0b429;outline-offset:2px;border-radius:10px}
+@media(max-width:1900px){#mkFav:not(.closed){width:200px;left:6px}}
+@media(max-width:1000px){#mkFav{display:none}}
