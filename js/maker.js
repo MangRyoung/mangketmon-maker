@@ -342,8 +342,10 @@ function oldCalc(p){const R=PR(),real=baseTot(p),steps=prSteps(),L=R.oldLow||PRI
  if(!st){const low=steps.find(s=>!isEX(s));return prank?{real,t,lab:low?low.lab:'C',src:'prank',friendly:fr}:{real,t,lab:String(L.lab||'0.5'),src:'low',friendly:fr}}
  return {real,t,lab:st.lab,src:'floor',friendly:fr}}
 function prideAuto(p){if(!baseTot(p))return (prSteps()[0]||{lab:'C'}).lab;if(isOld(p))return oldCalc(p).lab;const c=customCalc(p);return c.step?c.step.lab:'C'}
-function prideOf(p){const v=strip(p.pride);return prRow(v)?v:prideAuto(p)}
-const prideIsAuto=p=>!prRow(strip(p.pride));
+/* 10-26 망령: C+ · B+ 를 고르면 strip 이 + 를 지워 C · B 로 떨어지던 것 — 계단 이름 그대로 먼저 찾고, 없을 때만 예전처럼 +/- 를 뗀다 */
+const prKey=v=>{const s=String(v||'').trim();return prRow(s)?s:strip(s)};
+function prideOf(p){const v=prKey(p.pride);return prRow(v)?v:prideAuto(p)}
+const prideIsAuto=p=>!prRow(prKey(p.pride));
 /* 화면용: 커스텀이면 계산 종족치 / 계단 기준 */
 function planRange(p){if(isOld(p)||!baseTot(p))return null;const c=customCalc(p);const st=prStep(prideOf(p))||c.step;return st?{ct:c.ct,v:st.v,lab:st.lab,ok:c.ct<=st.v+1e-9}:null}
 /* 룰북: 계단의 통솔점, 통솔 C 이상이면 파트너는 1점 할인 */
@@ -1886,7 +1888,7 @@ function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=itemRow(p),own
   <div class="fgrid">
    <label class="lbl" for="nm-${id}" style="grid-column:span 2">이름${inp(P+'.name',p.name,{id:'nm-'+id})}</label>
    <label class="lbl" for="dist-${id}">레벨 <span class="faint">기본 ${baseLevel(t.ranks['육성'])} + 분배</span><span class="row"><b class="num" style="font-size:15px">${lv(t,p)}</b>${inp(P+'.dist',p.dist,{id:'dist-'+id,w:'56px',num:1})}</span></label>
-   <label class="lbl" for="pr-${id}">프라이드 <span class="faint">통솔점 ${prideCost(t,p)}</span><select data-p="${P}.pride" id="pr-${id}"><option value="" ${prideIsAuto(p)?'selected':''}>자동 (${esc(prideAuto(p))})</option>${[...(isOld(p)?[[PR().oldLow.lab]]:[]),...PR().rows].filter(r=>r&&r[0]).map(r=>`<option ${!prideIsAuto(p)&&strip(p.pride)===r[0]?'selected':''}>${esc(r[0])}</option>`).join('')}</select></label>
+   <label class="lbl" for="pr-${id}">프라이드 <span class="faint">통솔점 ${prideCost(t,p)}</span><select data-p="${P}.pride" id="pr-${id}"><option value="" ${prideIsAuto(p)?'selected':''}>자동 (${esc(prideAuto(p))})</option>${[...(isOld(p)?[[PR().oldLow.lab]]:[]),...PR().rows].filter(r=>r&&r[0]).map(r=>`<option ${!prideIsAuto(p)&&prKey(p.pride)===r[0]?'selected':''}>${esc(r[0])}</option>`).join('')}</select></label>
    <label class="lbl" for="pt-${id}">파트너<span class="row small" style="min-height:30px"><input type="checkbox" id="pt-${id}" data-p="${P}.partner" ${p.partner?'checked':''}>통솔점 1 할인</span></label>
    <label class="lbl" for="ge-${id}">성별${sel(P+'.gender',p.gender,['-','♂','♀','무성'],{id:'ge-'+id})}</label>
    ${['t1','t2','t3','tera'].map((k,n)=>`<label class="lbl" for="${k}-${id}">${['타입1','타입2','타입3','테라스탈'][n]}${sel(`${P}.${k}`,p[k],types,{id:k+'-'+id})}</label>`).join('')}
