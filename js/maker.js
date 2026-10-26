@@ -910,6 +910,7 @@ function xfHTML(kind,st){st.f=st.f||{};const F=(FILT[kind]||[]).filter(x=>!x.whe
 function filterRows(kind,st){const D=DBS[kind];const q=String(st.q||'').trim().toLowerCase();const F=(FILT[kind]||[]).filter(x=>st.f&&st.f[x.id]);
  const pmin=st.pmin!==''&&st.pmin!=null&&!isNaN(+st.pmin)?+st.pmin:null,pmax=st.pmax!==''&&st.pmax!=null&&!isNaN(+st.pmax)?+st.pmax:null;
  return S.db[kind].filter(r=>{if(r[D.key]==='')return false;
+  if(st.hideOrig&&!st.orig&&!st.mine&&S.custom[kind].includes(r[D.key]))return false;   /* 10-26 망령: 포켓몬 만들 때 특성 목록엔 오리지널을 「오리지널 보기」를 눌러야 보인다 */
   if(st.type&&kind==='moves'&&!String(r[5]).startsWith(st.type))return false;
   if(st.cat&&kind==='moves'&&r[6]!==st.cat)return false;
   if(st.kind&&(kind==='pots'||kind==='items'||kind==='old')&&r[0]!==st.kind)return false;
@@ -938,11 +939,12 @@ function mountPicker(root,kind,st,{chosen,onPick}){
  root.addEventListener('change',e=>{const t=e.target;if(t.matches('[data-fc]'))st.cat=t.value;else if(t.matches('[data-fk]'))st.kind=t.value;else if(t.matches('[data-fn]'))st.nameOnly=t.checked;else if(t.matches('[data-fm]'))st.mine=t.checked;else if(t.matches('[data-xf]')){st.f=st.f||{};st.f[t.dataset.xf]=t.value;if(t.dataset.xf==='grp')st.kind=''}else if(t.matches('[data-pr]'))st[t.dataset.pr]=t.value.trim();else return;st.lim=120;draw()});
  root.addEventListener('click',e=>{const ft=e.target.closest('[data-ft]');if(ft){st.type=st.type===ft.dataset.ft?'':ft.dataset.ft;draw();return}
   const tg=e.target.closest('[data-pkftog]');if(tg){const w=$('[data-pkfwrap]',root);const on=!w.classList.contains('on');w.classList.toggle('on',on);tg.setAttribute('aria-expanded',on);return}
+  const og=e.target.closest('[data-pkorig]');if(og){st.orig=!st.orig;og.classList.toggle('on',st.orig);og.setAttribute('aria-pressed',st.orig?'true':'false');st.lim=120;draw();return}
   if(e.target.closest('[data-more]')){st.lim+=200;draw();return}
   if(e.target.closest('[data-xfreset]')){st.f={};st.pmin='';st.pmax='';st.kind='';st.cat='';st.type='';draw();return}
   const r=e.target.closest('[data-pick]');if(r){onPick(r.dataset.pick);draw()}});
  draw();return draw}
-function pickerShell(kind,st){return `<div class="row pkhead"><input data-pkq type="search" enterkeyhint="search" placeholder="${DBS[kind].t} 이름·효과 검색" value="${esc(st.q)}" style="flex:1" autofocus><span class="small muted" data-pkcount></span><button type="button" class="btn sm ftog" data-pkftog aria-expanded="false">필터<b class="fn" data-pkfn></b></button></div><div class="fwrap" data-pkfwrap><div data-pkfilters></div></div><div class="pkrows" data-pkrows></div>`}
+function pickerShell(kind,st){return `<div class="row pkhead"><input data-pkq type="search" enterkeyhint="search" placeholder="${DBS[kind].t} 이름·효과 검색" value="${esc(st.q)}" style="flex:1" autofocus><span class="small muted" data-pkcount></span>${st.hideOrig?`<button type="button" class="btn sm ftog${st.orig?' on':''}" data-pkorig aria-pressed="${st.orig?'true':'false'}" title="오리지널 ${DBS[kind].t}도 목록에 보이기">오리지널 보기</button>`:''}<button type="button" class="btn sm ftog" data-pkftog aria-expanded="false">필터<b class="fn" data-pkfn></b></button></div><div class="fwrap" data-pkfwrap><div data-pkfilters></div></div><div class="pkrows" data-pkrows></div>`}
 /* 필터를 다시 그려도 쓰던 칸에 초점과 커서를 돌려놓는다 */
 function keepFocus(root,fn){const a=document.activeElement;let key=null,ss=null,se=null;
  if(a&&root.contains(a)){for(const at of ['data-xf','data-pr','data-fc','data-fk','data-fn','data-fm','data-ft','data-pkq'])if(a.hasAttribute(at)){key=`[${at}${a.getAttribute(at)?`="${CSS.escape(a.getAttribute(at))}"`:''}]`;break}
@@ -950,7 +952,7 @@ function keepFocus(root,fn){const a=document.activeElement;let key=null,ss=null,
  fn();if(!key)return;const n=root.querySelector(key);if(n&&n!==document.activeElement){n.focus({preventScroll:true});try{if(ss!=null)n.setSelectionRange(ss,se)}catch(e){}}}
 function fCount(kind,st){let n=Object.values(st.f||{}).filter(Boolean).length;for(const k of ['type','cat','kind'])if(st[k])n++;if(st.pmin!==''&&st.pmin!=null)n++;if(st.pmax!==''&&st.pmax!=null)n++;if(st.mine)n++;return n}
 function openPicker(kind,{title,multi,chosen,onPick,onRemove,onOrig}={}){
- const st={q:'',lim:120,type:'',cat:'',kind:'',mine:false,nameOnly:false,f:{},pmin:'',pmax:''};
+ const st={q:'',lim:120,type:'',cat:'',kind:'',mine:false,nameOnly:false,f:{},pmin:'',pmax:'',hideOrig:kind==='abil',orig:false};
  const l=openModal(`<div class="mhead"><h2>${esc(title||DBS[kind].t+' 선택')}</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
   <div class="mbody">${pickerShell(kind,st)}${multi?'<p class="small muted" style="margin:0">클릭하면 추가되고, 이미 추가된 항목(파란색)을 다시 누르면 빠집니다. 창은 닫기 전까지 열려 있습니다.</p>':''}</div>
   <div class="mfoot"><button class="btn" data-orig>+ 오리지널 ${DBS[kind].t} 만들기</button><span class="sp"></span><button class="btn pri" data-x>${multi?'완료':'닫기'}</button></div>`,{wide:true});
@@ -1003,7 +1005,7 @@ function openEdit(kind,i,{preset={},onSaved}={}){const D=DBS[kind];
  const l=openModal(`<div class="mhead"><h2>${D.t} ${i<0?'오리지널 만들기':'수정'}</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
  <div class="mbody"><datalist id="L-kinds">${[...new Set(S.db.pots.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist><datalist id="L-ikinds">${[...new Set(S.db.items.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist>
  <div class="fgrid">${order.map(n=>fieldHTML(kind,n,r[n])).join('')}</div><div class="preview" data-prev></div></div>
- <div class="mfoot">${i>=0?'<button class="btn danger" data-del>삭제</button>':''}<span class="sp"></span><button class="btn" data-x>취소</button><button class="btn pri" data-save>저장</button></div>`,{wide:true});
+ <div class="mfoot">${i>=0?'<button class="btn danger" data-del>삭제</button>':''}<label class="row small" style="gap:4px" title="오리지널로 표시 · 포켓몬 만들 때 특성 목록에서는 「오리지널 보기」를 눌러야 보인다"><input type="checkbox" data-origchk ${i<0||S.custom[kind].includes(r[D.key])?'checked':''}>오리지널</label><span class="sp"></span><button class="btn" data-x>취소</button><button class="btn pri" data-save>저장</button></div>`,{wide:true});
  const rgi=kind==='moves'?$('[data-f="9"]',l):null;if(rgi)rgi.addEventListener('input',()=>{$('[data-rg]',l).innerHTML=rangeGrid(rgi.value)});
  if(kind==='st'){const inp=$('[data-f="12"]',l),im=$('[data-sticon]',l),fi=$('[data-sticonf]',l);const show=()=>{im.src=stIcon(inp.value.trim());im.style.visibility=inp.value.trim()?'visible':'hidden'};inp.addEventListener('input',show);
   $('[data-sticonpick]',l).addEventListener('click',()=>fi.click());
@@ -1037,6 +1039,7 @@ function openEdit(kind,i,{preset={},onSaved}={}){const D=DBS[kind];
    if(i<0){S.db[kind].unshift(nr);if(!S.custom[kind].includes(nr[D.key]))S.custom[kind].push(nr[D.key])}
    else{const old=S.db[kind][i][D.key];S.db[kind][i]=nr;const ci=S.custom[kind].indexOf(old);if(ci>=0)S.custom[kind][ci]=nr[D.key];
     if(old!==nr[D.key]){const n=renameRefs(kind,old,nr[D.key]);if(n){save();setTimeout(()=>toast(`캐릭터 시트 ${n}곳의 이름도 바꿨습니다`),1900)}}}
+   {const oc=$('[data-origchk]',l);if(oc){const ci=S.custom[kind].indexOf(nr[D.key]);if(oc.checked&&ci<0)S.custom[kind].push(nr[D.key]);else if(!oc.checked&&ci>=0)S.custom[kind].splice(ci,1)}}   /* 10-26 망령: 오리지널 구분을 직접 */
    reindex();save(true);closeModal();toast('DB에 저장했습니다');onSaved?onSaved(nr[D.key]):refreshAll()}})}
 /* 오리지널 소지품 (시트에만) — DB 는 건드리지 않고 p.item · p.itemOwn 만 바꾼다. 오레마스로는 시트 그대로 넘어간다 */
 function openOwnItem(P,name,done){const o0=ownItem(P)&&(!name||name===P.item)?ownItem(P):null;const o=Object.assign({name:name||'',kind:'오리지널',cons:false,sock:'-',eff:'',auto:''},o0?clone(o0):{name:name||''});
@@ -2828,7 +2831,7 @@ function rowJ(r){const a=Array.isArray(r)?r.slice():r;if(Array.isArray(a))while(
 function dbEditDocs(out=new Map()){const dj=defJ();
  for(const k in DBS){if(!lazyOk(k))continue;/* 레디메이드 기본 행이 아직 없으면 비교하지 않는다 (915행이 전부 「바뀐 행」으로 잡히는 것 방지) */const seen=new Set(),cust=new Set(S.custom[k]||[]);
   S.db[k].forEach((r,ix)=>{const key=r[DBS[k].key];if(key===''||key==null||seen.has(key))return;seen.add(key);const d=dj[k].get(key);
-   if(d===rowJ(r))return;out.set('dbedit/'+k+'.'+keySeg(key),{kind:k,key,row:r,custom:cust.has(key),pos:d?-1:ix})});
+   if(d===rowJ(r)&&!cust.has(key))return;out.set('dbedit/'+k+'.'+keySeg(key),{kind:k,key,row:r,custom:cust.has(key),pos:d?-1:ix})});
   for(const key of dj[k].keys())if(!seen.has(key))out.set('dbedit/'+k+'.'+keySeg(key),{kind:k,key,deleted:true})}
  return out}
 function shDbDocs(){if(SH.dbDocs&&!SH.dbDirty)return SH.dbDocs;const out=dbEditDocs();
