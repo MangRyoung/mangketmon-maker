@@ -1804,6 +1804,10 @@ function tOrdHTML(t,ti){const o=t.orders||{};const p=o.preset||'';const rk=(t.ra
   <label class="plrow"><span>지령 종류</span><select data-tord="${ti}" data-k="preset">${opts}</select></label>
   ${p==='manual'?`<label class="plrow"><span>계열</span><select data-tord="${ti}" data-k="tc">${TORD.CL.map((n,i)=>`<option value="${i}" ${+o.tc===i?'selected':''}>${i+1}. ${esc(n)}</option>`).join('')}</select></label>`:''}
   ${p?`<label class="plrow"><span>기준 횟수</span><input type="number" min="0" max="9" style="width:64px;flex:none" data-tord="${ti}" data-k="base" value="${base}"><span class="small muted" style="font-weight:400">항목마다 이 횟수</span></label>${prev}`:'<p class="small muted" style="margin:6px 0 0">고르면 오레마스로 가져갈 때 명령(4식)·지령(6령) 계열과 횟수가 자동으로 맞춰진다.</p>'}</div>`}
+/* 10-26 망령: 세션 노트와 주고받는 공개 칸(RP). 노트의 「⇪ 제작기로」 · 「⇩ 제작기에서」 와 같은 칸이다 */
+const RP_PC=[['bg','배경 · 설정'],['goal','목표 · 동기'],['bond','인간관계'],['style','말투 · 겉모습'],['note','메모']],RP_NPC=[['bg','정체 · 설정'],['goal','원하는 것 · 동기'],['bond','인간관계'],['style','말투 · 겉모습'],['note','PL 이 아는 것']];
+function rpFold(t,P){const L=t.kind==='npc'?RP_NPC:RP_PC;const rp=t.rp||{};const n=L.filter(([k])=>rp[k]).length;
+ return `<details class="rpfold" ${n?'':''}><summary>세션 노트 공개 칸 <span class="small faint">${n?n+'칸 채움':'비어 있음'}${t.rpAt?' · 노트에서 '+new Date(t.rpAt).toLocaleDateString('ko-KR'):''}</span></summary><div class="rpg">${L.map(([k,l])=>`<label class="lbl"><span class="small muted">${l}</span><textarea data-p="${P}.rp.${k}" rows="2">${esc(rp[k]||'')}</textarea></label>`).join('')}</div><p class="small faint" style="margin:4px 0 0">세션 노트의 PC/NPC 시트와 주고받는 칸이에요. 비밀 칸 · GM 메모는 노트에만 있어요.</p></details>`}
 function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=investCheck(t);const pu=ptSockets(t),pm=ptMax(t);
  return `<section class="folder ${t.open?'open':''}" id="tr-${t.id}" data-ti="${ti}" data-si="${ti}">
  <header class="fh tcard ${tDecoCls(t)}" style="${tDecoVars(t)}" data-tog="${P}" data-grab tabindex="0" role="button" data-kbd aria-expanded="${!!t.open}" aria-label="${esc(t.name||'트레이너')} 펼치기/접기"><span class="caret">▸</span><span class="avatar">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="">`:esc([...(t.name||'?')][0]||'?')}</span>
@@ -1819,7 +1823,7 @@ function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=inve
    ${standsHtml(t,'t:'+ti)}</div>
   <div class="tright"><div class="panel"><h3>자질<span class="sp"></span><button class="btn sm" data-act="tpl" data-i="${ti}" title="랭크 템플릿(테이블·계산식 탭)을 포인트 기본값에 다시 적용">템플릿 다시 적용</button></h3>
    <table><tr><th>자질</th><th>랭크 <span class="small faint" style="font-weight:400">직접 입력 가능</span></th><th>상세 사항</th></tr>${QUAL.map(q=>`<tr><td><b>${q}</b></td><td>${inp(`${P}.ranks.${q}`,t.ranks[q],{w:'76px',list:'mk-ranks'})}</td><td>${inp(`${P}.detail.${q}`,t.detail[q],{ph:'메모'})}</td></tr>`).join('')}</table>
-   <datalist id="mk-ranks">${RANKS.map(r=>`<option value="${r}">`).join('')}</datalist><div class="invest ${iv.msg.length?'bad':''}">${iv.msg.length?iv.msg.map(esc).join(' · '):`자질 투자 ${iv.steps}/${iv.allow}회 · 규칙 이상 없음`}</div>
+   <datalist id="mk-ranks">${RANKS.map(r=>`<option value="${r}">`).join('')}</datalist>${rpFold(t,P)}<div class="invest ${iv.msg.length?'bad':''}">${iv.msg.length?iv.msg.map(esc).join(' · '):`자질 투자 ${iv.steps}/${iv.allow}회 · 규칙 이상 없음`}</div>
    <p class="small muted" style="margin:6px 0 0">육성 ${esc(t.ranks['육성'])} → 기본 레벨 <b>${baseLevel(t.ranks['육성'])}</b> · 포켓몬 기술 소켓 상한 ${esc((sockRow(t.ranks['육성'])||[])[6]??'-')}</p>
    <label class="plrow"><span>PL</span>${inp(P+'.pl',t.pl,{ph:'플레이어 이름'})}</label>
    <label class="plrow" title="오레마스 방으로 가져갈 때 관계도·휴대폰에서 PC(플레이어)인지 NPC 인지"><span>구분</span><select data-p="${P}.kind"><option value="pc" ${t.kind!=='npc'?'selected':''}>PC (플레이어 캐릭터)</option><option value="npc" ${t.kind==='npc'?'selected':''}>NPC</option></select></label>${tOrdHTML(t,ti)}</div>
@@ -2005,7 +2009,7 @@ let composing=false;
 $('#v-char').addEventListener('compositionstart',()=>{composing=true;clearTimeout(rT)});
 $('#v-char').addEventListener('compositionend',e=>{composing=false;const t=trOf(e.target);if(t&&e.target.tagName!=='TEXTAREA'){clearTimeout(rT);rT=setTimeout(()=>refreshTrainer(t),550)}});
 $('#v-char').addEventListener('input',e=>{if(e.target.dataset.tuneitem){const t=S.trainers[+e.target.dataset.i];const P=t&&t.pokemon[+e.target.dataset.j];if(!P)return;const T0=tuneOf(P);T0.item=e.target.value;T0.itemName=T0.item.trim()?P.item:'';save();const pv=$('#tunePrev-'+P.id);if(pv&&fxReady())pv.innerHTML=tuneItemPrev(T0.item);return}
- const p=e.target.dataset.p;if(!p)return;const[o,k]=getRef(p);if(!o)return;o[k]=e.target.type==='checkbox'?e.target.checked:e.target.value;save();
+ const p=e.target.dataset.p;if(!p)return;if(/^T\.\d+\.rp\./.test(p)){const tt=S.trainers[+p.split('.')[1]];if(tt&&(!tt.rp||typeof tt.rp!=='object'))tt.rp={}}const[o,k]=getRef(p);if(!o)return;o[k]=e.target.type==='checkbox'?e.target.checked:e.target.value;save();
  const t=trOf(e.target);if(e.target.tagName==='TEXTAREA'||e.isComposing||composing)return;clearTimeout(rT);rT=setTimeout(()=>t&&refreshTrainer(t),550)});
 /* 10-25 망령: 능력치 막대를 좌우로 끌어 종족치 조절 (0~200 눈금 · 놓으면 저장하고 다시 그림) */
 {let dg=null;const valAt=(bar,x)=>{const r=bar.getBoundingClientRect();return Math.max(1,Math.min(200,Math.round((x-r.left)/r.width*200)))};

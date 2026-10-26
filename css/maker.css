@@ -1151,3 +1151,6 @@ html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 #mk .favflash{outline:3px solid #f0b429;outline-offset:2px;border-radius:10px}
 @media(max-width:1900px){#mkFav:not(.closed){width:200px;left:6px}}
 @media(max-width:1000px){#mkFav{display:none}}
+
+/* 세션 노트 공개 칸 10-26 */
+.rpfold{margin-top:8px;border:1px solid var(--line,#333);padding:6px 10px}.rpfold summary{cursor:pointer;font-weight:700}.rpfold .rpg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px;margin-top:6px}.rpfold textarea{width:100%;resize:vertical}@media(max-width:640px){.rpfold .rpg{grid-template-columns:1fr}}
