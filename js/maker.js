@@ -184,20 +184,25 @@ function gcol(g){const s=strip(g);return {S:'var(--g-s)',AAA:'var(--g-aaa)',AA:'
 function lv(t,p){return baseLevel(t.ranks['육성'])+(Math.round(+p.dist)||0)}
 /* 테이블(더블) Q198:Q203 — 개체치·노력치·성격 미사용(0 / 0 / 1.0) */
 /* 10-22 망령: 특성 · 포텐셜 · 전용에 적힌 「○○의 종족치를 N랭크 상승(감소)시킨다」 → 실수치 · 등급 · 종족치 합에 반영.
-   1랭크 = 알파벳 등급 하나 (C → B). 그 등급의 칸(- · 무 · +)과 칸 안의 위치는 비율로 유지 (공격 70 C → 96 B, 84 C+ → 106 B+).
-   「종족치 범위를 최대화」 = 그 등급의 맨 위 (C → 89). 「「공격, 특공 : B」이상일 때」 · 【육성 : A】 같은 조건은 원래 종족치 · 트레이너 랭크로 본다.
+   10-27 망령 (룰북 「종족치」의 랭크 범위 개정): 1랭크 = 알파벳 등급 하나 (C → B), 칸(- · 무 · +)은 유지하고 그 칸에서 가장 낮은 값이 된다 (A- 110 · 119 → AA- 140).
+   「종족치 범위를 최대화」 = 지금 칸(- · 무 · +)의 맨 위 (AA- 140 → 149). 옛 「「+」 보정을 가한다」도 같은 효과로 읽는다.
+   「자신을 「X : R」로 만든다」 = 그 종족치 1랭크 상승과 같다 → 지금 칸이 R 보다 한 등급 아래일 때만 (A+ 만들기 = B+ 필요), 아니면 점검 경고.
+   「「공격 : C」일 때」 = C0 칸만 (C- · C+ 아님), 「이상 · 이하」도 칸까지 비교. 【육성 : A】 같은 트레이너 랭크 조건은 그대로. 조건은 원래 종족치로 본다.
    예정 합계 경고는 원래 종족치로 본다 (특성으로 오른 몫은 특성 TO 로 낸 값) */
 const BU_ST={'HP':0,'공격':1,'방어':2,'특공':3,'특방':4,'스피드':5};
 const BU_L=['E','D','C','B','A','AA','AAA','S','EX'];
 function buRows(){const L=[];for(const [b,c] of (S.db&&S.db.grade)||[]){if(b===''||isNaN(+b)||!c||c==='-')continue;L.push([+b,String(c)])}L.sort((a,b)=>a[0]-b[0]);return L.map((r,i)=>({lo:r[0],hi:L[i+1]?L[i+1][0]-1:Math.max(r[0],255),g:r[1],l:strip(r[1])}))}
 function buAt(R,v){let k=-1;for(let i=0;i<R.length;i++)if(R[i].lo<=v)k=i;return k}
+/* 칸 이름(C- · C · C+)을 낮은 칸부터의 순번으로 */
+function buIdx(g){const R=buRows();return R.findIndex(r=>r.g===g)}
+function buSub(g){g=String(g||'');return g.endsWith('+')?'+':g.endsWith('-')?'-':''}
 function gradeStep(v,n){v=+v||0;const R=buRows();const k=buAt(R,v);if(k<0||!n)return v;const cur=R[k];const L=[...new Set(R.map(r=>r.l))];const li=L.indexOf(cur.l);const tl=L[Math.max(0,Math.min(L.length-1,li+n))];if(tl===cur.l)return v;
- const subs=R.filter(r=>r.l===cur.l),ts=R.filter(r=>r.l===tl);const pos=Math.min(subs.indexOf(cur),ts.length-1);const T=ts[Math.max(0,pos)];
- const fr=(v-cur.lo)/Math.max(1,cur.hi-cur.lo+1);return Math.min(T.hi,T.lo+Math.floor(fr*(T.hi-T.lo+1)))}
-function gradeMax(v){v=+v||0;const R=buRows();const k=buAt(R,v);if(k<0)return v;const l=R[k].l;const top=R.filter(r=>r.l===l).pop();return Math.max(v,top.hi)}
+ const ts=R.filter(r=>r.l===tl);const T=ts.find(r=>buSub(r.g)===buSub(cur.g))||ts[Math.min(R.filter(r=>r.l===cur.l).indexOf(cur),ts.length-1)]||ts[0];
+ return T.lo}   /* 10-27: 옮겨 간 칸에서 가장 낮은 값 */
+function gradeMax(v){v=+v||0;const R=buRows();const k=buAt(R,v);if(k<0)return v;return Math.max(v,R[k].hi)}   /* 10-27: 지금 칸(- · 무 · +)의 맨 위 */
 function buCondOk(t,p,txt){
- for(const m of txt.matchAll(/「([^」:]+?)\s*:\s*(EX|S|AAA|AA|A|B|C|D|E)[+-]?」\s*(이상)?일\s*때/g)){const sts=m[1].split(/[\/,·\s]+/).map(s=>BU_ST[s.trim()]).filter(x=>x!=null);if(!sts.length)continue;const need=BU_L.indexOf(m[2]);
-  for(const i of sts){const g=BU_L.indexOf(strip(grade(p.base[i])));if(m[3]?g<need:g!==need)return false}}
+ for(const m of txt.matchAll(/「([^」:]+?)\s*:\s*(EX|S|AAA|AA|A|B|C|D|E)([+-]?)」\s*(이상|이하)?일\s*때/g)){const sts=m[1].split(/[\/,·\s]+/).map(s=>BU_ST[s.trim()]).filter(x=>x!=null);if(!sts.length)continue;const need=buIdx(m[2]+m[3]);if(need<0)continue;
+  for(const i of sts){const g=buIdx(grade(p.base[i]));if(m[4]==='이상'?g<need:m[4]==='이하'?g>need:g!==need)return false}}
  for(const m of txt.matchAll(/【(육성|지시|통솔|능력)\s*:\s*(EX|S|AAA|AA|A|B|C|D|E)[+-]?\s*(이상)?】/g)){const have=BU_L.indexOf(strip((t&&t.ranks||{})[m[1]]||''));if(have<BU_L.indexOf(m[2]))return false}
  return true}
 const BU_C=new Map();
@@ -205,17 +210,24 @@ function baseUp(t,p){const src=[];const ab=p.ability&&idx.abil?idx.abil.get(p.ab
  (p.pots||[]).forEach((n,i)=>{if(n&&n!=='-'){const e=potEffOf(p,i);if(e)src.push(['포텐셜',String(n).replace(/『|』/g,''),e])}});
  for(const x of exclAll(p))if(x.eff)src.push(['전용',x.name,x.eff]);
  const key=JSON.stringify([p.base,src.map(s=>s[2]),t&&t.ranks,p.auto]);const hit=BU_C.get(key);if(hit)return hit;
- const n=[0,0,0,0,0,0],mx=[0,0,0,0,0,0],by=[[],[],[],[],[],[]];
+ const n=[0,0,0,0,0,0],mx=[0,0,0,0,0,0],by=[[],[],[],[],[],[]],miss=[];
  for(const [kind,name,eff] of src){for(const cl of String(eff).replace(/<br\s*\/?>/g,'\n').split(/\n|(?=[①-⑳])/)){
   for(const m of cl.matchAll(/「([^」]+)」의\s*종족치(?:를|가|도)?\s*(\d+)\s*랭크\s*(상승|감소)/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;const d=(+m[2]||1)*(m[3]==='감소'?-1:1);
    for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;n[i]+=d;by[i].push(`${kind} 『${name}』 ${d>0?'+':''}${d}랭크`)}}
-  for(const m of cl.matchAll(/「([^」]+)」의\s*종족치\s*범위를\s*최대화/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;mx[i]=1;by[i].push(`${kind} 『${name}』 범위 최대`)}}}
+  for(const m of cl.matchAll(/「([^」]+)」의\s*종족치\s*범위를\s*최대화/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;mx[i]=1;by[i].push(`${kind} 『${name}』 범위 최대`)}}
+  /* 옛 「「+」 보정을 가한다」 = 범위 최대화 (10-27 룰북) */
+  for(const m of cl.matchAll(/「([^」]+)」에\s*「\+」\s*보정/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;mx[i]=1;by[i].push(`${kind} 『${name}』 「+」 보정 = 범위 최대`)}}
+  /* 「자신을 「방어 : C+」로 만든다」 = 1랭크 상승 — 한 등급 아래 같은 칸(D+)일 때만 */
+  for(const m of cl.matchAll(/「([^」:]+?)\s*:\s*(EX|S|AAA|AA|A|B|C|D|E)([+-]?)」\s*(?:으?로|가)\s*(?:만든|된다)/g)){const pre=cl.slice(0,m.index);if(!/자신(?:을|의)?\s*$/.test(pre)||!buCondOk(t,p,pre))continue;const tg=m[2]+m[3],ti=BU_L.indexOf(m[2]);
+   for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null||p.base[i]===''||p.base[i]==null)continue;const g=grade(p.base[i]);if(g===tg)continue;
+    const ok=BU_L.indexOf(strip(g))===ti-1&&buSub(g)===m[3];if(ok){n[i]+=1;by[i].push(`${kind} 『${name}』 ${tg} 만들기 (+1랭크)`)}
+    else miss.push(`${kind} 『${name}』: 「${STATS[i]} : ${tg}」 만들기는 「${STATS[i]} : ${BU_L[ti-1]||'-'}${m[3]}」일 때만 (지금 ${g} ${p.base[i]}) — 반영 안 함`)}}}
   /* 그 칸의 자동화 구문: 종족치 방어,특방 +1 · 종족치 스피드 최대 (구문 생성기 「종족치 (시트)」) */
   for(const ln of String(autoDsl(p,name)).split(/\n|;/)){const m=ln.trim().match(/^종족치\s+(.+?)\s+(최대|[+\-]?\d+)\s*$/);if(!m)continue;const d=m[2]==='최대'?0:+m[2];
    for(const s of m[1].split(/[,\/·\s]+/)){const i=BU_ST[s.trim().toUpperCase()==='HP'?'HP':s.trim()];if(i==null)continue;if(m[2]==='최대'){mx[i]=1;by[i].push(`${kind} 『${name}』 구문 범위 최대`)}else if(d){n[i]+=d;by[i].push(`${kind} 『${name}』 구문 ${d>0?'+':''}${d}랭크`)}}}}
  const base=p.base.map((v,i)=>{if(v===''||v==null||isNaN(+v))return v;let x=gradeStep(+v,n[i]);if(mx[i])x=gradeMax(x);return x});
  const up=base.map((v,i)=>v!==p.base[i]&&+v!==+p.base[i]?{i,from:+p.base[i],to:+v,by:by[i]}:null).filter(Boolean);
- const r={base,up};if(BU_C.size>400)BU_C.clear();BU_C.set(key,r);return r}
+ const r={base,up,miss};if(BU_C.size>400)BU_C.clear();BU_C.set(key,r);return r}
 const effB=(t,p)=>baseUp(t,p).base;
 const buTip=(t,p,i)=>{const u=baseUp(t,p).up.find(x=>x.i===i);return u?`${STATS[i]} ${u.from} (${grade(u.from)}) → ${u.to} (${grade(u.to)}) · ${u.by.join(' · ')}`:''};
 function stat(t,p,i){const b=+effB(t,p)[i]||0,L=lv(t,p);const core=Math.floor((Math.floor(b*2)+(+(p.ivs||[])[i]||0))*(L/100));return i===0?core+10+L:core+5}   /* 10-23: 개체값(알까기)도 더한다 — 오레마스와 같은 식 */
@@ -357,6 +369,7 @@ function prideCost(t,p){const r=prRow(prideOf(p));const c=r?pnum(r[1],0):0;retur
 const fmtN=x=>String(Math.round(x*100)/100);
 function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);const w=(x,k)=>out.push({w:1,t:x,k}),i=(x,k)=>out.push({w:0,t:x,k});
  if(!tot)return out;const b=baseNums(p);
+ if(t)for(const x of baseUp(t,p).miss||[])w(x,'bu');   /* 10-27: 「X : R」로 만들기 조건이 안 맞음 */
  /* 10-26 망령: 『올드 타입』은 절대 하한도 따지지 않는다 (본가 종족치 그대로) */
  const low=isOld(p)?[]:b.map((v,k)=>[STATS[k],v]).filter(([,v])=>v<pnum(R.absMin,31));if(low.length)w(`절대 하한 ${pnum(R.absMin,31)} 미만: ${low.map(([n,v])=>n+' '+v).join(', ')}`);
  if(isOld(p)){const o=oldCalc(p);
