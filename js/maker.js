@@ -293,7 +293,7 @@ const PRIDE_DEF={v:PRIDE_V,
  rows:[['C','1','480','40','1',''],['C+','1.5','503','43','1','최소종족치 임시'],['B','2','525','45','1',''],['B+','2.5','548','48','1','최소종족치 임시'],['A','3','570','50','1.5','특성 TO 덤 0.5 · 되팔 수 없음'],['EX','4','630','55','2','본가 전설종 또는 그에 준하는 스펙 · 직접 지정']],
  oldLow:{lab:'0.5',pt:'0.5',prank:'짓궂은마음'},oldCap:'600',
  friendly:{name:'프렌들리 몬스터',d:'10',max:'B'},
- toStep:'45',toFloor:'1',realMin:'400',absMin:'31',opp:'0.4',weakAtk:'60',
+ toStep:'45',toDown:'25',toFloor:'1',realMin:'400',absMin:'31',opp:'0.4',weakAtk:'60',
  bulk:{lo:'85',hi:'105',k1:'0.5',k2:'0.75'},
  hp:{lo:'95',hi:'120',k1:'0.5',k2:'0.75'},
  fs:{lo:'105',hi:'120',k1:'0.5',k2:'1',slo:'90',shi:'140'},
@@ -340,10 +340,10 @@ function customCalc(p){const R=PR(),b=baseNums(p),real=b.reduce((a,c)=>a+c,0);co
  const bulk=two(Math.min(b[2],b[4]),R.bulk),hp=two(b[0],R.hp);
  const F=R.fs,fs=two(main,{lo:F.lo,hi:F.hi,k1:F.k1,k2:F.k2})*Math.max(0,Math.min(1,(Math.min(b[5],pnum(F.shi,140))-pnum(F.slo,90))/Math.max(1,pnum(F.shi,140)-pnum(F.slo,90))));
  const D=R.dual,dualOk=dualMoves(p),dualRaw=pnum(D.k,1)*Math.max(0,Math.min(Math.min(b[1],b[3]),pnum(D.hi,120))-pnum(D.lo,90)),dual=dualOk?dualRaw:0;
- const pri0=prioInfo(p),ov=String(p.prioOv??'').trim(),pri=ov===''?pri0:{floor:Math.max(0,pnum(ov,0)),src:pnum(ov,0)?'직접 지정':'직접 지정 · 없음',kind:'예외',auto:pri0,ov:true},opp=Math.round(main*pnum(R.opp,0.4)),s0=abSock(p),sb=sockBonus(p).ab,s=s0==null?null:Math.max(0,+(s0-sb).toFixed(2)),per=pnum(R.toStep,45)*2,toF=pnum(R.toFloor,1);
+ const pri0=prioInfo(p),ov=String(p.prioOv??'').trim(),pri=ov===''?pri0:{floor:Math.max(0,pnum(ov,0)),src:pnum(ov,0)?'직접 지정':'직접 지정 · 없음',kind:'예외',auto:pri0,ov:true},opp=Math.round(main*pnum(R.opp,0.4)),s0=abSock(p),sb=sockBonus(p).ab,s=s0==null?null:Math.max(0,+(s0-sb).toFixed(2)),per=pnum(R.toStep,45)*2,perD=pnum(R.toDown,25)*2,toF=pnum(R.toFloor,1);
  const steps=prSteps().filter(x=>!isEX(x));let last=null;
  for(const st of steps){const fa=Math.max(0,Math.max(st.floor,b[1]<main?opp:0)-b[1]),fc=Math.max(0,Math.max(st.floor,b[3]<main?opp:0)-b[3]);const sf=Math.max(st.floor,pri.floor),fsp=Math.max(0,sf-b[5]);
-  const to=s==null?st.to:s;const toAdj=per*Math.max(0,to-st.to)-per*Math.max(0,toF-to);
+  const to=s==null?st.to:s;const toAdj=per*Math.max(0,to-st.to)-perD*Math.max(0,toF-to);   /* 10-27 망령: 1보다 내릴 때(되팔기)는 0.5당 25 (올릴 때 45 와 따로) */
   const ct=real+fa+fc+fsp+bulk+hp+fs-dual+toAdj;last={real,b,fa,fc,fsp,sf,off:fa+fc+fsp,opp,bulk,hp,fs,dual,dualRaw,dualOk,pri,to,toRaw:s0,toBon:sb,toBase:st.to,toAdj,ct,step:st,ok:ct<=st.v+1e-9};if(last.ok)return last}
  return last||{real,b,ct:real,step:null,ok:false,off:0,bulk:0,hp:0,fs:0,dual:0,toAdj:0,pri,opp,fa:0,fc:0,fsp:0,sf:0}}
 /* 올드 타입 */
@@ -450,7 +450,7 @@ function prideRulePanel(){const R=PR();const f=(path,v,w,ph)=>`<input data-p="db
   <p class="small muted" style="margin:0 0 8px">포켓몬 프라이드를 「자동」으로 두면 커스텀은 <b>계산 종족치</b>(실제 합 + 하한분 + 내구·HP·화력·스피드 할증 − 쌍두 할인 + 특성 TO 조정)를 담을 수 있는 가장 낮은 계단, 올드 타입은 실제 합을 버림한 계단이 됩니다. 여기 숫자를 바꾸면 모든 시트의 계산 · 막대 표시 · 경고 · 통솔점 자동 소모가 바로 따라갑니다. EX 계단은 자동으로 고르지 않고 직접 지정할 때만 씁니다.</p>
   <div class="tw"><table><tr><th>계단</th><th class="n">통솔점</th><th class="n">종족치 합</th><th class="n">최소종족치 (하한)</th><th class="n">기본 특성 TO</th><th>비고</th><th></th></tr>${R.rows.map((r,i)=>`<tr>${[0,1,2,3,4,5].map(j=>`<td${j&&j<5?' class="n"':''}><input data-p="db.pride.rows.${i}.${j}" value="${esc(r[j]??'')}" style="width:${j===0?'52px':j===5?'100%':'64px'}" ${j&&j<5?'inputmode="decimal"':''}></td>`).join('')}<td><button class="btn sm ghost danger" data-tact="prRowDel" data-i="${i}" aria-label="계단 삭제">✕</button></td></tr>`).join('')}</table></div>
   <div class="prgrid">
-   <div class="prg"><b>공통</b>${L('절대 하한','absMin',R.absMin)}${L('실제 합 하한','realMin',R.realMin)}${L('반대쪽 공격 하한 = 주력 ×','opp',R.opp)}${L('특성 TO 0.5당','toStep',R.toStep,'','점')}${L('되팔기 기준 TO','toFloor',R.toFloor)}${L('PT 1체 제한: 공·특공 둘 다 미만','weakAtk',R.weakAtk)}</div>
+   <div class="prg"><b>공통</b>${L('절대 하한','absMin',R.absMin)}${L('실제 합 하한','realMin',R.realMin)}${L('반대쪽 공격 하한 = 주력 ×','opp',R.opp)}${L('특성 TO 0.5 올릴 때','toStep',R.toStep,'','점')}${L('기준보다 0.5 내릴 때','toDown',R.toDown??PRIDE_DEF.toDown,'','점')}${L('되팔기 기준 TO','toFloor',R.toFloor)}${L('PT 1체 제한: 공·특공 둘 다 미만','weakAtk',R.weakAtk)}</div>
    ${grp('내구 할증 · 방어·특방 중 낮은 쪽',R.bulk,'bulk')}
    ${grp('HP 할증',R.hp,'hp')}
    ${grp('화력·스피드 할증 · 화력 점수',R.fs,'fs',`${L('스피드 비율 0','fs.slo',R.fs.slo)}${L('스피드 비율 1','fs.shi',R.fs.shi)}`)}
