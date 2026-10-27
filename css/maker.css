@@ -338,6 +338,7 @@ ul.impl{margin:4px 0 4px 18px;padding:0;max-height:180px;overflow:auto;font-size
 #mk .segtog button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
 #mk [data-kbd]:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
 #mk .ftog .fn{font-family:var(--mono);color:var(--blue)}
+#mk .ftog[data-pkorig]{display:inline-flex}#mk .ftog[data-pkorig].on{background:var(--ink);color:var(--bg);border-color:var(--ink)}   /* 10-27: 「오리지널 보기」는 데스크톱에서도 보인다 (필터 접기 단추만 좁은 화면 전용) */
 #mk .dbbar{margin-bottom:8px}
 #mk .dbt td{white-space:nowrap}
 #mk .dbt td.ef{white-space:normal}
