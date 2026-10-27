@@ -732,6 +732,35 @@ function deckHtml(t,ti){const L=t.deck||[];const P=`T.${ti}`;const tot=L.reduce(
    t.sps = [{name, prob(%), theme(한 줄), eff(한 줄에 하나), img(컷 그림), line(컷인 대사), color, auto(자동화 구문 DSL — 고유 포텐셜과 같은 꼴)}] */
 const SP_COLS=['#e4002b','#ff8a00','#ffd12e','#3ddc84','#4aa3ff','#9b5cff','#ff4fa3','#222'];
 const spFix=a=>(Array.isArray(a)?a:[]).filter(x=>x&&typeof x==='object'&&String(x.name||'').trim()).map(x=>({name:String(x.name).trim().slice(0,60),prob:x.prob===''||x.prob==null?100:Math.max(0,Math.min(100,Math.round(+x.prob)||0)),theme:String(x.theme||'').slice(0,120),eff:String(x.eff||'').slice(0,4000),img:String(x.img||'').slice(0,600),line:String(x.line||'').slice(0,80),color:String(x.color||'').slice(0,20),auto:String(x.auto||'').slice(0,4000)}));
+/* 기능 확장 (10-27 망령) — 트레이너가 주는 「기능 확장 : 기술」. 룰북 『항법술』(【1/시】/「기능 확장 : 안개제거」를 내보낸다 · PT 전원) 같은 것.
+   t.ext = [{mv 기술 이름, lim 【N/시】(0 = 제한 없음), kind 'act' 행동으로 | 'extra' 추가 행동, who 쓰는 포켓몬 id(비우면 PT 전원), src 출처(포텐셜 이름)}]
+   오레마스 import.js 가 배틀 트레이너 ext 로 가져가고, 배틀 지시 · 공격 창 기술 목록 맨 뒤에 붙는다 (적용할 때 횟수 1) */
+const extFix=a=>(Array.isArray(a)?a:[]).filter(x=>x&&typeof x==='object'&&String(x.mv||'').trim()).slice(0,12).map(x=>({mv:String(x.mv).trim().slice(0,60),lim:x.lim===''||x.lim==null?1:Math.max(0,Math.min(9,Math.round(+x.lim)||0)),kind:x.kind==='extra'?'extra':'act',who:String(x.who||'').slice(0,40),src:String(x.src||'').slice(0,60)}));
+/* 해석 차단 (10-27 망령) — 상대의 『포켓몬 도감』 · 데이터 해석을 막는 정도. 오레마스 도감(dex_ui)의 mon.dexFw 와 같은 값.
+   트레이너 t.dexFw = 기본값, 포켓몬 p.dexFw ('' = 트레이너 기본값). 일부 차단(3)이면 dexFwParts {move,type,trait} = 해석되는 부분 */
+const DEXFW=[['0','없음'],['1','1회 차단 — 첫 해석을 막고 풀린다'],['2','완전 차단 — 강제 해석(데이터 해석 효과)만 통한다'],['3','일부 차단 — 고른 부분만 해석된다'],['4','노이즈 — 해석은 되지만 글자가 ■ 로 으깨진다']];
+const DEXP=[['move','기술'],['type','타입'],['trait','특성']];
+const dexName=v=>((DEXFW.find(x=>x[0]===String(v))||DEXFW[0])[1]).split(' — ')[0];
+function dexPartsHtml(o,attr){const P=o.dexFwParts||{};return `<span class="row small" style="gap:8px">${DEXP.map(([k,n])=>`<label class="row" style="gap:3px"><input type="checkbox" ${attr} data-dexp="${k}" ${P[k]?'checked':''}>${n}</label>`).join('')}<span class="faint">← 일부 차단일 때 해석되는 부분</span></span>`}
+function extHtml(t,ti){const L=t.ext||[];const mons=t.pokemon||[];
+ const row=(e,k)=>{const r=idx.moves&&idx.moves.get(e.mv);const A=`data-i="${ti}" data-k="${k}"`;
+  return `<div class="mkext"><div class="row" style="gap:6px;align-items:center;flex-wrap:wrap">${r?tchip(r[5]):'<span class="kindb">DB 없음</span>'}<b>「기능 확장 : ${esc(e.mv)}」</b>${r?`<span class="small muted">${esc(r[6]||'')} · 위력 ${esc(r[7]||'-')} · 명중 ${esc(r[8]||'-')} · ${esc(r[9]||'')}</span>`:''}<span class="sp"></span><button type="button" class="btn sm ghost danger" data-act="extDel" ${A} aria-label="삭제">✕</button></div>
+   <div class="row small" style="gap:10px;flex-wrap:wrap;margin-top:4px">
+    <label class="row" style="gap:4px">횟수 <select data-ext="lim" ${A}>${[0,1,2,3,4,5,6].map(n=>`<option value="${n}" ${+e.lim===n?'selected':''}>${n?`【${n}/시】`:'제한 없음'}</option>`).join('')}</select></label>
+    <label class="row" style="gap:4px">방식 <select data-ext="kind" ${A}><option value="act" ${e.kind!=='extra'?'selected':''}>행동으로 (그 턴 기술 대신)</option><option value="extra" ${e.kind==='extra'?'selected':''}>추가 행동 (행동과 따로)</option></select></label>
+    <label class="row" style="gap:4px">쓰는 포켓몬 <select data-ext="who" ${A}><option value="">PT 전원</option>${mons.map(p=>`<option value="${esc(p.id)}" ${e.who===p.id?'selected':''}>${esc(p.name||'(이름 없음)')}</option>`).join('')}${e.who&&!mons.some(p=>p.id===e.who)?`<option value="${esc(e.who)}" selected>(없는 포켓몬)</option>`:''}</select></label>
+    <label class="row" style="gap:4px;flex:1;min-width:160px">출처 <input data-ext="src" ${A} value="${esc(e.src)}" placeholder="예) 『항법술』" maxlength="60" style="flex:1;min-width:0"></label></div>
+   ${r?`<div class="small faint" style="margin-top:3px">${rich(r[13]||'')}</div>`:''}</div>`};
+ return `<div class="mksp"><div class="row" style="gap:6px;align-items:baseline"><b class="small">기능 확장</b><span class="small muted">트레이너가 주는 「기능 확장 : 기술」 — 오레마스 배틀의 지시 · 공격 창 기술 목록 맨 뒤에 붙는다</span><span class="sp"></span><button type="button" class="btn sm" data-act="extAdd" data-i="${ti}">+ 기능 확장</button></div>
+ ${L.map(row).join('')||'<p class="small faint" style="margin:4px 0 0">아직 없습니다 — 「+ 기능 확장」으로 기술 DB 에서 고른다 (예: 『항법술』 = 안개제거 · 【1/시】 · PT 전원)</p>'}
+ <div class="row" style="margin-top:12px;gap:8px;align-items:center;flex-wrap:wrap"><b class="small">해석 차단</b><span class="small muted">기본값 — 포켓몬마다 「상세 조정」 탭에서 따로 정할 수 있다</span>
+  <select data-tdexfw data-i="${ti}">${DEXFW.map(([v,l])=>`<option value="${v}" ${String(t.dexFw||'0')===v?'selected':''}>${esc(l)}</option>`).join('')}</select>
+  ${String(t.dexFw)==='3'?dexPartsHtml(t,`data-tdexp data-i="${ti}"`):''}</div></div>`}
+function tuneDexBox(t,p,D){const own=p.dexFw!=null&&p.dexFw!=='';const cur=own?String(p.dexFw):String(t.dexFw||'0');
+ return `<section class="tbox"><div class="row"><b>해석 차단</b><span class="small muted">상대의 『포켓몬 도감』 · 데이터 해석을 막는다 · 오레마스가 불러오면 배틀에 그대로 걸린다</span></div>
+  <div class="tcrit"><label>차단 <select data-dexfw="lv" ${D}><option value="" ${own?'':'selected'}>트레이너 기본값 따름 (지금: ${esc(dexName(t.dexFw||'0'))})</option>${DEXFW.map(([v,l])=>`<option value="${v}" ${own&&String(p.dexFw)===v?'selected':''}>${esc(l)}</option>`).join('')}</select></label>
+   ${own&&cur==='3'?dexPartsHtml(p,`data-dexfw="p" ${D}`):''}</div>
+  <p class="small faint" style="margin:6px 0 0">배틀 중에는 GM 이 도감 창에서 바꿀 수 있다. 「1회 차단」은 첫 해석을 막으면 저절로 풀린다.</p></section>`}
 function spHtml(t,ti){const L=t.sps||[];
  return `<div class="mksp"><div class="row" style="margin-top:12px;gap:6px;align-items:baseline"><b class="small">SP · 서포터</b><span class="small muted">밖에서 돕는 조력자 — 오레마스 배틀에서 확률로 발동</span><span class="sp"></span><button type="button" class="btn sm" data-act="spAdd" data-i="${ti}">+ SP</button></div>
  ${L.map((e,k)=>{const img=/^https?:\/\//.test(e.img)?e.img:'';return `<div class="mksc" tabindex="0" role="button" data-kbd data-act="spEdit" data-i="${ti}" data-k="${k}" style="--spc:${safeCss(e.color)||'#ffd12e'}"><i class="mkspi" ${img?`style="background-image:url('${esc(img)}')"`:''}>${img?'':'SP'}</i><div class="mkspb"><div class="row" style="gap:6px"><b>『${esc(e.name)}』</b><span class="mkspp">${e.prob>=100?'확정':e.prob+'%'}</span>${String(e.auto||'').trim()?'<span class="kindb" title="자동화 구문 있음">⚙ 구문</span>':''}<span class="sp"></span><button type="button" class="btn sm ghost danger" data-act="spDel" data-i="${ti}" data-k="${k}" aria-label="삭제">✕</button></div>${e.theme?`<div class="small muted mkspt">${esc(e.theme)}</div>`:''}${e.eff?`<div class="small">${esc(e.eff).replace(/\n/g,'<br>')}</div>`:''}</div></div>`}).join('')||'<p class="small faint" style="margin:4px 0 0">아직 없습니다 — 「+ SP」</p>'}</div>`}
@@ -776,9 +805,9 @@ function openSpEditor(t,k,done){const isNew=k==null;const e=isNew?{name:'',prob:
   t.sps=t.sps||[];if(isNew)t.sps.push(v);else t.sps[k]=v;closeModal();done&&done();toast(isNew?'SP 를 넣었습니다':'고쳤습니다')};
  $('#sp-ok',l).onclick=ok;box.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&(ev.ctrlKey||ev.metaKey)){ev.preventDefault();ok()}})}
 function newTrainer(){const t={id:uid(),open:true,name:'새 트레이너',kind:'pc',pl:'',folder:'',image:'',ranks:{지시:'C',육성:'C',통솔:'C',능력:'C'},detail:{지시:'',육성:'',통솔:'',능력:''},solo:false,
- pts:[],extra:{},base:Object.fromEntries(ptItems().map(([n,d])=>[n,+d||0])),unique:[{name:'',eff:''}],ptMax:'',fields:[],sps:[],pokemon:[]};applyTpl(t);return t}
+ pts:[],extra:{},base:Object.fromEntries(ptItems().map(([n,d])=>[n,+d||0])),unique:[{name:'',eff:''}],ptMax:'',fields:[],sps:[],ext:[],dexFw:'',pokemon:[]};applyTpl(t);return t}
 function fixT(t){if(t.base)delete t.base['소지품 소켓'];const n=newTrainer();for(const k in n)if(t[k]==null)t[k]=n[k];for(const k in n.base)if(t.base[k]==null)t.base[k]=n.base[k];
- if(t.extra){for(const k in t.extra)if(!+t.extra[k])delete t.extra[k]}t.image=safeImg(t.image);if(!t.id)t.id=uid();t.stands=standsFix(t.stands);t.fields=fieldsFix(t.fields);t.sps=spFix(t.sps);t.deck=deckFix(t.deck);if(!(+t.standActive>=0))t.standActive=0;t.pokemon.forEach(fixP);return t}
+ if(t.extra){for(const k in t.extra)if(!+t.extra[k])delete t.extra[k]}t.image=safeImg(t.image);if(!t.id)t.id=uid();t.stands=standsFix(t.stands);t.fields=fieldsFix(t.fields);t.sps=spFix(t.sps);t.ext=extFix(t.ext);t.deck=deckFix(t.deck);if(!(+t.standActive>=0))t.standActive=0;t.pokemon.forEach(fixP);return t}
 /* 같은 id가 두 번 나오면(예전 백업을 「추가」로 불러온 경우 등) 뒤의 것에 새 id를 준다 */
 function dedupeIds(){const seen=new Set();for(const t of S.trainers){if(seen.has('t'+t.id))t.id=uid();seen.add('t'+t.id);for(const p of t.pokemon){if(seen.has('p'+p.id))p.id=uid();seen.add('p'+p.id)}}}
 function applyTpl(t,only){const rows=S.db.tpl;const n=soloN(t);for(const r of rows){const [q,rk,item,v6,,v1,v3]=r;const val=n===3?(v3!=null&&v3!==''?v3:s3val(v6,v1)):n===2&&v1!=null&&v1!==''?v1:v6;if(!item)continue;
@@ -1876,7 +1905,8 @@ function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=inve
  <div class="panel uqpanel"><h3>『고유 포텐셜』<span class="small muted" style="font-weight:400">능력 ${esc(t.ranks['능력'])} · 최대 ${esc(abilLimits(t.ranks['능력']).u)}개</span><span class="sp"></span><button class="btn sm" data-act="addU" data-i="${ti}">+ 고유 포텐셜</button></h3><div class="uql">
   ${t.unique.map((u,i)=>uqCard(u,i,ti)).join('')||'<p class="small faint" style="margin:4px 0 0">아직 없습니다 — 「+ 고유 포텐셜」</p>'}</div></div>
  <div class="panel">${fieldsHtml(t,`data-i="${ti}"`,'t')}</div>
- <div class="panel mksppanel">${spHtml(t,ti)}</div>   <!-- 10-26 망령: SP · 서포터는 필드 전개처럼 따로 가로 칸 -->
+ <div class="panel mksppanel">${spHtml(t,ti)}</div>
+ <div class="panel mksppanel">${extHtml(t,ti)}</div>   <!-- 10-27 망령: 기능 확장 · 해석 차단 기본값 -->   <!-- 10-26 망령: SP · 서포터는 필드 전개처럼 따로 가로 칸 -->
  <div class="panel ptbar"><h3>PT 기술점<b class="num ${pu>pm?'warn':''}">${pu}</b><span class="small muted">/ 최대치</span>${inp(P+'.ptMax',t.ptMax,{w:'58px',num:1,ph:String(ptMaxDef(t))})}${t.solo?`<span class="small muted">1인 기준 (${soloN(t)}체)</span>`:''}<button class="btn sm pttyb" type="button" data-act="ptType" data-i="${ti}" title="이 PT의 타입 구성 · 공통 약점 · 보완 후보">🛡 타입 일관성</button><span class="sp"></span>${(()=>{const L=abilLimits(t.ranks['능력'],t.solo);const n=t.pokemon.reduce((a,p)=>a+exclAll(p).length,0);const per=strip(t.ranks['능력'])==='AAA'?2:1;const over=t.pokemon.filter(p=>exclAll(p).length>per).map(p=>p.name||'(이름 없음)');return `<span class="small" style="font-weight:500">전용 포텐셜 <b class="num ${n>L.x?'warn':''}">${n}</b> / ${esc(L.xs)}${over.length?` <span class="warn">· 1체에 ${per}개 초과: ${esc(over.join(', '))}</span>`:''} <span class="faint">· 능력 ${esc(t.ranks['능력'])}</span></span>`})()}<span class="small muted">· 할인 ${discUsed(t)} / ${esc(t.base['「기술 할인점」']??'-')}</span><button class="btn sm ghost" type="button" data-tip="PT 기술점은 각 포켓몬의 기술 소켓 합계이며, 『올드 타입』 계열은 기술 4개에 ${oldSock()}점으로 고정됩니다(테이블·계산식 탭에서 변경). 최대치를 비워 두면 육성 랭크의 「최대치」를 씁니다. 기술 옆 「할인」을 체크하면 「기술 할인점」이 1점씩 소모됩니다. 각 포켓몬의 역할·특성·소지품·종족치·프라이드·기술 소켓·전용 포텐셜은 아래 포켓몬 줄에 있습니다." title="설명">?</button></h3>
   <div class="meter ${pu>pm?'over':''}"><i style="width:${pm?Math.min(100,pu/pm*100):0}%"></i></div>${leadBar(t)}
   ${ptChecks(t).map(x=>`<p class="small warn" style="margin:6px 0 0">⚠ ${esc(x)}</p>`).join('')}</div>
@@ -1960,7 +1990,7 @@ const TUNE_ST=[['아쿠아링','AquaRing',1,8,'회복'],['뿌리박기','Ingrain
 const FRAC_RE=/^\s*(\d+)\s*\/\s*(\d+)\s*$/;
 function tuneOf(p){let t=p.tune;if(!t||typeof t!=='object')t=p.tune={};if(!Array.isArray(t.st))t.st=[];t.st=t.st.filter(x=>x&&TUNE_ST.some(r=>r[0]===x.st));t.item=String(t.item||'');t.itemName=String(t.itemName||'');if(!t.crit||typeof t.crit!=='object'||Array.isArray(t.crit))t.crit={};return t}
 function tuneDsl(p){return tuneOf(p).st.filter(x=>FRAC_RE.test(x.v||'')&&+String(x.v).split('/')[1]>0).map(x=>`상태수정 ${x.st} ${String(x.v).replace(/\s+/g,'')}`).join('\n')}
-function tuneCount(p){const t=tuneOf(p);return t.st.length+(t.item.trim()?1:0)+(Object.keys(t.crit).length?1:0)}
+function tuneCount(p){const t=tuneOf(p);return t.st.length+(t.item.trim()?1:0)+(Object.keys(t.crit).length?1:0)+(p.dexFw!=null&&p.dexFw!==''?1:0)}
 /* 10-23 망령: 포켓몬마다 급소 규칙 — 오레마스가 불러오면 공격 창이 자동으로 쓴다 (critRule) */
 const CRIT_TBL=[['','기본 표 (6.25 → 12.5 → 25 → 50 → 100%)'],['2','5세대 (6.25 → 12.5 → 25 → 33.3 → 50%)'],['1','6세대 (6.25 → 12.5 → 50 → 100%)'],['3','7세대 이후 (4.17 → 12.5 → 50 → 100%)']];
 function tuneCritBox(T,D){const c=T.crit;return `<section class="tbox"><div class="row"><b>급소 규칙</b><span class="small muted">이 포켓몬만 · 오레마스 공격 창이 자동으로 쓴다</span></div>
@@ -2005,6 +2035,7 @@ function tuneTab(t,ti,p,pi){const T=tuneOf(p);const ok=fxReady();const D=`data-i
   <div class="small" id="tunePrev-${p.id}" style="margin-top:4px">${ok?tuneItemPrev(T.item):''}</div>
   <div class="row" style="margin-top:6px;gap:6px">${base?`<button class="btn sm" data-act="tuneItemCopy" ${D}>DB 구문 가져와 고치기</button>`:''}${T.item.trim()?`<button class="btn sm ghost" data-act="tuneItemClr" ${D}>비우기</button>`:''}<span class="sp"></span><span class="small muted">구문 꼴은 테이블 탭 · 소지품 DB 「구문」과 같다</span></div>`}</section>
  ${tuneCritBox(T,D)}
+ ${tuneDexBox(t,p,D)}
  <section class="tbox"><div class="row"><b>걸어 둔 자동화 구문</b><span class="small muted">포텐셜 · 특성 · 소지품 칸의 「구문」 버튼에서 고친다</span></div>
   ${autos.length||td?`<div class="tauto">${autos.map(([k,v])=>`<div><span class="kindb">${esc(k)}</span> <button class="btn sm ghost" data-act="tuneFxK" ${D} data-name="${esc(k)}">고치기</button><pre class="tpre">${esc(String(v).trim())}</pre></div>`).join('')}${td?`<div><span class="kindb">상세 조정</span><pre class="tpre">${esc(td)}</pre></div>`:''}</div>`:'<p class="small faint" style="margin:6px 0">없다 (같은 이름의 레디메이드가 있으면 그것이 돈다)</p>'}
   ${(()=>{const C=tuneCands(p);return C.length?`<div class="row" style="margin-top:6px;gap:6px"><select data-tunefx="${p.id}">${C.map((c,ci)=>`<option value="${ci}">${esc(c.lab)} · ${esc(c.name)}${String((p.auto||{})[FXK(c.name)]||'').trim()?' (구문 있음)':((fxRm(c.kind,c.name)||{}).ops||[]).length?' (레디메이드)':''}</option>`).join('')}</select><button class="btn pri sm" data-act="tuneFx" ${D}>+ 구문 쓰기</button></div>`:'<p class="small faint" style="margin:6px 0 0">포텐셜 · 특성 · 소지품을 먼저 넣으면 여기서 구문을 걸 수 있다</p>'})()}</section>
@@ -2059,6 +2090,11 @@ $('#v-char').addEventListener('input',e=>{if(e.target.dataset.tuneitem){const t=
  $('#v-char').addEventListener('pointermove',mv);
  const end=e=>{if(!dg||e.pointerId!==dg.id)return;const t=dg.t;dg.bar.classList.remove('dragging');dg=null;save();if(t)refreshTrainer(t)};$('#v-char').addEventListener('pointerup',end);$('#v-char').addEventListener('pointercancel',end)}
 $('#v-char').addEventListener('change',e=>{const el=e.target;
+ /* 10-27 망령: 기능 확장 · 해석 차단 */
+ if(el.dataset.ext){const t=S.trainers[+el.dataset.i];const x=t&&(t.ext||[])[+el.dataset.k];if(!x)return;const f=el.dataset.ext;if(f==='lim')x.lim=Math.max(0,Math.min(9,Math.round(+el.value)||0));else if(f==='kind')x.kind=el.value==='extra'?'extra':'act';else if(f==='who')x.who=String(el.value||'');else if(f==='src')x.src=String(el.value||'').trim().slice(0,60);save();refreshTrainer(t);return}
+ if(el.dataset.tdexfw!=null){const t=S.trainers[+el.dataset.i];if(!t)return;t.dexFw=el.value==='0'?'':el.value;save();refreshTrainer(t);return}
+ if(el.dataset.tdexp!=null){const t=S.trainers[+el.dataset.i];if(!t)return;const o=Object.assign({},t.dexFwParts||{});if(el.checked)o[el.dataset.dexp]=1;else delete o[el.dataset.dexp];t.dexFwParts=o;save();return}
+ if(el.dataset.dexfw){const t=S.trainers[+el.dataset.i];const P=t&&t.pokemon[+el.dataset.j];if(!P)return;if(el.dataset.dexfw==='lv'){if(el.value==='')delete P.dexFw;else P.dexFw=el.value;save();refreshTrainer(t);return}const o=Object.assign({},P.dexFwParts||{});if(el.checked)o[el.dataset.dexp]=1;else delete o[el.dataset.dexp];P.dexFwParts=o;save();return}
  if(el.dataset.tunecr){const t=S.trainers[+el.dataset.i];const P=t&&t.pokemon[+el.dataset.j];if(!P)return;const c=tuneOf(P).crit;const k=el.dataset.tunecr;const v=el.type==='checkbox'?el.checked:String(el.value).trim();if(v===''||v===false||(k!=='tbl'&&k!=='dmg'&&el.type==='number'&&!+v))delete c[k];else c[k]=el.type==='checkbox'?1:v;save();return}
  if(el.dataset.tunest){const t=S.trainers[+el.dataset.i];const P=t&&t.pokemon[+el.dataset.j];if(!P)return;const v=el.value.replace(/\s+/g,'');const x=tuneOf(P).st.find(q=>q.st===el.dataset.tunest);if(!x)return;if(!FRAC_RE.test(v)||!(+v.split('/')[1]>0)){toast('비율을 1/6 처럼 적어 주세요');el.value=x.v;return}x.v=v;save();refreshTrainer(t);return}
  if(el.dataset.sfiles){const fs=[...el.files];el.value='';stUpload(el.dataset.sfiles,fs);return}
@@ -2177,6 +2213,8 @@ $('#v-char').addEventListener('click',async e=>{
   case 'ivHatch':if(P)openIvHatch(T,P);break;
   case 'ivClear':if(P&&await ask('개체값을 비울까요? (0 으로)','비우기')){delete P.ivs;delete P.ivLog;rf()}break;
   case 'fldAdd':case 'fldEdit':{if(e.target.closest('[data-act="fldDel"]'))break;const o=P||T;if(!o)break;openFieldEditor(o,b.dataset.act==='fldEdit'?+b.dataset.k:null,rf);break}
+  case 'extAdd':{if(!T)break;T.ext=T.ext||[];openPicker('moves',{title:'기능 확장 기술',multi:true,chosen:()=>new Set((T.ext||[]).map(x=>x.mv)),onPick:n=>{if((T.ext||[]).length>=12)return toast('기능 확장은 12개까지');T.ext.push({mv:n,lim:1,kind:'act',who:'',src:''});rf()},onRemove:n=>{T.ext=(T.ext||[]).filter(x=>x.mv!==n);rf()}});break}
+  case 'extDel':{const x=T&&(T.ext||[])[+b.dataset.k];if(!x)break;T.ext=T.ext.filter(y=>y!==x);rf();break}
   case 'spAdd':case 'spEdit':{if(e.target.closest('[data-act="spDel"]'))break;if(!T)break;openSpEditor(T,b.dataset.act==='spEdit'?+b.dataset.k:null,rf);break}
   case 'deckAdd':{if(!T)break;T.deck=T.deck||[];openPicker('cards',{title:'덱에 넣을 카드',multi:true,chosen:()=>new Set((T.deck||[]).map(x=>x.n)),onPick:n=>{const r=idx.cards&&idx.cards.get(n);T.deck.push({n,q:Math.max(1,Math.round(+(r&&r[7]))||1)});rf()},onRemove:n=>{T.deck=T.deck.filter(x=>x.n!==n);rf()}});break}
   case 'deckQ':{if(!T||!T.deck)break;const x=T.deck[+b.dataset.k];if(!x)break;x.q=Math.max(0,Math.min(99,(+x.q||0)+(+b.dataset.d||0)));rf();break}

@@ -1154,3 +1154,7 @@ html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 
 /* 세션 노트 공개 칸 10-26 */
 .rpfold{margin-top:8px;border:1px solid var(--line,#333);padding:6px 10px}.rpfold summary{cursor:pointer;font-weight:700}.rpfold .rpg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px;margin-top:6px}.rpfold textarea{width:100%;resize:vertical}@media(max-width:640px){.rpfold .rpg{grid-template-columns:1fr}}
+/* 10-27 기능 확장 · 해석 차단 (트레이너) */
+.mksppanel .mksp>.row{grid-column:1/-1}
+.mkext{margin-top:8px;padding:8px 10px;border:1px dashed var(--line);border-radius:8px;min-width:0}
+.mkext select,.mkext input{max-width:100%}
