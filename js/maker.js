@@ -72,6 +72,10 @@ const TAGS_DEF=[
  ['연동','자신이 특정 조건을 충족했을 때 연동해서 발동한다. (아군)은 아군에게, (상대)는 상대에게 조건을 달성시켰을 때.','연동 (「특성 : ○○」)|연동 (아군)|연동 (상대)']
 ];
 const TAGS_V=3;
+/* 10-27 망령: 태그 사전 · 기초 템플릿의 버전(TAGS_V · TPL_V)을 올려도 고친 표를 기본값으로 갈아끼우지 않는다.
+   내 행은 그대로 두고, 기본값에 새로 생긴 행만 뒤에 더한다. 기존 행 문구를 바꿔야 하면 tplSoloV 처럼 단계(마이그레이션)를 따로 쓴다 */
+function verMerge(mine,def,keyOf){if(!Array.isArray(mine))return clone(def);const have=new Set(mine.map(keyOf));return clone(mine).concat(clone(def.filter(r=>!have.has(keyOf(r)))))}
+const tagKey=r=>String(r&&r[0]),tplKey=r=>[r&&r[0],r&&r[1],r&&r[2]].join('|');
 const TPL_DEF=[
  ['공통','*','메인','4','기존 시트 기본값','4'],
  ['통솔','D','통솔점','6','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','3'],['통솔','C','통솔점','6','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','1'],['통솔','B-','통솔점','7','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','1.5'],['통솔','B','통솔점','8','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','2'],['통솔','A','통솔점','10','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','3'],['통솔','AA','통솔점','12','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','4'],
@@ -153,12 +157,12 @@ function load(){
  if(tr){S.trainers=tr.trainers||[];if(tr.ui)S.ui=Object.assign(S.ui,tr.ui)}
  S.folders=tr&&Array.isArray(tr.folders)?tr.folders.filter(f=>f&&f.id):[];
  for(const k in DEF)if(S.db[k]==null)S.db[k]=clone(DEF[k]);
- if(!S.db.tags||(S.db.tagsV||0)<TAGS_V){S.db.tags=clone(TAGS_DEF);S.db.tagsV=TAGS_V}
+ if(!S.db.tags||(S.db.tagsV||0)<TAGS_V){S.db.tags=verMerge(S.db.tags,TAGS_DEF,tagKey);S.db.tagsV=TAGS_V}
  S.custom.old=S.custom.old||[];for(const k in DBS)if(!S.custom[k])S.custom[k]=[];
  if(S.db.oldSock==null)S.db.oldSock=5.5;
  if(!S.db.ptItems)S.db.ptItems=clone(PTI_DEF);
  if(!S.db.pride)S.db.pride=clone(PRIDE_DEF);prideMigrate(S.db);ptiMigrate(S.db);
- if(!S.db.tpl||(S.db.tplV||0)<TPL_V){S.db.tpl=clone(TPL_DEF);S.db.tplV=TPL_V}
+ if(!S.db.tpl||(S.db.tplV||0)<TPL_V){S.db.tpl=verMerge(S.db.tpl,TPL_DEF,tplKey);S.db.tplV=TPL_V}
  tplNormalize(S.db);
  {const _sv=S.db.stplV||0;S.db.stpl=stplMigrate(S.db.stpl,S.db.stplV);S.db.stplV=STPL_V;if(_sv<4&&_sv>0)stplPurge()}
  reindex();
@@ -2430,6 +2434,7 @@ function renderDB(){const k=dbs.k;
  ${k==='rm'&&!rmLoaded()?`<div class="panel row" style="margin-bottom:10px"><span class="small ${FXST==='fail'?'warn':'muted'}" style="flex:1;min-width:200px">${FXST==='fail'?'레디메이드 기본 행(자동화 스크립트 js/fx/)을 불러오지 못했습니다. 아래에는 이 DB에서 직접 추가한 행만 보입니다.':'레디메이드 기본 행을 불러오는 중입니다…'}</span>${FXST==='fail'?'<button class="btn sm" data-fxretry>다시 불러오기</button>':''}</div>`:''}
  ${k==='st'?`<div class="panel row" style="margin-bottom:10px;gap:6px;flex-wrap:wrap"><span class="small muted" style="flex:1;min-width:220px">${stLoaded()?'오레마스는 배틀 화면 DB 창의 「제작기 새로고침」으로 고친 상태를 가져갑니다. 맵툴 「상태 변화 DB」의 「백업 · 불러오기」 JSON 과 같은 꼴이에요.':FXST==='fail'?'<span class="warn">상태 변화 기본 표(js/fx/states.js)를 불러오지 못했습니다.</span>':'상태 변화 기본 표를 불러오는 중입니다…'}</span><button class="btn sm" data-dbact="stimp">맵툴 JSON 불러오기</button><button class="btn sm" data-dbact="stexp">JSON 내보내기</button></div>`:''}
  ${k==='abil'||k==='items'||k==='old'||k==='moves'?`<div class="panel row" style="margin-bottom:10px"><span class="small muted" style="flex:1;min-width:200px">이 DB는 맵툴 라이브러리 토큰(${k==='abil'?'Lib:traits_multiple · Lib:pokemon':k==='items'?'Lib:item':k==='moves'?'Lib:skill · 기술 목록 문자열':'Lib:pokemon 「list_oldtype」'})과 연동됩니다. 고친 뒤 「맵툴 DB 갱신」에서 토큰을 새로 받으세요.</span><button class="btn sm" data-dbk="mt">맵툴 DB 갱신 열기</button></div>`:''}
+ ${orphPanel(k)}
  <div class="row dbbar"><input id="dbq" type="search" enterkeyhint="search" placeholder="${D.t} 검색" value="${esc(dbs.q)}" style="flex:1 1 220px"><button type="button" class="btn ftog" data-dbftog aria-expanded="${dbs.fopen}">필터<b class="fn">${fCount(k,dbs)?' '+fCount(k,dbs):''}</b></button><button class="btn pri" data-dbact="add">+ 새 항목</button></div>
  <div class="row xfrow fwrap ${dbs.fopen?'on':''}" style="margin-bottom:8px">
   ${k==='moves'?`<select id="dbtype"><option value="">모든 타입</option>${S.db.types.map(t=>`<option ${dbs.type===t[0]?'selected':''}>${esc(t[0])}</option>`).join('')}</select><select id="dbcat"><option value="">모든 분류</option>${['물리','특수','변화'].map(c=>`<option ${dbs.cat===c?'selected':''}>${c}</option>`).join('')}</select>`:''}
@@ -2438,6 +2443,17 @@ function renderDB(){const k=dbs.k;
   <span class="sp"></span><button class="btn" data-dbact="reset">원본으로 되돌리기</button></div>
  <div id="dbres">${dbResults()}</div>`}
 function renderDBkeep(){keepFocus($('#v-db'),renderDB)}
+/* 10-27 망령: 기본 DB 새 판에서 이름이 바뀌었거나 빠져 붙을 행이 없는 수정. 지우지 않고 여기 모아 둔다 */
+const orphOf=k=>[...(SH.orph_ed||new Map())].filter(([,d])=>d&&d.kind===k);
+function orphPanel(k){const L=orphOf(k);if(!L.length)return '';const D=DBS[k];
+ return `<div class="panel" style="margin-bottom:10px;border-color:var(--warn)"><div class="small" style="margin-bottom:6px"><b class="warn">붙을 행이 없는 수정 ${L.length}개</b> <span class="muted">· 기본 DB 새 판에서 이름이 바뀌었거나 빠진 행입니다. 공유 DB 에 그대로 남아 있어요. 새 이름에 옮겨 붙이거나, 추가 행으로 살리거나, 버리세요.</span></div>
+ ${L.map(([id,d])=>`<div class="row" style="gap:6px;flex-wrap:wrap;padding:4px 0;border-top:1px solid var(--line)"><b style="min-width:120px">${esc(d.key)}</b><span class="small muted" style="flex:1 1 200px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${D.eff>=0?esc(String(d.row[D.eff]||'').replace(/\s+/g,' ').slice(0,80)):''}</span><button class="btn sm" data-orph="move" data-id="${esc(id)}">옮겨 붙이기</button><button class="btn sm" data-orph="add" data-id="${esc(id)}">추가 행으로 살리기</button><button class="btn sm danger" data-orph="drop" data-id="${esc(id)}">버리기</button></div>`).join('')}</div>`}
+async function orphAct(act,id){const d=SH.orph_ed&&SH.orph_ed.get(id);if(!d)return;const k=d.kind,D=DBS[k];
+ if(act==='drop'){if(!await ask(`「${esc(d.key)}」 수정을 버릴까요? 공유 DB 에서도 지워집니다.`,'버리기'))return}
+ else if(act==='add'){if(S.db[k].some(r=>r[D.key]===d.key))return toast('같은 이름 행이 이미 있습니다 · 「옮겨 붙이기」를 쓰세요');S.db[k].unshift(clone(d.row));if(d.custom&&!S.custom[k].includes(d.key))S.custom[k].push(d.key)}
+ else if(act==='move'){const n=(await askText('옮겨 붙이기',`「${d.key}」 수정을 붙일 ${D.cols[D.key]} (지금 DB에 있는 이름)`,d.key)||'').trim();if(!n)return;const i=S.db[k].findIndex(r=>r[D.key]===n);if(i<0)return toast(`「${n}」 이(가) ${D.t} DB에 없습니다`);
+  if(!await ask(`「${esc(n)}」 행을 「${esc(d.key)}」 수정 내용으로 바꿀까요? (이름은 「${esc(n)}」 그대로)`,'옮겨 붙이기',false))return;const nr=clone(d.row);nr[D.key]=n;S.db[k][i]=nr;if(d.custom&&!S.custom[k].includes(n))S.custom[k].push(n)}
+ SH.orph_ed.delete(id);SH.ed.delete(id);reindex();save(true);renderDB();toast(act==='drop'?'버렸습니다':'반영했습니다')}
 $('#v-db').addEventListener('click',async e=>{const t=e.target;
  const kb=t.closest('[data-dbk]');if(kb){Object.assign(dbs,{k:kb.dataset.dbk,q:'',type:'',cat:'',kind:'',mine:false,lim:150,f:{},pmin:'',pmax:''});renderDB();return}
  if(t.closest('[data-dbmore]')){dbs.lim+=300;const r=$('#dbres');if(r)r.innerHTML=dbResults();return}
@@ -2445,6 +2461,7 @@ $('#v-db').addEventListener('click',async e=>{const t=e.target;
  if(t.closest('[data-xfreset]')){Object.assign(dbs,{f:{},pmin:'',pmax:'',kind:'',type:'',cat:'',lim:150});renderDB();return}
  const ce=t.closest('[data-copyex]');if(ce){copyStr(dbs.ex[+ce.dataset.copyex][1]);return}
  const ed=t.closest('[data-dbedit]');if(ed){openEdit(dbs.k,+ed.dataset.dbedit);return}
+ const ob=t.closest('[data-orph]');if(ob){orphAct(ob.dataset.orph,ob.dataset.id);return}
  const mb=t.closest('[data-mt]');if(mb){mb.dataset.mt==='build'?mtDownload(mb.dataset.k):mtImport(mb.dataset.k);return}
  const a=t.closest('[data-dbact]');if(!a)return;const k=dbs.k;
  if(a.dataset.dbact==='add')openEdit(k,-1);
@@ -2947,6 +2964,7 @@ function shWant(){const out=new Map();
  S.folders.forEach((f,i)=>{f._ord=i;const d={ord:i,name:f.name||''};if(f.parent)d.parent=f.parent;if(f.priv)d.priv=true;if(f.deco&&Object.keys(f.deco).length)d.deco=f.deco;if(f.owner){d.owner=f.owner;d.ownerName=f.ownerName||''}out.set('folders/'+f.id,d)});
  S.trainers.forEach((t,i)=>{const d=stripUI(t);d.pids=t.pokemon.map(p=>p.id);out.set('trainers/'+t.id,{ord:i,data:d});
   t.pokemon.forEach(p=>{const bu=baseUp(t,p);out.set('pokemon/'+p.id,{tid:t.id,data:Object.assign(stripUI(p),{effTxt:effSnap(p)},bu.up.length?{baseUp:{base:bu.base.map(v=>v===''?'':+v),up:bu.up.map(u=>({i:u.i,from:u.from,to:u.to,by:u.by}))}}:{})})})});
+ for(const [id,d] of SH.orph_ed||[])out.set('dbedit/'+id,d);   /* 붙을 행이 없는 수정도 지우지 않는다. 같은 이름 행이 다시 생기면 아래 줄이 덮는다 */
  for(const [p,b] of shDbDocs())out.set(p,b);
  /* 레디메이드 기본 행을 아직 못 읽었으면, 받아 둔 레디메이드 수정 행은 그대로 둔다 (지우지 않게) */
  for(const lk of ['rm','st'])if(!lazyOk(lk))for(const [id,d] of SH.ed)if(d&&d.kind===lk)out.set('dbedit/'+id,d);
@@ -2993,14 +3011,19 @@ function shDelTrainer(id){S.trainers=S.trainers.filter(t=>t.id!==id)}
 function shDelPoke(id){for(const t of S.trainers)t.pokemon=t.pokemon.filter(p=>p.id!==id);SH.orph.delete(id)}
 function shRebuildDB(){/* 아직 올리지 않은 내 설정 묶음은 받은 값으로 덮지 않는다 */const keepG={};if(SH.ready){const loc=shMetaGroups();for(const g in loc){const p='meta/set.'+g;if(SH.synced.has(p)&&SH.synced.get(p)!==canon(loc[g]))keepG[g]=clone(loc[g])}}
  const keepNonDb={};for(const k in DEF)if(!(k in DBS))keepNonDb[k]=clone(DEF[k]);
- const byKind={};for(const d of SH.ed.values()){(byKind[d.kind]=byKind[d.kind]||[]).push(d)}
- for(const k in DBS){const eds=byKind[k]||[];const mods=new Map(),del=new Set(),adds=[],cust=[];
-  for(const d of eds){if(d.deleted)del.add(d.key);else if(Array.isArray(d.row)){if(d.pos>=0)adds.push(d);else mods.set(d.key,d.row)}if(d.custom&&!d.deleted)cust.push(d.key)}
-  const key=r=>r[DBS[k].key];let rows=(DEF[k]||[]).filter(r=>!del.has(key(r))).map(r=>mods.has(key(r))?clone(mods.get(key(r))):clone(r));
+ const byKind={};for(const [id,d] of SH.ed){if(d&&d.kind)(byKind[d.kind]=byKind[d.kind]||[]).push([id,d])}
+ /* 10-27 망령: DB 새 판이 올라와도 고친 것을 잃지 않게.
+    · 기본 DB에 이름이 없어진 수정 → 버리지 않고 SH.orph_ed 에 남긴다 (공유 DB 에서도 지우지 않음 · DB 탭에서 살리기/옮겨 붙이기/버리기)
+    · 직접 추가한 행과 같은 이름이 기본 DB에 생기면 → 추가한 행이 그 자리의 기본 행을 덮는다 (줄 순서와 상관없이)
+    · 기본 DB 안에 같은 이름이 둘이면 수정은 첫 줄에만 */
+ SH.orph_ed=new Map();
+ for(const k in DBS){const eds=byKind[k]||[];const mods=new Map(),del=new Set(),adds=[],cust=[];const key=r=>r[DBS[k].key];const has=new Set((DEF[k]||[]).map(key));
+  for(const [id,d] of eds){if(d.deleted)del.add(d.key);else if(Array.isArray(d.row)){if(d.pos>=0&&!has.has(d.key))adds.push(d);else if(has.has(d.key))mods.set(d.key,d.row);else if(lazyOk(k))SH.orph_ed.set(id,d)}if(d.custom&&!d.deleted&&(has.has(d.key)||d.pos>=0))cust.push(d.key)}
+  const used=new Set();let rows=(DEF[k]||[]).filter(r=>!del.has(key(r))).map(r=>{const kk=key(r);if(mods.has(kk)&&!used.has(kk)){used.add(kk);return clone(mods.get(kk))}return clone(r)});
   adds.sort((a,b)=>a.pos-b.pos);for(const a of adds)rows.splice(Math.min(a.pos,rows.length),0,clone(a.row));
   S.db[k]=rows;S.custom[k]=cust}
  Object.assign(S.db,keepNonDb);const m=SH.meta;
- S.db.tpl=m&&m.tpl&&(m.tplV||0)>=TPL_V?clone(m.tpl):clone(TPL_DEF);S.db.tplV=TPL_V;S.db.tags=m&&m.tags&&(m.tagsV||0)>=TAGS_V?clone(m.tags):clone(TAGS_DEF);S.db.tagsV=TAGS_V;S.db.ban=m&&m.ban!=null?m.ban:DEF.ban;{const _sv=m&&m.stplV||0;S.db.stpl=stplMigrate(m&&m.stpl?clone(m.stpl):null,_sv);S.db.stplV=STPL_V;if(_sv<4&&_sv>0)SH.purge=true}S.db.oldSock=m&&m.oldSock!=null?m.oldSock:5.5;S.db.ptItems=m&&m.ptItems?clone(m.ptItems):clone(PTI_DEF);S.db.ptiV=m&&m.ptiV||0;ptiMigrate(S.db);S.db.pride=m&&m.pride?clone(m.pride):clone(PRIDE_DEF);S.db.prideExV=m&&m.prideExV||0;prideMigrate(S.db);
+ S.db.tpl=m&&m.tpl?((m.tplV||0)>=TPL_V?clone(m.tpl):verMerge(m.tpl,TPL_DEF,tplKey)):clone(TPL_DEF);S.db.tplV=TPL_V;S.db.tags=m&&m.tags?((m.tagsV||0)>=TAGS_V?clone(m.tags):verMerge(m.tags,TAGS_DEF,tagKey)):clone(TAGS_DEF);S.db.tagsV=TAGS_V;S.db.ban=m&&m.ban!=null?m.ban:DEF.ban;{const _sv=m&&m.stplV||0;S.db.stpl=stplMigrate(m&&m.stpl?clone(m.stpl):null,_sv);S.db.stplV=STPL_V;if(_sv<4&&_sv>0)SH.purge=true}S.db.oldSock=m&&m.oldSock!=null?m.oldSock:5.5;S.db.ptItems=m&&m.ptItems?clone(m.ptItems):clone(PTI_DEF);S.db.ptiV=m&&m.ptiV||0;ptiMigrate(S.db);S.db.pride=m&&m.pride?clone(m.pride):clone(PRIDE_DEF);S.db.prideExV=m&&m.prideExV||0;prideMigrate(S.db);
  S.db.tplSoloV=m&&m.tplSoloV||0;S.db.soloSock=m&&m.soloSock?clone(m.soloSock):null;S.db.ilock=m&&Array.isArray(m.ilock)?clone(m.ilock):[];S.db.rules=m&&m.rules&&typeof m.rules==='object'?clone(m.rules):null;tplNormalize(S.db);
  for(const g in keepG)Object.assign(S.db,keepG[g]);
  SH.dbDirty=true;reindex()}
