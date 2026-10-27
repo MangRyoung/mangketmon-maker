@@ -55,3 +55,7 @@ window.OM_DB.readymade={"추격 무시":{"text":"「따라가때리기」 효과
 })();
 /* 손으로 더한 것 (2026-10-23 망령): 버텨라! — ② 턴 종료 시까지 기술 대미지 반감 ③ 다음 기술로 「빈사」 안 됨. ①(회피율 0)은 손으로 */
 (()=>{const R=window.OM_DB.readymade;const k='버텨라!';if(R[k]&&!(R[k].ops||[]).length)R[k].ops=[{"k": "guard", "tgt": "self", "v": 0.5, "types": [], "cat": "all", "eff": "all", "rng": "all", "uses": -1, "turn": 1, "tl": 0, "ro": [], "st": "", "tg": [], "sb": ""}, {"k": "guard", "tgt": "self", "v": 1, "types": [], "cat": "all", "eff": "all", "rng": "all", "uses": 1, "turn": 1, "tl": 0, "ro": [], "st": "", "tg": [], "sb": "", "ed": 1}]})();
+/* 10-27 망령: 드래곤옐은 「드래곤옐」 상태(자신 제외 아군 전체)로, 기충전은 「기충전」 상태로 — 효과 글의 「예리 : C+N」 은 해석기가 못 읽어 손으로 처리하던 것 */
+(()=>{const R=window.OM_DB.readymade;
+ if(!R['기술 : 드래곤옐'])R['기술 : 드래곤옐']={text:'자신을 제외한 아군 전체를 「드래곤옐」 상태로 만든다 (C+1, 드래곤 타입이면 C+2).',ops:[{k:'state',state:'드래곤옐',tgt:'allyx',count:-1,forced:0}]};
+ if(!R['기술 : 기충전'])R['기술 : 기충전']={text:'「기충전」 상태가 된다 (C+2).',ops:[{k:'state',state:'기충전',tgt:'self',count:-1,forced:0}]}})();
