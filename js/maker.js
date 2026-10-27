@@ -279,15 +279,20 @@ function moveCap(t,p){const k=classOf(p);const filled=p.moves.filter(m=>m.name);
   const i=Math.min(g(p.base[1]),g(p.base[3]));
   if(i===99)cap=null;else{const tot=p.base.reduce((a,b)=>a+(+b||0),0);cap=+S.db.sock[i][tot>=570?3:tot>=525?2:1]}}
  const bon=sockBonus(p).mv;if(cap!=null&&bon)cap=+(cap+bon).toFixed(2);const ov=nz(p.sockMax);return {used,cap:ov?+p.sockMax:cap,mode,auto:cap,ov,bon}}
-/* 10-27 망령: 육성형 보너스 — 소켓 2.5 이상 기술은 육성 A부터. 육성 B는 할인을 체크하면 된다(할인 뒤 2.5 미만). C 이하는 할인해도 원래 소켓으로 본다.
-   경고만 띄우고 막지는 않는다. 올드 타입 계열(개수 4개)은 예외 */
+/* 10-27 망령: 육성형 보너스 — 기술 하나의 소켓 상한 (경고만, 막지는 않는다).
+   육성 A 이상: 할인 뒤 2.5까지 (소켓 3에 할인 체크 = 2.5 는 된다, 3 은 안 된다)
+   육성 B: 할인 뒤 2.5 미만 (소켓 2.5 에 할인 체크하면 된다)
+   C 이하: 할인과 상관없이 원래 소켓 2.5 미만. 『올드 타입』 계열(기술 4개 고정)은 예외 */
 const BIGMV=2.5,BIGMV_RANK='A',BIGMV_HALF='B';
 const brk=t=>BU_L.indexOf(strip(((t&&t.ranks)||{})['육성']));
-const bigMvOk=t=>brk(t)>=BU_L.indexOf(BIGMV_RANK);
 const rawSock=(p,m)=>moveSock(p,Object.assign({},m,{half:false}));
-const isBigMv=(t,p,m)=>!!(t&&m&&m.name&&!OLDK.includes(classOf(p))&&!bigMvOk(t)&&(brk(t)>=BU_L.indexOf(BIGMV_HALF)?moveSock(p,m):rawSock(p,m))>=BIGMV);
+const isBigMv=(t,p,m)=>{if(!(t&&m&&m.name)||OLDK.includes(classOf(p)))return false;const r=brk(t);
+ if(r>=BU_L.indexOf(BIGMV_RANK))return moveSock(p,m)>BIGMV;
+ if(r>=BU_L.indexOf(BIGMV_HALF))return moveSock(p,m)>=BIGMV;
+ return rawSock(p,m)>=BIGMV};
+const bigMvRule=t=>{const r=brk(t);return r>=BU_L.indexOf(BIGMV_RANK)?`육성 ${BIGMV_RANK}는 할인 뒤 소켓 ${BIGMV}까지`:r>=BU_L.indexOf(BIGMV_HALF)?`육성 ${BIGMV_HALF}는 소켓 ${BIGMV} 기술에 할인을 체크해야 함`:`소켓 ${BIGMV} 이상 기술은 육성 ${BIGMV_HALF}(할인) · ${BIGMV_RANK}부터`};
 const bigMvs=(t,p)=>(p.moves||[]).filter(m=>isBigMv(t,p,m));
-const bigMvTxt=(t,L)=>`소켓 ${BIGMV} 이상 기술은 육성 ${BIGMV_RANK}부터입니다 (육성 ${BIGMV_HALF}는 할인 체크하면 됨 · 지금 육성 ${(t.ranks||{})['육성']||'-'}) · ${L.map(m=>m.name).join(', ')}`;
+const bigMvTxt=(t,L)=>`기술 소켓 상한을 넘는 기술 · ${bigMvRule(t)} (지금 육성 ${(t.ranks||{})['육성']||'-'}) · ${L.map(m=>m.name).join(', ')}`;
 const oldSock=()=>{const v=+(S.db.oldSock??5.5);return isNaN(v)?5.5:v};
 const capTxt=(c,none='-',sep=' / ')=>c.mode==='count'?`${c.used}개(${c.pt})`:`${c.used}${sep}${c.cap??none}`;
 function ptSockets(t){let u=0;for(const p of t.pokemon){const c=moveCap(t,p);u+=c.mode==='count'?c.pt:c.used}return Math.round(u*100)/100}
@@ -1841,7 +1846,7 @@ function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요
   if(k==='abil'){openPicker('abil',{onPick:n=>{p.ability=n}});return back()}
   if(k==='item'){openPicker('items',{onPick:n=>{p.item=n}});return back()}
   if(k==='itemx'){p.item='';return done()}
-  if(k==='mvadd'){openPicker('moves',{title:'기술 검색·추가',multi:true,chosen:()=>new Set(p.moves.map(m=>m.name)),onPick:n=>{const m={name:n,half:false};p.moves.push(m);if(isBigMv(t,p,m))toast(`「${n}」 소켓 ${moveSock(p,m)} · 육성 ${BIGMV_RANK}부터 넣는 기술이에요${brk(t)>=BU_L.indexOf(BIGMV_HALF)?' (육성 B는 할인 체크하면 됩니다)':''} · 경고만 띄우고 넣었습니다`)},onRemove:n=>{p.moves=p.moves.filter(m=>m.name!==n)}});return back()}
+  if(k==='mvadd'){openPicker('moves',{title:'기술 검색·추가',multi:true,chosen:()=>new Set(p.moves.map(m=>m.name)),onPick:n=>{const m={name:n,half:false};p.moves.push(m);if(isBigMv(t,p,m))toast(`「${n}」 소켓 ${moveSock(p,m)} · ${bigMvRule(t)} · 경고만 띄우고 넣었습니다`)},onRemove:n=>{p.moves=p.moves.filter(m=>m.name!==n)}});return back()}
   if(k==='mved'){const ix=p.moves.findIndex(m=>m.name===v);if(ix<0)return;openPicker('moves',{title:`「${v}」 대신 넣을 기술`,onPick:n=>{if(p.moves.some((m,j)=>j!==ix&&m.name===n))return toast('이미 있는 기술입니다');p.moves[ix]=Object.assign({},p.moves[ix],{name:n})}});return back()}
   if(k==='types'){const TY=S.db.types.map(x=>x[0]);const ty=TY.includes('-')?TY:['-',...TY];const EG=eggOpts();const sl=(f,lab,opts)=>`<label class="lbl">${lab}<select data-tf="${f}">${opts.map(o=>`<option value="${esc(o)}" ${o===(p[f]||'-')?'selected':''}>${esc(o)}</option>`).join('')}</select></label>`;
    const m=openModal(`<div class="mhead"><h2>타입 · 알그룹</h2></div><div class="mbody"><div class="fgrid">${sl('t1','타입1',ty)}${sl('t2','타입2',ty)}${sl('t3','타입3',ty)}${sl('tera','테라',ty)}${sl('egg1','알그룹1',EG)}${sl('egg2','알그룹2',EG)}</div></div><div class="mfoot"><span class="sp"></span><button class="btn" data-x="no">취소</button><button class="btn pri" data-x="ok">확인</button></div>`);
@@ -2004,7 +2009,7 @@ function movesTab(t,ti,p,pi,P,c){const ms=p.moves;const over=c.cap!=null&&c.used
   <span class="small muted">상한 직접 지정</span>${inp(P+'.sockMax',p.sockMax,{w:'56px',num:1,ph:String(c.auto??'')})}${(()=>{const b=sockBonus(p);return `<span class="small muted" title="전용 · 포텐셜 · 특성 글의 「특성/기술 소켓 +0.5」를 자동으로 읽어요. 직접 적으면 그 값이 우선이에요${b.src.length?'\n'+b.src.join('\n'):''}">보너스 특성${inp(P+'.sockBonAb',p.sockBonAb,{w:'44px',num:1,ph:String(b.manual?'':b.ab||0)})} 기술${inp(P+'.sockBonMv',p.sockBonMv,{w:'44px',num:1,ph:String(b.manual?'':b.mv||0)})}${b.src.length?` <span class="faint">${esc(b.src.join(' · '))}</span>`:''}</span>`})()}<span class="sp"></span><button class="btn pri sm" data-act="pickMove" data-i="${ti}" data-j="${pi}">+ 기술 검색·추가</button></div>
  ${big.length?`<div class="checks"><div class="warn">⚠ ${esc(bigMvTxt(t,big))}</div></div>`:''}
  <div class="mlist" data-sort="moves" data-i="${ti}" data-j="${pi}">${ms.map((m,i)=>{const r=idx.moves.get(m.name);return `<div class="mv" data-si="${i}" data-grab style="border-left-color:${r&&tyCol(r[5])||'var(--line)'}"><div class="row mvt" style="gap:3px;flex-wrap:nowrap">${r?tchip(r[5])+`<span class="mcat ${r[6]==='물리'?'phy':r[6]==='특수'?'spe':'sta'}">${esc(r[6]||'')}</span>`:'<span class="kindb">DB 없음</span>'}</div><div class="mvn"><div class="nm"><span class="mvchip">${r?tchip(r[5]):'<span class="kindb">DB 없음</span>'}</span>${esc(m.name)}</div><div class="small muted rgwrap">${r?rangeGrid(r[9])+esc(r[6]+' · '+r[9]+(r[10]&&r[10]!=='-'?' · 접촉 '+r[10]:'')):''}</div></div>
-  <div class="st2">${r?esc(r[7]):'-'}<small>위력</small></div><div class="st2">${r?esc(r[8]):'-'}<small>명중</small></div><div class="st2">${r?esc(r[11]):'-'}<small>우선도</small></div><div class="st2${isBigMv(t,p,m)?' warn':''}"${isBigMv(t,p,m)?` title="소켓 ${BIGMV} 이상은 육성 ${BIGMV_RANK}부터 (육성 ${BIGMV_HALF}는 할인 체크)"`:''}>${isBigMv(t,p,m)?'⚠ ':''}${moveSock(p,m)}<small>소켓</small></div>
+  <div class="st2">${r?esc(r[7]):'-'}<small>위력</small></div><div class="st2">${r?esc(r[8]):'-'}<small>명중</small></div><div class="st2">${r?esc(r[11]):'-'}<small>우선도</small></div><div class="st2${isBigMv(t,p,m)?' warn':''}"${isBigMv(t,p,m)?` title="${esc(bigMvRule(t))}"`:''}>${isBigMv(t,p,m)?'⚠ ':''}${moveSock(p,m)}<small>소켓</small></div>
   <div class="ef">${r?rich(r[13]):''}</div><div class="row mva" style="gap:2px;flex-wrap:nowrap"><label class="small row" title="「기술 할인점」 1점을 써서 이 기술의 소켓을 0.5 할인합니다 (올드 타입 계열은 교배기·유전기 습득용)" style="gap:2px"><input type="checkbox" data-p="${P}.moves.${i}.half" ${m.half?'checked':''}>할인</label><label class="small row" title="켜면 이 기술은 한 장 요약 · 오레마스 한 장 요약 · 남의 도감에 안 나온다 (시트 · 배틀에는 그대로)" style="gap:2px"><input type="checkbox" data-p="${P}.moves.${i}.hide" ${m.hide?'checked':''}>숨김</label>
   ${r?`<button class="btn sm ghost" data-act="mvEdit" data-name="${esc(m.name)}">수정</button>`:''}<button class="btn sm ghost danger" data-act="mvDel" data-i="${ti}" data-j="${pi}" data-k="${i}" aria-label="삭제">✕</button></div></div>`}).join('')||'<div class="empty">기술이 없습니다. 「기술 검색·추가」로 DB에서 찾거나 오리지널 기술을 만드세요.</div>'}</div>`}
 /* ---------- 상세 조정 탭 (10-22 망령): 이 포켓몬만의 상태 변화 사양 · 소지품 사양을 한곳에서 보고 고친다 ----------
@@ -2318,7 +2323,7 @@ $('#v-char').addEventListener('click',async e=>{
   case 'delItemX':{const x=(P.items2||[])[+k];if(!x)break;if(x.item&&!await ask(`소지품 ${+k+2}번 칸(「${esc(x.item)}」)을 지울까요?`,'지우기'))break;P.items2.splice(+k,1);rf();break}
   case 'pickItemX':{const x=(P.items2||[])[+k];if(!x)break;openPicker('items',{onPick:n=>{x.item=n;if(x.itemOwn&&x.itemOwn.name!==n)delete x.itemOwn;rf()},onOrig:q=>openOwnItem(x,q,()=>{closeModal();rf()})});break}
   case 'ownItemX':{const x=(P.items2||[])[+k];if(x)openOwnItem(x,x.item,rf);break}
-  case 'pickMove':openPicker('moves',{title:'기술 검색·추가',multi:true,chosen:()=>new Set(P.moves.map(m=>m.name)),onPick:n=>{const m={name:n,half:false};P.moves.push(m);if(isBigMv(T,P,m))toast(`「${n}」 소켓 ${moveSock(P,m)} · 육성 ${BIGMV_RANK}부터 넣는 기술이에요${brk(T)>=BU_L.indexOf(BIGMV_HALF)?' (육성 B는 할인 체크하면 됩니다)':''} · 경고만 띄우고 넣었습니다`);rf()},onRemove:n=>{P.moves=P.moves.filter(m=>m.name!==n);rf()}});break;
+  case 'pickMove':openPicker('moves',{title:'기술 검색·추가',multi:true,chosen:()=>new Set(P.moves.map(m=>m.name)),onPick:n=>{const m={name:n,half:false};P.moves.push(m);if(isBigMv(T,P,m))toast(`「${n}」 소켓 ${moveSock(P,m)} · ${bigMvRule(T)} · 경고만 띄우고 넣었습니다`);rf()},onRemove:n=>{P.moves=P.moves.filter(m=>m.name!==n);rf()}});break;
   case 'mvDel':P.moves.splice(+k,1);rf();break;
   case 'mvEdit':{const n=b.dataset.name;const ix=S.db.moves.findIndex(r=>r[2]===n);if(ix>=0)openEdit('moves',ix,{onSaved:()=>renderChar()});break}
   case 'editPot':if(e.target.closest('[data-act="potDel"]'))break;openPotEditor(T,P,k==='excl'?'excl':String(k)[0]==='x'?{ex:+String(k).slice(1)}:+k);break;
