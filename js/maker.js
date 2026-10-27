@@ -1892,9 +1892,14 @@ const TORD=(()=>{const CL=['기본-일반','기본-숙달','기본-숙달 (지�
  const zeros=(o,c)=>{let z=[];if(o===0)z=['special'];if(o===1)z=['return','special'];if(o===2)z=['heal'];if(o===3)z=['dodge','endure','return','snipe','special'];if(o===0&&c<=1)z.push('snipe','accuracy','evasion');if(o===0&&c===2)z.push('snipe');if(o===2&&c===3)z.push('special','accuracy','evasion');if(o===2&&c===4)z.push('special');if(o===2&&c===8)z.push('endure','return','snipe','special','accuracy','evasion');return z};
  const LO=['retreat','dodge','endure','return','snipe','special'],LC=ALL;const KO={retreat:'물러나',dodge:'피해라',endure:'버텨라',return:'바꿔라',snipe:'맞춰라',special:'특수',attack:'공격',defense:'방어',specialattack:'특공',specialdefense:'특방',speed:'스피드',heal:'회복',accuracy:'명중',evasion:'회피'};
  const nameOf=(kind,fam,k)=>{const keys=(kind==='o'?OK:CK)[fam]||[];const i=keys.indexOf(k);return i<0?'':((kind==='o'?LORD:LCMD)[fam]||[])[i]||''};
- return {CL,OL,LORD,OK,CK,LCMD,PRE,tordOf,presetTc,zeros,LO,LC,KO,nameOf}})();
+ return {CL,OL,LORD,OK,CK,LCMD,PRE,tordOf,presetTc,zeros,LO,LC,KO,nameOf,rankLv}})();
 /* 1인 기준(2체): ORDER 는 soloOrd.o 개, COMMAND 는 soloOrd.c 개만 골라 쓴다 — 고른 항목만 기준 횟수, 나머지 0. t.orders.pick={o:[키],c:[키]} */
-function soloOrdN(kind,t){if(soloN(t)===3){const R3=RULES().solo3||SOLO3_DEF;const v3=parseInt(R3[kind],10);return v3>=0?v3:+SOLO3_DEF[kind]}const R=RULES().soloOrd||SOLO_ORD_DEF;const v=parseInt(R[kind],10);return v>=0?v:+SOLO_ORD_DEF[kind]}
+function soloOrdN(kind,t){const n=soloOrdN0(kind,t);return kind==='c'&&soloA(t)?Math.max(n,3):n}
+function soloOrdN0(kind,t){if(soloN(t)===3){const R3=RULES().solo3||SOLO3_DEF;const v3=parseInt(R3[kind],10);return v3>=0?v3:+SOLO3_DEF[kind]}const R=RULES().soloOrd||SOLO_ORD_DEF;const v=parseInt(R[kind],10);return v>=0?v:+SOLO_ORD_DEF[kind]}
+/* 10-27 망령: 1인 기준(2 · 3체)에서 지시 A 이상은 COMMAND(지령)를 3개 고르고, 그중 하나는 회피나 명중이어야 한다 */
+const SOLO_A_MUST=['evasion','accuracy'];
+function soloA(t){return !!soloN(t)&&TORD.rankLv((t.ranks||{})['지시'])>=3}
+function soloMustOk(t,pk,avail){if(!soloA(t))return true;const can=SOLO_A_MUST.filter(k=>avail.includes(k));return !can.length||pk.some(k=>can.includes(k))}
 function tOrdPick(t,kind){const pk=((t.orders||{}).pick||{})[kind];return Array.isArray(pk)?pk:[]}
 function tOrdTc(t){const o=t.orders||{};if(o.preset==='manual')return Math.max(0,Math.min(8,+o.tc||0));return TORD.presetTc(o.preset,(t.ranks||{})['지시'])}
 function tOrdHTML(t,ti){const o=t.orders||{};const p=o.preset||'';const rk=(t.ranks||{})['지시']||'C';const base=o.base==null||o.base===''?1:+o.base;
@@ -1906,8 +1911,8 @@ function tOrdHTML(t,ti){const o=t.orders||{};const p=o.preset||'';const rk=(t.ra
    const add=keys.filter(k=>ty[kind+'_'+k]==null&&!TORD.nameOf(kind,def,k)&&L.some((_,i)=>TORD.nameOf(kind,i,k)));
    return h+(add.length?`<label class="ordc add" title="이 계열에 없는 항목을 다른 계열에서 가져온다"><span>＋ 다른 계열 항목</span><select data-tordadd="${ti}" data-kind="${kind}"><option value="">고르기</option>${add.map(k=>L.map((n,i)=>TORD.nameOf(kind,i,k)?`<option value="${k}:${i}">${esc(TORD.KO[k])} — ${esc(TORD.nameOf(kind,i,k))} (${esc(n)})</option>`:'').join('')).join('')}</select></label>`:'')+(exn?`<button type="button" class="btn xs ghost" data-act="tordReset" data-i="${ti}" data-kind="${kind}" title="예외 계열을 모두 지우고 기본으로">예외 ${exn}개 되돌리기</button>`:'')};
   /* 1인 기준: 쓸 수 있는 항목 중 정해진 수만 고른다 */
-  const pickBar=kind=>{if(!t.solo)return '';const L=avl[kind],n=soloOrdN(kind,t),pk=tOrdPick(t,kind).filter(k=>L.some(x=>x[0]===k));const ok=pk.length===Math.min(n,L.length);
-   return `<div class="ordpick ${ok?'':'need'}"><span class="small"><b>1인 기준${soloN(t)===3?' (3체)':''}</b> · ${L.length}개 중 <b>${n}</b>개 고르기 <b class="num">${pk.length}/${n}</b></span>${L.map(([k,nm])=>`<button type="button" class="ordpb ${pk.includes(k)?'on':''}" data-act="tordPick" data-i="${ti}" data-kind="${kind}" data-key="${k}" aria-pressed="${pk.includes(k)}">${esc(nm)}</button>`).join('')}</div>`};
+  const pickBar=kind=>{if(!t.solo)return '';const L=avl[kind],n=soloOrdN(kind,t),pk=tOrdPick(t,kind).filter(k=>L.some(x=>x[0]===k));const must=kind==='c'&&soloA(t)&&L.some(x=>SOLO_A_MUST.includes(x[0]));const mOk=kind!=='c'||soloMustOk(t,pk,L.map(x=>x[0]));const ok=pk.length===Math.min(n,L.length)&&mOk;
+   return `<div class="ordpick ${ok?'':'need'}"><span class="small"><b>1인 기준${soloN(t)===3?' (3체)':''}</b> · ${L.length}개 중 <b>${n}</b>개 고르기 <b class="num">${pk.length}/${n}</b>${must?` · <b class="${mOk?'':'warn'}" title="지시 A 이상 1인 기준: 지령 셋 중 하나는 회피나 명중">회피 · 명중 중 1개 필수${mOk?' ✓':''}</b>`:''}</span>${L.map(([k,nm])=>`<button type="button" class="ordpb ${pk.includes(k)?'on':''}" data-act="tordPick" data-i="${ti}" data-kind="${kind}" data-key="${k}" aria-pressed="${pk.includes(k)}">${esc(nm)}</button>`).join('')}</div>`};
   prev=`<div class="ordp"><div><span class="ordk o">ORDER</span><b>명령 (4식)</b><span class="small muted">${esc(TORD.OL[to])} · 칩을 눌러 항목마다 계열을 바꾼다</span></div><div class="ordl">${chips('o')}</div>${pickBar('o')}
    <div><span class="ordk c">COMMAND</span><b>지령 (6령)</b><span class="small muted">${esc(TORD.CL[tc])}</span></div><div class="ordl">${chips('c')}</div>${pickBar('c')}</div>`}
  return `<div class="tord"><div class="tordh"><b>지시 체계</b><span class="ordk o">ORDER</span><span class="ordk c">COMMAND</span><span class="small muted">지시 ${esc(rk)}</span></div>
@@ -2262,7 +2267,7 @@ $('#v-char').addEventListener('click',async e=>{
   case 'deckQ':{if(!T||!T.deck)break;const x=T.deck[+b.dataset.k];if(!x)break;x.q=Math.max(0,Math.min(99,(+x.q||0)+(+b.dataset.d||0)));rf();break}
   case 'deckCard':{if(!T||!T.deck)break;const x=T.deck[+b.dataset.k];if(!x)break;const i=S.db.cards.findIndex(r=>r[1]===x.n);if(i>=0)openEdit('cards',i,{onSaved:rf});else openEdit('cards',-1,{preset:{1:x.n},onSaved:rf});break}
   case 'deckDel':{if(!T||!T.deck)break;T.deck.splice(+b.dataset.k,1);rf();break}
-  case 'tordPick':{const t=T;if(!t||!t.orders)break;const kind=b.dataset.kind,k=b.dataset.key,n=soloOrdN(kind,t);const o=Object.assign({},t.orders);const pk=Object.assign({},o.pick||{});let L=(Array.isArray(pk[kind])?pk[kind]:[]).slice();if(L.includes(k))L=L.filter(x=>x!==k);else{L.push(k);while(L.length>n)L.shift()}pk[kind]=L;o.pick=pk;t.orders=o;rf();break}
+  case 'tordPick':{const t=T;if(!t||!t.orders)break;const kind=b.dataset.kind,k=b.dataset.key,n=soloOrdN(kind,t);const o=Object.assign({},t.orders);const pk=Object.assign({},o.pick||{});let L=(Array.isArray(pk[kind])?pk[kind]:[]).slice();if(L.includes(k))L=L.filter(x=>x!==k);else{L.push(k);const need=kind==='c'&&soloA(t);while(L.length>n){let i=0;if(need&&L.filter(x=>SOLO_A_MUST.includes(x)).length===1){const j=L.findIndex(x=>!SOLO_A_MUST.includes(x)&&x!==k);if(j>=0)i=j}L.splice(i,1)}}   /* 지시 A: 넘쳐서 하나 뺄 때 하나뿐인 회피 · 명중은 남긴다 */pk[kind]=L;o.pick=pk;t.orders=o;rf();break}
   case 'spDel':{const x=T&&(T.sps||[])[+b.dataset.k];if(!x)break;if(await ask(`SP 『${esc(x.name)}』를 지울까요?`,'삭제')){T.sps=T.sps.filter(y=>y!==x);rf()}break}
   case 'fldDel':{const o=P||T;const f=o&&(o.fields||[])[+b.dataset.k];if(!f)break;if(await ask(`필드 《${esc(f.name)}》를 지울까요?`,'삭제')){o.fields=o.fields.filter(y=>y!==f);rf()}break}
   case 'sdef':case 'sdel':case 'sadd':{const R=stRef(b.dataset.sk);const o=R.o;if(!o)break;o.stands=o.stands||[];const k2=+b.dataset.k;
