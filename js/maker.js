@@ -297,6 +297,10 @@ const isBigMv=(t,p,m)=>{if(!(t&&m&&m.name)||OLDK.includes(classOf(p)))return fal
 const bigMvRule=t=>{const r=brk(t);return r>=BU_L.indexOf(BIGMV_RANK)?`육성 ${BIGMV_RANK}는 할인 뒤 소켓 ${BIGMV}까지`:r>=BU_L.indexOf(BIGMV_HALF)?`육성 ${BIGMV_HALF}는 소켓 ${BIGMV} 기술에 할인을 체크해야 함`:`소켓 ${BIGMV} 이상 기술은 육성 ${BIGMV_HALF}(할인) · ${BIGMV_RANK}부터`};
 const bigMvs=(t,p)=>(p.moves||[]).filter(m=>isBigMv(t,p,m));
 const bigMvTxt=(t,L)=>`기술 소켓 상한을 넘는 기술 · ${bigMvRule(t)} (지금 육성 ${(t.ranks||{})['육성']||'-'}) · ${L.map(m=>m.name).join(', ')}`;
+/* 10-28 망령: 「날따름」(「분노가루」 등 날따름 상태 기술 포함)과 「와이드가드」는 한 포켓몬이 같이 들 수 없다 (경고만) */
+const FOLLOW_MV=['날따름','분노가루'],WIDE_MV='와이드가드';
+const followWide=p=>{const n=(p.moves||[]).map(m=>m.name);const f=n.filter(x=>FOLLOW_MV.includes(x));return f.length&&n.includes(WIDE_MV)?[...f,WIDE_MV]:null};
+const followWideTxt=L=>`「날따름」 계열과 「와이드가드」는 한 포켓몬이 같이 들 수 없습니다 · ${L.join(', ')}`;
 const oldSock=()=>{const v=+(S.db.oldSock??5.5);return isNaN(v)?5.5:v};
 const capTxt=(c,none='-',sep=' / ')=>c.mode==='count'?`${c.used}개(${c.pt})`:`${c.used}${sep}${c.cap??none}`;
 function ptSockets(t,aw){let u=0;const m=isMisag(t);for(const p of t.pokemon){if(m&&!!awOf(t,p)!==!!aw)continue;const c=moveCap(t,p);u+=c.mode==='count'?c.pt:c.used}return Math.round(u*100)/100}
@@ -392,6 +396,7 @@ function prideCost(t,p){if(awOf(t,p))return 0;const r=prRow(prideOf(p));const c=
 const fmtN=x=>String(Math.round(x*100)/100);
 function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);const w=(x,k)=>out.push({w:1,t:x,k}),i=(x,k)=>out.push({w:0,t:x,k});
  {const L=bigMvs(t,p);if(L.length)w(bigMvTxt(t,L),'mv')}
+ {const F=followWide(p);if(F)w(followWideTxt(F),'mv')}
  if(!isOld(p)){const L=(p.moves||[]).filter(m=>m.name&&mvOldOnly(idx.moves.get(m.name)));if(L.length)w(`『올드 타입』 전용 기술입니다 (이 포켓몬은 올드 타입 계열이 아님) · ${L.map(m=>m.name).join(', ')}`,'mv')}
  if(!tot)return out;const b=baseNums(p);
  if(t)for(const x of baseUp(t,p).miss||[])w(x,'bu');   /* 10-27: 「X : R」로 만들기 조건이 안 맞음 */
@@ -1926,7 +1931,7 @@ function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요
   if(k==='abil'){openPicker('abil',{onPick:n=>{p.ability=n}});return back()}
   if(k==='item'){openPicker('items',{onPick:n=>{p.item=n}});return back()}
   if(k==='itemx'){p.item='';return done()}
-  if(k==='mvadd'){openPicker('moves',{title:'기술 검색·추가',multi:true,hideOldOnly:!isOld(p),chosen:()=>new Set(p.moves.map(m=>m.name)),onPick:n=>{const m={name:n,half:false};p.moves.push(m);if(isBigMv(t,p,m))toast(`「${n}」 소켓 ${moveSock(p,m)} · ${bigMvRule(t)} · 경고만 띄우고 넣었습니다`)},onRemove:n=>{p.moves=p.moves.filter(m=>m.name!==n)}});return back()}
+  if(k==='mvadd'){openPicker('moves',{title:'기술 검색·추가',multi:true,hideOldOnly:!isOld(p),chosen:()=>new Set(p.moves.map(m=>m.name)),onPick:n=>{const m={name:n,half:false};p.moves.push(m);if(isBigMv(t,p,m))toast(`「${n}」 소켓 ${moveSock(p,m)} · ${bigMvRule(t)} · 경고만 띄우고 넣었습니다`);else if(followWide(p))toast(followWideTxt(followWide(p)))},onRemove:n=>{p.moves=p.moves.filter(m=>m.name!==n)}});return back()}
   if(k==='mved'){const ix=p.moves.findIndex(m=>m.name===v);if(ix<0)return;openPicker('moves',{title:`「${v}」 대신 넣을 기술`,hideOldOnly:!isOld(p),onPick:n=>{if(p.moves.some((m,j)=>j!==ix&&m.name===n))return toast('이미 있는 기술입니다');p.moves[ix]=Object.assign({},p.moves[ix],{name:n})}});return back()}
   if(k==='types'){const TY=S.db.types.map(x=>x[0]);const ty=TY.includes('-')?TY:['-',...TY];const EG=eggOpts();const sl=(f,lab,opts)=>`<label class="lbl">${lab}<select data-tf="${f}">${opts.map(o=>`<option value="${esc(o)}" ${o===(p[f]||'-')?'selected':''}>${esc(o)}</option>`).join('')}</select></label>`;
    const m=openModal(`<div class="mhead"><h2>타입 · 알그룹</h2></div><div class="mbody"><div class="fgrid">${sl('t1','타입1',ty)}${sl('t2','타입2',ty)}${sl('t3','타입3',ty)}${sl('tera','테라',ty)}${sl('egg1','알그룹1',EG)}${sl('egg2','알그룹2',EG)}</div></div><div class="mfoot"><span class="sp"></span><button class="btn" data-x="no">취소</button><button class="btn pri" data-x="ok">확인</button></div>`);
@@ -2436,7 +2441,7 @@ $('#v-char').addEventListener('click',async e=>{
   case 'delItemX':{const x=(P.items2||[])[+k];if(!x)break;if(x.item&&!await ask(`소지품 ${+k+2}번 칸(「${esc(x.item)}」)을 지울까요?`,'지우기'))break;P.items2.splice(+k,1);rf();break}
   case 'pickItemX':{const x=(P.items2||[])[+k];if(!x)break;openPicker('items',{onPick:n=>{x.item=n;if(x.itemOwn&&x.itemOwn.name!==n)delete x.itemOwn;rf()},onOrig:q=>openOwnItem(x,q,()=>{closeModal();rf()})});break}
   case 'ownItemX':{const x=(P.items2||[])[+k];if(x)openOwnItem(x,x.item,rf);break}
-  case 'pickMove':openPicker('moves',{title:'기술 검색·추가',multi:true,hideOldOnly:!isOld(P),chosen:()=>new Set(P.moves.map(m=>m.name)),onPick:n=>{const m={name:n,half:false};P.moves.push(m);if(isBigMv(T,P,m))toast(`「${n}」 소켓 ${moveSock(P,m)} · ${bigMvRule(T)} · 경고만 띄우고 넣었습니다`);rf()},onRemove:n=>{P.moves=P.moves.filter(m=>m.name!==n);rf()}});break;
+  case 'pickMove':openPicker('moves',{title:'기술 검색·추가',multi:true,hideOldOnly:!isOld(P),chosen:()=>new Set(P.moves.map(m=>m.name)),onPick:n=>{const m={name:n,half:false};P.moves.push(m);if(isBigMv(T,P,m))toast(`「${n}」 소켓 ${moveSock(P,m)} · ${bigMvRule(T)} · 경고만 띄우고 넣었습니다`);else if(followWide(P))toast(followWideTxt(followWide(P)));rf()},onRemove:n=>{P.moves=P.moves.filter(m=>m.name!==n);rf()}});break;
   case 'mvDel':P.moves.splice(+k,1);rf();break;
   case 'mvEdit':{const n=b.dataset.name;const ix=S.db.moves.findIndex(r=>r[2]===n);if(ix>=0)openEdit('moves',ix,{onSaved:()=>renderChar()});break}
   case 'editPot':if(e.target.closest('[data-act="potDel"]'))break;openPotEditor(T,P,k==='excl'?'excl':String(k)[0]==='x'?{ex:+String(k).slice(1)}:+k);break;
