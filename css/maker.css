@@ -1219,3 +1219,6 @@ html #mk .tfh.ftile.fmisag .favstar{color:#c9a24a!important}
 #mk .pcd-aw>span.tpaw{align-self:flex-start}
 @media (max-width:1180px){#mk .tparty.tpmis .tpg.aw{border-left:0;padding-left:0;padding-top:8px;border-top:2px dashed color-mix(in srgb,currentColor 35%,transparent);flex-basis:100%}}
 @media (max-width:760px){html #mk .tfh.ftile.fmisag::after{display:none}}
+/* 10-28: 각성 칩은 맨 앞에 · 줄어들지 않게 (좁으면 역할 · 분류 쪽이 잘린다) */
+#mk .psc.psaw{flex:none;background:#b3243c!important;color:#fff!important;font-weight:800}
+#mk .pscs .psc:not(.psaw){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
