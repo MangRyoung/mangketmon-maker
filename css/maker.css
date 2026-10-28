@@ -1165,3 +1165,13 @@ html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 
 /* 10-28 보이는 폴더 고르기 */
 .fhlist{display:flex;flex-direction:column;gap:2px;max-height:60vh;overflow:auto}.fhrow{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:6px;cursor:pointer}.fhrow:hover{background:rgba(127,127,127,.12)}.fhrow small{margin-left:auto}
+/* 10-28 망령: 미사그 대학 (4+2) 각성체 대가 */
+#mk .psc.psaw{background:color-mix(in srgb,#7c5cff 18%,transparent);color:inherit}
+#mk .misagp .mgr{display:inline-block;min-width:22px;text-align:center;padding:1px 6px;border-radius:5px;background:var(--ink);color:var(--bg)}
+#mk .misagp .mgr.gA,#mk .misagp .mgr.gEX{background:var(--warn,#d33);color:#fff}
+#mk .misagp .mgex{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin:4px 0}
+#mk .misagp .mgl{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+#mk .misagp .mgsel{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;align-items:center}
+#mk .misagp .mgsel select{max-width:100%}
+#mk .ordpick.off{border-style:solid;border-color:color-mix(in srgb,var(--warn,#d33) 45%,transparent)}
+#mk .ordpick.off .ordpb.on{text-decoration:line-through}
