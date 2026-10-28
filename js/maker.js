@@ -1657,8 +1657,10 @@ function openMe(){let o=null;try{o=JSON.parse(lsGet('mkm_me')||'null')}catch(e){
  <div class="mbody"><p class="small muted" style="margin:0 0 8px">비공개로 둔 폴더·트레이너는 같은 비밀구를 적은 브라우저와 GM 에게만 보입니다. 이름은 표시용, 비밀구가 열쇠입니다. 다른 기기에서도 같은 비밀구를 적으면 내 것이 보입니다. (화면에서만 숨기는 방식이라 DB 자체가 비밀이 되지는 않습니다)</p>
   <label class="lbl" for="me-name">이름<input id="me-name" value="${esc(o.name||'')}" maxlength="24" placeholder="표시 이름"></label>
   <label class="lbl" for="me-secret" style="margin-top:8px">비밀구<input id="me-secret" type="password" value="${esc(o.secret||'')}" maxlength="64" placeholder="나만 아는 문장" autocomplete="off"></label>
+  <p class="small" style="margin:10px 0 0"><button type="button" class="btn sm" id="me-fhide">🙈 보이는 폴더 고르기</button> <span class="faint">나와 상관없는 폴더를 이 브라우저에서 숨깁니다${FHIDE.count()?` (지금 ${FHIDE.count()}개 숨김)`:''}</span></p>
   <p class="small faint" style="margin:8px 0 0">GM 은 config.js 의 gmHash 와 비밀구가 맞으면 전부 봅니다. <button type="button" class="btn sm" id="me-gmhash">이 비밀구의 해시 보기</button> <span class="mono small" id="me-gmout"></span></p></div>
  <div class="mfoot"><button class="btn ghost" data-x="clear">서명 지우기</button><span class="sp"></span><button class="btn pri" data-x="ok">저장</button></div>`);
+ $('#me-fhide',l).onclick=()=>{closeModal();openFHide()};
  $('#me-gmhash',l).onclick=async()=>{$('#me-gmout',l).textContent=await meHash($('#me-secret',l).value)};
  l.addEventListener('click',async e=>{const x=e.target.closest('[data-x]');if(!x)return;const v=x.dataset.x;
   if(v==='ok'){const name=$('#me-name',l).value.trim(),secret=$('#me-secret',l).value;if(!secret){toast('비밀구를 적어 주세요');return}lsSet('mkm_me',JSON.stringify({name,secret}));closeModal();await meLoad();toast(ME.gm?'GM 으로 서명했습니다':'서명을 저장했습니다');return}
@@ -1690,18 +1692,31 @@ const FAV={get(){try{return JSON.parse(localStorage.getItem('mkm_fav')||'[]')||[
   save();renderChar();requestAnimationFrame(()=>{const el=f.k==='f'?document.querySelector(`.tfold[data-fold="${CSS.escape(f.id)}"]`):document.getElementById('tr-'+f.id);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});el.classList.add('favflash');setTimeout(()=>el.classList.remove('favflash'),1400)}})},
  rail(){const L=this.get().map(f=>({f,lab:this.label(f)})).filter(x=>x.lab!=null);const sv=localStorage.getItem('mkm_fav_open');const vis=sv?sv!=='0':innerWidth>=1700;
   return `<aside id="mkFav" class="${vis?'':'closed'}"><button type="button" class="favh" data-act="favtog" title="즐겨찾기 접기 · 펴기">★ 즐겨찾기 <small>${L.length}</small></button>${vis?`<div class="favl">${L.map((x,i)=>`<button type="button" class="favi" data-act="favgo" data-i="${i}"><i>${x.f.k==='f'?'📁':'🧑'}</i><span>${esc(x.lab)}</span><em data-act="favdel" data-i="${i}" title="빼기">×</em></button>`).join('')||'<div class="small faint" style="padding:8px 10px;line-height:1.5">폴더 · 트레이너 머리의 ☆ 를 누르면 여기 모입니다. 누르면 바로 갑니다.</div>'}</div>`:''}</aside>`}};
+/* ---------- 10-28 망령: 나와 상관없는 폴더 숨기기 — 이 브라우저(localStorage mkm_fhide)에만. 숨긴 폴더는 그 아래 폴더 · 트레이너까지 캐릭터 시트에서 안 보인다 ---------- */
+const FHIDE={get(){try{return JSON.parse(localStorage.getItem('mkm_fhide')||'[]')||[]}catch(e){return []}},set(v){lsSet('mkm_fhide',JSON.stringify(v))},has(id){return this.get().includes(id||'_none')},
+ toggle(id,on){id=id||'_none';const L=this.get().filter(x=>x!==id);if(on)L.push(id);this.set(L)},
+ count(){const L=this.get();return L.filter(id=>id==='_none'||fById(id)).length}};
+function openFHide(){const rows=[];const walk=(p,d)=>{for(const f of fKids(p)){if(!fVis(f))continue;rows.push([f.id,f.name||'이름 없는 폴더',d]);walk(f.id,d+1)}};walk('',0);rows.push(['','폴더 없음',0]);
+ const n=id=>{const ids=id?[id,...fDesc(id)]:[''];return S.trainers.filter(t=>tVis(t)&&ids.includes(tFolder(t))).length};
+ const l=openModal(`<div class="mhead"><h2>보이는 폴더 고르기</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
+ <div class="mbody"><p class="small muted" style="margin:0 0 8px">체크를 끈 폴더는 이 브라우저의 캐릭터 시트에서 숨깁니다 (안의 폴더 · 트레이너까지). 지우는 게 아니라 다른 사람 화면과 오레마스에는 그대로 보입니다.</p>
+  <div class="row" style="gap:6px;margin:0 0 6px"><button type="button" class="btn sm ghost" data-fh="all">모두 보이기</button><button type="button" class="btn sm ghost" data-fh="none">모두 숨기기</button></div>
+  <div class="fhlist">${rows.map(([id,nm,d])=>`<label class="fhrow" style="padding-left:${d*18}px"><input type="checkbox" data-fhid="${esc(id)}" ${FHIDE.has(id)?'':'checked'}> ${d?'└ ':''}📁 ${esc(nm)} <small class="faint">${n(id)}명</small></label>`).join('')}</div></div>
+ <div class="mfoot"><span class="sp"></span><button class="btn pri" data-x>확인</button></div>`);
+ l.addEventListener('change',e=>{const c=e.target.closest('[data-fhid]');if(!c)return;FHIDE.toggle(c.dataset.fhid,!c.checked);renderChar()});
+ l.addEventListener('click',e=>{const a=e.target.closest('[data-fh]');if(a){const hide=a.dataset.fh==='none';l.querySelectorAll('[data-fhid]').forEach(c=>{c.checked=!hide;FHIDE.toggle(c.dataset.fhid,hide)});renderChar();return}if(e.target.closest('[data-x]'))closeModal()})}
 function renderChar(){const root=$('#v-char');
  const inF=fid=>S.trainers.map((t,ti)=>[t,ti]).filter(([t])=>tFolder(t)===fid&&tVis(t));const hiddenN=S.trainers.filter(t=>!tVis(t)).length;
  let body;
  if(!S.folders.length)body=`<div id="trs" data-sort="trainers" data-fid="">${S.trainers.map((t,ti)=>tVis(t)?trainerHTML(t,ti):'').join('')||'<div class="empty">트레이너가 없습니다. 「+ 트레이너」를 눌러 시작하세요.</div>'}</div>`;
  else{
   /* 10-24 망령: 폴더 안의 폴더 — 연 폴더 안에 하위 폴더 카드 격자, 그 아래 트레이너. 닫힌 카드의 얼굴 · 수는 하위 폴더까지 다 센다 */
-  const grp=(fid,name)=>{const f=fById(fid);if(f&&!fVis(f))return '';const n=inF(fid),open=fOpen(fid),key=fid||'_none';const kids=fid?fKids(fid).filter(fVis):[];const all=fid?n.concat(...fDesc(fid).map(inF)):n;
+  const grp=(fid,name)=>{const f=fById(fid);if(f&&!fVis(f))return '';if(FHIDE.has(fid))return '';const n=inF(fid),open=fOpen(fid),key=fid||'_none';const kids=fid?fKids(fid).filter(fVis):[];const all=fid?n.concat(...fDesc(fid).map(inF)):n;
    return `<div class="tfold ${open?'open':''} ${f&&f.priv?'priv':''} ${f&&fPar(f)?'sub':''}" ${fid?`data-si="${S.folders.indexOf(f)}"`:''} data-fold="${esc(key)}">${folderHead(f,name,all,open,0,kids.length)}
    ${open?`${kids.length?`<div class="tsubf" data-sort="folders">${kids.map(k=>grp(k.id,k.name||'이름 없는 폴더')).join('')}</div>`:''}<div class="tfb" data-sort="trainers" data-fid="${esc(fid)}">${n.map(([t,ti])=>trainerHTML(t,ti)).join('')}</div>`:''}</div>`};
   body=`<div id="trs" data-sort="folders">${fKids('').map(f=>grp(f.id,f.name||'이름 없는 폴더')).join('')}${grp('','폴더 없음')}</div>`}
  root.innerHTML=`${hiddenN?`<p class="small faint" style="margin:0 0 8px">🔒 비공개라서 안 보이는 트레이너 ${hiddenN}명 (내 것이면 「서명」에 같은 비밀구를 적으세요)</p>`:''}<div class="intro"><h1>캐릭터 시트</h1><p>트레이너 폴더마다 자질·포인트·PT 서머리를 관리하고, 그 아래에 포켓몬 시트를 자유롭게 추가합니다. 「+ 폴더」로 세션별 대분류를 만들고 트레이너를 끌어다 넣을 수 있습니다. ${SH.on?'모든 내용은 공유 DB에 자동 저장되어, 링크를 아는 사람 모두가 같이 보고 고칩니다.':'모든 내용은 이 브라우저에 자동 저장됩니다.'}</p>
- <button class="btn pri" data-act="addT">+ 트레이너</button><button class="btn" data-act="addF">+ 폴더</button><button class="btn" data-act="impText">복사용 텍스트 붙여넣기</button></div>
+ <button class="btn pri" data-act="addT">+ 트레이너</button><button class="btn" data-act="addF">+ 폴더</button>${S.folders.length?`<button class="btn ghost" data-act="fhide" title="나와 상관없는 폴더를 이 브라우저에서 숨기기">🙈 보이는 폴더${FHIDE.count()?` <small>(${FHIDE.count()}개 숨김)</small>`:''}</button>`:''}<button class="btn" data-act="impText">복사용 텍스트 붙여넣기</button></div>
  ${body}${FAV.rail()}`;fitFlist(root)}
 /* 폴더 카드 트레이너 칩: 한 줄에 이름까지 안 들어가면 얼굴만 (10-24 망령) — 글꼴이 늦게 오거나 창 크기가 바뀌면 다시 잰다 */
 function fitFlist(root){const over=l=>l.scrollWidth>l.clientWidth+1;const run=()=>(root||document).querySelectorAll('.ftile .flist').forEach(l=>{l.classList.remove('ico');l.querySelectorAll('.fch.fx').forEach(x=>x.remove());const ch=[...l.querySelectorAll('.fch:not(.more):not(.none)')];ch.forEach(x=>x.style.display='');const mo=l.querySelector('.fch.more');if(mo)mo.style.display='';if(!l.clientWidth||!over(l))return;l.classList.add('ico');if(!over(l))return;const tot=+l.dataset.n||ch.length;const x=document.createElement('span');x.className='fch more fx';l.append(x);if(mo)mo.style.display='none';let vis=ch.length;while(vis>1){ch[--vis].style.display='none';x.textContent='+'+(tot-vis);if(!over(l))break}});run();setTimeout(run,350)}
@@ -2242,6 +2257,7 @@ $('#v-char').addEventListener('click',async e=>{
  const rf=()=>{save();T?refreshTrainer(T):renderChar()};
  switch(b.dataset.act){
   case 'fav':FAV.toggle(b.dataset.fk,b.dataset.fid);break;
+  case 'fhide':openFHide();break;
   case 'favtog':lsSet('mkm_fav_open',localStorage.getItem('mkm_fav_open')==='0'?'1':'0');renderChar();break;
   case 'favgo':{const L=FAV.get().filter(f=>FAV.label(f)!=null);const f=L[+b.dataset.i];if(f)FAV.go(f);break}
   case 'favdel':{e.stopPropagation();const L=FAV.get().filter(f=>FAV.label(f)!=null);L.splice(+b.dataset.i,1);FAV.set(L);renderChar();break}
