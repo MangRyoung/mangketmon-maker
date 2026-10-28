@@ -2018,7 +2018,7 @@ function rpFold(t,P){const L=t.kind==='npc'?RP_NPC:RP_PC;const rp=t.rp||{};const
  return `<details class="rpfold" ${n?'':''}><summary>세션 노트 공개 칸 <span class="small faint">${n?n+'칸 채움':'비어 있음'}${t.rpAt?' · 노트에서 '+new Date(t.rpAt).toLocaleDateString('ko-KR'):''}</span></summary><div class="rpg">${L.map(([k,l])=>`<label class="lbl"><span class="small muted">${l}</span><textarea data-p="${P}.rp.${k}" rows="2">${esc(rp[k]||'')}</textarea></label>`).join('')}</div><p class="small faint" style="margin:4px 0 0">세션 노트의 PC/NPC 시트와 주고받는 칸이에요. 비밀 칸 · GM 메모는 노트에만 있어요.</p></details>`}
 /* 10-28 망령: 미사그 대학 (4+2) 「각성체 대가」 패널 — 등급은 각성 (대가)의 프라이드에서 매번 계산, 고른 것만 t.misagPen 에 */
 function misagOut(t){if(!isMisag(t))return undefined;const P=misagPen(t),e=misagEff(t);const it=[];if(e.통솔){for(const k of e.통솔==='A'?[P.b,P.a]:[P.b]){const r=k&&misagItem(k);if(r)it.push({key:r[0],grade:r[1],desc:r[2],need:r[3]||''})}}
- return {grade:misagGrade(t),pen:e,dist:misagDistPen(t),excl:misagExclPen(t),uq:misagUqPen(t),ordOff:e.지시?{o:misagOrdOff(t,'o'),c:misagOrdOff(t,'c')}:{o:[],c:[]},items:it,type:P.type||'',role:String(P.role||'').trim()}}
+ return {grade:misagGrade(t),pen:e,dist:misagDistPen(t),excl:misagExclPen(t),uq:misagUqPen(t),ordOff:e.지시?{o:misagOrdOff(t,'o'),c:misagOrdOff(t,'c')}:{o:[],c:[]},items:it,type:P.type||'',role:String(P.role||'').trim(),note:String(P.note||'').trim()}}
 /* 10-28 망령: 각성체 대가를 짧은 줄로 — 트레이너 카드(서머리)와 각성체 한 장 요약에 띄운다 */
 function misagPenLines(t){if(!isMisag(t))return [];const o=misagOut(t),e=o.pen,out=[];const KO=k=>TORD.KO[k]||k;
  if(e.지시){const nd=misagOrdNeed(t);const off=[...o.ordOff.c,...o.ordOff.o].map(KO);out.push(['지시',e.지시,`지령 −${nd.c}${nd.o?` · 명령 −${nd.o}`:''}${off.length?` (${off.join(', ')})`:''}`])}
@@ -2028,7 +2028,7 @@ function misagPenLines(t){if(!isMisag(t))return [];const o=misagOut(t),e=o.pen,o
  if(e.능력)out.push(['능력',e.능력,`전용 −${o.excl}${o.uq?` · 고유 점수 −${o.uq}`:''}`]);
  return out}
 function misagPenHTML(t,cls){const L=misagPenLines(t),g=misagGrade(t);if(!isMisag(t))return '';
- return `<div class="mpen ${cls||''}"><span class="mpen-h">각성체 대가 ${g&&g!=='?'?`<b class="mgr g${g}">${g}</b>`:'<i>없음</i>'}</span>${L.map(([c,lv,x])=>`<span class="mpen-i" title="${esc(c+' '+lv+' · '+x)}"><b>${esc(c)} ${esc(lv)}</b>${esc(x)}</span>`).join('')}</div>`}
+ return `<div class="mpen ${cls||''}"><span class="mpen-h">각성체 대가 ${g&&g!=='?'?`<b class="mgr g${g}">${g}</b>`:'<i>없음</i>'}</span>${L.map(([c,lv,x])=>`<span class="mpen-i" title="${esc(c+' '+lv+' · '+x)}"><b>${esc(c)} ${esc(lv)}</b>${esc(x)}</span>`).join('')}${String(misagPen(t).note||'').trim()&&g?`<q class="mpen-q" title="${esc(misagPen(t).note)}">${esc(String(misagPen(t).note).trim())}</q>`:''}</div>`}
 function misagHTML(t,ti){const P=misagPen(t),R=MR(),g=misagGrade(t),e=misagEff(t),B=`T.${ti}.misagPen`;
  const nm=(L)=>L.map(p=>`${esc(p.name||'(이름 없음)')} <span class="faint">${esc(prideOf(p)||'-')}</span>`).join(', ')||'<span class="warn">없음</span>';
  const gLab=g==='?'?'<span class="warn">등급표에 없음</span>':g?`<b class="mgr g${g}">${g}</b>`:'<span class="faint">없음</span>';
@@ -2047,6 +2047,7 @@ function misagHTML(t,ti){const P=misagPen(t),R=MR(),g=misagGrade(t),e=misagEff(t
  return `<div class="panel misagp"><h3>각성체 대가<span class="small muted" style="font-weight:400">미사그 대학 (4+2) · 등급 ${gLab}</span><span class="sp"></span><button class="btn sm ghost" type="button" data-tip="각성체 2체는 GM이 짜고 통솔점을 쓰지 않습니다. 각성 (대가) 1체의 프라이드가 B면 B 대가 하나, A면 같은 분류의 B + A 대가를 PL 쪽이 치릅니다(C는 없음, EX는 GM이 조합). 숫자는 테이블·계산식 「미사그 대학」에서 고칩니다." title="설명">?</button></h3>
   <p class="small" style="margin:0 0 6px">${AW_LAB.free} ${nm(awList(t,'free'))} · ${AW_LAB.c} ${nm(awList(t,'c'))}</p>
   ${pick}${lines.length?`<ul class="mgl">${lines.join('')}</ul>`:''}
+  ${g?`<label class="lbl mgnote">대가 코멘트 <span class="faint">트레이너 카드 · 목록 · 각성체 한 장 요약에 같이 뜬다 · 오레마스에도 넘어간다</span><textarea data-p="${B}.note" rows="2" maxlength="300" placeholder="예: 각성의 대가로 기억 한 조각을 내주었다. 지시가 가끔 들리지 않는다.">${esc(P.note||'')}</textarea></label>`:''}
   ${W.map(x=>`<p class="small warn" style="margin:6px 0 0">⚠ ${esc(x)}</p>`).join('')}</div>`}
 function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=investCheck(t);const pu=ptSockets(t),pm=ptMax(t);
  return `<section class="folder ${t.open?'open':''}" id="tr-${t.id}" data-ti="${ti}" data-si="${ti}">
