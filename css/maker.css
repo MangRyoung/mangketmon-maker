@@ -1175,3 +1175,47 @@ html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 #mk .misagp .mgsel select{max-width:100%}
 #mk .ordpick.off{border-style:solid;border-color:color-mix(in srgb,var(--warn,#d33) 45%,transparent)}
 #mk .ordpick.off .ordpb.on{text-decoration:line-through}
+/* 10-28 망령: 「미사그 캠퍼스」 폴더 — 옥스퍼드 남색 · 버건디 · 금 문장. 어느 테마에서나 같은 교복 색 */
+html #mk .tfh.ftile.fmisag{--tc:#c9a24a;background:radial-gradient(420px 160px at 100% 0,rgba(201,162,74,.22),transparent 70%),linear-gradient(115deg,#13213f 0,#1b2c52 48%,#4a1424 100%)!important;background-image:radial-gradient(420px 160px at 100% 0,rgba(201,162,74,.22),transparent 70%),url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='46' height='46'><path d='M23 6l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7z' fill='%23c9a24a' fill-opacity='.07'/></svg>"),linear-gradient(115deg,#13213f 0,#1b2c52 48%,#4a1424 100%)!important;border:1px solid #c9a24a!important;outline:1px solid rgba(201,162,74,.45);outline-offset:-5px;box-shadow:0 10px 26px rgba(10,16,36,.45)!important;color:#f4ecd8!important;clip-path:none!important;transform:none!important;border-radius:6px!important}
+html #mk .tfh.ftile.fmisag::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:repeating-linear-gradient(180deg,#c9a24a 0 10px,#7a1a2c 10px 20px);z-index:0}
+html #mk .tfh.ftile.fmisag::after{content:"VERITAS · LUX · MISAG";position:absolute;right:14px;bottom:6px;font:600 9px/1 'Cinzel','Noto Serif KR',serif;letter-spacing:.32em;color:rgba(201,162,74,.55);pointer-events:none}
+html #mk .tfh.ftile.fmisag .fname{font-family:'Noto Serif KR',serif!important;font-weight:900!important;letter-spacing:.06em;color:#f4ecd8!important;text-shadow:0 1px 0 rgba(0,0,0,.4)}
+html #mk .tfh.ftile.fmisag .fsub{color:#e3cf9a!important;font-family:'Noto Serif KR',serif}
+html #mk .tfh.ftile.fmisag .fmeta,html #mk .tfh.ftile.fmisag .caret{color:#b9c2d9!important}
+html #mk .tfh.ftile.fmisag .ficon{background:radial-gradient(circle at 50% 35%,#f4ecd8,#c9a24a)!important;color:#13213f!important;border-radius:50% 50% 46% 46%/40% 40% 60% 60%!important;box-shadow:0 0 0 2px #13213f,0 0 0 3px #c9a24a}
+html #mk .fcrest{display:inline-grid;place-items:center;flex:none;font:700 8px/1.05 'Cinzel','Noto Serif KR',serif;letter-spacing:.12em;text-align:center;color:#c9a24a;border:1px solid #c9a24a;padding:3px 5px;margin-right:2px;background:rgba(19,33,63,.6)}
+html #mk .fmrule{background:#7a1a2c!important;color:#f4ecd8!important;border:1px solid #c9a24a!important;font-weight:700;white-space:nowrap}
+html #mk .tfh.ftile.fmisag .btn{background:rgba(10,16,36,.55)!important;color:#f4ecd8!important;border:1px solid rgba(201,162,74,.6)!important;box-shadow:none!important;transform:none!important}
+html #mk .tfh.ftile.fmisag .fch .fav{box-shadow:0 0 0 1.5px #c9a24a}
+html #mk .tfh.ftile.fmisag .fcn,html #mk .tfh.ftile.fmisag .fch.none{color:#dfe4f0!important}
+html #mk .tfh.ftile.fmisag .favstar{color:#c9a24a!important}
+/* 10-28 망령: 미사그 대학 — PL 4체 | 각성체 2체 칸 나누기 · 각성체 대가 줄 */
+#mk .tparty.tpmis{gap:10px;align-items:stretch}
+#mk .tpg{display:flex;flex-direction:column;gap:3px;min-width:0}
+#mk .tpg.aw{padding-left:10px;border-left:2px dashed color-mix(in srgb,currentColor 35%,transparent)}
+#mk .tpgl{font-size:10.5px;font-weight:800;letter-spacing:.06em;opacity:.75;white-space:nowrap}
+#mk .tpg.aw .tpgl{color:#b3243c;opacity:1}
+#mk .tpgr{display:flex;gap:4px}
+#mk .tpm.more{display:grid;place-items:center;font-size:12px;opacity:.7}
+#mk .tpaw{position:absolute;top:-4px;left:-4px;font:800 9.5px/1 sans-serif;font-style:normal;padding:2px 4px;border-radius:3px;background:#b3243c;color:#fff;box-shadow:0 0 0 1.5px var(--surface)}
+#mk .tpaw.c{background:#5a6b8c}
+#mk span.tpaw{position:static;display:inline-block;font-size:11px;padding:3px 7px;box-shadow:none}
+#mk .mpen{display:flex;flex-wrap:wrap;gap:3px 6px;align-items:center;font-size:11.5px;line-height:1.35;max-width:340px}
+#mk .mpen-h{font-weight:800;white-space:nowrap}
+#mk .mpen-h i{font-style:normal;opacity:.6;font-weight:400}
+#mk .mpen-i{display:inline-flex;gap:4px;align-items:baseline;padding:2px 6px;border-radius:4px;background:color-mix(in srgb,#b3243c 13%,transparent);border:1px solid color-mix(in srgb,#b3243c 40%,transparent)}
+#mk .mpen-i b{color:#b3243c;white-space:nowrap}
+#mk .mpen.pl{max-width:none;margin:0 0 10px;padding:8px 12px;border-radius:8px;background:color-mix(in srgb,#b3243c 7%,var(--surface));border:1px solid color-mix(in srgb,#b3243c 30%,var(--line));font-size:13px}
+#mk .mpen.pcd{max-width:none;margin-top:6px}
+#mk .pcd-aw{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+#mk .pgrp{display:flex;align-items:baseline;gap:10px;margin:14px 0 8px;padding:6px 12px;border-left:4px solid var(--accent);background:color-mix(in srgb,var(--accent) 9%,transparent)}
+#mk .pgrp:first-child{margin-top:0}
+#mk .pgrp b{font-size:15px}
+#mk .pgrp span{font-size:12px;color:var(--muted)}
+#mk .pgrp.aw{border-left-color:#b3243c;background:color-mix(in srgb,#b3243c 10%,transparent);margin-top:22px}
+#mk .pgrp.aw b{color:#b3243c}
+#mk .pgrp-e{margin:0 0 6px 14px}
+@media (max-width:1180px){#mk .tparty.tpmis{flex-wrap:wrap}#mk .tparty.tpmis .tpg{flex:1 1 auto}#mk .tparty.tpmis .tpm{flex:0 0 auto;width:50px}}
+#mk .pcd-aw>span.tpaw{align-self:flex-start}
+@media (max-width:1180px){#mk .tparty.tpmis .tpg.aw{border-left:0;padding-left:0;padding-top:8px;border-top:2px dashed color-mix(in srgb,currentColor 35%,transparent);flex-basis:100%}}
+@media (max-width:760px){html #mk .tfh.ftile.fmisag::after{display:none}}
