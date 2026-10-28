@@ -2219,7 +2219,7 @@ function fitLog(){for(const [fi,vi] of [['#logFrame','#v-log'],['#ruleFrame','#v
 function fitFrame(f){const top=f.getBoundingClientRect().top+window.scrollY;let bot=0;const tb=$('#mk .tabs');if(tb){const r=tb.getBoundingClientRect();if(getComputedStyle(tb).position==='fixed'&&r.top>innerHeight/2)bot=r.height}f.style.height=Math.max(420,Math.floor(innerHeight-top-bot))+'px'}
 addEventListener('resize',()=>{clearTimeout(fitLog.t);fitLog.t=setTimeout(fitLog,80)});
 const LOGV='20261026g';   /* 로그 정리기 판 (캐시 깨기) */
-function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v='+LOGV;requestAnimationFrame(fitLog);return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=20261028c';requestAnimationFrame(fitLog);return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
+function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v='+LOGV;requestAnimationFrame(fitLog);return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=20261028d';requestAnimationFrame(fitLog);return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
 let rT=null;
 let composing=false;
 $('#v-char').addEventListener('compositionstart',()=>{composing=true;clearTimeout(rT)});
