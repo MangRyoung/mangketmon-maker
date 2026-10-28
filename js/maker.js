@@ -2083,8 +2083,8 @@ function trainerHTML(t,ti){const P=`T.${ti}`;const use=pointUse(t);const iv=inve
   <div class="meter ${pu>pm?'over':''}"><i style="width:${pm?Math.min(100,pu/pm*100):0}%"></i></div>${leadBar(t)}
   ${ptChecks(t).map(x=>`<p class="small warn" style="margin:6px 0 0">⚠ ${esc(x)}</p>`).join('')}</div>
  <div class="plist" data-sort="poke" data-i="${ti}">${isMisag(t)?(()=>{const all=t.pokemon.map((p,pi)=>[p,pi]);const pl=all.filter(([p])=>!awOf(t,p)),aw=all.filter(([p])=>awOf(t,p));
-  return `<div class="pgrp"><b>PL 포켓몬</b><span>${pl.length} / 4 · PL이 짠다</span></div>${pl.map(([p,pi])=>pokeHTML(t,ti,p,pi)).join('')||'<p class="small faint pgrp-e">아직 없다</p>'}<div class="pgrp aw"><b>각성체</b><span>${aw.length} / 2 · GM이 짠다 · 통솔점을 쓰지 않는다</span></div>${misagPenHTML(t,'pl')}${aw.map(([p,pi])=>pokeHTML(t,ti,p,pi)).join('')||'<p class="small faint pgrp-e">포켓몬 시트의 「각성체」 칸에서 각성 (대가) · (보조)를 고르면 이쪽으로 온다</p>'}`})():t.pokemon.map((p,pi)=>pokeHTML(t,ti,p,pi)).join('')}</div>
- <div class="row"><button class="btn pri" data-act="addP" data-i="${ti}">+ 포켓몬 시트</button><button class="btn" data-act="addOld" data-i="${ti}">+ 올드 타입 일람에서 추가</button><button class="btn" data-act="impP" data-i="${ti}">복사용 텍스트로 불러오기</button></div>
+  return `<div class="pgrp"><b>PL 포켓몬</b><span>${pl.length} / 4 · PL이 짠다</span></div>${pl.map(([p,pi])=>pokeHTML(t,ti,p,pi)).join('')||'<p class="small faint pgrp-e">아직 없다</p>'}<div class="pgrp aw"><b>각성체</b><span>${aw.length} / 2 · GM이 짠다 · 통솔점을 쓰지 않는다</span>${aw.length<2?`<button class="btn sm pgrp-add" type="button" data-act="addAw" data-i="${ti}">+ 각성체</button>`:''}</div>${misagPenHTML(t,'pl')}${aw.map(([p,pi])=>pokeHTML(t,ti,p,pi)).join('')||'<p class="small faint pgrp-e">포켓몬 시트의 「각성체」 칸에서 각성 (대가) · (보조)를 고르면 이쪽으로 온다</p>'}`})():t.pokemon.map((p,pi)=>pokeHTML(t,ti,p,pi)).join('')}</div>
+ <div class="row"><button class="btn pri" data-act="addP" data-i="${ti}">+ 포켓몬 시트</button>${isMisag(t)&&t.pokemon.filter(p=>awOf(t,p)).length<2?`<button class="btn" data-act="addAw" data-i="${ti}" title="미사그 대학 · 각성체 칸에 바로 들어가는 시트">+ 각성체 시트</button>`:''}<button class="btn" data-act="addOld" data-i="${ti}">+ 올드 타입 일람에서 추가</button><button class="btn" data-act="impP" data-i="${ti}">복사용 텍스트로 불러오기</button></div>
  </div>`:''}</section>`}
 const tyCol=n=>{const ti=typeInfo((tyParts(n)[0])||'');return ti&&safeCss(ti[1])||''};
 const pkVars=p=>{const a=tyCol(p.t1),b=tyCol(p.t2)||a;return `--c1:${a||'var(--sunk2)'};--c2:${b||'var(--sunk2)'}`};
@@ -2423,6 +2423,8 @@ $('#v-char').addEventListener('click',async e=>{
   case 'tuneItemCopy':{const T0=tuneOf(P);const bs=tuneItemBase(P);if(T0.item.trim()&&!await ask('지금 적어 둔 소지품 구문을 DB 구문으로 바꿀까요?','바꾸기'))break;T0.item=bs;T0.itemName=P.item;rf();break}
   case 'tuneItemClr':{const T0=tuneOf(P);T0.item='';T0.itemName='';rf();break}
   case 'addP':{const p=newPoke();applySheetTpl(T,p);T.pokemon.push(p);rf();break}
+  /* 10-29 망령: 미사그 — 각성체를 바로 추가 (대가 쪽이 비었으면 대가, 아니면 보조) */
+  case 'addAw':{const p=newPoke();applySheetTpl(T,p);p.awaken=T.pokemon.some(x=>awOf(T,x)==='free')?'c':'free';T.pokemon.push(p);rf();break}
   case 'stpl':{const n=applySheetTpl(T,P);rf();toast(n?`템플릿 포텐셜 ${n}개를 넣었습니다`:'더 넣을 템플릿 포텐셜이 없습니다');break}
   case 'delP':if(await ask(`포켓몬 시트 「${esc(P.name||'이름 없음')}」을(를) 삭제할까요?`,'삭제')){T.pokemon=T.pokemon.filter(x=>x!==P);rf()}break;
   case 'dupP':{const c=clone(P);c.id=uid();T.pokemon.splice(j+1,0,c);rf();break}

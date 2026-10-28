@@ -1215,6 +1215,8 @@ html #mk .tfh.ftile.fmisag .favstar{color:#c9a24a!important}
 #mk .pgrp.aw{border-left-color:#b3243c;background:color-mix(in srgb,#b3243c 10%,transparent);margin-top:22px}
 #mk .pgrp.aw b{color:#b3243c}
 #mk .pgrp-e{margin:0 0 6px 14px}
+#mk .pgrp b{white-space:nowrap}
+#mk .pgrp .pgrp-add{margin-left:auto;align-self:center;flex:none}
 @media (max-width:1180px){#mk .tparty.tpmis{flex-wrap:wrap}#mk .tparty.tpmis .tpg{flex:1 1 auto}#mk .tparty.tpmis .tpm{flex:0 0 auto;width:50px}}
 #mk .pcd-aw>span.tpaw{align-self:flex-start}
 @media (max-width:1180px){#mk .tparty.tpmis .tpg.aw{border-left:0;padding-left:0;padding-top:8px;border-top:2px dashed color-mix(in srgb,currentColor 35%,transparent);flex-basis:100%}}
