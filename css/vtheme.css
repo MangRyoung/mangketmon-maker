@@ -1,5 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Black+Han+Sans&family=Do+Hyeon&family=Gothic+A1:wght@400;700;800&family=Noto+Sans+KR:wght@400;700;800&family=Rajdhani:wght@600;700&display=swap');
-/* ---------- VELVET 테마 (P5 기본 · P3 · P4) ----------
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Black+Han+Sans&family=Do+Hyeon&family=Gothic+A1:wght@400;700;800&family=Noto+Sans+KR:wght@400;700;800&family=Rajdhani:wght@600;700&family=Noto+Serif+KR:wght@500;700;900&family=Cinzel:wght@500;700;900&display=swap');
+/* ---------- VELVET 테마 (P5 기본 · P3 · P4) + 망각(mm) ----------
    오레마스와 같은 결. html[data-vt="p5|p3|p4"] 아래에서 #mk 의 색 토큰과 판 · 탭 · 단추 모양을 덮는다.
    테마를 고르는 건 js/vtheme.js. 이 파일을 빼면 예전 모습으로 돌아간다. */
 /* 테마 고르기 단추 */
@@ -156,3 +156,63 @@ html[data-vt="p4"] #mk .pk .ph .psc.psr{background:#111;color:#ffe100;box-shadow
 html[data-vt="p4"] #mk .pk .ph .psc.psp b{background:#111;color:#ffe100}
 html[data-vt="p4"] #mk .pk .ph .pno{color:#fff!important;text-shadow:-1.5px -1.5px 0 #111,1.5px -1.5px 0 #111,-1.5px 1.5px 0 #111,1.5px 1.5px 0 #111,2px 3px 0 #111}
 html[data-vt="p4"] #mk .pk .ph .pno small{color:#fff!important}
+
+/* ===== 망각전야풍 — 먹색 바탕 · 뼈빛 종이 판 · 검붉은 피 · 바랜 금 이중 테 · 명조 제목 ===== */
+html[data-vt="mm"] #mk{--bg:#0a0908;--surface:#13110e;--sunk:#0d0b09;--sunk2:#1d1914;--ink:#e8dfcb;--muted:#b0a38a;--faint:#7a705f;--line:#2e271d;--accent:#a3182a;--accent-ink:#f3eadb;--accent-soft:rgba(163,24,42,.16);--blue:#6f8fb8;--blue-soft:#141a24;--ok:#7fae84;--ok-soft:#141f16;--tag-bg:#1b1610;--tag-ink:#cfae6e;--shadow:none;color-scheme:dark;font-family:'Noto Sans KR','Gothic A1',sans-serif!important}
+html[data-vt="mm"],html[data-vt="mm"] body,html[data-vt="mm"] #mk{background:#0a0908!important}
+html[data-vt="mm"] #mk{background-image:radial-gradient(1200px 520px at 50% -12%,rgba(120,14,24,.38),transparent 70%),radial-gradient(1000px 700px at 50% 115%,rgba(0,0,0,.9),transparent 60%),url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .9 0 0 0 0 .85 0 0 0 0 .75 0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")!important;background-attachment:fixed}
+html[data-vt="mm"] #mk header.top{background:linear-gradient(#0d0b09,#0a0908)!important;border-bottom:1px solid #8f7b52!important;box-shadow:0 1px 0 #0a0908,0 2px 0 #4b3f29!important}
+html[data-vt="mm"] #mk header.top .brand .bt{font-family:'Noto Serif KR',serif!important;font-weight:900!important;font-size:22px!important;letter-spacing:.06em;color:#e8dfcb!important;text-shadow:0 0 16px rgba(163,24,42,.7)}
+html[data-vt="mm"] #mk header.top #saved{color:#7a705f!important}
+html[data-vt="mm"] #mk nav.tabs{background:transparent!important}
+html[data-vt="mm"] #mk nav.tabs button{font-family:'Noto Serif KR',serif!important;font-size:15px!important;font-weight:700!important;background:transparent!important;color:#9c8f76!important;border:0!important;border-radius:0!important;border-bottom:1px solid transparent!important;letter-spacing:.04em}
+html[data-vt="mm"] #mk nav.tabs button.on{color:#f3eadb!important;background:linear-gradient(transparent 40%,rgba(163,24,42,.35))!important;border-bottom:1px solid #cfae6e!important;text-shadow:0 0 10px rgba(163,24,42,.9)}
+html[data-vt="mm"] #mk .btn{font-family:'Noto Serif KR',serif!important;font-weight:700!important;background:#0f0d0b!important;color:#d9c9a3!important;border:1px solid #5e4f33!important;border-radius:0!important;box-shadow:inset 0 0 0 1px #0a0908!important}
+html[data-vt="mm"] #mk .btn:hover{border-color:#cfae6e!important;color:#f3eadb!important}
+html[data-vt="mm"] #mk .btn.pri{background:linear-gradient(#7d1220,#4a0a12)!important;color:#f3eadb!important;border-color:#8f7b52!important;box-shadow:inset 0 0 0 1px #0a0908,0 0 12px rgba(163,24,42,.35)!important}
+html[data-vt="mm"] #mk .btn.danger{color:#e06a6a!important;border-color:#6b2a2a!important}
+html[data-vt="mm"] #mk .intro h1{font-family:'Noto Serif KR',serif!important;font-weight:900!important;font-size:32px!important;color:#e8dfcb!important;letter-spacing:.04em;text-shadow:0 0 22px rgba(163,24,42,.7)}
+html[data-vt="mm"] #mk .folder{background:transparent!important;border:0!important;box-shadow:none!important}
+/* 트레이너 카드: 뼈빛 종이 · 금 이중 테 */
+html[data-vt="mm"] #mk .tcard{background:#e9e0cb!important;color:#1a140d!important;border:1px solid #8f7b52!important;outline:1px solid #8f7b52;outline-offset:-7px;box-shadow:0 0 0 4px #0a0908,0 0 0 5px #5e4f33,0 20px 40px rgba(0,0,0,.6)!important;background-image:radial-gradient(800px 200px at 0 0,rgba(163,24,42,.12),transparent 70%),url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3'/><feColorMatrix values='0 0 0 0 .35 0 0 0 0 .25 0 0 0 0 .15 0 0 0 .10 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")!important}
+html[data-vt="mm"] #mk .tcard,html[data-vt="mm"] #mk .pk .ph{--ink:#1a140d;--muted:#5a4a33;--faint:#7a6a50;color:#1a140d}
+html[data-vt="mm"] #mk .tcard .tname,html[data-vt="mm"] #mk .tcard .tmeta,html[data-vt="mm"] #mk .tcard .tmeta *{color:#1a140d!important}
+html[data-vt="mm"] #mk .tname{font-family:'Noto Serif KR',serif!important;font-weight:900!important;font-size:28px!important;letter-spacing:.03em}
+html[data-vt="mm"] #mk .avatar{background:#1a140d!important;color:#cfae6e!important;border-radius:0!important;border:1px solid #8f7b52!important;outline:1px solid #1a140d;outline-offset:2px;font-family:'Noto Serif KR',serif!important}
+html[data-vt="mm"] #mk .tcard .btn,html[data-vt="mm"] #mk .pk .ph .btn{background:#1a140d!important;color:#d9c9a3!important;border-color:#1a140d!important;--ink:#e8dfcb;--muted:#b0a38a}
+html[data-vt="mm"] #mk .tcard .rk{background:transparent!important;border:0!important;color:#1a140d!important;font-family:'Noto Serif KR',serif!important;font-weight:900!important;gap:4px;margin-right:6px}
+html[data-vt="mm"] #mk .tcard .rk b{font-family:'Cinzel',serif!important;font-weight:700!important;font-size:13px!important;color:#f3eadb!important;background:#7d1220!important;border:1px solid #1a140d!important;border-radius:0!important;padding:0 7px!important;box-shadow:none!important}
+html[data-vt="mm"] #mk .tcard .tuqc{background:#1a140d!important;color:#e8dfcb!important;border-left-color:#a3182a!important;border-radius:0!important;--ink:#e8dfcb;--muted:#b0a38a}
+html[data-vt="mm"] #mk .tcard .tuqc b,html[data-vt="mm"] #mk .tcard .tuqc small{color:#e8dfcb!important}
+html[data-vt="mm"] #mk .tcard .tuqc em{background:#a3182a!important;color:#f3eadb!important}
+html[data-vt="mm"] #mk .tcard .tpr{box-shadow:0 0 0 1px #5e4f33}
+html[data-vt="mm"] #mk .tcard .tpm.empty .tpr{border:1px dashed rgba(26,20,13,.35)!important;box-shadow:none;background:transparent!important}
+html[data-vt="mm"] #mk .tcard .tpm small{color:#1a140d}
+/* 판 */
+html[data-vt="mm"] #mk .panel{background:rgba(19,17,14,.92)!important;border:1px solid #4b3f29!important;outline:1px solid #2a2319;outline-offset:-5px;border-radius:0!important;box-shadow:0 14px 30px rgba(0,0,0,.45)!important;padding-top:0!important;overflow:hidden}
+html[data-vt="mm"] #mk .panel>h3{font-family:'Noto Serif KR',serif!important;font-size:18px!important;font-weight:900!important;letter-spacing:.05em;color:#e8dfcb!important;background:linear-gradient(90deg,rgba(163,24,42,.55),rgba(163,24,42,0) 70%)!important;margin:0 -14px 12px!important;padding:9px 14px 8px!important;border-bottom:1px solid #8f7b52}
+html[data-vt="mm"] #mk .panel>h3::before{content:"✠ ";color:#cfae6e;font-size:13px}
+html[data-vt="mm"] #mk .panel>h3 .muted,html[data-vt="mm"] #mk .panel>h3 .small{color:#b0a38a!important}
+html[data-vt="mm"] #mk table th{background:#170f0d!important;color:#cfae6e!important;border-color:#3a2f22!important;font-family:'Noto Serif KR',serif!important}
+html[data-vt="mm"] #mk table td{border-color:#2a241b!important}
+html[data-vt="mm"] #mk input,html[data-vt="mm"] #mk select,html[data-vt="mm"] #mk textarea{background:#0b0a08!important;color:#e8dfcb!important;border:1px solid #3e3426!important;border-bottom-color:#8f7b52!important;border-radius:0!important}
+html[data-vt="mm"] #mk input:focus,html[data-vt="mm"] #mk select:focus,html[data-vt="mm"] #mk textarea:focus{outline:0;border-color:#cfae6e!important;box-shadow:0 0 0 2px rgba(163,24,42,.35)}
+html[data-vt="mm"] #mk .imgbox,html[data-vt="mm"] #mk .stdz{background:#0b0a08!important;border-color:#4b3f29!important}
+/* 포켓몬 시트 */
+html[data-vt="mm"] #mk .pk{background:rgba(19,17,14,.92)!important;border:1px solid #4b3f29!important;border-radius:0!important}
+html[data-vt="mm"] #mk .pk .ph{background:#e9e0cb!important;color:#1a140d!important;border-bottom:1px solid #8f7b52;--bE:1px;--bEC:#5e4f33}
+html[data-vt="mm"] #mk .pno{font-family:'Cinzel','Noto Serif KR',serif!important;font-weight:900!important;font-size:28px!important}
+html[data-vt="mm"] #mk .pk .ph .pno{color:#7d1220!important;text-shadow:none!important}
+html[data-vt="mm"] #mk .pk .ph .lvb{background:#1a140d!important;color:#cfae6e!important}
+html[data-vt="mm"] #mk .pk .ph .psc{background:rgba(26,20,13,.08);color:#1a140d;box-shadow:inset 0 0 0 1px rgba(26,20,13,.3)}
+html[data-vt="mm"] #mk .pk .ph .psc.psr{background:#1a140d;color:#cfae6e;box-shadow:none}
+html[data-vt="mm"] #mk .pk .ph .ptyab{background:#1a140d!important;color:#e8dfcb!important;border-left:2px solid #a3182a;border-radius:0;--ink:#e8dfcb;--muted:#b0a38a}
+html[data-vt="mm"] #mk .pk .ph .pexcl>*{background:#1a140d!important;color:#e8dfcb!important}
+html[data-vt="mm"] #mk .pk .ph .fmb,html[data-vt="mm"] #mk .tcard .fmb{background:#1a140d!important;border-color:#1a140d!important;color:#e8dfcb!important}
+html[data-vt="mm"] #mk .pk .ph .fmb.on,html[data-vt="mm"] #mk .tcard .fmb.on{background:#7d1220!important;color:#f3eadb!important}
+html[data-vt="mm"] #mk .ordk.o{background:#7d1220!important;color:#f3eadb!important}
+html[data-vt="mm"] #mk .ordk.c{background:#1a140d!important;color:#cfae6e!important;border:1px solid #8f7b52}
+@media(max-width:760px){html[data-vt="mm"] #mk nav.tabs{background:#0a0908!important;border-top:1px solid #8f7b52!important;box-shadow:0 -1px 0 #0a0908,0 -2px 0 #4b3f29}html[data-vt="mm"] #mk nav.tabs button{color:#9c8f76!important}html[data-vt="mm"] #mk nav.tabs button.on{background:linear-gradient(rgba(163,24,42,.45),transparent)!important;color:#f3eadb!important;border-bottom:0!important;border-top:2px solid #cfae6e!important}}
+html[data-vt="mm"] .vtsw button.on{background:#7d1220;color:#f3eadb}
+html[data-vt="mm"] #mk .tcard .tpm.empty .tpi{background:transparent!important;box-shadow:inset 0 0 0 1px rgba(26,20,13,.35)!important}
+html[data-vt="mm"] #mk .tcard .tpi{box-shadow:inset 0 0 0 1px #1a140d}

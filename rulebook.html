@@ -73,6 +73,51 @@
 :root[data-vt="p3"] .g-say b{color:#03122e}
 :root[data-vt="p3"] th{background:rgba(79,195,255,.18);color:#b8ecff}
 :root[data-vt="p4"] th{background:#ffe100;color:#111}
+/* 망각 (mm): 망각전야풍 — 먹색 · 뼈빛 종이 · 검붉은 피 · 바랜 금, 세리프 제목, 이중 가는 테 */
+:root[data-vt="mm"]{
+  --bg:#0a0908; --bg2:#100e0c; --surface:#0f0d0b; --sunk:#15120e; --sunk2:#1e1913; --ink:#e8dfcb; --muted:#b5a88e; --faint:#7a705f; --line:#2a241b; --line2:#4b402f;
+  --plate:#e8dfcb; --plate-ink:#140f0a; --frame:#8f7b52;
+  --accent:#9e1621; --accent2:#cfae6e; --accent-ink:#f3eadb; --accent-soft:rgba(158,22,33,.16);
+  --tag-bg:#1b1610; --tag-ink:#cfae6e; --note-bg:#13100c;
+  --rk-d:#5d5a52; --rk-c:#4d6b55; --rk-b:#3f5878; --rk-a:#9e1621; --rk-aa:#e8dfcb; --rk-on:#0a0908;
+  --mark:#5b3a12;
+  --display:"Noto Serif KR","Nanum Myeongjo",serif; --lab:"Noto Serif KR","Nanum Myeongjo",serif; --en:"Cinzel","Noto Serif KR",serif;
+  --skew:0deg; --radius:0px;
+  --sh-lg:0 0 0 1px #0a0908,0 0 0 2px #8f7b52,0 18px 40px rgba(0,0,0,.6); --sh-md:0 0 0 1px #0a0908,0 0 0 2px #5e4f33; --sh-sm:0 0 0 1px #5e4f33; --sh-pri:0 0 0 1px #0a0908,0 0 0 2px #8f7b52; --tsh:0 0 14px rgba(158,22,33,.55);
+  --bgimg:radial-gradient(1100px 600px at 50% -15%,rgba(120,14,24,.32),transparent 70%),radial-gradient(900px 900px at 50% 120%,rgba(0,0,0,.9),transparent 60%),url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .9 0 0 0 0 .85 0 0 0 0 .75 0 0 0 .06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --headimg:linear-gradient(180deg,#14100c,#0c0a08);
+}
+:root[data-vt="mm"] body{font-feature-settings:"palt"}
+:root[data-vt="mm"] .logo{background:transparent;color:var(--ink);border:1px solid var(--frame);outline:1px solid var(--frame);outline-offset:3px;box-shadow:none;text-align:center}
+:root[data-vt="mm"] .logo small{font:500 10px var(--en);letter-spacing:.5em;color:var(--accent2)}
+:root[data-vt="mm"] .logo b{font:700 30px var(--en);letter-spacing:.12em;color:var(--ink);text-shadow:0 0 18px rgba(158,22,33,.7)}
+:root[data-vt="mm"] .p-head{border-bottom:1px solid var(--frame);position:relative}
+:root[data-vt="mm"] .p-head::after{content:"✦";position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);background:var(--bg);color:var(--accent2);font-size:12px;padding:0 10px;line-height:16px}
+:root[data-vt="mm"] .p-num{font:900 56px var(--en);color:var(--accent);text-shadow:0 0 22px rgba(158,22,33,.45)}
+:root[data-vt="mm"] .p-title h1,:root[data-vt="mm"] .p-title h2{font-weight:900;letter-spacing:.02em}
+:root[data-vt="mm"] .p-title small{font-family:var(--en);letter-spacing:.35em;color:var(--accent2)}
+:root[data-vt="mm"] .panel{border:1px solid var(--line2);outline:1px solid var(--line);outline-offset:-5px}
+:root[data-vt="mm"] .tabs button{background:transparent;border:1px solid var(--line2);color:var(--muted);font-family:var(--lab)}
+:root[data-vt="mm"] .tabs button.on{background:linear-gradient(180deg,#5c0c13,#2a070a);color:var(--ink);border-color:var(--frame);box-shadow:inset 0 0 0 1px #0a0908,0 0 14px rgba(158,22,33,.45)}
+:root[data-vt="mm"] .tabs button.on em,:root[data-vt="mm"] .tabs button em{color:var(--accent2)}
+:root[data-vt="mm"] .ch-link.on{background:linear-gradient(90deg,rgba(158,22,33,.35),transparent);color:var(--ink);box-shadow:inset 2px 0 0 var(--accent);border:0}
+:root[data-vt="mm"] .ch-link.on em,:root[data-vt="mm"] .ch-link.on small{color:var(--accent2)}
+:root[data-vt="mm"] .part b{background:transparent;color:var(--accent2);border:1px solid var(--frame);font-family:var(--en);letter-spacing:.2em;box-shadow:none}
+:root[data-vt="mm"] .page-h span{background:transparent;color:var(--ink);border-top:1px solid var(--frame);border-bottom:1px solid var(--frame);box-shadow:none;font-weight:900;padding-left:18px;padding-right:18px}
+:root[data-vt="mm"] th{background:#1b0d0e;color:var(--accent2);font-family:var(--lab);border-bottom:1px solid var(--frame)}
+:root[data-vt="mm"] td{border-color:var(--line)}
+:root[data-vt="mm"] .def-name,:root[data-vt="mm"] .pt{color:#d8705f}
+:root[data-vt="mm"] .g-say{background:#efe6d2;color:#1a140d;border:1px solid #8f7b52;box-shadow:0 0 0 3px #0a0908,0 0 0 4px #8f7b52;font-family:var(--lab)}
+:root[data-vt="mm"] .g-say b{background:#1a140d;color:#efe6d2}
+:root[data-vt="mm"] .guide img{filter:sepia(.35) saturate(.8) contrast(1.05);border-color:var(--frame)!important}
+:root[data-vt="mm"] .btn.primary,:root[data-vt="mm"] #nextBtn{background:linear-gradient(180deg,#7a111a,#4a0a0f);color:var(--ink);border:1px solid var(--frame);box-shadow:inset 0 0 0 1px #0a0908}
+:root[data-vt="mm"] .c-hero{background:radial-gradient(600px 300px at 50% 0,rgba(158,22,33,.35),transparent 70%),#0d0b09;border:1px solid var(--frame);outline:1px solid var(--frame);outline-offset:-7px;color:var(--ink)}
+:root[data-vt="mm"] .c-hero h1{font:900 44px var(--display);letter-spacing:.04em;color:var(--ink);text-shadow:0 0 24px rgba(158,22,33,.6)}
+:root[data-vt="mm"] .c-hero small{font-family:var(--en);letter-spacing:.4em;color:var(--accent2)}
+:root[data-vt="mm"] .topbar{background:#0d0b09;border-bottom:1px solid var(--frame)}
+:root[data-vt="mm"] .tb-edit:not([hidden]){background:transparent!important;color:var(--accent2)!important;border:1px solid var(--frame)!important}
+:root[data-vt="mm"] #editBtn{background:transparent;color:var(--accent2);border-color:var(--frame)}
+:root[data-vt="mm"] .pop{border:1px solid var(--frame);outline:1px solid var(--frame);outline-offset:-5px;background:#0f0d0b}
 /* 둥근 모서리 · 테마 고르기 */
 .panel,.c-hero,.btn,.search,.pcard,.route button,.res,.tbl,.vx-card,.vx-step,.note,.tabs button,.g-say,.pop,.ed-card,.ch-link.on,.page-h span,.logo,.part b,.pcard-h b{border-radius:var(--radius)}
 .vtsw{display:inline-flex;border:1px solid var(--line2);border-radius:var(--radius);overflow:hidden}
@@ -431,7 +476,7 @@ mark{background:var(--mark);color:inherit;padding:0 1px}
 <button class="logo" id="logo" type="button"><small id="logoSub">MANGKETMON</small><b>RULEBOOK</b></button>
 <label class="search" id="searchBox"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"></circle><path d="M11 11l3.5 3.5" stroke-linecap="round"></path></svg><input id="q" type="search" placeholder="찾기 — 통솔점, 『전술』, 날따름…" autocomplete="off"><kbd>/</kbd></label>
 <div class="toc" id="toc"></div>
-<div class="nav-foot"><span class="vtsw" id="vtsw"><button type="button" data-vt="p5">P5</button><button type="button" data-vt="p3">P3</button><button type="button" data-vt="p4">P4</button></span><button id="guideBtn" type="button">감우 안내</button><span class="sp"></span><span class="status" id="status"></span><button id="editBtn" type="button" hidden>편집</button></div>
+<div class="nav-foot"><span class="vtsw" id="vtsw"><button type="button" data-vt="p5">P5</button><button type="button" data-vt="p3">P3</button><button type="button" data-vt="p4">P4</button><button type="button" data-vt="mm">망각</button></span><button id="guideBtn" type="button">감우 안내</button><span class="sp"></span><span class="status" id="status"></span><button id="editBtn" type="button" hidden>편집</button></div>
 </nav>
 <div class="mainwrap"><div class="ed-bar" id="edBar"><b>룰북 편집</b><span class="sp"></span><button class="btn ghost" id="cancelBtn" type="button" hidden>취소</button><button class="btn primary" id="saveBtn" type="button" hidden>저장</button></div><main id="main"></main></div>
 </div>
@@ -1034,7 +1079,7 @@ $("menuBtn").addEventListener("click",function(){document.body.classList.toggle(
 $("scrim").addEventListener("click",function(){document.body.classList.remove("nav-open")});
 $("guideBtn").addEventListener("click",function(){ls("rb-guide",ls("rb-guide")==="0"?null:"0");show()});
 /* 테마: 제작기와 같은 VELVET P5 · P3 · P4 (localStorage mk_vt, 같은 출처라 제작기와 공유). 제작기 안이면 제작기 html[data-vt] 를 따라간다 */
-var VTS={p5:1,p3:1,p4:1};
+var VTS={p5:1,p3:1,p4:1,mm:1};
 function parentDoc(){try{if(window.parent!==window&&window.parent.document)return window.parent.document}catch(e){}return null}
 function curVt(){var pd=parentDoc(),v=pd&&pd.documentElement.getAttribute("data-vt");if(!VTS[v])v=ls("mk_vt");return VTS[v]?v:"p4"}
 function applyTheme(){var v=curVt();document.documentElement.setAttribute("data-vt",v);$("vtsw").querySelectorAll("button").forEach(function(b){b.classList.toggle("on",b.dataset.vt===v)})}
