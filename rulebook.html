@@ -3,7 +3,7 @@
 <title>트레이너 룰북</title>
 <!-- 원본: claude.ai 아티팩트 「트레이너 룰북」(2026-10-20). 제작기 「룰북」 탭이 iframe 으로 연다. 10-28 화면 개편(오레마스 튜토리얼식: PART 목차 · 장 = 한 화면 · ## = 쪽 · 감우 안내). 내용은 rb-data 의 chapters(markdown), 공유 DB rulebook/main 이 있으면 그쪽이 우선 -->
 </head><body>
-<link id="rb-fonts" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<link id="rb-fonts" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Rajdhani:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
 <style id="rb-style">
 /* 10-28 개편: 오레마스 튜토리얼과 같은 빨강·검정·흰 기울어진 판. 장 = 한 화면, ## 소제목 = 쪽(이전 · 다음). 밝은 판은 data-theme="light" */
 :root{
@@ -19,24 +19,65 @@
   --lab:"Do Hyeon","IBM Plex Sans KR",sans-serif;
   --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
-  --skew:-6deg;
+  --skew:-6deg; --radius:0px; --accent-ink:#ffffff;
+  --sh-lg:8px 8px 0 var(--accent); --sh-md:5px 5px 0 var(--accent); --sh-sm:3px 3px 0 var(--accent); --sh-pri:3px 3px 0 var(--plate); --tsh:3px 3px 0 var(--accent);
+  --en:"IBM Plex Mono",ui-monospace,monospace;
   --bgimg:radial-gradient(circle at 20% 0%,#1c0006 0,transparent 45%),repeating-linear-gradient(135deg,transparent 0 18px,#0f0f0f 18px 19px);
   --headimg:repeating-linear-gradient(135deg,#111 0 10px,#151515 10px 11px);
   color-scheme:dark;
 }
-:root[data-theme="light"]{
-  --bg:#eceae6; --bg2:#f6f5f2; --surface:#ffffff; --sunk:#f1efeb; --sunk2:#e4e1db; --ink:#16161a; --muted:#45454d; --faint:#7d7d86; --line:#dcd8d0; --line2:#b9b4aa;
-  --plate:#111111; --plate-ink:#ffffff; --frame:#111111;
-  --accent:#d0021f; --accent2:#d0021f; --accent-soft:#fbe4e7;
-  --tag-bg:#e3eaf5; --tag-ink:#25446f;
-  --note-bg:#f4f1ec;
-  --rk-d:#8a93a3; --rk-c:#1f8a70; --rk-b:#2e63b8; --rk-a:#d0021f; --rk-aa:#16161a; --rk-on:#ffffff;
-  --mark:#ffe58a;
-  --ok:#1f8a70; --ok-bg:#e2f3ec; --warn:#a86a00; --warn-bg:#fbf0d9; --bad:#c9302c; --bad-bg:#f8e3e1; --info:#2e63b8; --info-bg:#e3eaf5;
-  --bgimg:repeating-linear-gradient(135deg,transparent 0 18px,#e4e1db 18px 19px);
-  --headimg:repeating-linear-gradient(135deg,#f6f5f2 0 10px,#efede8 10px 11px);
-  color-scheme:light;
+
+
+/* P3: 깊은 파랑 · 하늘색 빛, 기울기 없음 */
+:root[data-vt="p3"]{
+  --bg:#05112b; --bg2:rgba(3,14,40,.65); --surface:#0a1d47; --sunk:rgba(3,14,40,.65); --sunk2:rgba(18,58,140,.5); --ink:#e6f3ff; --muted:#9fbfe6; --faint:#6f8fbf; --line:rgba(110,190,255,.2); --line2:rgba(110,190,255,.38);
+  --plate:#4fc3ff; --plate-ink:#03122e; --frame:rgba(110,190,255,.55);
+  --accent:#4fc3ff; --accent2:#7fd6ff; --accent-ink:#03122e; --accent-soft:rgba(79,195,255,.14);
+  --tag-bg:rgba(79,195,255,.14); --tag-ink:#b8ecff; --note-bg:rgba(3,14,40,.65);
+  --rk-a:#ff6a8a; --mark:#1f5a8a;
+  --display:"Rajdhani","Do Hyeon",sans-serif; --lab:"Do Hyeon","IBM Plex Sans KR",sans-serif; --en:"Rajdhani",ui-monospace,monospace;
+  --skew:0deg; --radius:6px;
+  --sh-lg:0 0 0 1px rgba(110,190,255,.25),0 0 28px rgba(79,195,255,.22); --sh-md:0 0 16px rgba(79,195,255,.35); --sh-sm:0 0 10px rgba(79,195,255,.4); --sh-pri:0 0 13px 1px rgba(79,195,255,.42); --tsh:0 0 12px rgba(120,210,255,.75);
+  --bgimg:radial-gradient(1200px 700px at 70% -10%,#0b2a63 0,transparent 70%);
+  --headimg:linear-gradient(#03102a,#061a40);
 }
+/* P4: 노랑 · 검정 줄무늬, 둥근 모서리 */
+:root[data-vt="p4"]{
+  --bg:#111; --bg2:#1a1a1a; --surface:#1d1d1d; --sunk:#151515; --sunk2:#2a2a2a; --ink:#fffbe6; --muted:#d8cf9a; --faint:#8a8360; --line:#333; --line2:#55503a;
+  --plate:#ffe100; --plate-ink:#111; --frame:#ffe100;
+  --accent:#ffe100; --accent2:#ffe100; --accent-ink:#111; --accent-soft:rgba(255,225,0,.12);
+  --tag-bg:#111; --tag-ink:#ffe100; --note-bg:#181818;
+  --rk-a:#ff7a00; --rk-aa:#fffbe6; --mark:#6b5d00;
+  --display:"Do Hyeon","IBM Plex Sans KR",sans-serif;
+  --skew:0deg; --radius:4px;
+  --sh-lg:6px 6px 0 #ff9a00; --sh-md:4px 4px 0 #ff9a00; --sh-sm:3px 3px 0 #ff9a00; --sh-pri:3px 3px 0 #ff9a00; --tsh:3px 3px 0 #ff9a00;
+  --bgimg:repeating-linear-gradient(135deg,#151515 0 22px,#111 22px 44px);
+  --headimg:linear-gradient(#ffe100,#ffe100);
+}
+:root[data-vt="p4"] .p-head{color:#111}
+:root[data-vt="p4"] .p-head .p-num{color:#111;text-shadow:3px 3px 0 #ff9a00}
+:root[data-vt="p4"] .p-head .p-title small,:root[data-vt="p4"] .p-head .p-title p{color:#5a4f12}
+:root[data-vt="p4"] .p-head{border-bottom-color:#111}
+:root[data-vt="p4"] .dots button{background:rgba(0,0,0,.25)} :root[data-vt="p4"] .dots button.on{background:#111} :root[data-vt="p4"] .dots button.seen:not(.on){background:rgba(0,0,0,.5)}
+:root[data-vt="p4"] .c-hero{background:#ffe100;color:#111} :root[data-vt="p4"] .c-hero h1{color:#111} :root[data-vt="p4"] .c-hero p,:root[data-vt="p4"] .c-hero small,:root[data-vt="p4"] .c-meta{color:#5a4f12}
+:root[data-vt="p4"] .c-hero::after{border-color:#111}
+:root[data-vt="p3"] .p-num,:root[data-vt="p3"] .c-hero h1,:root[data-vt="p3"] .logo b{letter-spacing:.06em;font-weight:700}
+:root[data-vt="p3"] .logo{background:linear-gradient(#0b2a63,#061a40);color:#b8ecff;border:1px solid rgba(110,190,255,.5)}
+:root[data-vt="p3"] .logo b{text-shadow:var(--tsh)}
+:root[data-vt="p3"] .p-num{color:#e6f3ff}
+:root[data-vt="p3"] .tabs button.on{background:linear-gradient(transparent,rgba(79,195,255,.25));color:#fff;border-color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent);text-shadow:0 0 8px rgba(120,210,255,.9)}
+:root[data-vt="p3"] .ch-link.on{background:linear-gradient(90deg,rgba(79,195,255,.28),rgba(79,195,255,.05));color:#fff;box-shadow:inset 3px 0 0 var(--accent)}
+:root[data-vt="p3"] .ch-link.on em,:root[data-vt="p3"] .ch-link.on small{color:var(--accent2)}
+:root[data-vt="p3"] .panel{backdrop-filter:blur(2px)}
+:root[data-vt="p3"] .g-say{background:rgba(9,28,72,.92);color:#e6f3ff;border:1px solid rgba(110,190,255,.5)}
+:root[data-vt="p3"] .g-say b{color:#03122e}
+:root[data-vt="p3"] th{background:rgba(79,195,255,.18);color:#b8ecff}
+:root[data-vt="p4"] th{background:#ffe100;color:#111}
+/* 둥근 모서리 · 테마 고르기 */
+.panel,.c-hero,.btn,.search,.pcard,.route button,.res,.tbl,.vx-card,.vx-step,.note,.tabs button,.g-say,.pop,.ed-card,.ch-link.on,.page-h span,.logo,.part b,.pcard-h b{border-radius:var(--radius)}
+.vtsw{display:inline-flex;border:1px solid var(--line2);border-radius:var(--radius);overflow:hidden}
+.vtsw button{border:0!important;border-radius:0!important;padding:2px 9px!important;font:12px var(--en)!important;background:transparent;color:var(--muted)}
+.vtsw button.on{background:var(--accent)!important;color:var(--accent-ink)!important}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg);background-image:var(--bgimg);color:var(--ink);font-family:var(--body);font-size:15.5px;line-height:1.75;-webkit-font-smoothing:antialiased}
@@ -46,18 +87,18 @@ button,input,textarea,select{font:inherit;color:inherit}
 [hidden]{display:none!important}
 
 /* ---------- 버튼 ---------- */
-.btn{height:34px;padding:0 14px;border:2px solid var(--frame);background:var(--plate);color:var(--plate-ink);font-family:var(--lab);font-size:15px;letter-spacing:.03em;cursor:pointer;white-space:nowrap;transform:skew(var(--skew));box-shadow:3px 3px 0 var(--accent);transition:transform .08s,box-shadow .08s}
-.btn:hover{transform:skew(var(--skew)) translate(-1px,-1px);box-shadow:4px 4px 0 var(--accent)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:3px 3px 0 var(--plate)}
+.btn{height:34px;padding:0 14px;border:2px solid var(--frame);background:var(--plate);color:var(--plate-ink);font-family:var(--lab);font-size:15px;letter-spacing:.03em;cursor:pointer;white-space:nowrap;transform:skew(var(--skew));box-shadow:var(--sh-sm);transition:transform .08s,box-shadow .08s}
+.btn:hover{transform:skew(var(--skew)) translate(-1px,-1px);box-shadow:var(--sh-sm)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:var(--sh-pri)}
 .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line2);box-shadow:none}
-.btn.danger{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.danger{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .icon-btn{width:38px;height:38px;border:0;background:transparent;display:none;place-items:center;cursor:pointer;flex:none;color:var(--ink)}
 
 /* ---------- 틀 ---------- */
 .app{display:grid;grid-template-columns:270px minmax(0,1fr);gap:28px;max-width:1500px;margin:0 auto;padding:22px 28px 40px;min-height:100%}
 .nav{position:sticky;top:22px;align-self:start;max-height:calc(100vh - 44px);display:flex;flex-direction:column;gap:10px;min-width:0}
-.logo{align-self:flex-start;transform:skew(var(--skew));background:var(--plate);color:var(--plate-ink);padding:6px 16px 5px;box-shadow:5px 5px 0 var(--accent);text-decoration:none;cursor:pointer;border:0}
+.logo{align-self:flex-start;transform:skew(var(--skew));background:var(--plate);color:var(--plate-ink);padding:6px 16px 5px;box-shadow:var(--sh-md);text-decoration:none;cursor:pointer;border:0}
 .logo small{display:block;font:11px var(--mono);letter-spacing:.22em}
 .logo b{display:block;font:30px/1 var(--display);font-weight:400;letter-spacing:.04em}
 .search{display:flex;align-items:center;gap:8px;margin-top:8px;background:var(--surface);border:1px solid var(--line2);padding:0 10px;height:38px}
@@ -67,7 +108,7 @@ button,input,textarea,select{font:inherit;color:inherit}
 .search kbd{font:11px var(--mono);color:var(--faint);border:1px solid var(--line2);padding:0 5px}
 .toc{overflow:auto;padding:2px 6px 10px 0;scrollbar-width:thin}
 .part{margin:14px 0 4px;font-family:var(--lab);font-size:14px;display:flex;align-items:center;gap:6px;color:var(--ink)}
-.part b{background:var(--accent);color:#fff;padding:1px 8px;display:inline-block;transform:skew(var(--skew));font-weight:400;letter-spacing:.08em}
+.part b{background:var(--accent);color:var(--accent-ink);padding:1px 8px;display:inline-block;transform:skew(var(--skew));font-weight:400;letter-spacing:.08em}
 .part small{color:var(--faint);font:10px var(--mono);letter-spacing:.15em}
 .ch-link{display:flex;align-items:center;gap:10px;width:100%;background:transparent;border:0;color:var(--muted);padding:5px 8px;text-align:left;cursor:pointer;text-decoration:none;position:relative}
 .ch-link em{font:600 12px var(--mono);font-style:normal;color:var(--faint);width:20px;flex:none}
@@ -75,10 +116,10 @@ button,input,textarea,select{font:inherit;color:inherit}
 .ch-link b{font-family:var(--lab);font-weight:400;font-size:16px}
 .ch-link small{font:9px var(--mono);letter-spacing:.14em;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ch-link u{text-decoration:none;color:var(--ok);font-size:12px;flex:none}
-.ch-link i.new{font-style:normal;font:10px var(--lab);background:var(--accent);color:#fff;padding:0 6px;letter-spacing:.06em;flex:none}
+.ch-link i.new{font-style:normal;font:10px var(--lab);background:var(--accent);color:var(--accent-ink);padding:0 6px;letter-spacing:.06em;flex:none}
 .ch-link i.draft{font-style:normal;font:10px var(--lab);border:1px solid var(--line2);color:var(--faint);padding:0 5px;flex:none}
 .ch-link:hover{background:var(--sunk);color:var(--ink)}
-.ch-link.on{background:var(--plate);color:var(--plate-ink);transform:skew(var(--skew));box-shadow:4px 4px 0 var(--accent)}
+.ch-link.on{background:var(--plate);color:var(--plate-ink);transform:skew(var(--skew));box-shadow:var(--sh-sm)}
 .ch-link.on>*{transform:skew(calc(var(--skew)*-1))}
 .ch-link.on em,.ch-link.on small{color:var(--accent)}
 .ch-link.done:not(.on) b{color:var(--ink)}
@@ -97,11 +138,11 @@ body.editing .guide,body.editing .guide-mini{display:none}
 .nav-foot .status{font:11px var(--mono);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
 
 /* ---------- 패널 ---------- */
-.panel{background:var(--surface);border:2px solid var(--frame);box-shadow:8px 8px 0 var(--accent);display:flex;flex-direction:column;max-width:1080px}
+.panel{background:var(--surface);border:2px solid var(--frame);box-shadow:var(--sh-lg);display:flex;flex-direction:column;max-width:1080px}
 .p-head{display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:2px solid var(--accent);background:var(--headimg)}
-.p-num{font:400 52px/1 var(--display);color:var(--ink);text-shadow:3px 3px 0 var(--accent);flex:none;font-variant-numeric:tabular-nums}
+.p-num{font:400 52px/1 var(--display);color:var(--ink);text-shadow:var(--tsh);flex:none;font-variant-numeric:tabular-nums}
 .p-title{min-width:0;flex:1}
-.p-title small{display:block;font:11px var(--mono);letter-spacing:.2em;color:var(--accent2)}
+.p-title small{display:block;font:11px var(--en);letter-spacing:.2em;color:var(--accent2)}
 .p-title h1{margin:0;font:400 30px/1.15 var(--lab);text-wrap:balance}
 .p-title p{margin:3px 0 0;font-size:13.5px;color:var(--faint);line-height:1.5}
 .dots{display:flex;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end;max-width:240px}
@@ -114,12 +155,12 @@ body.editing .guide,body.editing .guide-mini{display:none}
 .tabs button{flex:none;border:1px solid var(--line2);background:transparent;color:var(--muted);font:14px var(--lab);padding:3px 12px;cursor:pointer;transform:skew(var(--skew));white-space:nowrap}
 .tabs button em{font:11px var(--mono);font-style:normal;color:var(--faint);margin-right:6px}
 .tabs button:hover{color:var(--ink);border-color:var(--ink)}
-.tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.tabs button.on em{color:#fff}
+.tabs button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tabs button.on em{color:var(--accent-ink)}
 
 .p-body{padding:18px 24px 22px;min-height:300px}
 .page-h{display:flex;align-items:center;gap:12px;margin:2px 0 14px}
-.page-h span{background:var(--plate);color:var(--plate-ink);font:22px var(--lab);padding:3px 18px;transform:skew(var(--skew));box-shadow:4px 4px 0 var(--accent);display:inline-block}
+.page-h span{background:var(--plate);color:var(--plate-ink);font:22px var(--lab);padding:3px 18px;transform:skew(var(--skew));box-shadow:var(--sh-sm);display:inline-block}
 .page-h small{font:11px var(--mono);color:var(--faint);letter-spacing:.14em}
 
 .p-foot{display:flex;align-items:center;gap:10px;padding:12px 20px 16px;border-top:1px solid var(--line)}
@@ -131,22 +172,22 @@ body.editing .guide,body.editing .guide-mini{display:none}
 
 /* ---------- 감우 안내 (쪽 맨 위 한 줄) ---------- */
 .guide{display:flex;align-items:center;gap:0;margin:0 0 18px;max-width:820px}
-.guide img{width:78px;height:78px;border-radius:50%;object-fit:cover;object-position:50% 6%;flex:none;border:2px solid var(--frame);background:var(--sunk);box-shadow:3px 3px 0 var(--accent);position:relative;z-index:1;margin-right:-6px}
-.g-say{flex:1;background:var(--plate);color:var(--plate-ink);padding:9px 34px 10px 22px;box-shadow:5px 5px 0 var(--accent);transform:skew(var(--skew));position:relative;min-width:0}
+.guide img{width:78px;height:78px;border-radius:50%;object-fit:cover;object-position:50% 6%;flex:none;border:2px solid var(--frame);background:var(--sunk);box-shadow:var(--sh-sm);position:relative;z-index:1;margin-right:-6px}
+.g-say{flex:1;background:var(--plate);color:var(--plate-ink);padding:9px 34px 10px 22px;box-shadow:var(--sh-md);transform:skew(var(--skew));position:relative;min-width:0}
 .g-say>*{transform:skew(calc(var(--skew)*-1))}
-.g-say b{display:inline-block;background:var(--accent);color:#fff;font:12px var(--lab);padding:0 8px;letter-spacing:.06em;margin-right:8px;vertical-align:.1em}
+.g-say b{display:inline-block;background:var(--accent);color:var(--accent-ink);font:12px var(--lab);padding:0 8px;letter-spacing:.06em;margin-right:8px;vertical-align:.1em}
 .g-say p{margin:0;font-size:14px;line-height:1.6;display:inline}
 .g-say .tm{color:inherit}.g-say .tm i{color:#888}
 .g-x{position:absolute;right:6px;top:4px;border:0;background:transparent;color:inherit;opacity:.5;cursor:pointer;font-size:14px}
-.guide-mini{position:fixed;right:18px;bottom:18px;z-index:20;width:46px;height:46px;border-radius:50%;border:2px solid var(--frame);background:var(--plate);overflow:hidden;cursor:pointer;padding:0;box-shadow:3px 3px 0 var(--accent)}
+.guide-mini{position:fixed;right:18px;bottom:18px;z-index:20;width:46px;height:46px;border-radius:50%;border:2px solid var(--frame);background:var(--plate);overflow:hidden;cursor:pointer;padding:0;box-shadow:var(--sh-sm)}
 .guide-mini img{width:100%;height:100%;object-fit:cover;object-position:50% 6%}
 
 /* ---------- 표지 ---------- */
 .cover{max-width:1080px;display:flex;flex-direction:column;gap:26px}
-.c-hero{position:relative;padding:22px 26px 24px;background:var(--surface);border:2px solid var(--frame);box-shadow:8px 8px 0 var(--accent);overflow:hidden}
+.c-hero{position:relative;padding:22px 26px 24px;background:var(--surface);border:2px solid var(--frame);box-shadow:var(--sh-lg);overflow:hidden}
 .c-hero::after{content:"";position:absolute;right:-60px;top:-40px;width:260px;height:260px;border-radius:50%;border:26px solid var(--accent);opacity:.12}
 .c-hero small{font:12px var(--mono);letter-spacing:.22em;color:var(--accent2)}
-.c-hero h1{margin:4px 0 8px;font:400 clamp(36px,6vw,58px)/1.05 var(--display);text-shadow:4px 4px 0 var(--accent)}
+.c-hero h1{margin:4px 0 8px;font:400 clamp(36px,6vw,58px)/1.05 var(--display);text-shadow:var(--tsh)}
 .c-hero p{margin:0;color:var(--muted);max-width:58ch}
 .c-meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:14px;font:12px var(--mono);color:var(--faint)}
 .c-sec h2{margin:0 0 10px;font:400 22px var(--lab);display:flex;align-items:center;gap:10px}
@@ -160,7 +201,7 @@ body.editing .guide,body.editing .guide-mini{display:none}
 .parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
 .pcard{background:var(--surface);border:1px solid var(--line2);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .pcard-h{display:flex;align-items:center;gap:8px;font-family:var(--lab)}
-.pcard-h b{background:var(--accent);color:#fff;padding:0 8px;transform:skew(var(--skew));font-weight:400}
+.pcard-h b{background:var(--accent);color:var(--accent-ink);padding:0 8px;transform:skew(var(--skew));font-weight:400}
 .pcard-h small{margin-left:auto;font:11px var(--mono);color:var(--faint)}
 .pcard ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .pcard li button{width:100%;display:flex;gap:8px;align-items:baseline;background:transparent;border:0;padding:3px 2px;cursor:pointer;color:var(--muted);text-align:left}
@@ -229,11 +270,11 @@ td{padding:9px 14px;border-top:1px solid var(--line);vertical-align:top;line-hei
 td:first-child{white-space:nowrap;font-weight:600}
 tbody tr:nth-child(even) td{background:var(--bg2)}
 .rk{display:inline-grid;place-items:center;min-width:30px;height:24px;padding:0 6px;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--rk-on);background:var(--rk-d);transform:skew(var(--skew))}
-.rk-C{background:var(--rk-c)} .rk-B,.rk-Bm{background:var(--rk-b)} .rk-Bm{opacity:.75} .rk-A{background:var(--rk-a);color:#fff} .rk-AA{background:var(--rk-aa)}
+.rk-C{background:var(--rk-c)} .rk-B,.rk-Bm{background:var(--rk-b)} .rk-Bm{opacity:.75} .rk-A{background:var(--rk-a);color:var(--accent-ink)} .rk-AA{background:var(--rk-aa)}
 mark{background:var(--mark);color:inherit;padding:0 1px}
 
 /* 정의 팝업 */
-.pop{position:fixed;z-index:50;max-width:min(440px,calc(100vw - 24px));background:var(--surface);border:2px solid var(--frame);box-shadow:6px 6px 0 var(--accent);padding:10px 14px 12px;font-size:14px;line-height:1.65}
+.pop{position:fixed;z-index:50;max-width:min(440px,calc(100vw - 24px));background:var(--surface);border:2px solid var(--frame);box-shadow:var(--sh-md);padding:10px 14px 12px;font-size:14px;line-height:1.65}
 .pop-h{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .pop-h b{font:400 17px var(--lab)}
 .pop-h small{margin-left:auto;font:11px var(--mono);color:var(--faint)}
@@ -290,7 +331,7 @@ mark{background:var(--mark);color:inherit;padding:0 1px}
 .help .help-body{padding:0 14px 14px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 18px}
 .help code{font-family:var(--mono);font-size:12.5px;background:var(--sunk);padding:1px 5px;white-space:pre-wrap}
 .chapter.editing{padding-top:28px}
-.ed-card{background:var(--surface);border:2px solid var(--frame);box-shadow:6px 6px 0 var(--accent)}
+.ed-card{background:var(--surface);border:2px solid var(--frame);box-shadow:var(--sh-md)}
 .ed-top{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
 .ed-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .ed-toolbar .num{font-size:12px}
@@ -360,6 +401,14 @@ mark{background:var(--mark);color:inherit;padding:0 1px}
   .vx-ladder{max-width:none}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+/* P4: 노란 판 위에서는 노랑 대신 검정 · 갈색 */
+:root[data-vt="p4"] .ch-link.on em,:root[data-vt="p4"] .ch-link.on small{color:#6b5a00}
+:root[data-vt="p4"] .ch-link.on i.new,:root[data-vt="p4"] .g-say b{background:#111;color:#ffe100}
+:root[data-vt="p4"] .g-say .tm i{color:#6b5a00}
+:root[data-vt="p4"] .g-say .pt{color:#b33a00}
+:root[data-vt="p3"] .tabs button.on em{color:#e6f3ff}
+:root[data-vt="p3"] .g-say .tm{color:#e6f3ff}
 </style>
 <template id="rb-shell"><header class="topbar">
 <button class="icon-btn" id="menuBtn" aria-label="목차 열기"><svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 5h14M3 10h14M3 15h14"></path></svg></button>
@@ -371,7 +420,7 @@ mark{background:var(--mark);color:inherit;padding:0 1px}
 <button class="logo" id="logo" type="button"><small id="logoSub">MANGKETMON</small><b>RULEBOOK</b></button>
 <label class="search" id="searchBox"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"></circle><path d="M11 11l3.5 3.5" stroke-linecap="round"></path></svg><input id="q" type="search" placeholder="찾기 — 통솔점, 『전술』, 날따름…" autocomplete="off"><kbd>/</kbd></label>
 <div class="toc" id="toc"></div>
-<div class="nav-foot"><button id="themeBtn" type="button">밝게</button><button id="guideBtn" type="button">감우 안내</button><span class="sp"></span><span class="status" id="status"></span><button id="editBtn" type="button" hidden>편집</button></div>
+<div class="nav-foot"><span class="vtsw" id="vtsw"><button type="button" data-vt="p5">P5</button><button type="button" data-vt="p3">P3</button><button type="button" data-vt="p4">P4</button></span><button id="guideBtn" type="button">감우 안내</button><span class="sp"></span><span class="status" id="status"></span><button id="editBtn" type="button" hidden>편집</button></div>
 </nav>
 <div class="mainwrap"><div class="ed-bar" id="edBar"><b>룰북 편집</b><span class="sp"></span><button class="btn ghost" id="cancelBtn" type="button" hidden>취소</button><button class="btn primary" id="saveBtn" type="button" hidden>저장</button></div><main id="main"></main></div>
 </div>
@@ -384,7 +433,7 @@ mark{background:var(--mark);color:inherit;padding:0 1px}
 <script id="rb-app">
 (function(){
 "use strict";
-var FONTS="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap";
+var FONTS="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Rajdhani:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap";
 var SRC={
   style:document.getElementById("rb-style").textContent,
   shell:document.getElementById("rb-shell").innerHTML,
@@ -533,7 +582,7 @@ var CH_EN={basics:"BASICS",direct:"COMMAND",breed:"TRAINING",lead:"LEADERSHIP",p
   "class":"CLASS",orders:"ORDERS",tactics:"TACTICS",roles:"ROLES",expansion:"EXPANSION",contract:"CONTRACT",templates:"TEMPLATES",wild:"WILD · RAID",
   moves:"MOVES",items:"ITEMS",rulings:"RULINGS",turn:"TURN ORDER",temprank:"TEMP RANK",skillcheck:"SKILL CHECK",tags:"TAGS",grammar:"GRAMMAR",status:"STATUS",banpick:"BAN · PICK",patch:"PATCH NOTES"};
 var GUIDE={
-  cover:["어, 어서 오세요! 왼쪽 목록에서 장을 고르면 한 쪽씩 넘겨 볼 수 있어요. 빨간 포텐셜 이름에 점선이 있으면, 누르는 것만으로 그 뜻이 바로 떠요.","shy"],
+  cover:["어, 어서 오세요! 왼쪽 목록에서 장을 고르면 한 쪽씩 넘겨 볼 수 있어요. 포텐셜 이름에 점선이 있으면, 누르는 것만으로 그 뜻이 바로 떠요.","shy"],
   basics:["처음이시면 여기부터예요. 네 자질을 어디에 올릴지만 정하면, 나머지 장은 그 자질을 따라 읽으시면 돼요.","smiling"],
   pokemon:["숫자가 많지만 겁먹지 마세요… 제작기가 계산 종족치랑 통솔점을 알아서 세어 줘요. 여기선 규칙의 뜻만 보시면 돼요.","nervous"],
   misag:["새로 생긴 장이에요! 각성체 2체는 GM이, 4체는 PL이 짜요. 대가 숫자는 전부 제작기 표에서 바꿀 수 있어요.","excited"],
@@ -771,8 +820,15 @@ $("tbSearch").addEventListener("click",function(){document.body.classList.add("n
 $("menuBtn").addEventListener("click",function(){document.body.classList.toggle("nav-open")});
 $("scrim").addEventListener("click",function(){document.body.classList.remove("nav-open")});
 $("guideBtn").addEventListener("click",function(){ls("rb-guide",ls("rb-guide")==="0"?null:"0");show()});
-function applyTheme(){var t=ls("rb-theme");if(t==="light")document.documentElement.setAttribute("data-theme","light");else document.documentElement.removeAttribute("data-theme");$("themeBtn").textContent=t==="light"?"어둡게":"밝게"}
-$("themeBtn").addEventListener("click",function(){ls("rb-theme",ls("rb-theme")==="light"?null:"light");applyTheme()});
+/* 테마: 제작기와 같은 VELVET P5 · P3 · P4 (localStorage mk_vt, 같은 출처라 제작기와 공유). 제작기 안이면 제작기 html[data-vt] 를 따라간다 */
+var VTS={p5:1,p3:1,p4:1};
+function parentDoc(){try{if(window.parent!==window&&window.parent.document)return window.parent.document}catch(e){}return null}
+function curVt(){var pd=parentDoc(),v=pd&&pd.documentElement.getAttribute("data-vt");if(!VTS[v])v=ls("mk_vt");return VTS[v]?v:"p4"}
+function applyTheme(){var v=curVt();document.documentElement.setAttribute("data-vt",v);$("vtsw").querySelectorAll("button").forEach(function(b){b.classList.toggle("on",b.dataset.vt===v)})}
+$("vtsw").addEventListener("click",function(e){var b=e.target.closest("[data-vt]");if(!b)return;var v=b.dataset.vt;
+  try{if(window.parent!==window&&window.parent.MK_VT){window.parent.MK_VT.set(v)}else ls("mk_vt",v)}catch(err){ls("mk_vt",v)}applyTheme()});
+(function(){var pd=parentDoc();if(pd&&window.MutationObserver)new MutationObserver(applyTheme).observe(pd.documentElement,{attributes:true,attributeFilter:["data-vt"]});
+  window.addEventListener("storage",function(e){if(e.key==="mk_vt")applyTheme()})})();
 applyTheme();
 document.addEventListener("keydown",function(e){
   var tag=document.activeElement&&document.activeElement.tagName;
