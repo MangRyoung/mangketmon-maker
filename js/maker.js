@@ -3277,7 +3277,7 @@ window.MKM={bundle:()=>sessionBundle(S.trainers),
    ?focus=<트레이너 id>&p=<포켓몬 id>&embed=1 — 노트가 iframe 으로 연다. 그 트레이너 한 명만 펼쳐 보여 주고(위 막대 · 다른 트레이너 숨김), 포켓몬을 펼쳐 그 자리로 간다.
    노트가 닫기 전에 {mkm:'flush'} 를 보내면 공유 DB 에 다 올린 뒤 {mkm:'flushed', ok} 로 답한다 */
 const EMB=(()=>{try{const q=new URLSearchParams(location.search);const t=q.get('focus')||'';const p=q.get('p')||'';return {t,p,embed:q.get('embed')==='1',one:!!p&&q.get('all')!=='1',done:false}}catch(e){return {t:''}}})();
-if(EMB.embed){document.documentElement.classList.add('mk-emb');const st=document.createElement('style');st.textContent='html.mk-emb header.top{display:none!important}html.mk-emb main{padding-top:10px!important}html.mk-emb .favrail,html.mk-emb #verbar{display:none!important}html.mk-emb .embtrs>.folder{margin-top:0}.embone{border:0!important;background:none!important;box-shadow:none!important;padding:0!important}.embhd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;border:1px solid var(--line,#444);border-radius:8px;background:var(--panel,transparent)}.embhd>b{font-size:15px}.embone .plist{margin:0}.embone .pk>.ph .caret{display:none}';document.head.appendChild(st)}
+if(EMB.embed){document.documentElement.classList.add('mk-emb');const st=document.createElement('style');st.textContent='html.mk-emb header.top{display:none!important}html.mk-emb main{padding-top:10px!important}html.mk-emb .favrail,html.mk-emb #verbar,html.mk-emb #tabs{display:none!important}html.mk-emb .embtrs>.folder{margin-top:0}.embone{border:0!important;background:none!important;box-shadow:none!important;padding:0!important}.embhd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;border:1px solid var(--line,#444);border-radius:8px;background:var(--panel,transparent)}.embhd>b{font-size:15px}.embone .plist{margin:0}.embone .pk>.ph .caret{display:none}';document.head.appendChild(st)}
 function embRender(root){const ti=S.trainers.findIndex(x=>x.id===EMB.t);
  if(ti<0){root.innerHTML=`<div class="empty">${SH.on&&!SH.ready?'공유 DB 에서 트레이너를 불러오는 중…':'이 트레이너를 찾지 못했습니다 (비공개라면 「서명」을 확인하세요)'}</div>`;return true}
  const t=S.trainers[ti];if(!EMB.done){t.open=true;const p=EMB.p&&t.pokemon.find(x=>x.id===EMB.p);if(p){p.open=true;if(!p.tab)p.tab='base'}}
@@ -3298,7 +3298,7 @@ window.addEventListener('message',async e=>{const d=e.data;if(!d||d.mkm!=='flush
 load();
 /* 10-25 망령: 오레마스 「💾 로그 → 정리기에서 열기」 = 제작기 ?tab=log&oremas=방ID — 로그 정리기 탭을 열고 그 방 로그를 바로 불러온다. 주소의 값은 한 번 쓰고 지운다 */
 {const q=new URLSearchParams(location.search);const om=q.get('oremas'),tb=q.get('tab'),vw=q.get('view');if(om||tb||vw){if(om||vw){S.ui.tab='log';const f=$('#logFrame');if(f)f.src='logtool/index.html?v='+LOGV+(om?'&oremas='+encodeURIComponent(om):'')+(vw?'&view='+encodeURIComponent(vw):'')}else if(tb&&$('#v-'+tb))S.ui.tab=tb;q.delete('oremas');q.delete('tab');q.delete('view');try{history.replaceState(null,'',location.pathname+(q.toString()?'?'+q:'')+location.hash)}catch(e){}}}
-showTab(S.ui.tab||'char');
+showTab(EMB.t?'char':(S.ui.tab||'char'));   /* 10-30 망령 「편집 버튼 누르면 DB 가 떠」: 노트에서 연 제작기(?focus=)는 마지막 탭과 상관없이 캐릭터 시트로 */
 loadFx();
 meLoad();
 shInit();
