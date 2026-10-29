@@ -2013,6 +2013,12 @@ function tOrdPick(t,kind){const pk=((t.orders||{}).pick||{})[kind];return Array.
 function ordAvail(t,kind){const o=t.orders||{};if(!o.preset)return [];const tc=tOrdTc(t),to=TORD.tordOf(tc),z=TORD.zeros(to,tc),ty=o.type||{},def=kind==='o'?to:tc;
  return (kind==='o'?TORD.LO:TORD.LC).filter(k=>{const v=ty[kind+'_'+k];const f=v==null?def:+v;return !!TORD.nameOf(kind,f,k)&&(f!==def||!z.includes(k))})}
 function tOrdTc(t){const o=t.orders||{};if(o.preset==='manual')return Math.max(0,Math.min(8,+o.tc||0));return TORD.presetTc(o.preset,(t.ranks||{})['지시'])}
+/* 10-29 망령 「4식 6령 설정도 (노트 학생증의) 고유 아래에」: 노트가 읽는 지시 체계 요약 — tOrdHTML 칩과 같은 규칙.
+   {preset, presetName, rk, oName, cName, base, o:[{k,nm,n,ex,off,pick}], c:[…], mode:'solo'|'misag'|'', pickN:{o,c}, offN:{o,c}|null} */
+function ordSnap(t){const o=t.orders||{};const p=o.preset||'';if(!p)return {preset:''};const base=o.base==null||o.base===''?1:+o.base;const tc=tOrdTc(t),to=TORD.tordOf(tc),z=TORD.zeros(to,tc),ty=o.type||{};
+ const row=kind=>{const keys=kind==='o'?TORD.LO:TORD.LC,def=kind==='o'?to:tc,L=kind==='o'?TORD.OL:TORD.CL;const out=[];for(const k of keys){const v=ty[kind+'_'+k];const f=v==null?def:+v;const ex=f!==def;const nm=TORD.nameOf(kind,f,k);if(!nm&&!ex)continue;
+  const avail=!(!nm||(!ex&&z.includes(k)));const off=isMisag(t)&&misagOrdOff(t,kind).includes(k);const pick=tOrdPick(t,kind).includes(k);const zero=!avail||(t.solo&&!pick)||off;out.push({k,nm:nm||TORD.KO[k],n:zero?0:base,ex:ex?L[f]:'',off,pick,avail})}return out};
+ return {preset:p,presetName:(TORD.PRE.find(x=>x[0]===p)||[])[1]||p,rk:(t.ranks||{})['지시']||'',oName:TORD.OL[to]||'',cName:TORD.CL[tc]||'',base,o:row('o'),c:row('c'),mode:t.solo?'solo':isMisag(t)?'misag':'',pickN:{o:soloOrdN('o',t),c:soloOrdN('c',t)},offN:isMisag(t)?misagOrdNeed(t):null}}
 function tOrdHTML(t,ti){const o=t.orders||{};const p=o.preset||'';const rk=(t.ranks||{})['지시']||'C';const base=o.base==null||o.base===''?1:+o.base;
  const opts=`<option value="" ${!p?'selected':''}>정하지 않음 (오레마스 방 설정)</option>`+TORD.PRE.map(([k,n])=>{const tc=TORD.presetTc(k,rk);return `<option value="${k}" ${p===k?'selected':''}>${n}${isNaN(tc)?'':' → '+esc(TORD.CL[tc])}</option>`}).join('');
  let prev='';if(p){const tc=tOrdTc(t),to=TORD.tordOf(tc),z=TORD.zeros(to,tc);
@@ -3141,7 +3147,7 @@ function shMetaMerge(){const L=SH.metaL&&typeof SH.metaL==='object'?SH.metaL:nul
 function shSettings(){return {tpl:S.db.tpl||[],tplV:S.db.tplV||0,tags:S.db.tags||[],tagsV:S.db.tagsV||0,ban:S.db.ban??'',stpl:S.db.stpl||[],stplV:S.db.stplV||0,oldSock:S.db.oldSock??5.5,ptItems:S.db.ptItems||PTI_DEF,ptiV:S.db.ptiV||0,pride:S.db.pride||PRIDE_DEF,prideExV:S.db.prideExV||0,tplSoloV:S.db.tplSoloV||0,soloSock:S.db.soloSock||SOLO_SOCK_DEF,ilock:S.db.ilock||[],rules:RULES()}}
 function shWant(){const out=new Map();
  S.folders.forEach((f,i)=>{f._ord=i;const d={ord:i,name:f.name||''};if(f.parent)d.parent=f.parent;if(f.priv)d.priv=true;if(f.rule)d.rule=f.rule;if(f.deco&&Object.keys(f.deco).length)d.deco=f.deco;if(f.owner){d.owner=f.owner;d.ownerName=f.ownerName||''}out.set('folders/'+f.id,d)});
- S.trainers.forEach((t,i)=>{const d=stripUI(t);d.pids=t.pokemon.map(p=>p.id);if(isMisag(t))d.misagOut=misagOut(t);else delete d.misagOut;try{d.ptUse=ptSnap(t)}catch(e){delete d.ptUse}   /* 10-29 노트 대학 시트 PT 서머리가 읽는 사본 */   /* 10-28 미사그 대학: 오레마스가 읽는 각성체 대가 요약 */out.set('trainers/'+t.id,{ord:i,data:d});
+ S.trainers.forEach((t,i)=>{const d=stripUI(t);d.pids=t.pokemon.map(p=>p.id);if(isMisag(t))d.misagOut=misagOut(t);else delete d.misagOut;try{d.ptUse=ptSnap(t)}catch(e){delete d.ptUse}try{d.ordOut=ordSnap(t)}catch(e){delete d.ordOut}   /* 10-29 노트 대학 시트 PT 서머리가 읽는 사본 */   /* 10-28 미사그 대학: 오레마스가 읽는 각성체 대가 요약 */out.set('trainers/'+t.id,{ord:i,data:d});
   t.pokemon.forEach(p=>{const bu=baseUp(t,p);out.set('pokemon/'+p.id,{tid:t.id,data:Object.assign(stripUI(p),{effTxt:effSnap(p)},bu.up.length?{baseUp:{base:bu.base.map(v=>v===''?'':+v),up:bu.up.map(u=>({i:u.i,from:u.from,to:u.to,by:u.by}))}}:{})})})});
  for(const [id,d] of SH.orph_ed||[])out.set('dbedit/'+id,d);   /* 붙을 행이 없는 수정도 지우지 않는다. 같은 이름 행이 다시 생기면 아래 줄이 덮는다 */
  for(const [p,b] of shDbDocs())out.set(p,b);
@@ -3276,13 +3282,13 @@ window.MKM={bundle:()=>sessionBundle(S.trainers),
 /* ---------- 세션 노트에서 고치기 (10-29 망령 「포켓몬 고치기는 제작기 기능 참고」) ----------
    ?focus=<트레이너 id>&p=<포켓몬 id>&embed=1 — 노트가 iframe 으로 연다. 그 트레이너 한 명만 펼쳐 보여 주고(위 막대 · 다른 트레이너 숨김), 포켓몬을 펼쳐 그 자리로 간다.
    노트가 닫기 전에 {mkm:'flush'} 를 보내면 공유 DB 에 다 올린 뒤 {mkm:'flushed', ok} 로 답한다 */
-const EMB=(()=>{try{const q=new URLSearchParams(location.search);const t=q.get('focus')||'';const p=q.get('p')||'';return {t,p,embed:q.get('embed')==='1',one:!!p&&q.get('all')!=='1',done:false}}catch(e){return {t:''}}})();
+const EMB=(()=>{try{const q=new URLSearchParams(location.search);const t=q.get('focus')||'';const p=q.get('p')||'';return {t,p,sec:q.get('sec')||'',embed:q.get('embed')==='1',one:!!p&&q.get('all')!=='1',done:false}}catch(e){return {t:''}}})();
 if(EMB.embed){document.documentElement.classList.add('mk-emb');const st=document.createElement('style');st.textContent='html.mk-emb header.top{display:none!important}html.mk-emb main{padding-top:10px!important}html.mk-emb .favrail,html.mk-emb #verbar,html.mk-emb #tabs{display:none!important}html.mk-emb .embtrs>.folder{margin-top:0}.embone{border:0!important;background:none!important;box-shadow:none!important;padding:0!important}.embhd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;border:1px solid var(--line,#444);border-radius:8px;background:var(--panel,transparent)}.embhd>b{font-size:15px}.embone .plist{margin:0}.embone .pk>.ph .caret{display:none}';document.head.appendChild(st)}
 function embRender(root){const ti=S.trainers.findIndex(x=>x.id===EMB.t);
  if(ti<0){root.innerHTML=`<div class="empty">${SH.on&&!SH.ready?'공유 DB 에서 트레이너를 불러오는 중…':'이 트레이너를 찾지 못했습니다 (비공개라면 「서명」을 확인하세요)'}</div>`;return true}
  const t=S.trainers[ti];if(!EMB.done){t.open=true;const p=EMB.p&&t.pokemon.find(x=>x.id===EMB.p);if(p){p.open=true;if(!p.tab)p.tab='base'}}
  root.innerHTML=`<div id="trs" class="embtrs">${trainerHTML(t,ti)}</div>`;fitFlist(root);
- if(!EMB.done){EMB.done=true;if(!EMB.one)setTimeout(()=>{const el=document.getElementById(EMB.p?'pk-'+EMB.p:'tr-'+t.id);if(el){const hd=document.querySelector('header.top');const off=EMB.embed||!hd?0:hd.offsetHeight;window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-off-8)})}},120)}
+ if(!EMB.done){EMB.done=true;if(!EMB.one)setTimeout(()=>{const el=(EMB.sec&&document.querySelector('#tr-'+t.id+' .'+EMB.sec.replace(/[^a-z]/g,'')))||document.getElementById(EMB.p?'pk-'+EMB.p:'tr-'+t.id);if(el&&EMB.sec){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600)}if(el){const hd=document.querySelector('header.top');const off=EMB.embed||!hd?0:hd.offsetHeight;window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-off-8)})}},120)}
  return true}
 /* 10-30 망령 「포켓몬 고치기를 누르면 제작기가 이상하게 떠 — 그 포켓몬 고치는 칸만 나오면 될 거 아니야」:
    ?p= 가 있으면 그 포켓몬 시트 한 장만 (위에 트레이너 이름 · 통솔점 · PT 기술점 한 줄). 「트레이너 전체 보기」로 예전처럼 */
