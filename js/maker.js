@@ -575,6 +575,7 @@ const misagItem=k=>(MR().items||[]).find(r=>r&&r[0]===k)||null;
 function misagDistPen(t){const e=misagEff(t).육성;return e==='A'?mnum('distB')+mnum('distA'):e==='B'?mnum('distB'):0}
 function misagOrdNeed(t){const e=misagEff(t).지시;return {c:e?mnum('ordB'):0,o:e==='A'?mnum('ordA'):0}}
 const misagOrdOff=(t,kind)=>{const L=misagPen(t).ordOff[kind];return Array.isArray(L)?L:[]};
+const misagOffNow=(t,kind)=>misagOrdNeed(t)[kind]?misagOrdOff(t,kind):[];   /* 지금 걸린 지시 대가로 빠진 것만 */
 const misagExclPen=t=>misagEff(t).능력?mnum('exclB'):0;
 const misagUqPen=t=>misagEff(t).능력==='A'?mnum('uqA'):0;
 /* 고유 포텐셜 점수: 상시 1 · 단발(【N/시】) 0.5. 능력 랭크의 「고유 표시」(예: 2 (상시1+단발1))에서 상한을 읽는다 */
@@ -597,6 +598,7 @@ function misagChecks(t){if(!isMisag(t))return [];const out=[],R=MR(),P=misagPen(
   if(used.some(r=>r[3]==='role')&&!String(P.role||'').trim())out.push('통솔 대가 — 발동하지 않는 역할을 정해야 합니다');
   if(P.type&&used.some(r=>r[0]===P.b&&r[3]==='type')){const n=partyTypeN(t,P.type),need2=parseInt(R.typeN,10)||2;if(n<need2)out.push(`통솔 대가 ${P.b} — ${P.type} 타입이 ${need2}체 이상 필요합니다 (지금 ${n}체)`)}}
  const cap=mnum('distCap');if(cap>0){const L=t.pokemon.filter(p=>Math.abs(Math.round(+p.dist)||0)>cap);if(L.length)out.push(`분배레벨은 1체에 −${cap} ~ +${cap}까지입니다 (${L.map(p=>(p.name||'이름 없음')+' '+(Math.round(+p.dist)||0)).join(', ')})`)}
+ if(t.orders&&t.orders.preset)for(const [k,lab] of [['o','명령 (4식)'],['c','지령 (6령)']]){const L=ordAvail(t,k).filter(x=>!misagOffNow(t,k).includes(x)),n=Math.min(soloOrdN(k,t),L.length),pk=tOrdPick(t,k).filter(x=>L.includes(x));if(pk.length!==n)out.push(`2체 기준 — ${lab}에서 ${n}개를 골라야 합니다 (지금 ${pk.length}개) · 지시 체계의 「2체 기준」 줄`);else if(k==='c'&&!soloMustOk(t,pk,L))out.push('2체 기준 — 지시 A 이상은 지령 셋 중 하나가 회피나 명중이어야 합니다')}
  const gu=ptSockets(t,true),gm=misagGmCap(t);if(gu>gm)out.push(`각성체 PT 기술점 ${gu} / ${gm} 초과`);
  if(e.능력==='A'){const sc=uqScore(t),cp=uqScoreCap(t.ranks['능력'])-misagUqPen(t);if(sc>cp)out.push(`능력 대가 — 고유 포텐셜 점수 ${sc} / ${cp} (상시 ${mnum('uqOn')} · 단발 ${mnum('uqOnce')}) · 단발 하나를 빼거나 상시를 단발로`)}
  return out}
@@ -1998,11 +2000,14 @@ const TORD=(()=>{const CL=['기본-일반','기본-숙달','기본-숙달 (지�
 /* 1인 기준(2체): ORDER 는 soloOrd.o 개, COMMAND 는 soloOrd.c 개만 골라 쓴다 — 고른 항목만 기준 횟수, 나머지 0. t.orders.pick={o:[키],c:[키]} */
 function soloOrdN(kind,t){const n=soloOrdN0(kind,t);return kind==='c'&&soloA(t)?Math.max(n,3):n}
 function soloOrdN0(kind,t){if(soloN(t)===3){const R3=RULES().solo3||SOLO3_DEF;const v3=parseInt(R3[kind],10);return v3>=0?v3:+SOLO3_DEF[kind]}const R=RULES().soloOrd||SOLO_ORD_DEF;const v=parseInt(R[kind],10);return v>=0?v:+SOLO_ORD_DEF[kind]}
+/* 10-29 망령: 미사그 대학 트레이너도 「2체 기준」으로 합칠 때 들고 갈 ORDER · COMMAND 를 같은 수만큼 t.orders.pick 에 고른다 (6체 배틀에서는 안 쓴다) */
 /* 10-27 망령: 1인 기준(2 · 3체)에서 지시 A 이상은 COMMAND(지령)를 3개 고르고, 그중 하나는 회피나 명중이어야 한다 */
 const SOLO_A_MUST=['evasion','accuracy'];
-function soloA(t){return !!soloN(t)&&TORD.rankLv((t.ranks||{})['지시'])>=3}
+function soloA(t){return (!!soloN(t)||isMisag(t))&&TORD.rankLv((t.ranks||{})['지시'])>=3}
 function soloMustOk(t,pk,avail){if(!soloA(t))return true;const can=SOLO_A_MUST.filter(k=>avail.includes(k));return !can.length||pk.some(k=>can.includes(k))}
 function tOrdPick(t,kind){const pk=((t.orders||{}).pick||{})[kind];return Array.isArray(pk)?pk:[]}
+function ordAvail(t,kind){const o=t.orders||{};if(!o.preset)return [];const tc=tOrdTc(t),to=TORD.tordOf(tc),z=TORD.zeros(to,tc),ty=o.type||{},def=kind==='o'?to:tc;
+ return (kind==='o'?TORD.LO:TORD.LC).filter(k=>{const v=ty[kind+'_'+k];const f=v==null?def:+v;return !!TORD.nameOf(kind,f,k)&&(f!==def||!z.includes(k))})}
 function tOrdTc(t){const o=t.orders||{};if(o.preset==='manual')return Math.max(0,Math.min(8,+o.tc||0));return TORD.presetTc(o.preset,(t.ranks||{})['지시'])}
 function tOrdHTML(t,ti){const o=t.orders||{};const p=o.preset||'';const rk=(t.ranks||{})['지시']||'C';const base=o.base==null||o.base===''?1:+o.base;
  const opts=`<option value="" ${!p?'selected':''}>정하지 않음 (오레마스 방 설정)</option>`+TORD.PRE.map(([k,n])=>{const tc=TORD.presetTc(k,rk);return `<option value="${k}" ${p===k?'selected':''}>${n}${isNaN(tc)?'':' → '+esc(TORD.CL[tc])}</option>`}).join('');
@@ -2016,8 +2021,8 @@ function tOrdHTML(t,ti){const o=t.orders||{};const p=o.preset||'';const rk=(t.ra
   /* 미사그 대학: 각성체 대가(지시)로 빼는 항목을 GM이 고른다 */
   const offBar=kind=>{const n=misagOrdNeed(t)[kind];if(!isMisag(t)||!n)return '';const L=avl[kind],pk=misagOrdOff(t,kind).filter(k=>L.some(x=>x[0]===k));
    return `<div class="ordpick off ${pk.length===Math.min(n,L.length)?'':'need'}"><span class="small"><b>각성체 대가</b> · ${L.length}개 중 <b>${n}</b>개 빼기 <b class="num">${pk.length}/${n}</b></span>${L.map(([k,nm])=>`<button type="button" class="ordpb ${pk.includes(k)?'on':''}" data-act="tordOff" data-i="${ti}" data-kind="${kind}" data-key="${k}" aria-pressed="${pk.includes(k)}">${esc(nm)}</button>`).join('')}</div>`};
-  const pickBar=kind=>{if(!t.solo)return offBar(kind);const L=avl[kind],n=soloOrdN(kind,t),pk=tOrdPick(t,kind).filter(k=>L.some(x=>x[0]===k));const must=kind==='c'&&soloA(t)&&L.some(x=>SOLO_A_MUST.includes(x[0]));const mOk=kind!=='c'||soloMustOk(t,pk,L.map(x=>x[0]));const ok=pk.length===Math.min(n,L.length)&&mOk;
-   return `<div class="ordpick ${ok?'':'need'}"><span class="small"><b>1인 기준${soloN(t)===3?' (3체)':''}</b> · ${L.length}개 중 <b>${n}</b>개 고르기 <b class="num">${pk.length}/${n}</b>${must?` · <b class="${mOk?'':'warn'}" title="지시 A 이상 1인 기준: 지령 셋 중 하나는 회피나 명중">회피 · 명중 중 1개 필수${mOk?' ✓':''}</b>`:''}</span>${L.map(([k,nm])=>`<button type="button" class="ordpb ${pk.includes(k)?'on':''}" data-act="tordPick" data-i="${ti}" data-kind="${kind}" data-key="${k}" aria-pressed="${pk.includes(k)}">${esc(nm)}</button>`).join('')}</div>`};
+  const pickBar=kind=>{const mg=isMisag(t)&&!t.solo;if(!t.solo&&!mg)return offBar(kind);const L=mg?avl[kind].filter(x=>!misagOffNow(t,kind).includes(x[0])):avl[kind],n=soloOrdN(kind,t),pk=tOrdPick(t,kind).filter(k=>L.some(x=>x[0]===k));const must=kind==='c'&&soloA(t)&&L.some(x=>SOLO_A_MUST.includes(x[0]));const mOk=kind!=='c'||soloMustOk(t,pk,L.map(x=>x[0]));const ok=pk.length===Math.min(n,L.length)&&mOk;
+   return (mg?offBar(kind):'')+`<div class="ordpick ${ok?'':'need'}"><span class="small"><b>${mg?'2체 기준':'1인 기준'+(soloN(t)===3?' (3체)':'')}</b>${mg?' <span class="muted" title="6체(4+2) 배틀에서는 위 횟수 그대로 · 2체로 합칠 때만 고른 항목을 쓰고 나머지는 0회">· 2체로 합칠 때 들고 갈 것</span>':''} · ${L.length}개 중 <b>${n}</b>개 고르기 <b class="num">${pk.length}/${n}</b>${must?` · <b class="${mOk?'':'warn'}" title="지시 A 이상 1인 기준: 지령 셋 중 하나는 회피나 명중">회피 · 명중 중 1개 필수${mOk?' ✓':''}</b>`:''}</span>${L.map(([k,nm])=>`<button type="button" class="ordpb ${pk.includes(k)?'on':''}" data-act="tordPick" data-i="${ti}" data-kind="${kind}" data-key="${k}" aria-pressed="${pk.includes(k)}">${esc(nm)}</button>`).join('')}</div>`};
   prev=`<div class="ordp"><div><span class="ordk o">ORDER</span><b>명령 (4식)</b><span class="small muted">${esc(TORD.OL[to])} · 칩을 눌러 항목마다 계열을 바꾼다</span></div><div class="ordl">${chips('o')}</div>${pickBar('o')}
    <div><span class="ordk c">COMMAND</span><b>지령 (6령)</b><span class="small muted">${esc(TORD.CL[tc])}</span></div><div class="ordl">${chips('c')}</div>${pickBar('c')}</div>`}
  return `<div class="tord"><div class="tordh"><b>지시 체계</b><span class="ordk o">ORDER</span><span class="ordk c">COMMAND</span><span class="small muted">지시 ${esc(rk)}</span></div>
