@@ -79,7 +79,7 @@ const tagKey=r=>String(r&&r[0]),tplKey=r=>[r&&r[0],r&&r[1],r&&r[2]].join('|');
 const TPL_DEF=[
  ['공통','*','메인','4','기존 시트 기본값','4'],
  ['통솔','D','통솔점','6','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','3'],['통솔','C','통솔점','6','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','1'],['통솔','B-','통솔점','7','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','1.5'],['통솔','B','통솔점','8','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','2'],['통솔','A','통솔점','10','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','3'],['통솔','AA','통솔점','12','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','4'],
- ['육성','D','분배레벨','5','룰북 · 1인(2체)은 6체의 1/3 반올림','2'],['육성','C','분배레벨','10','룰북 · 1인(2체)은 6체의 1/3 반올림','3'],['육성','B-','분배레벨','10','룰북 · 1인(2체)은 6체의 1/3 반올림','3'],['육성','B','분배레벨','15','룰북 · 1인(2체)은 6체의 1/3 반올림','5'],['육성','A','분배레벨','20','룰북 · 1인(2체)은 6체의 1/3 반올림','7'],
+ ['육성','D','분배레벨','5','룰북 · 1인(2체)은 6체의 1/3 반올림','2'],['육성','C','분배레벨','10','룰북 「1인 기준 (2체)」 표 (+2 / +4 / +5 / +7)','4'],['육성','B-','분배레벨','10','룰북 「1인 기준 (2체)」 표 (+2 / +4 / +5 / +7)','4'],['육성','B','분배레벨','15','룰북 · 1인(2체)은 6체의 1/3 반올림','5'],['육성','A','분배레벨','20','룰북 · 1인(2체)은 6체의 1/3 반올림','7'],
  ['공통','*','「기술 할인점」','6','공통 요소 · 1인(2체)은 6의 1/3 = 2','2'],['공통','*','【1/시】','3','공통 요소 · 1인은 1','1']
 ];
 const TPL_V=3;
@@ -101,6 +101,8 @@ function tplNormalize(db){const strip0=r=>String(r||'').replace(/[+-]/g,'');
  if((db.tplSoloV||0)<5){const T={D:'2',C:'3','B-':'3',B:'5',A:'7'};for(const r of db.tpl){if(r[2]==='분배레벨'&&T[r[1]]!=null)r[5]=T[r[1]];if(r[2]==='「기술 할인점」'&&String(r[5])==='3')r[5]='2'}db.tplSoloV=5}
  /* 10-25 종족치 개편: 1인(2체) 통솔점 = 룰북 표 D 3 / C 3 / B 4 / A 5 에서 파트너 할인(2체 × 1점, D는 없음)을 뺀 값 */
  if((db.tplSoloV||0)<6){const T={D:'3',C:'1','B-':'1.5',B:'2',A:'3',AA:'4'};for(const r of db.tpl)if(r[2]==='통솔점'&&T[r[1]]!=null){r[5]=T[r[1]];r[4]='룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값'}db.tplSoloV=6}
+ /* 10-30 망령 「1인 기준 2체 값은 표」: 분배레벨 C · B- 를 룰북 표 +4 로 (예전 1/3 계산값 3 일 때만) */
+ if((db.tplSoloV||0)<7){for(const r of db.tpl)if(r[2]==='분배레벨'&&(r[1]==='C'||r[1]==='B-')&&String(r[5])==='3'){r[5]='4';r[4]='룰북 「1인 기준 (2체)」 표 (+2 / +4 / +5 / +7)'}db.tplSoloV=7}
  for(const r of db.tpl){if(r[5]==null||r[5]===''||r[5]==='1인'){const d=TPL_DEF.find(d=>d[0]===r[0]&&d[1]===r[1]&&d[2]===r[2])||TPL_DEF.find(d=>d[2]===r[2]&&strip0(d[1])===strip0(r[1]));r[5]=d?d[5]:r[3]}}
  if(!Array.isArray(db.ilock))db.ilock=[];
  for(const r of db.tpl)if(typeof r[4]==='string')r[4]=r[4].replace(/\s*\(\d{4}-\d{2}-\d{2}[^)]*\)/g,'');
@@ -588,6 +590,16 @@ function uqScore(t){return Math.round((t.unique||[]).filter(u=>u&&u.name&&u.name
 function uqScoreCap(r){const a=abilRow(r);const s=String(a[2]||'');const on=s.match(/상시\s*(\d+)/),once=s.match(/단발\s*(\d+)/);if(on||once)return (on?+on[1]:0)*mnum('uqOn')+(once?+once[1]:0)*mnum('uqOnce');const n=parseInt(a[1],10);return (n>=0?n:1)*mnum('uqOn')}
 /* 각성체 쪽 PT 기술점 상한 = 1인 기준 (2체) 표. PL 4체 = 6체 최대치 − 이 값 */
 function misagGmCap(t){const v=(S.db.soloSock||{})[strip(t.ranks['육성'])];if(v!=null&&v!=='')return +v;const r=sockRow(t.ranks['육성']);return r?Math.round((+r[4]||0)/3*2)/2:0}
+/* 10-30 망령: 각성체는 처음부터 「1인 기준 (2체)」 값 안에서 짠다 → 6체(4+2)에서 2체로 합칠 때 바뀌는 것이 없다. 6체 모드에서는 남는 몫을 PL 4체가 쓴다.
+   분배레벨 합 · 전용 포텐셜 개수(상시) · 역할 중복 · 통솔 대가 B-1(각성체 둘 다 지정 타입). 파트너 없음 · 각성체 통솔점 검사 없음 (10-30 망령 「룰이 그래」) */
+function tplSolo(q,item,rank){const k=strip(rank||'');const L=(S.db.tpl||[]).filter(r=>r[0]===q&&r[2]===item);const r=L.find(x=>x[1]===rank)||L.find(x=>strip(x[1])===k&&!/[+-]/.test(x[1]))||L.find(x=>strip(x[1])===k);if(!r)return null;const v=r[5]!=null&&r[5]!==''?r[5]:r[3];return isNaN(+v)?null:+v}
+function misagTwoChecks(t){const out=[],A=awList(t);if(!A.length)return out;const tag='각성체 2체 몫';
+ const dcap=tplSolo('육성','분배레벨',t.ranks['육성']);const ds=A.reduce((a,p)=>a+(Math.round(+p.dist)||0),0);if(dcap!=null&&ds>dcap)out.push(`${tag} — 분배레벨 합 ${ds} / ${dcap} (1인 기준 (2체) · 육성 ${strip(t.ranks['육성'])})`);
+ const ar=abilRow(t.ranks['능력']);const xcap=parseInt(ar[5],10);const xs=String(ar[6]||'').match(/상시\s*(\d+)/);const X=A.flatMap(p=>exclAll(p));const on=X.filter(x=>!uqIsOnce(x)).length;
+ if(xcap>=0&&X.length>xcap)out.push(`${tag} — 전용 포텐셜 ${X.length} / ${xcap}개 (1인 기준 (2체) · 능력 ${t.ranks['능력']||'-'})`);if(xs&&on>+xs[1])out.push(`${tag} — 상시 전용 포텐셜 ${on} / ${xs[1]}개`);
+ if(A.length===2){const r1=roleOf(A[0]),r2=roleOf(A[1]);if(r1&&r1===r2&&r1!=='역할 포텐셜')out.push(`${tag} — 각성체 둘의 역할이 같습니다 (『${r1}』) · 2체 기준은 역할 중복 불가`)}
+ const e=misagEff(t),P=misagPen(t);if(e.통솔&&P.type&&misagItem(P.b)&&misagItem(P.b)[3]==='type'){const no=A.filter(p=>![p.t1,p.t2,p.t3].some(x=>x&&x!=='-'&&String(x).split(/[()]/).includes(P.type)));if(no.length)out.push(`${tag} — 통솔 대가 ${P.b}: 각성체 둘 다 ${P.type} 타입이어야 합니다 (${no.map(p=>p.name||'이름 없음').join(', ')})`)}
+ return out}
 function partyTypeN(t,ty){return t.pokemon.filter(p=>[p.t1,p.t2,p.t3].some(x=>x&&x!=='-'&&String(x).split(/[()]/).includes(ty))).length}
 function misagChecks(t){if(!isMisag(t))return [];const out=[],R=MR(),P=misagPen(t),e=misagEff(t),g=misagGrade(t);
  const nf=awList(t,'free').length,nc=awList(t,'c').length,wf=parseInt(R.free,10)||0,wc=parseInt(R.fixC,10)||0;
@@ -604,6 +616,7 @@ function misagChecks(t){if(!isMisag(t))return [];const out=[],R=MR(),P=misagPen(
  const cap=mnum('distCap');if(cap>0){const L=t.pokemon.filter(p=>Math.abs(Math.round(+p.dist)||0)>cap);if(L.length)out.push(`분배레벨은 1체에 −${cap} ~ +${cap}까지입니다 (${L.map(p=>(p.name||'이름 없음')+' '+(Math.round(+p.dist)||0)).join(', ')})`)}
  if(t.orders&&t.orders.preset)for(const [k,lab] of [['o','명령 (4식)'],['c','지령 (6령)']]){const L=ordAvail(t,k).filter(x=>!misagOffNow(t,k).includes(x)),n=Math.min(soloOrdN(k,t),L.length),pk=tOrdPick(t,k).filter(x=>L.includes(x));if(pk.length!==n)out.push(`2체 기준 — ${lab}에서 ${n}개를 골라야 합니다 (지금 ${pk.length}개) · 지시 체계의 「2체 기준」 줄`);else if(k==='c'&&!soloMustOk(t,pk,L))out.push('2체 기준 — 지시 A 이상은 지령 셋 중 하나가 회피나 명중이어야 합니다')}
  const gu=ptSockets(t,true),gm=misagGmCap(t);if(gu>gm)out.push(`각성체 PT 기술점 ${gu} / ${gm} 초과`);
+ for(const x of misagTwoChecks(t))out.push(x);
  if(e.능력==='A'){const sc=uqScore(t),cp=uqScoreCap(t.ranks['능력'])-misagUqPen(t);if(sc>cp)out.push(`능력 대가 — 고유 포텐셜 점수 ${sc} / ${cp} (상시 ${mnum('uqOn')} · 단발 ${mnum('uqOnce')}) · 단발 하나를 빼거나 상시를 단발로`)}
  return out}
 function rulesDef(){return {misag:clone(MISAG_DEF),solo3:clone(SOLO3_DEF),soloOrd:clone(SOLO_ORD_DEF),invest:clone(INVEST_DEF),abil:clone(ABIL_DEF),ty:Object.entries(TY_CHART).map(([a,c])=>[a,c[0].join(','),c[1].join(','),c[2].join(',')])}}
