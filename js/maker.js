@@ -2060,7 +2060,10 @@ function rpFold(t,P){const L=t.kind==='npc'?RP_NPC:RP_PC;const rp=t.rp||{};const
  return `<details class="rpfold" ${n?'':''}><summary>세션 노트 공개 칸 <span class="small faint">${n?n+'칸 채움':'비어 있음'}${t.rpAt?' · 노트에서 '+new Date(t.rpAt).toLocaleDateString('ko-KR'):''}</span></summary><div class="rpg">${L.map(([k,l])=>`<label class="lbl"><span class="small muted">${l}</span><textarea data-p="${P}.rp.${k}" rows="2">${esc(rp[k]||'')}</textarea></label>`).join('')}</div><p class="small faint" style="margin:4px 0 0">세션 노트의 PC/NPC 시트와 주고받는 칸이에요. 비밀 칸 · GM 메모는 노트에만 있어요.</p></details>`}
 /* 10-28 망령: 미사그 대학 (4+2) 「각성체 대가」 패널 — 등급은 각성 (대가)의 프라이드에서 매번 계산, 고른 것만 t.misagPen 에 */
 function misagOut(t){if(!isMisag(t))return undefined;const P=misagPen(t),e=misagEff(t);const it=[];if(e.통솔){for(const k of e.통솔==='A'?[P.b,P.a]:[P.b]){const r=k&&misagItem(k);if(r)it.push({key:r[0],grade:r[1],desc:r[2],need:r[3]||''})}}
- return {grade:misagGrade(t),pen:e,dist:misagDistPen(t),excl:misagExclPen(t),uq:misagUqPen(t),ordOff:e.지시?{o:misagOrdOff(t,'o'),c:misagOrdOff(t,'c')}:{o:[],c:[]},items:it,type:P.type||'',role:String(P.role||'').trim(),note:String(P.note||'').trim()}}
+ return {grade:misagGrade(t),pen:e,dist:misagDistPen(t),excl:misagExclPen(t),uq:misagUqPen(t),ordOff:e.지시?{o:misagOrdOff(t,'o'),c:misagOrdOff(t,'c')}:{o:[],c:[]},items:it,type:P.type||'',role:String(P.role||'').trim(),note:String(P.note||'').trim(),two:misagTwoOut(t)}}
+/* 10-30 망령 「세션 노트에도 이어지게」: 2체 기준 요약 — 각성체 2체 몫 검사 글 · 2체 기준으로 고른 4식 · 6령(대가로 뺀 것 제외) · 3계제권 · 검사 켜짐 */
+function misagTwoOut(t){let O=null;try{O=ordSnap(t)}catch(e){}const pk=kind=>O&&O.preset?(O[kind]||[]).filter(x=>x.pick&&x.avail&&!x.off):[];
+ return {checks:misagChecks(t).filter(x=>/^(2체 기준|각성체 2체 몫)/.test(x)),pick:{o:pk('o').map(x=>x.k),c:pk('c').map(x=>x.k)},names:{o:pk('o').map(x=>x.nm),c:pk('c').map(x=>x.nm)},need:O&&O.pickN?O.pickN:{o:soloOrdN('o',t),c:soloOrdN('c',t)},g3:misagG3(t.ranks['육성'])||null,b1:mOn('twoB1'),role:mOn('twoRole')}}
 /* 10-28 망령: 각성체 대가를 짧은 줄로 — 트레이너 카드(서머리)와 각성체 한 장 요약에 띄운다 */
 function misagPenLines(t){if(!isMisag(t))return [];const o=misagOut(t),e=o.pen,out=[];const KO=k=>TORD.KO[k]||k;
  if(e.지시){const nd=misagOrdNeed(t);const off=[...o.ordOff.c,...o.ordOff.o].map(KO);out.push(['지시',e.지시,`지령 −${nd.c}${nd.o?` · 명령 −${nd.o}`:''}${off.length?` (${off.join(', ')})`:''}`])}
