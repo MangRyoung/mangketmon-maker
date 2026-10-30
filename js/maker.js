@@ -1793,7 +1793,7 @@ function openFHide(){const rows=[];const walk=(p,d)=>{for(const f of fKids(p)){i
  <div class="mfoot"><span class="sp"></span><button class="btn pri" data-x>확인</button></div>`);
  l.addEventListener('change',e=>{const c=e.target.closest('[data-fhid]');if(!c)return;FHIDE.toggle(c.dataset.fhid,!c.checked);renderChar()});
  l.addEventListener('click',e=>{const a=e.target.closest('[data-fh]');if(a){const hide=a.dataset.fh==='none';l.querySelectorAll('[data-fhid]').forEach(c=>{c.checked=!hide;FHIDE.toggle(c.dataset.fhid,hide)});renderChar();return}if(e.target.closest('[data-x]'))closeModal()})}
-function renderChar(){ensureCampus();if(misagSync())save();const root=$('#v-char');if(EMB.t&&embRender(root))return;
+function renderChar(){ensureCampus();if(misagSync())save();const root=$('#v-char');if((EMB.t||EMB.nu)&&embRender(root))return;
  const inF=fid=>S.trainers.map((t,ti)=>[t,ti]).filter(([t])=>tFolder(t)===fid&&tVis(t));const hiddenN=S.trainers.filter(t=>!tVis(t)).length;
  let body;
  if(!S.folders.length)body=`<div id="trs" data-sort="trainers" data-fid="">${S.trainers.map((t,ti)=>tVis(t)?trainerHTML(t,ti):'').join('')||'<div class="empty">트레이너가 없습니다. 「+ 트레이너」를 눌러 시작하세요.</div>'}</div>`;
@@ -3282,9 +3282,20 @@ window.MKM={bundle:()=>sessionBundle(S.trainers),
 /* ---------- 세션 노트에서 고치기 (10-29 망령 「포켓몬 고치기는 제작기 기능 참고」) ----------
    ?focus=<트레이너 id>&p=<포켓몬 id>&embed=1 — 노트가 iframe 으로 연다. 그 트레이너 한 명만 펼쳐 보여 주고(위 막대 · 다른 트레이너 숨김), 포켓몬을 펼쳐 그 자리로 간다.
    노트가 닫기 전에 {mkm:'flush'} 를 보내면 공유 DB 에 다 올린 뒤 {mkm:'flushed', ok} 로 답한다 */
-const EMB=(()=>{try{const q=new URLSearchParams(location.search);const t=q.get('focus')||'';const p=q.get('p')||'';return {t,p,sec:q.get('sec')||'',embed:q.get('embed')==='1',one:!!p&&q.get('all')!=='1',done:false}}catch(e){return {t:''}}})();
+const EMB=(()=>{try{const q=new URLSearchParams(location.search);const t=q.get('focus')||'';const p=q.get('p')||'';const add=q.get('add')||'',nu=q.get('new')||'';return {t,p,sec:q.get('sec')||'',embed:q.get('embed')==='1',one:(!!p||!!add)&&q.get('all')!=='1',done:false,add:t&&/^(pl|aw)$/.test(add)?add:'',nu:/^(misag)$/.test(nu)?nu:'',made:false}}catch(e){return {t:''}}})();
 if(EMB.embed){document.documentElement.classList.add('mk-emb');const st=document.createElement('style');st.textContent='html.mk-emb header.top{display:none!important}html.mk-emb main{padding-top:10px!important}html.mk-emb .favrail,html.mk-emb #verbar,html.mk-emb #tabs{display:none!important}html.mk-emb .embtrs>.folder{margin-top:0}.embone{border:0!important;background:none!important;box-shadow:none!important;padding:0!important}.embhd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;border:1px solid var(--line,#444);border-radius:8px;background:var(--panel,transparent)}.embhd>b{font-size:15px}.embone .plist{margin:0}.embone .pk>.ph .caret{display:none}';document.head.appendChild(st)}
-function embRender(root){const ti=S.trainers.findIndex(x=>x.id===EMB.t);
+/* 10-30 망령 「미사그에서 아예 제작할 수 있도록 트레이너 추가, 포켓몬/각성체 추가」: 노트가 iframe 으로 연다.
+   ?new=misag&embed=1 = 미사그 캠퍼스 폴더에 새 트레이너를 만들어 펼친다. ?focus=<트레이너>&add=pl|aw&embed=1 = 그 트레이너에 PL 포켓몬 · 각성체 시트를 하나 더해 그 한 장만 연다.
+   공유 DB 를 다 읽은 뒤 한 번만 만든다(그 전에 만들면 공유 DB 내용으로 바뀌며 사라진다). 만든 것은 부모(노트)에 {mkm:'made', kind, id, tid} 로 알린다 */
+const embReady=()=>!((SH.on||(window.MKM_STORE&&MKM_STORE.configured()&&!SH.failed))&&!SH.ready);
+function embMake(){if(EMB.made||!(EMB.nu||EMB.add))return '';if(!embReady())return '공유 DB 에서 불러오는 중…';if(SH.on&&SH.canWrite===false)return '읽기 전용으로 열려 있어 만들 수 없습니다 (서명 · 공유 DB 연결을 확인하세요)';
+ const tell=o=>{try{if(window.parent!==window)window.parent.postMessage(Object.assign({mkm:'made'},o),'*')}catch(_){}};
+ if(EMB.nu){EMB.made=true;const t=newTrainer();t.name='새 학생';t.open=true;t.folder=MISAG_FID;t.misag=true;t.misagF=true;t.solo=false;for(const [n,d] of ptItems())t.base[n]=+d||0;applyTpl(t);
+  S.trainers.push(t);save();EMB.t=t.id;EMB.p='';EMB.one=false;tell({kind:'trainer',id:t.id,name:t.name});return ''}
+ const T=S.trainers.find(x=>x.id===EMB.t);if(!T)return '';EMB.made=true;const p=newPoke();applySheetTpl(T,p);if(EMB.add==='aw')p.awaken=T.pokemon.some(x=>x.awaken==='free')?'c':'free';
+ T.open=true;T.pokemon.push(p);save();EMB.p=p.id;EMB.one=true;tell({kind:'poke',id:p.id,tid:T.id,aw:p.awaken||''});return ''}
+function embRender(root){const wait=embMake();if(wait){root.innerHTML=`<div class="empty">${esc(wait)}</div>`;return true}
+ const ti=S.trainers.findIndex(x=>x.id===EMB.t);
  if(ti<0){root.innerHTML=`<div class="empty">${SH.on&&!SH.ready?'공유 DB 에서 트레이너를 불러오는 중…':'이 트레이너를 찾지 못했습니다 (비공개라면 「서명」을 확인하세요)'}</div>`;return true}
  const t=S.trainers[ti];if(!EMB.done){t.open=true;const p=EMB.p&&t.pokemon.find(x=>x.id===EMB.p);if(p){p.open=true;if(!p.tab)p.tab='base'}}
  root.innerHTML=`<div id="trs" class="embtrs">${trainerHTML(t,ti)}</div>`;fitFlist(root);
@@ -3304,7 +3315,7 @@ window.addEventListener('message',async e=>{const d=e.data;if(!d||d.mkm!=='flush
 load();
 /* 10-25 망령: 오레마스 「💾 로그 → 정리기에서 열기」 = 제작기 ?tab=log&oremas=방ID — 로그 정리기 탭을 열고 그 방 로그를 바로 불러온다. 주소의 값은 한 번 쓰고 지운다 */
 {const q=new URLSearchParams(location.search);const om=q.get('oremas'),tb=q.get('tab'),vw=q.get('view');if(om||tb||vw){if(om||vw){S.ui.tab='log';const f=$('#logFrame');if(f)f.src='logtool/index.html?v='+LOGV+(om?'&oremas='+encodeURIComponent(om):'')+(vw?'&view='+encodeURIComponent(vw):'')}else if(tb&&$('#v-'+tb))S.ui.tab=tb;q.delete('oremas');q.delete('tab');q.delete('view');try{history.replaceState(null,'',location.pathname+(q.toString()?'?'+q:'')+location.hash)}catch(e){}}}
-showTab(EMB.t?'char':(S.ui.tab||'char'));   /* 10-30 망령 「편집 버튼 누르면 DB 가 떠」: 노트에서 연 제작기(?focus=)는 마지막 탭과 상관없이 캐릭터 시트로 */
+showTab(EMB.t||EMB.nu?'char':(S.ui.tab||'char'));   /* 10-30 망령 「편집 버튼 누르면 DB 가 떠」: 노트에서 연 제작기(?focus=)는 마지막 탭과 상관없이 캐릭터 시트로 */
 loadFx();
 meLoad();
 shInit();

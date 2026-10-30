@@ -21,6 +21,13 @@ window.MKM_STORE=(()=>{
   err.raw=e;return err}
  const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(x=>[x,v[x]])):v);
  const mkDoc=(id,data)=>({id,data:()=>data});
+ /* 10-29 망령 「노트처럼 바뀐 것만 받게」: 받은 문서를 이 브라우저(IndexedDB)에 두고, 다음에 열 때는 마지막으로 본 수정 시각 1분 전부터 바뀐 행 + id 목록만 받는다.
+    사본이 없거나 7일 넘었거나 읽기에 실패하면 예전처럼 전부 받는다. 사본은 「받은 그대로」라 제작기의 저장 판단은 예전과 같다 */
+ const IDB={db:null,p:null};
+ function idb(){if(IDB.p)return IDB.p;IDB.p=new Promise(res=>{try{if(!window.indexedDB)return res(null);const r=indexedDB.open('mkm_cache',1);r.onupgradeneeded=()=>{try{r.result.createObjectStore('kinds')}catch(e){}};r.onsuccess=()=>res(r.result);r.onerror=()=>res(null);r.onblocked=()=>res(null)}catch(e){res(null)}});return IDB.p}
+ const cKey=kind=>(cfg().supabaseUrl||'')+'|'+TABLE()+'|'+kind;
+ async function cacheGet(kind){const d=await idb();if(!d)return null;return new Promise(res=>{try{const q=d.transaction('kinds','readonly').objectStore('kinds').get(cKey(kind));q.onsuccess=()=>{const c=q.result;res(c&&c.v===1&&c.at&&c.rows&&Date.now()-c.t<7*864e5?c:null)};q.onerror=()=>res(null)}catch(e){res(null)}})}
+ async function cachePut(kind,c){const d=await idb();if(!d)return;try{d.transaction('kinds','readwrite').objectStore('kinds').put(c,cKey(kind))}catch(e){}}
 
  function makeDB(client){
   const cols=new Map();
@@ -40,7 +47,8 @@ window.MKM_STORE=(()=>{
    if(cols.has(kind))return cols.get(kind);
    const st={cache:new Map(),cb:null,err:null,ready:false,chan:null,subs:0,resyncing:false,again:false,at:0};
    const seen=t=>{const ms=Date.parse(t||'');if(ms>st.at)st.at=ms};   /* 받은 행 중 가장 늦은 수정 시각 (서버 시계) */
-   function emit(changes){if(changes.length&&st.cb)st.cb({docs:[...st.cache.entries()].map(([id,d])=>mkDoc(id,d)),docChanges:()=>changes})}
+   let saveT=null;const save=()=>{clearTimeout(saveT);saveT=setTimeout(()=>{if(st.ready&&st.at)cachePut(kind,{v:1,t:st.t0||Date.now(),at:st.at,rows:Object.fromEntries(st.cache)})},1500)};
+   function emit(changes){if(changes.length){save();if(st.cb)st.cb({docs:[...st.cache.entries()].map(([id,d])=>mkDoc(id,d)),docChanges:()=>changes})}}
    function apply(id,data){const j=canon(data);const had=st.cache.has(id);if(had&&canon(st.cache.get(id))===j)return null;st.cache.set(id,data);return{type:had?'modified':'added',doc:mkDoc(id,data)}}
    function remove(id){if(!st.cache.has(id))return null;const d=st.cache.get(id);st.cache.delete(id);return{type:'removed',doc:mkDoc(id,d)}}
    async function resync(){if(st.resyncing){st.again=true;return}st.resyncing=true;
@@ -68,7 +76,12 @@ window.MKM_STORE=(()=>{
       if(status==='SUBSCRIBED'){st.subs++;resync()}   /* 처음 읽은 뒤 구독이 붙기까지 사이의 남의 변경도 잡는다 (점검 6-5) — 10-23 부터는 그 사이 바뀐 행만 */
       else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){if(st.err)st.err(Object.assign(new Error('realtime '+status),{code:'unavailable'}))}})}
    const col={onSnapshot(cb,err){st.cb=cb;st.err=err||null;
-     (async()=>{try{const rows=await fetchAll(kind);for(const r of rows){st.cache.set(r.id,r.data||{});seen(r.updated_at)}st.ready=true;
+     (async()=>{try{let c=null;try{c=await cacheGet(kind)}catch(e){}
+       if(c){try{const since=new Date(c.at-60000).toISOString();const [rows,ids]=await Promise.all([fetchAll(kind,since),fetchIds(kind)]);const have=new Set(ids);
+         for(const id in c.rows)if(have.has(id))st.cache.set(id,c.rows[id]);st.at=c.at;for(const r of rows){st.cache.set(r.id,r.data||{});seen(r.updated_at)}st.t0=c.t;st.got={delta:rows.length,all:st.cache.size}}
+        catch(e){st.cache.clear();st.at=0;c=null}}
+       if(!c){const rows=await fetchAll(kind);for(const r of rows){st.cache.set(r.id,r.data||{});seen(r.updated_at)}st.t0=Date.now();st.got={full:rows.length}}
+       st.ready=true;save();
        cb({docs:[...st.cache.entries()].map(([id,d])=>mkDoc(id,d)),docChanges:()=>[]});subscribe()}
       catch(e){if(err)err(mapErr(e))}})();
      return()=>{if(st.chan)client.removeChannel(st.chan)}},
