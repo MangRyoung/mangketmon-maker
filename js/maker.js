@@ -562,14 +562,24 @@ const isMisag=t=>!!(t&&t.misag);
 const MISAG_FID='misag-campus';
 const fMisag=f=>{let c=f,n=0;while(c&&n++<50){if(c.rule==='misag')return true;c=fById(fPar(c))}return false};
 const tInMisag=t=>!!(t&&fMisag(fById(tFolder(t))));
+/* 10-30 망령 「미사그 PC 시트 옆에 NPC 시트 — 캠퍼스 폴더 안에 폴더 하나 더, 기본은 GM 에게만」: 「미사그 캠퍼스 / NPC」(고정 id, 🔒). 그 안의 트레이너는 NPC 가 되고, GM 이 열면 비공개가 된다.
+   폴더가 바꾼 건 t.npcF · t.npcP 로 표시해 두고, 폴더 밖으로 꺼내면 PC 로 돌린다(비공개는 그대로). 세션 노트는 이 폴더의 트레이너를 NPC 시트(GM만)로 넣는다 */
+const MISAG_NPC_FID='misag-npc';
+const fMisagNpc=f=>{let c=f,n=0;while(c&&n++<50){if(c.id===MISAG_NPC_FID)return true;c=fById(fPar(c))}return false};
+const tInMisagNpc=t=>!!(t&&fMisagNpc(fById(tFolder(t))));
 function misagSync(){let ch=0;for(const t of S.trainers){const inF=tInMisag(t);const go=()=>{for(const [n,d] of ptItems())t.base[n]=+d||0;applyTpl(t);ch++};
-  if(inF&&(!t.misag||t.solo)){t.misag=true;t.solo=false;t.misagF=true;go()}else if(inF&&!t.misagF)t.misagF=true;else if(!inF&&t.misagF){delete t.misagF;t.misag=false;go()}}return ch}
+  if(inF&&(!t.misag||t.solo)){t.misag=true;t.solo=false;t.misagF=true;go()}else if(inF&&!t.misagF)t.misagF=true;else if(!inF&&t.misagF){delete t.misagF;t.misag=false;go()}}
+ for(const t of S.trainers){if(tInMisagNpc(t)){if(t.kind!=='npc'){t.kind='npc';t.npcF=true;ch++}if(!t.priv&&!t.npcP&&ME.gm&&ME.hash){t.priv=true;if(!t.owner){t.owner=ME.hash;t.ownerName=ME.name}t.npcP=true;ch++}}else if(t.npcF||t.npcP){if(t.npcF)t.kind='pc';delete t.npcF;delete t.npcP;ch++}}
+ return ch}
 let campusTried=false;
 function ensureCampus(){if(campusTried)return;if((SH.on||(window.MKM_STORE&&MKM_STORE.configured()&&!SH.failed))&&!SH.ready)return;campusTried=true;   /* 공유 DB 를 쓰면 다 불러온 뒤에 */
  if(S.folders.some(f=>f.id===MISAG_FID)||lsGet('mkm_misag_campus')==='1')return;if(SH.on&&SH.canWrite===false)return;
  const f={id:MISAG_FID,name:'미사그 캠퍼스',rule:'misag',deco:{icon:'🎓',title:'미사그 대학 (4+2) · 이 폴더에 넣은 트레이너는 미사그 규칙'}};
  const top=S.folders.filter(x=>!x.parent);const fgo=top.find(x=>/포그오|그랜드\s*오더/.test(x.name||''));
  if(fgo)S.folders.splice(S.folders.indexOf(fgo)+1,0,f);else S.folders.unshift(f);lsSet('mkm_misag_campus','1');save()}
+/* 10-30: 캠퍼스 안 NPC 폴더 — GM 이 열 때 없으면 한 번 만든다(지운 뒤엔 다시 안 만듦) */
+function ensureMisagNpc(){const c=S.folders.find(f=>f.id===MISAG_FID);if(!c)return;if(S.folders.some(f=>f.id===MISAG_NPC_FID)){lsSet('mkm_misag_npc','1');return}if(lsGet('mkm_misag_npc')==='1'||!ME.gm||!ME.hash||(SH.on&&SH.canWrite===false))return;if((SH.on||(window.MKM_STORE&&MKM_STORE.configured()&&!SH.failed))&&!SH.ready)return;
+ S.folders.splice(S.folders.indexOf(c)+1,0,{id:MISAG_NPC_FID,name:'NPC',parent:MISAG_FID,priv:true,owner:ME.hash,ownerName:ME.name,deco:{icon:'🗝️',title:'미사그 NPC · 세션 노트 NPC 시트(GM만)로 들어감'}});lsSet('mkm_misag_npc','1');save()}
 function MR(){const R=RULES();if(!R.misag||!Array.isArray(R.misag.items))rulesNormalize(S.db);return (S.db.rules&&S.db.rules.misag)||MISAG_DEF}
 const mnum=k=>{const v=parseFloat(MR()[k]);return isNaN(v)?(parseFloat(MISAG_DEF[k])||0):v};
 function fracNum(x,d){const m=String(x??'').trim().match(/^(-?[\d.]+)\s*\/\s*([\d.]+)$/);if(m)return +m[2]?+m[1]/+m[2]:d;const v=parseFloat(x);return isNaN(v)?d:v}
@@ -1823,7 +1833,7 @@ function openFHide(){const rows=[];const walk=(p,d)=>{for(const f of fKids(p)){i
  <div class="mfoot"><span class="sp"></span><button class="btn pri" data-x>확인</button></div>`);
  l.addEventListener('change',e=>{const c=e.target.closest('[data-fhid]');if(!c)return;FHIDE.toggle(c.dataset.fhid,!c.checked);renderChar()});
  l.addEventListener('click',e=>{const a=e.target.closest('[data-fh]');if(a){const hide=a.dataset.fh==='none';l.querySelectorAll('[data-fhid]').forEach(c=>{c.checked=!hide;FHIDE.toggle(c.dataset.fhid,hide)});renderChar();return}if(e.target.closest('[data-x]'))closeModal()})}
-function renderChar(){ensureCampus();if(misagSync())save();const root=$('#v-char');if((EMB.t||EMB.nu)&&embRender(root))return;
+function renderChar(){ensureCampus();ensureMisagNpc();if(misagSync())save();const root=$('#v-char');if((EMB.t||EMB.nu)&&embRender(root))return;
  const inF=fid=>S.trainers.map((t,ti)=>[t,ti]).filter(([t])=>tFolder(t)===fid&&tVis(t));const hiddenN=S.trainers.filter(t=>!tVis(t)).length;
  let body;
  if(!S.folders.length)body=`<div id="trs" data-sort="trainers" data-fid="">${S.trainers.map((t,ti)=>tVis(t)?trainerHTML(t,ti):'').join('')||'<div class="empty">트레이너가 없습니다. 「+ 트레이너」를 눌러 시작하세요.</div>'}</div>`;
@@ -3317,7 +3327,7 @@ window.MKM={bundle:()=>sessionBundle(S.trainers),
 /* ---------- 세션 노트에서 고치기 (10-29 망령 「포켓몬 고치기는 제작기 기능 참고」) ----------
    ?focus=<트레이너 id>&p=<포켓몬 id>&embed=1 — 노트가 iframe 으로 연다. 그 트레이너 한 명만 펼쳐 보여 주고(위 막대 · 다른 트레이너 숨김), 포켓몬을 펼쳐 그 자리로 간다.
    노트가 닫기 전에 {mkm:'flush'} 를 보내면 공유 DB 에 다 올린 뒤 {mkm:'flushed', ok} 로 답한다 */
-const EMB=(()=>{try{const q=new URLSearchParams(location.search);const t=q.get('focus')||'';const p=q.get('p')||'';const add=q.get('add')||'',nu=q.get('new')||'';return {t,p,sec:q.get('sec')||'',embed:q.get('embed')==='1',one:(!!p||!!add)&&q.get('all')!=='1',done:false,add:t&&/^(pl|aw)$/.test(add)?add:'',nu:/^(misag)$/.test(nu)?nu:'',made:false}}catch(e){return {t:''}}})();
+const EMB=(()=>{try{const q=new URLSearchParams(location.search);const t=q.get('focus')||'';const p=q.get('p')||'';const add=q.get('add')||'',nu=q.get('new')||'';return {t,p,sec:q.get('sec')||'',embed:q.get('embed')==='1',one:(!!p||!!add)&&q.get('all')!=='1',done:false,add:t&&/^(pl|aw)$/.test(add)?add:'',nu:/^(misag|misagnpc)$/.test(nu)?nu:'',made:false}}catch(e){return {t:''}}})();
 if(EMB.embed){document.documentElement.classList.add('mk-emb');const st=document.createElement('style');st.textContent='html.mk-emb header.top{display:none!important}html.mk-emb main{padding-top:10px!important}html.mk-emb .favrail,html.mk-emb #verbar,html.mk-emb #tabs{display:none!important}html.mk-emb .embtrs>.folder{margin-top:0}.embone{border:0!important;background:none!important;box-shadow:none!important;padding:0!important}.embhd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;border:1px solid var(--line,#444);border-radius:8px;background:var(--panel,transparent)}.embhd>b{font-size:15px}.embone .plist{margin:0}.embone .pk>.ph .caret{display:none}';document.head.appendChild(st)}
 /* 10-30 망령 「미사그에서 아예 제작할 수 있도록 트레이너 추가, 포켓몬/각성체 추가」: 노트가 iframe 으로 연다.
    ?new=misag&embed=1 = 미사그 캠퍼스 폴더에 새 트레이너를 만들어 펼친다. ?focus=<트레이너>&add=pl|aw&embed=1 = 그 트레이너에 PL 포켓몬 · 각성체 시트를 하나 더해 그 한 장만 연다.
@@ -3325,7 +3335,8 @@ if(EMB.embed){document.documentElement.classList.add('mk-emb');const st=document
 const embReady=()=>!((SH.on||(window.MKM_STORE&&MKM_STORE.configured()&&!SH.failed))&&!SH.ready);
 function embMake(){if(EMB.made||!(EMB.nu||EMB.add))return '';if(!embReady())return '공유 DB 에서 불러오는 중…';if(SH.on&&SH.canWrite===false)return '읽기 전용으로 열려 있어 만들 수 없습니다 (서명 · 공유 DB 연결을 확인하세요)';
  const tell=o=>{try{if(window.parent!==window)window.parent.postMessage(Object.assign({mkm:'made'},o),'*')}catch(_){}};
- if(EMB.nu){EMB.made=true;const t=newTrainer();t.name='새 학생';t.open=true;t.folder=MISAG_FID;t.misag=true;t.misagF=true;t.solo=false;for(const [n,d] of ptItems())t.base[n]=+d||0;applyTpl(t);
+ if(EMB.nu){EMB.made=true;const NPC=EMB.nu==='misagnpc'&&S.folders.some(f=>f.id===MISAG_NPC_FID);const t=newTrainer();t.name=NPC?'새 NPC':'새 학생';t.open=true;t.folder=NPC?MISAG_NPC_FID:MISAG_FID;t.misag=true;t.misagF=true;t.solo=false;for(const [n,d] of ptItems())t.base[n]=+d||0;applyTpl(t);
+  if(NPC){t.kind='npc';t.npcF=true;if(ME.gm&&ME.hash){t.priv=true;t.owner=ME.hash;t.ownerName=ME.name;t.npcP=true}}   /* 10-30: 노트 「＋ 새 NPC」 = 캠퍼스 / NPC 폴더에 비공개 NPC */
   S.trainers.push(t);save();EMB.t=t.id;EMB.p='';EMB.one=false;tell({kind:'trainer',id:t.id,name:t.name});return ''}
  const T=S.trainers.find(x=>x.id===EMB.t);if(!T)return '';EMB.made=true;const p=newPoke();applySheetTpl(T,p);if(EMB.add==='aw')p.awaken=T.pokemon.some(x=>x.awaken==='free')?'c':'free';
  T.open=true;T.pokemon.push(p);save();EMB.p=p.id;EMB.one=true;tell({kind:'poke',id:p.id,tid:T.id,aw:p.awaken||''});return ''}
