@@ -77,7 +77,7 @@ const TAGS_V=3;
 function verMerge(mine,def,keyOf){if(!Array.isArray(mine))return clone(def);const have=new Set(mine.map(keyOf));return clone(mine).concat(clone(def.filter(r=>!have.has(keyOf(r)))))}
 const tagKey=r=>String(r&&r[0]),tplKey=r=>[r&&r[0],r&&r[1],r&&r[2]].join('|');
 const TPL_DEF=[
- ['공통','*','메인','4','기존 시트 기본값','4'],
+ ['공통','*','메인','2','룰북 · 자질 투자 2점 (덤프 1개당 +1)','2'],
  ['통솔','D','통솔점','6','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','3'],['통솔','C','통솔점','6','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','1'],['통솔','B-','통솔점','7','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','1.5'],['통솔','B','통솔점','8','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','2'],['통솔','A','통솔점','10','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','3'],['통솔','AA','통솔점','12','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','4'],
  ['육성','D','분배레벨','5','룰북 · 1인(2체)은 6체의 1/3 반올림','2'],['육성','C','분배레벨','10','룰북 「1인 기준 (2체)」 표 (+2 / +4 / +5 / +7)','4'],['육성','B-','분배레벨','10','룰북 「1인 기준 (2체)」 표 (+2 / +4 / +5 / +7)','4'],['육성','B','분배레벨','15','룰북 · 1인(2체)은 6체의 1/3 반올림','5'],['육성','A','분배레벨','20','룰북 · 1인(2체)은 6체의 1/3 반올림','7'],
  ['공통','*','「기술 할인점」','6','공통 요소 · 1인(2체)은 6의 1/3 = 2','2'],['공통','*','【1/시】','3','공통 요소 · 1인은 1','1']
@@ -103,6 +103,8 @@ function tplNormalize(db){const strip0=r=>String(r||'').replace(/[+-]/g,'');
  if((db.tplSoloV||0)<6){const T={D:'3',C:'1','B-':'1.5',B:'2',A:'3',AA:'4'};for(const r of db.tpl)if(r[2]==='통솔점'&&T[r[1]]!=null){r[5]=T[r[1]];r[4]='룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값'}db.tplSoloV=6}
  /* 10-30 망령 「1인 기준 2체 값은 표」: 분배레벨 C · B- 를 룰북 표 +4 로 (예전 1/3 계산값 3 일 때만) */
  if((db.tplSoloV||0)<7){for(const r of db.tpl)if(r[2]==='분배레벨'&&(r[1]==='C'||r[1]==='B-')&&String(r[5])==='3'){r[5]='4';r[4]='룰북 「1인 기준 (2체)」 표 (+2 / +4 / +5 / +7)'}db.tplSoloV=7}
+ /* 10-30 망령 「메인은 2점 상승에 덤프하면 +1 — 총합이 4로 잘못」 (전체 룰): 공통 · 메인 4 → 2 */
+ if((db.tplSoloV||0)<8){for(const r of db.tpl)if(r[0]==='공통'&&r[2]==='메인'&&String(r[3])==='4'){r[3]='2';r[5]='2';r[4]='룰북 · 자질 투자 2점 (덤프 1개당 +1)'}db.tplSoloV=8}
  for(const r of db.tpl){if(r[5]==null||r[5]===''||r[5]==='1인'){const d=TPL_DEF.find(d=>d[0]===r[0]&&d[1]===r[1]&&d[2]===r[2])||TPL_DEF.find(d=>d[2]===r[2]&&strip0(d[1])===strip0(r[1]));r[5]=d?d[5]:r[3]}}
  if(!Array.isArray(db.ilock))db.ilock=[];
  for(const r of db.tpl)if(typeof r[4]==='string')r[4]=r[4].replace(/\s*\(\d{4}-\d{2}-\d{2}[^)]*\)/g,'');
@@ -507,16 +509,21 @@ function prideRulePanel(){const R=PR();const f=(path,v,w,ph)=>`<input data-p="db
    <p class="small muted" style="margin:6px 0 0">기술 DB의 우선도가 1 이상인 기술(자신·자기 진영 대상 제외)을 자동으로 읽습니다. 우선도에 「~」가 있거나 설명에 「실패」가 있으면 조건부로 봅니다. 포텐셜 효과에 「우선도 : +N」이 있으면 강 칸(【N/시】면 조건부). 맞지 않는 포켓몬은 시트의 「계산 종족치」 칸에서 예외로 바꿉니다.</p></div></div>`}
 /* 메인: 자질을 C에서 한 단계 올릴 때마다 1점 */
 const rankSteps=t=>QUAL.reduce((a,q)=>a+Math.max(0,RV[strip(t.ranks[q])]??0),0);
+/* 10-30 망령 「2점 상승에 덤프하면 +1」: 「D」 이하로 내린 자질 하나마다 메인(자동 소모 rank 항목) 보유 +1 */
+const rankDump=t=>QUAL.filter(q=>(RV[strip(t.ranks[q])]??0)<0).length;
+const ptHave=(t,n,a)=>(+t.base[n]||0)+(a==='rank'?rankDump(t):0);
 const discUsed=t=>t.pokemon.reduce((a,p)=>a+p.moves.filter(m=>m.name&&m.half).length,0);
 function ptMaxDef(t){if(isMisag(t)){const r=sockRow(t.ranks['육성']);return r?Math.round(((+r[4]||0)-misagGmCap(t))*100)/100:0}if(soloN(t)===3){const r=sockRow(t.ranks['육성']);return r?s3num((+r[4]||0)*(+(RULES().solo3||SOLO3_DEF).ratio||0.5),'ptUnit'):0}if(t.solo){const v=(S.db.soloSock||{})[strip(t.ranks['육성'])];if(v!=null&&v!=='')return +v}const r=sockRow(t.ranks['육성']);return r?+r[4]:0}
 const nz=v=>v!==''&&v!=null&&!isNaN(+v);
 function ptMax(t){if(nz(t.ptMax))return +t.ptMax;return ptMaxDef(t)}
 /* 트레이너 포인트 항목: [이름, 기본값, 자동 소모 방식] — 테이블·계산식 탭에서 고친다 */
-const PTI_DEF=[['메인','4','rank'],['통솔점','6','pride'],['「기술 할인점」','6','disc'],['【1/시】','3','once'],['분배레벨','10','dist']];
+const PTI_DEF=[['메인','2','rank'],['통솔점','6','pride'],['「기술 할인점」','6','disc'],['【1/시】','3','once'],['분배레벨','10','dist']];
 function ptiMigrate(db){if((db.ptiV||0)<1){for(const r of db.ptItems||[])if(r[0]==='【1/시】'&&!r[2])r[2]='once';db.ptiV=1}
  /* 10-25 망령: 통솔점은 기본적으로 포켓몬 프라이드에서 자동 계산 */
- if((db.ptiV||0)<2){db.ptItems=db.ptItems||clone(PTI_DEF);if(!db.ptItems.some(r=>r[2]==='pride')){const r=db.ptItems.find(r=>/통솔/.test(r[0]||''));if(r)r[2]='pride';else db.ptItems.splice(1,0,['통솔점','6','pride'])}db.ptiV=2}}
-const PTI_AUTO={'':'없음',rank:'자질 투자 (C에서 한 단계당 1)',pride:'포켓몬 프라이드 (계단별 통솔점, 파트너 −1)',disc:'기술 「할인」 체크 수',dist:'포켓몬 분배 레벨 합',once:'포켓몬 【1/시】 포텐셜 수 (전용 제외)'};
+ if((db.ptiV||0)<2){db.ptItems=db.ptItems||clone(PTI_DEF);if(!db.ptItems.some(r=>r[2]==='pride')){const r=db.ptItems.find(r=>/통솔/.test(r[0]||''));if(r)r[2]='pride';else db.ptItems.splice(1,0,['통솔점','6','pride'])}db.ptiV=2}
+ /* 10-30 망령 「메인 2점 + 덤프 1점」: 메인 기본 4 → 2 (예전 기본값일 때만) */
+ if((db.ptiV||0)<3){for(const r of db.ptItems||[])if(r[2]==='rank'&&String(r[1])==='4')r[1]='2';db.ptiV=3}}
+const PTI_AUTO={'':'없음',rank:'자질 투자 (C에서 한 단계당 1 · 덤프 1개당 보유 +1)',pride:'포켓몬 프라이드 (계단별 통솔점, 파트너 −1)',disc:'기술 「할인」 체크 수',dist:'포켓몬 분배 레벨 합',once:'포켓몬 【1/시】 포텐셜 수 (전용 제외)'};
 const ptItems=()=>(S.db&&S.db.ptItems)||PTI_DEF;
 function autoUse(t,a){if(a==='rank')return rankSteps(t);if(a==='pride')return t.pokemon.reduce((x,p)=>x+prideCost(t,p),0);if(a==='disc')return discUsed(t);if(a==='dist')return isMisag(t)?t.pokemon.reduce((x,p)=>x+(Math.round(+p.dist)||0),0)+misagDistPen(t):t.pokemon.reduce((x,p)=>x+Math.max(0,+p.dist||0),0);if(a==='once')return t.pokemon.reduce((x,p)=>x+onceCount(p),0);return 0}
 const onceCount=p=>p.pots.reduce((n,name,i)=>n+(name&&/【1\s*\/\s*시】/.test(potEffOf(p,i)||'')?1:0),0);
@@ -526,14 +533,14 @@ function pointUse(t){const u={};for(const [n] of ptItems())u[n]=0;
  for(const [n,,a] of ptItems())u[n]+=autoUse(t,a);return u}
 const RV={E:-2,D:-1,C:0,B:1,A:2,AA:3,AAA:4,S:5};
 /* 10-29 망령: 세션 노트 대학 시트 「PT 서머리」용 사본 — 기본 요소마다 보유 · 사용 · 자동 소모 종류, 포켓몬마다 프라이드 · 통솔점 · 레벨 · 분배 · 할인 · 【1/시】 · 기술 소켓, PT 기술점 */
-function ptSnap(t){const use=pointUse(t);const items=ptItems().map(([n,,a])=>({n,max:+t.base[n]||0,use:Math.round((use[n]||0)*100)/100,auto:a||''}));
+function ptSnap(t){const use=pointUse(t);const items=ptItems().map(([n,,a])=>({n,max:ptHave(t,n,a),use:Math.round((use[n]||0)*100)/100,auto:a||''}));
  const mons={};for(const p of t.pokemon){const c=moveCap(t,p);mons[p.id]={pride:prideOf(p)||'',cost:prideCost(t,p),lv:lv(t,p),dist:Math.round(+p.dist)||0,disc:p.moves.filter(m=>m.name&&m.half).length,once:onceCount(p),sock:c.mode==='count'?c.pt:c.used,sockCap:c.cap??null,aw:awOf(t,p)||''}}
  return {items,mons,rank:rankSteps(t),sock:{u:ptSockets(t),m:ptMax(t)},misagDist:isMisag(t)?misagDistPen(t):0}}
 /* 룰 상수 (테이블·계산식 탭 「룰 상수」에서 고친다 · 공유 설정 meta/set.rules 와 백업에 들어간다)
    abil 행: [능력 랭크, 고유 칸 수, 고유 표시, 전용 개수, 전용 설명, 1인 전용 개수, 1인 전용 설명] — 룰북 「능력」 · 「1인 기준 (2체)」 */
 const ABIL_DEF=[['D','1','1','0','0','0','0'],['C','1','1','2','2 (템플릿 전용만 · 상시 1)','1','1 (템플릿 전용만 · 상시 1)'],['B-','2','2 (상시1+단발1)','3','3 (커스텀 1 · 상시 1)','1','1 (커스텀 1 · 상시 1)'],['B','2','2','4','2 (템플릿만) 또는 4 (커스텀 2 · 상시 2)','2','a) 1 (템플릿만 · 상시 1) 또는 b) 2 (커스텀 1 · 상시 1)'],['A','2','2 (상시2)','6','6 (상시 3)','2','2 (상시 1)'],['AA','3','3 (상시2+단발1)','8','8 (상시 4)','3','3 (상시 2)'],['AAA','3','3 (상시2+단발1)','10','10 (1체에게 2개까지 부여 가능)','4','4 (1체에게 2개까지 부여 가능)']];
 /* invest: 자질 투자 규칙 — 투자 횟수 · D 조정 · 금지 조합 */
-const INVEST_DEF={allow:'3',allowD:'4',dMax:'1',dPair:'육성+통솔',dPairMax:'2',banPair:'육성+능력',banAA:'육성,통솔'};
+const INVEST_DEF={allow:'2',allowD:'3',dMax:'1',dPair:'육성+통솔',dPairMax:'2',banPair:'육성+능력',banAA:'육성,통솔'};
 /* soloOrd: 1인 기준(2체)에서 고르는 지시 수 — ORDER(4식) o 개 · COMMAND(6령) c 개 (10-26 망령) */
 const SOLO_ORD_DEF={o:'1',c:'2'};
 /* solo3: 1인 기준 (3체) — 6체 기준 자원 × ratio (10-27 망령: 「6체 메리트의 절반」). 템플릿 항목은 unit 단위로 round(올림 ceil · 반올림 round · 내림 floor),
@@ -632,6 +639,8 @@ function rulesNormalize(db){const d=rulesDef();if(!db.rules||typeof db.rules!=='
  if(!R.solo3||typeof R.solo3!=='object')R.solo3={};for(const k in d.solo3)if(R.solo3[k]==null||R.solo3[k]==='')R.solo3[k]=d.solo3[k];
  if(!R.misag||typeof R.misag!=='object'||Array.isArray(R.misag))R.misag={};for(const k in d.misag)if(R.misag[k]==null||R.misag[k]==='')R.misag[k]=clone(d.misag[k]);if(!Array.isArray(R.misag.items))R.misag.items=clone(MISAG_ITEMS_DEF);for(const r of R.misag.items)while(r.length<4)r.push('');
  if(!R.invest||typeof R.invest!=='object')R.invest={};for(const k in d.invest)if(R.invest[k]==null)R.invest[k]=d.invest[k];
+ /* 10-30 망령 「메인 2점 + 덤프 1점은 전체 룰」: 투자 3회 · D 4회 → 2회 · D 3회 (예전 기본값일 때만) */
+ if(!R.investV){if(String(R.invest.allow)==='3')R.invest.allow='2';if(String(R.invest.allowD)==='4')R.invest.allowD='3';R.investV=1}
  if(!Array.isArray(R.abil)||!R.abil.length)R.abil=d.abil;for(const r of R.abil)while(r.length<7)r.push('');
  if(!Array.isArray(R.ty)||!R.ty.length)R.ty=d.ty;for(const r of R.ty)while(r.length<4)r.push('');return R}
 const RULES=()=>{const R=S.db&&S.db.rules;return R&&R.invest&&Array.isArray(R.abil)&&Array.isArray(R.ty)?R:rulesNormalize(S.db)};
@@ -952,7 +961,8 @@ function openSpEditor(t,k,done){const isNew=k==null;const e=isNew?{name:'',prob:
  $('#sp-ok',l).onclick=ok;box.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&(ev.ctrlKey||ev.metaKey)){ev.preventDefault();ok()}})}
 function newTrainer(){const t={id:uid(),open:true,name:'새 트레이너',kind:'pc',pl:'',folder:'',image:'',ranks:{지시:'C',육성:'C',통솔:'C',능력:'C'},detail:{지시:'',육성:'',통솔:'',능력:''},solo:false,misag:false,misagPen:{},
  pts:[],extra:{},base:Object.fromEntries(ptItems().map(([n,d])=>[n,+d||0])),unique:[{name:'',eff:''}],ptMax:'',fields:[],sps:[],ext:[],dexFw:'',pokemon:[]};applyTpl(t);return t}
-function fixT(t){if(t.base)delete t.base['소지품 소켓'];const n=newTrainer();for(const k in n)if(t[k]==null)t[k]=n[k];for(const k in n.base)if(t.base[k]==null)t.base[k]=n.base[k];
+function fixT(t){if(t.base)delete t.base['소지품 소켓'];if(t.base&&!t.mainV){const rn=(ptItems().find(r=>r[2]==='rank')||[])[0];if(rn&&+t.base[rn]===4)t.base[rn]=2;t.mainV=1}   /* 10-30 메인 4 → 2 (예전 기본값일 때만) */
+ const n=newTrainer();for(const k in n)if(t[k]==null)t[k]=n[k];for(const k in n.base)if(t.base[k]==null)t.base[k]=n.base[k];
  if(t.extra){for(const k in t.extra)if(!+t.extra[k])delete t.extra[k]}t.image=safeImg(t.image);if(!t.id)t.id=uid();t.stands=standsFix(t.stands);t.fields=fieldsFix(t.fields);t.sps=spFix(t.sps);t.ext=extFix(t.ext);t.deck=deckFix(t.deck);if(!(+t.standActive>=0))t.standActive=0;t.pokemon.forEach(fixP);return t}
 /* 같은 id가 두 번 나오면(예전 백업을 「추가」로 불러온 경우 등) 뒤의 것에 새 id를 준다 */
 function dedupeIds(){const seen=new Set();for(const t of S.trainers){if(seen.has('t'+t.id))t.id=uid();seen.add('t'+t.id);for(const p of t.pokemon){if(seen.has('p'+p.id))p.id=uid();seen.add('p'+p.id)}}}
@@ -2120,7 +2130,7 @@ function trainerHTML(t,ti){if(EMB.one&&t.id===EMB.t&&t.pokemon.some(x=>x.id===EM
    <label class="plrow"><span>PL</span>${inp(P+'.pl',t.pl,{ph:'플레이어 이름'})}</label>
    <label class="plrow" title="오레마스 방으로 가져갈 때 관계도·휴대폰에서 PC(플레이어)인지 NPC 인지"><span>구분</span><select data-p="${P}.kind"><option value="pc" ${t.kind!=='npc'?'selected':''}>PC (플레이어 캐릭터)</option><option value="npc" ${t.kind==='npc'?'selected':''}>NPC</option></select></label>${tOrdHTML(t,ti)}</div>
   <div class="panel"><h3>포인트<span class="sp"></span>${soloN(t)===3?`<span class="small muted" title="1인 기준 (3체) 파트너 수 — 테이블·계산식 「1인 기준 (3체)」">파트너 ${t.pokemon.filter(p=>p.partner).length}/${esc((RULES().solo3||SOLO3_DEF).partner)}</span>`:''}${tInMisag(t)?'<span class="kindb fmrule" title="미사그 캠퍼스 폴더 안이라 미사그 대학 (4+2) 고정 — 폴더 밖으로 옮기면 6체 기준으로 돌아간다">🎓 캠퍼스</span>':''}<select data-p="${P}.solo" class="solosel" ${tInMisag(t)?'disabled':''} title="6체 기준 / 1인 기준 — 바꾸면 포인트 기본값을 그 기준 템플릿으로 다시 맞춘다">${[['','6체 기준'],['2','1인 기준 (2체)'],['3','1인 기준 (3체)'],['m','미사그 대학 (4+2)']].map(([v,l])=>`<option value="${v}" ${(isMisag(t)?'m':String(soloN(t)||''))===v?'selected':''}>${l}</option>`).join('')}</select></h3><table><tr><th>항목</th><th class="n">기본</th><th class="n">소모</th><th class="n">잔여</th></tr>
-   ${ptItems().map(([k,d])=>{if(t.base[k]==null)t.base[k]=+d||0;const r=(+t.base[k]||0)-(use[k]||0);return `<tr><td>${esc(k)}</td><td class="n">${inp(`${P}.base.${seg(k)}`,t.base[k],{w:'52px',num:1})}</td><td class="n">${use[k]||0}</td><td class="n ${r<0?'warn':''}">${r}</td></tr>`}).join('')}</table>
+   ${ptItems().map(([k,d,a])=>{if(t.base[k]==null)t.base[k]=+d||0;const dm=a==='rank'?rankDump(t):0;const r=(+t.base[k]||0)+dm-(use[k]||0);return `<tr><td>${esc(k)}</td><td class="n">${inp(`${P}.base.${seg(k)}`,t.base[k],{w:'52px',num:1})}</td><td class="n">${use[k]||0}</td><td class="n ${r<0?'warn':''}">${r}</td></tr>`}).join('')}</table>
    <div class="row" style="margin-top:8px"><b class="small">포인트 사용 항목</b><span class="sp"></span><button class="btn sm" data-act="addPt" data-i="${ti}">+ 항목</button></div>
    <p class="small muted" style="margin:6px 0 0">자동 소모 · ${ptItems().filter(x=>x[2]).map(([n,,a])=>`${esc(n)} ${autoUse(t,a)} (${esc(PTI_AUTO[a]||a)})`).join(' · ')||'없음'}</p>
    ${t.pts.map((n,i)=>{const r=idx.points.get(n);return `<div class="row small" style="margin-top:4px"><span style="flex:1;min-width:0"><b>${esc(n)}</b> <span class="muted">${r?esc(r[3]+' −'+r[6]):''}</span></span><button class="btn sm ghost" data-act="delPt" data-i="${ti}" data-j="${i}" aria-label="삭제">✕</button></div>`}).join('')||'<p class="small faint" style="margin:4px 0 0">사용한 항목이 없습니다.</p>'}${deckHtml(t,ti)}</div>
@@ -2164,7 +2174,7 @@ function pokeHTML(t,ti,p,pi){const v=formView(p);const P=`T.${ti}.pokemon.${pi}`
  const XL=exclAll(p);const abr=v.ability&&idx.abil?idx.abil.get(v.ability):null;const abE=abr?oneLn(abr[2]):'';
  return `<article class="pk ${p.open?'open':''} ${p.partner?'ptnr':''}" id="pk-${p.id}" data-si="${pi}" style="${pkVars(v)}">
  <div class="ph" data-tog="${P}" data-grab tabindex="0" role="button" data-kbd aria-expanded="${!!p.open}"><span class="pno"><small>No.</small>${String(pi+1).padStart(3,'0')}</span>
-  <div class="row pmain" style="min-width:0;gap:9px;flex-wrap:nowrap"><button type="button" class="pavb" data-act="pimgPick" data-i="${ti}" data-j="${pi}" title="포켓몬 이미지 넣기 (클릭 · 끌어다 놓기 · 붙여넣기)">${safeImg(v.image)?`<img class="pav" src="${safeImg(v.image)}" alt="">`:'<span class="pav ph0" aria-hidden="true"></span>'}${v.partner?'<i class="pstb" aria-hidden="true">★</i>':''}${awOf(t,p)?`<i class="pawb ${awOf(t,p)}" title="미사그 대학 각성체 · GM 제작 · 통솔점 0">각성<b>${awOf(t,p)==='c'?'보조':'대가'}</b></i>`:''}</button><div style="min-width:0"><div class="pname">${v.partner?'<span class="pstar" title="파트너">★</span>':''}<span class="pnm">${esc(v.name||'(이름 없음)')}</span>${genderGlyph(v.gender)}${formBtns(p,ti,pi)}</div><div class="pnrow"><span class="chips pntypes">${tchip(v.t1)}${tchip(v.t2)}${tchip(v.t3)}</span><span class="lvb">Lv.${lv(t,v)}</span></div><div class="psub pscs"><span class="psc psr">${esc(roleOf(v)||'역할 없음')}</span>${classOf(v)?`<span class="psc psk">${esc(classOf(v))}</span>`:''}${prideOf(p)?`<span class="psc psp" title="프라이드 ${esc(prideOf(p))}${prideIsAuto(p)?' (자동)':''} · 통솔점 ${prideCost(t,p)}점"><i>프라이드</i><b>${esc(prideOf(p))}</b></span>`:''}${pokeChecks(t,p).some(c=>c.w)?' <span class="warn" title="기본·능력치 탭의 경고를 확인하세요">⚠</span>':''}</div></div></div>
+  <div class="row pmain" style="min-width:0;gap:9px;flex-wrap:nowrap"><button type="button" class="pavb" data-act="pimgPick" data-i="${ti}" data-j="${pi}" title="포켓몬 이미지 넣기 (클릭 · 끌어다 놓기 · 붙여넣기)">${safeImg(v.image)?`<img class="pav" src="${safeImg(v.image)}" alt="">`:'<span class="pav ph0" aria-hidden="true"></span>'}${v.partner?'<i class="pstb" aria-hidden="true">★</i>':''}${awOf(t,p)?`<i class="pawb ${awOf(t,p)}" title="미사그 대학 각성체 · GM 제작 · 통솔점 0">각성<b>${awOf(t,p)==='c'?'보조':'대가'}</b></i>`:''}</button><div style="min-width:0"><div class="pname">${v.partner?'<span class="pstar" title="파트너">★</span>':''}<span class="pnm">${esc(p.nick||v.name||'(이름 없음)')}</span>${p.nick?`<span class="pnk faint" title="종 이름" style="font-size:11px;font-weight:400;margin-left:5px;white-space:nowrap">${esc(v.name||'')}</span>`:''}${genderGlyph(v.gender)}${formBtns(p,ti,pi)}</div><div class="pnrow"><span class="chips pntypes">${tchip(v.t1)}${tchip(v.t2)}${tchip(v.t3)}</span><span class="lvb">Lv.${lv(t,v)}</span></div><div class="psub pscs"><span class="psc psr">${esc(roleOf(v)||'역할 없음')}</span>${classOf(v)?`<span class="psc psk">${esc(classOf(v))}</span>`:''}${prideOf(p)?`<span class="psc psp" title="프라이드 ${esc(prideOf(p))}${prideIsAuto(p)?' (자동)':''} · 통솔점 ${prideCost(t,p)}점"><i>프라이드</i><b>${esc(prideOf(p))}</b></span>`:''}${pokeChecks(t,p).some(c=>c.w)?' <span class="warn" title="기본·능력치 탭의 경고를 확인하세요">⚠</span>':''}</div></div></div>
   <div class="hide-s ptyab"><div class="pab"><span class="pabk">특성</span><b>${esc(v.ability||'특성 없음')}</b>${v.item?`<span class="faint"> · ${esc(v.item)}</span>`:''}</div>${abE?`<div class="pabe" title="${esc(abE)}">${esc(abE)}</div>`:''}</div>
   <div class="pexcl ${XL.length?'':'none'} ${XL.length>1?'multi':''}">${XL.map(x=>{const e=oneLn(x.eff);return `<div class="pxi"><div class="pxn"><span class="pxk">전용</span><b>${esc(x.name)}</b></div>${e?`<div class="pxe" title="${esc(e)}">${esc(e)}</div>`:''}</div>`}).join('')}</div>
   <div class="hide-s pkstat">${radar(v)}<div style="min-width:0">${miniGrades(v,t)}<div class="psub" style="margin-top:3px">종족치 합 <b class="num">${tot||'-'}</b>${(()=>{const pl=v._form?null:planRange(v);if(!pl||!tot)return '';return `<span class="${pl.ok?'faint':'warn'}" title="계산 종족치 / 계단 기준"> · 계산 ${fmtN(pl.ct)}/${pl.v}</span>`})()} · 기술 <span class="${c.cap!=null&&c.used>c.cap?'warn':''}">${capTxt(c,'-','/')}</span> · 포텐셜 ${npot}</div></div></div>
@@ -2178,7 +2188,8 @@ function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=itemRow(p),own
    <button class="btn sm" data-act="pickOld" data-i="${ti}" data-j="${pi}" title="시트 「올드 타입 일람」의 타입·특성·알그룹·종족치를 채웁니다">올드 타입 일람에서 자동 입력</button></div></div>
   ${pStandsHtml(p,ti,pi)}
   <div class="fgrid">
-   <label class="lbl" for="nm-${id}" style="grid-column:span 2">이름${inp(P+'.name',p.name,{id:'nm-'+id})}</label>
+   <label class="lbl" for="nm-${id}" style="grid-column:span 2">이름 <span class="faint">종</span>${inp(P+'.name',p.name,{id:'nm-'+id})}</label>
+   <label class="lbl" for="nk-${id}" style="grid-column:span 2">별명 <span class="faint" title="종 이름과 따로 붙이는 이름 — 노트 · 웹툴에도 이 이름으로 보여요">비우면 종 이름</span>${inp(P+'.nick',p.nick||'',{id:'nk-'+id})}</label>
    <label class="lbl" for="dist-${id}">레벨 <span class="faint">기본 ${baseLevel(t.ranks['육성'])} + 분배</span><span class="row"><b class="num" style="font-size:15px">${lv(t,p)}</b>${inp(P+'.dist',p.dist,{id:'dist-'+id,w:'56px',num:1})}</span></label>
    <label class="lbl" for="pr-${id}">프라이드 <span class="faint">통솔점 ${prideCost(t,p)}</span><select data-p="${P}.pride" id="pr-${id}"><option value="" ${prideIsAuto(p)?'selected':''}>자동 (${esc(prideAuto(p))})</option>${[...(isOld(p)?[[PR().oldLow.lab]]:[]),...PR().rows].filter(r=>r&&r[0]).map(r=>`<option ${!prideIsAuto(p)&&prKey(p.pride)===r[0]?'selected':''}>${esc(r[0])}</option>`).join('')}</select></label>
    <label class="lbl" for="pt-${id}">파트너<span class="row small" style="min-height:30px"><input type="checkbox" id="pt-${id}" data-p="${P}.partner" ${p.partner?'checked':''}>통솔점 1 할인</span></label>
@@ -2300,7 +2311,7 @@ function fitLog(){for(const [fi,vi] of [['#logFrame','#v-log'],['#ruleFrame','#v
 function fitFrame(f){const top=f.getBoundingClientRect().top+window.scrollY;let bot=0;const tb=$('#mk .tabs');if(tb){const r=tb.getBoundingClientRect();if(getComputedStyle(tb).position==='fixed'&&r.top>innerHeight/2)bot=r.height}f.style.height=Math.max(420,Math.floor(innerHeight-top-bot))+'px'}
 addEventListener('resize',()=>{clearTimeout(fitLog.t);fitLog.t=setTimeout(fitLog,80)});
 const LOGV='20261026g';   /* 로그 정리기 판 (캐시 깨기) */
-function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v='+LOGV;requestAnimationFrame(fitLog);return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=2026102918c';requestAnimationFrame(fitLog);return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
+function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v='+LOGV;requestAnimationFrame(fitLog);return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=2026103011c';requestAnimationFrame(fitLog);return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
 let rT=null;
 let composing=false;
 $('#v-char').addEventListener('compositionstart',()=>{composing=true;clearTimeout(rT)});
