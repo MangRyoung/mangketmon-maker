@@ -206,6 +206,7 @@ html[data-vt="mm"] #mk .pk .ph .pno{color:#7d1220!important;text-shadow:none!imp
 html[data-vt="mm"] #mk .pk .ph .lvb{background:#1a140d!important;color:#cfae6e!important}
 html[data-vt="mm"] #mk .pk .ph .psc{background:rgba(26,20,13,.08);color:#1a140d;box-shadow:inset 0 0 0 1px rgba(26,20,13,.3)}
 html[data-vt="mm"] #mk .pk .ph .psc.psr{background:#1a140d;color:#cfae6e;box-shadow:none}
+html[data-vt="mm"] #mk .pk .ph .psc.psp b{background:#1a140d;color:#e9c46a}   /* 11-01 망령 「프라이드가 어두운 칸으로 가려진다」: 망각 테마는 머리줄이 밝아 --ink/--bg 가 뒤집혀 글자가 칸과 같은 색이 됐다 */
 html[data-vt="mm"] #mk .pk .ph .ptyab{background:#1a140d!important;color:#e8dfcb!important;border-left:2px solid #a3182a;border-radius:0;--ink:#e8dfcb;--muted:#b0a38a}
 html[data-vt="mm"] #mk .pk .ph .pexcl>*{background:#1a140d!important;color:#e8dfcb!important}
 html[data-vt="mm"] #mk .pk .ph .fmb,html[data-vt="mm"] #mk .tcard .fmb{background:#1a140d!important;border-color:#1a140d!important;color:#e8dfcb!important}

@@ -535,7 +535,7 @@ const RV={E:-2,D:-1,C:0,B:1,A:2,AA:3,AAA:4,S:5};
 /* 10-29 망령: 세션 노트 대학 시트 「PT 서머리」용 사본 — 기본 요소마다 보유 · 사용 · 자동 소모 종류, 포켓몬마다 프라이드 · 통솔점 · 레벨 · 분배 · 할인 · 【1/시】 · 기술 소켓, PT 기술점 */
 function ptSnap(t){const use=pointUse(t);const items=ptItems().map(([n,,a])=>({n,max:ptHave(t,n,a),use:Math.round((use[n]||0)*100)/100,auto:a||''}));
  const mons={};for(const p of t.pokemon){const c=moveCap(t,p);mons[p.id]={pride:prideOf(p)||'',cost:prideCost(t,p),lv:lv(t,p),dist:Math.round(+p.dist)||0,disc:p.moves.filter(m=>m.name&&m.half).length,once:onceCount(p),sock:c.mode==='count'?c.pt:c.used,sockCap:c.cap??null,aw:awOf(t,p)||''}}
- return {items,mons,rank:rankSteps(t),sock:{u:ptSockets(t),m:ptMax(t)},misagDist:isMisag(t)?misagDistPen(t):0}}
+ return Object.assign({items,mons,rank:rankSteps(t),sock:{u:ptSockets(t),m:ptMax(t)},misagDist:isMisag(t)?misagDistPen(t):0},isMisag(t)?{sockAw:{u:ptSockets(t,true),m:misagGmCap(t)}}:{})}   /* 11-01 망령: 노트 서머리가 각성체 2체 몫 기술점을 따로 */
 /* 룰 상수 (테이블·계산식 탭 「룰 상수」에서 고친다 · 공유 설정 meta/set.rules 와 백업에 들어간다)
    abil 행: [능력 랭크, 고유 칸 수, 고유 표시, 전용 개수, 전용 설명, 1인 전용 개수, 1인 전용 설명] — 룰북 「능력」 · 「1인 기준 (2체)」 */
 const ABIL_DEF=[['D','1','1','0','0','0','0'],['C','1','1','2','2 (템플릿 전용만 · 상시 1)','1','1 (템플릿 전용만 · 상시 1)'],['B-','2','2 (상시1+단발1)','3','3 (커스텀 1 · 상시 1)','1','1 (커스텀 1 · 상시 1)'],['B','2','2','4','2 (템플릿만) 또는 4 (커스텀 2 · 상시 2)','2','a) 1 (템플릿만 · 상시 1) 또는 b) 2 (커스텀 1 · 상시 1)'],['A','2','2 (상시2)','6','6 (상시 3)','2','2 (상시 1)'],['AA','3','3 (상시2+단발1)','8','8 (상시 4)','3','3 (상시 2)'],['AAA','3','3 (상시2+단발1)','10','10 (1체에게 2개까지 부여 가능)','4','4 (1체에게 2개까지 부여 가능)']];
@@ -1203,12 +1203,45 @@ function fieldHTML(kind,n,v){const c=DBS[kind].cols[n];const id=`f-${kind}-${n}`
  if((kind==='abil'&&(n===3||n===4))||(kind==='items'&&n===3))return `<label class="lbl" for="${id}">${c}<select id="${id}" data-f="${n}">${['X','O','-',''].map(t=>`<option value="${t}" ${t===v?'selected':''}>${t||'(빈칸)'}</option>`).join('')}</select></label>`;
  const list=kind==='pots'&&n===0?'L-kinds':kind==='items'&&n===0?'L-ikinds':'';
  return `<label class="lbl" for="${id}" ${n===1&&kind==='moves'?'style="grid-column:span 2"':''}>${c}<input id="${id}" data-f="${n}" value="${esc(v??'')}" ${list?`list="${list}"`:''}></label>`}
+/* 11-01 망령 「특성 쪽엔 구문 도우미가 없더라고」: 특성 DB 수정 창에도 포텐셜 창처럼
+   ✍ 워딩 도우미(js/potlint.js — DB 문장 꼴 점검 · 고치기 · 추천 구문) + ⚙ 자동화 구문(레디메이드 DB 「특성 : 이름」 줄) · 생성기 · 미리보기.
+   저장하면 구문 칸이 레디메이드 줄로 들어간다 (비우면 그 줄의 구문만 비움 · 이름을 바꾸면 줄 이름도 따라감). 포켓몬마다 따로 쓴 구문(p.auto)이 있으면 그쪽이 먼저 돈다 */
+const RMAB=n=>'특성 : '+String(n||'').replace(/『|』/g,'').trim();
+function wordHelpHTML(){return window.MKM_POTLINT?`<details class="wordbox" data-wordbox><summary>✍ 워딩 도우미 <span class="small muted" data-wcount></span></summary><div data-wbody></div></details>`:''}
+/* 고칠 곳 · 추천 구문 상자. ta = 효과 글, auto() = 구문 칸(없으면 null), onAuto = 구문 칸을 바꾼 뒤 */
+function wordHelpBind(l,ta,auto,onAuto){const W=window.MKM_POTLINT,box=$('[data-wordbox]',l);if(!W||!box||!ta)return ()=>{};let F=[],DS=[];const sh=v=>v===''?'(없음)':v.replace(/\n/g,'↵');
+ const upd=()=>{const txt=ta.value;F=txt.trim()?W.check(txt):[];const fx=txt.trim()?W.fixAll(txt):'';const sg=fx?W.suggest(fx):{lines:[],timing:''};DS=sg.lines||[];
+  $('[data-wcount]',l).textContent=!txt.trim()?'':(F.length?`고칠 곳 ${F.length}`:'문장 꼴 OK')+(DS.length?` · 추천 구문 ${DS.length}줄`:'');box.classList.toggle('has',!!F.length);
+  $('[data-wbody]',l).innerHTML=!txt.trim()?'<div class="small muted">효과를 쓰면 DB 문장 꼴(【1/시】/ · 「공격 : +1」한다 · 강화(1.5배) · 턴 종료 시까지 …)과 비교해 고칠 곳을 알려 준다.</div>':
+   (F.length?`<div class="wrow"><b class="small">고칠 곳</b><span class="sp"></span><button type="button" class="btn sm" data-wfa>모두 고치기</button></div><ul class="wlist">${F.map((f,i)=>`<li><span class="small">${esc(f.msg)}</span><br><code>${esc(sh(f.from))}</code> → <code>${esc(sh(f.to))}</code> <button type="button" class="btn sm ghost" data-wf1="${i}">이것만 고치기</button></li>`).join('')}</ul>`:'<div class="small okc">DB 문장 꼴과 어긋나는 곳을 못 찾았다</div>')+
+   (DS.length?`<div class="wrow" style="margin-top:6px"><b class="small">추천 자동화 구문</b>${F.length?'<span class="small muted">(고친 문장 기준)</span>':''}<span class="sp"></span>${auto()?'<button type="button" class="btn sm" data-wds>구문 칸에 덧붙이기</button>':''}</div><div class="wdsl">${DS.map(x=>`<code>${esc(x)}</code>`).join('')}</div>`:'<div class="small muted" style="margin-top:6px">자동화 구문으로 옮길 만한 효과는 못 찾았다 (조건 · 특수 효과는 GM이 손으로 · 아래 생성기)</div>')};
+ l.addEventListener('click',e=>{let b;if((b=e.target.closest('[data-wf1]'))){ta.value=W.fixOne(ta.value,F[+b.dataset.wf1]);ta.dispatchEvent(new Event('input',{bubbles:true}));return}
+  if(e.target.closest('[data-wfa]')){ta.value=W.fixAll(ta.value);ta.dispatchEvent(new Event('input',{bubbles:true}));toast('DB 문장 꼴로 고쳤습니다 · 뜻이 바뀌지 않았는지 한 번 읽어 보세요');return}
+  if(e.target.closest('[data-wds]')){const a=auto();if(!a)return;const have=a.value.split('\n').map(x=>x.trim()).filter(Boolean),add=DS.filter(x=>!have.includes(x.trim()));if(!add.length)return toast('추천 줄은 이미 구문 칸에 있습니다');a.value=[...have,...add].join('\n');const d=a.closest('details');if(d)d.open=true;if(onAuto)onAuto();toast(`${add.length}줄을 구문 칸에 덧붙였습니다`)}});
+ ta.addEventListener('input',upd);upd();return upd}
+function abilAssist(l,oldName){const host=$('[data-abassist]',l),ta=$('[data-f="2"]',l),nm=$('[data-f="1"]',l);if(!host||!ta||!nm)return null;
+ const row=n=>(S.db.rm||[]).find(x=>x[0]===RMAB(n));const r0=oldName?row(oldName):null;
+ host.innerHTML=`${wordHelpHTML()}<details class="autobox" ${r0&&String(r0[2]||'').trim()?'open':''}><summary>⚙ 자동화 구문 <span class="small muted" data-autohint></span></summary>
+  <div class="small muted" style="margin:4px 0">오레마스(배틀 웹툴)에서 이 특성을 자동으로 처리할 내용 — 레디메이드 DB 「특성 : 이름」 줄에 저장된다. 한 줄에 명령 하나 — 예: <code>랭크 공격+1 임시</code> · <code>완화 ×0.5 타입:불꽃</code> · <code>상태확률 마비 30% 상대1체</code></div>
+  <textarea data-abauto rows="4" style="width:100%;font-family:var(--mono,monospace);font-size:12.5px" placeholder="(비우면 손으로 · 레디메이드 줄이 있으면 그 구문만 비운다)">${esc(r0?r0[2]||'':'')}</textarea>
+  <div class="small" data-autoprev style="white-space:pre-wrap;margin-top:4px"></div><div data-autogen></div>
+  <details><summary class="small">구문 도움말</summary><pre class="small" style="white-space:pre-wrap">${esc(AUTO_HELP)}</pre></details></details>`;
+ const at=$('[data-abauto]',l),pv=$('[data-autoprev]',l),hint=$('[data-autohint]',l);
+ const prev=()=>{const K=window.OM_FX;const v=at.value.trim();if(!K){pv.innerHTML=FXST==='fail'?'<span class="warn">구문 스크립트를 불러오지 못했다</span> '+fxRetryBtn():'<span class="muted">구문 스크립트를 불러오는 중…</span>';hint.textContent=v?'구문 있음':'없음';return}
+  if(!v){pv.innerHTML='';hint.textContent='없음';return}const r=K.parse(v);pv.innerHTML=(r.ops.length?'미리보기: '+esc(K.unparse(r.ops).join(' / ')):'')+(r.errs&&r.errs.length?` <span class="warn">모르는 줄: ${esc(r.errs.join(' / '))}</span>`:'');hint.textContent=r.ops.length?`구문 ${r.ops.length}줄`:'구문 없음'};
+ at.addEventListener('input',prev);wordHelpBind(l,ta,()=>at,prev);prev();
+ loadFx().then(()=>{prev();const gh=$('[data-autogen]',l);if(gh&&window.OM_FX_UI&&OM_FX_UI.mountGen&&!gh.childElementCount)OM_FX_UI.mountGen(gh,at,{toast})});
+ return {save(name){const dsl=at.value.trim();const key=RMAB(name),ok=oldName?RMAB(oldName):'';if(!Array.isArray(S.db.rm))S.db.rm=[];S.custom.rm=S.custom.rm||[];
+  let r=S.db.rm.find(x=>x[0]===key);const ro=ok&&ok!==key?S.db.rm.find(x=>x[0]===ok):null;
+  if(ro&&!r){if(!dsl)return;ro[0]=key;r=ro;const ci=S.custom.rm.indexOf(ok);if(ci>=0)S.custom.rm[ci]=key}
+  if(r){if(String(r[2]||'').trim()===dsl)return;r[2]=dsl;if(!r[1])r[1]=ta.value;return}
+  if(!dsl)return;S.db.rm.unshift([key,ta.value,dsl,'','']);if(!S.custom.rm.includes(key))S.custom.rm.push(key)}}}
 function openEdit(kind,i,{preset={},onSaved}={}){const D=DBS[kind];
  const r=i<0?D.cols.map((_,n)=>preset[n]??(kind==='moves'?({0:'1.5',1:'#오리지널',5:'노말',6:'물리',7:'0',8:'100',9:'1체',10:'O',11:'0',12:'-',14:'공격',15:'방어',17:'오리지널',18:'1',19:'1'}[n]??''):kind==='abil'?({0:'1',3:'X',4:'X'}[n]??''):kind==='items'?({0:'기타',3:'-',5:'1',6:'-'}[n]??''):'')):S.db[kind][i];
  const order=kind==='moves'?[2,5,6,0,7,8,9,10,11,12,14,15,18,19,1,17,3,4,16,13]:D.cols.map((_,n)=>n);
  const l=openModal(`<div class="mhead"><h2>${D.t} ${i<0?'오리지널 만들기':'수정'}</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
  <div class="mbody"><datalist id="L-kinds">${[...new Set(S.db.pots.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist><datalist id="L-ikinds">${[...new Set(S.db.items.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist>
- <div class="fgrid">${order.map(n=>fieldHTML(kind,n,r[n])).join('')}</div><div class="preview" data-prev></div></div>
+ <div class="fgrid">${order.map(n=>fieldHTML(kind,n,r[n])).join('')}</div><div class="preview" data-prev></div>${kind==='abil'?'<div data-abassist></div>':''}</div>
  <div class="mfoot">${i>=0?'<button class="btn danger" data-del>삭제</button>':''}<label class="row small" style="gap:4px" title="오리지널로 표시 · 포켓몬 만들 때 특성 · 기술 목록에서는 「오리지널 보기」를 눌러야 보인다"><input type="checkbox" data-origchk ${i<0||S.custom[kind].includes(r[D.key])?'checked':''}>오리지널</label>${kind==='moves'?`<label class="row small" style="gap:4px" title="켜면 『올드 타입』 계열이 아닌 포켓몬의 기술 목록에는 안 뜬다"><input type="checkbox" data-oldchk ${i>=0&&mvOldOnly(r)?'checked':''}>올드 타입 전용</label>`:''}<span class="sp"></span><button class="btn" data-x>취소</button><button class="btn pri" data-save>저장</button></div>`,{wide:true});
  const rgi=kind==='moves'?$('[data-f="9"]',l):null;if(rgi)rgi.addEventListener('input',()=>{$('[data-rg]',l).innerHTML=rangeGrid(rgi.value)});
  if(kind==='st'){const inp=$('[data-f="12"]',l),im=$('[data-sticon]',l),fi=$('[data-sticonf]',l);const show=()=>{im.src=stIcon(inp.value.trim());im.style.visibility=inp.value.trim()?'visible':'hidden'};inp.addEventListener('input',show);
@@ -1221,6 +1254,7 @@ function openEdit(kind,i,{preset={},onSaved}={}){const D=DBS[kind];
    const shrink=async(maxH,q)=>{const bmp=await createImageBitmap(f);const sc=Math.min(1,maxH/bmp.height);const cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(bmp.width*sc));cv.height=Math.max(1,Math.round(bmp.height*sc));cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);return cv};
    try{const cv=await shrink(720);const blob=await new Promise(r=>cv.toBlob(r,'image/webp',0.88));const u=await putImg(`cards/${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`,blob||f);inp.value=u;show();toast('올렸습니다 — 「저장」을 누르세요')}
    catch(err){toast('그림을 올리지 못했습니다: '+(err&&err.message||err)+' — 주소를 직접 넣어 주세요')}})}   /* 10-26: 글자 주소(data:) 로 넣지 않는다 — 카드 DB 줄은 공유 DB(docs)에 들어가 모든 제작기 · 오레마스가 처음에 통째로 받으니 용량이 커진다 */
+ const abA=kind==='abil'?abilAssist(l,i>=0?r[1]:''):null;   /* 11-01 망령 「특성 쪽엔 구문 도우미가 없더라고」 */
  if(kind==='rm'&&window.OM_FX){const ds=$('[data-f="2"]',l),pv=$('[data-rmprev]',l);const up=()=>{const r=window.OM_FX.parse(ds.value);pv.innerHTML=(r.ops.length?'미리보기: '+esc(window.OM_FX.unparse(r.ops).join(' / ')):'<span class="muted">구문 없음</span>')+(r.errs&&r.errs.length?` <span class="warn">모르는 줄: ${esc(r.errs.join(' / '))}</span>`:'')};ds.addEventListener('input',up);up()}
  if(kind==='rm'&&window.OM_FX&&window.OM_FX.rmChance){const pi=$('[data-f="4"]',l),tx=$('[data-f="1"]',l),nm=$('[data-f="0"]',l),ph=$('[data-rmpct]',l);const up2=()=>{if(!pi||!ph)return;const F=window.OM_FX;const v=pi.value.trim();let t=tx?tx.value:'';if(!t&&F.effOf&&nm){const mm=nm.value.match(/^(특성|소지품)\s*:\s*(.+)$/);t=mm?F.effOf(mm[1]==='특성'?'trait':'item',mm[2]):''}const d=F.rmChance({text:t});ph.textContent=v!==''&&+v>0?(+v>=100?' 늘 발동 (굴리지 않음)':` ${+v}% 로 굴린다`):(d?` 지금은 글에서 읽은 ${d}% 로 굴린다`:' 확률 없음 — 늘 발동')};[pi,tx,nm].forEach(x=>x&&x.addEventListener('input',up2));up2()}   /* 10-24 망령: 레디메이드 확률 칸 */
  if(kind==='cards'){const ta=$('[data-f="9"]',l),pv=$('[data-cardauto]',l);if(ta&&pv){const up=()=>{const K=window.OM_FX;const v=ta.value.trim();if(!K||!v){pv.innerHTML='';return}const r=K.parse(v);pv.innerHTML=(r.ops.length?'미리보기: '+esc(K.unparse(r.ops).join(' / ')):'')+(r.errs&&r.errs.length?` <span class="warn">모르는 줄: ${esc(r.errs.join(' / '))}</span>`:'')};ta.addEventListener('input',up);up()}}
@@ -1245,7 +1279,7 @@ function openEdit(kind,i,{preset={},onSaved}={}){const D=DBS[kind];
    else{const old=S.db[kind][i][D.key];S.db[kind][i]=nr;const ci=S.custom[kind].indexOf(old);if(ci>=0)S.custom[kind][ci]=nr[D.key];
     if(old!==nr[D.key]){const n=renameRefs(kind,old,nr[D.key]);if(n){save();setTimeout(()=>toast(`캐릭터 시트 ${n}곳의 이름도 바꿨습니다`),1900)}}}
    {const oc=$('[data-origchk]',l);if(oc){const ci=S.custom[kind].indexOf(nr[D.key]);if(oc.checked&&ci<0)S.custom[kind].push(nr[D.key]);else if(!oc.checked&&ci>=0)S.custom[kind].splice(ci,1)}}   /* 10-26 망령: 오리지널 구분을 직접 */
-   reindex();save(true);closeModal();toast('DB에 저장했습니다');onSaved?onSaved(nr[D.key]):refreshAll()}})}
+   if(abA)abA.save(nr[1]);reindex();save(true);closeModal();toast('DB에 저장했습니다');onSaved?onSaved(nr[D.key]):refreshAll()}})}
 /* 오리지널 소지품 (시트에만) — DB 는 건드리지 않고 p.item · p.itemOwn 만 바꾼다. 오레마스로는 시트 그대로 넘어간다 */
 function openOwnItem(P,name,done){const o0=ownItem(P)&&(!name||name===P.item)?ownItem(P):null;const o=Object.assign({name:name||'',kind:'오리지널',cons:false,sock:'-',eff:'',auto:''},o0?clone(o0):{name:name||''});
  const l=openModal(`<div class="mhead"><h2>오리지널 소지품 · 이 포켓몬만</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
@@ -1966,6 +2000,16 @@ function pngFix(cdoc,root){const W=cdoc.defaultView;if(!W)return;const css=[];le
 
 /* 10-22 망령: 포켓몬 한 장 요약 — 이름·타입·특성·기술·능력치·상성·전용·포텐셜을 한 화면에 (PNG 로 저장) */
 function fxTxt(s){return esc(brN(s)).replace(/\n/g,'<br>').replace(/「([^」<]{1,40})」/g,'<span class="cq">「$1」</span>').replace(/『([^』<]{1,40})』/g,'<span class="cq2">『$1』</span>').replace(/【([^】<]{1,30})】/g,'<span class="cq3">【$1】</span>')}
+/* 11-01 망령 「한 장 보기 — 메모가 보기 어렵고 포텐셜 아래로 가 있다, 위치 조정하고 꾸며」: 메모는 왼쪽 칸(받는 상성 아래) 카드로.
+   【제목】 줄은 머리띠(뒤 글은 부제), 「이름: 값」 줄은 이름표 + 값, 그 밖의 줄은 문단 */
+function pcdMemoHTML(memo,edBtn){const L=String(memo||'').replace(/\r/g,'').split('\n');const out=[];let kv=[];
+ const flush=()=>{if(kv.length){out.push(`<dl class="pcd-mkv">${kv.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${fxTxt(v)}</dd>`).join('')}</dl>`);kv=[]}};
+ for(const raw of L){const x=raw.trim();if(!x){flush();continue}
+  let m=x.match(/^【([^】]{1,24})】\s*(.*)$/);if(m){flush();const [nm,...rest]=m[2].split(/\s*·\s*/);out.push(`<div class="pcd-mhd"><span class="pcd-mtag">${esc(m[1])}</span>${nm?`<b>${esc(nm)}</b>`:''}${rest.length?`<span class="pcd-msub">${rest.map(esc).join(' · ')}</span>`:''}</div>`);continue}
+  m=x.match(/^([^:：\s][^:：]{0,11})\s*[:：]\s*(.+)$/);if(m&&!/^https?$/i.test(m[1])){kv.push([m[1],m[2]]);continue}
+  flush();out.push(`<p>${fxTxt(x)}</p>`)}
+ flush();
+ return `<div class="pcd-memo"><div class="pcd-h">메모${edBtn||''}</div>${out.length?`<div class="pcd-mbody">${out.join('')}</div>`:'<div class="small faint">비어 있다</div>'}</div>`}
 function pokeCardHTML(t,p,ed){const E=(k,v,tt,x)=>ed?`<button type="button" class="pce${x?' '+x:''}" data-pce="${k}"${v!=null?` data-v="${esc(v)}"`:''} title="${esc(tt||'고치기')}">${x==='add'?'＋':x==='del'?'×':'✎'}</button>`:'';   /* 10-24 망령: 한 장 요약에서 바로 고치기 · 더하기 (ed) */const tys=[p.t1,p.t2,p.t3].filter(x=>x&&x!=='-').flatMap(tyParts);const ab=idx.abil.get(p.ability),it=itemRow(p);
  const tot=p.base.reduce((a,b)=>a+(+b||0),0);const cap=moveCap(t,p);
  const mv=p.moves.filter(m=>m.name&&!m.hide).map(m=>{const r=idx.moves.get(m.name)||[];   /* 「숨김」 기술은 한 장 요약에 안 나온다 */const g=i=>r[i]??'';const ti=typeInfo(g(5));return {name:m.name,ty:g(5),bg:ti&&safeCss(ti[1])||'var(--sunk2)',fg:ti&&safeCss(ti[2])||'var(--ink)',cat:g(6),pow:g(7),acc:g(8),range:g(9),prio:g(11),eff:g(13)}});
@@ -1976,17 +2020,17 @@ function pokeCardHTML(t,p,ed){const E=(k,v,tt,x)=>ed?`<button type="button" clas
  return `<div class="pcd" style="${pkVars(p)}"><div class="pcd-l">
   <div class="pcd-hd"><div class="pcd-img">${safeImg(p.image)?`<img src="${safeImg(p.image)}" alt="">`:'<span class="pav ph0"></span>'}</div>
    <div class="pcd-ttl"><div class="pcd-nm">${p.partner?'<span class="pstar">★</span>':''}${esc(p.name||'(이름 없음)')}${genderGlyph(p.gender)}<span class="lvb">Lv.${lv(t,p)}</span>${E('name',null,'이름 고치기')}</div>
-    <div class="pcd-sub">${esc(sub)}${t.name?` · <span class="faint">${esc(t.name)}</span>`:''}</div>
+    <div class="pcd-sub">${esc(sub)}</div>
     <div class="pcd-tags"><span class="chips">${tchip(p.t1)}${tchip(p.t2)}${tchip(p.t3)}</span>${E('types',null,'타입 · 테라 · 알그룹 고치기')}${p.tera&&p.tera!=='-'?`<span class="pcd-k">테라</span><span class="chips">${tchip(p.tera)}</span>`:''}${[p.egg1,p.egg2].some(x=>x&&x!=='-')?`<span class="pcd-k">알그룹</span><span class="pcd-v">${esc([p.egg1,p.egg2].filter(x=>x&&x!=='-').join(' · '))}</span>`:''}</div>
-   </div></div>${awOf(t,p)?`<div class="pcd-aw"><span class="tpaw ${awOf(t,p)}">${esc(AW_LAB[awOf(t,p)])}</span>${misagPenHTML(t,'pcd')}</div>`:''}
+   </div></div>${t.name?`<div class="pcd-trn"><span class="pcd-k">트레이너</span><b>${esc(t.name)}</b></div>`:''}${awOf(t,p)?`<div class="pcd-aw"><span class="tpaw ${awOf(t,p)}">${esc(AW_LAB[awOf(t,p)])}</span>${misagPenHTML(t,'pcd')}</div>`:''}
   <div class="pcd-ab"><span class="pcd-k">특성</span><b>${esc(p.ability||'-')}</b>${E('abil',null,'특성 고르기')}${ab?`<div class="pcd-e">${fxTxt(ab[2])}</div>`:''}</div>
   ${p.item||ed?`<div class="pcd-ab"><span class="pcd-k">도구</span><b>${esc(p.item||'-')}</b>${E('item',null,'도구 고르기')}${ed&&p.item?E('itemx',null,'도구 빼기','del'):''}${it?`<div class="pcd-e">${fxTxt(it[4])}</div>`:''}</div>`:''}${(p.items2||[]).filter(x=>x.item).map(x=>{const r=itemRow(x);return `<div class="pcd-ab"><span class="pcd-k">도구</span><b>${esc(x.item)}</b>${r?`<div class="pcd-e">${fxTxt(r[4])}</div>`:''}</div>`}).join('')}
   <div class="pcd-st">${STATS.map((sn,i)=>{const eb=effB(t,p)[i];const tip=buTip(t,p,i);const v=+eb||0,g=grade(eb);return `<div class="pcd-sr" ${tip?`title="${esc(tip)}"`:''}><span class="pcd-sl">${sn}</span><span class="pcd-bar"><i style="width:${Math.min(100,v/180*100)}%;background:${gcol(g)}"></i></span><b class="pcd-g" style="background:${gcol(g)}">${tip?'▲':''}${esc(g)}</b><span class="num pcd-sv">${p.base[i]===''?'-':v}</span><span class="num faint pcd-sa">${p.base[i]===''?'':stat(t,p,i)}</span></div>`}).join('')}<div class="pcd-tot small muted">${E('base',null,'종족치 고치기')}종족치 합 <b class="num">${tot}</b>${cap.cap!=null?` · 기술 ${capTxt(cap,'-','/')}`:''}</div></div>
-   <div class="pcd-ty"><div class="pcd-h">받는 상성</div>${grp.length?grp.map(g=>`<div class="pcd-tg ${g.c}"><span>${g.l}</span><div class="chips">${g.list.map(a=>tchip(a)).join('')}</div></div>`).join(''):'<div class="small faint">타입이 없다</div>'}</div></div>
+   <div class="pcd-ty"><div class="pcd-h">받는 상성</div>${grp.length?grp.map(g=>`<div class="pcd-tg ${g.c}"><span>${g.l}</span><div class="chips">${g.list.map(a=>tchip(a)).join('')}</div></div>`).join(''):'<div class="small faint">타입이 없다</div>'}</div>${p.memo||ed?pcdMemoHTML(p.memo,E('memo',null,'메모 고치기')):''}</div>
   <div class="pcd-flow"><div class="pcd-mvc">${mv.length||ed?`<div class="pcd-h">기술 <span class="faint">${mv.length}</span>${E('mvadd',null,'기술 검색 · 추가 · 빼기','add')}</div>${mv.map(m=>`<div class="pcd-m" style="--mb:${m.bg};--mf:${m.fg}"><div class="pcd-mh"><b>${esc(m.name)}</b><span class="pcd-mt">${esc(m.ty)}</span>${E('mved',m.name,'다른 기술로 바꾸기')}${E('mvdel',m.name,'이 기술 빼기','del')}</div><div class="pcd-mm">${esc(m.cat||'-')} · 위력 ${esc(m.pow||'-')} · 명중 ${esc(m.acc||'-')} · ${esc(m.range||'-')}${m.prio&&+m.prio?` · 우선 ${esc(m.prio)}`:''}</div>${m.eff&&m.eff!=='-'?`<div class="pcd-e">${fxTxt(m.eff)}</div>`:''}</div>`).join('')}`:''}
   </div><div class="pcd-ptc">${XL.length||ed?`<div class="pcd-h">전용 포텐셜${E('exadd',null,'전용 포텐셜 더하기','add')}</div>${XL.map(x=>`<div class="pcd-x"><b>『${esc(x.name)}』</b>${E('exed',x===p.excl?'excl':'x'+(p.exclX||[]).indexOf(x),'전용 포텐셜 고치기')}<div class="pcd-e">${fxTxt(x.eff)}</div></div>`).join('')}`:''}
   ${pots.length||ed?`<div class="pcd-h">포텐셜 <span class="faint">${pots.length}</span>${p.pots.some(n=>!n)?E('potadd',null,'빈 칸에 포텐셜 더하기','add'):''}</div><div class="pcd-ptg">${pots.map(x=>`<div class="pcd-p"><span class="pcd-pk">${esc(x.k||SLOTS[x.i]||'')}</span><b>『${esc(x.n)}』</b>${E('poted',x.i,'포텐셜 고치기')}${E('potdel',x.i,'이 포텐셜 빼기','del')}<div class="pcd-e">${fxTxt(x.e)}</div></div>`).join('')}</div>`:''}
-  ${p.memo||ed?`<div class="pcd-h">메모${E('memo',null,'메모 고치기')}</div><div class="pcd-e pcd-memo">${esc(p.memo||'')}</div>`:''}</div></div></div>`}
+  </div></div></div>`}
 /* 10-22 망령: 로그 탭(logtool/, 같은 출처 iframe)의 「제작기 그림 잇기」가 읽는 캐릭터 그림 목록 */
 window.MKM_CHARS=()=>S.trainers.flatMap(t=>[{name:t.name,image:safeImg(t.image)||'',kind:'trainer'},...(t.pokemon||[]).map(p=>({name:p.name,image:safeImg(p.image)||'',kind:'poke'}))]).filter(x=>x.name&&x.image);
 function goPoke(T,P){T.open=true;P.open=true;save();refreshTrainer(T);requestAnimationFrame(()=>{const el=document.getElementById('pk-'+P.id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'})})}
@@ -3345,7 +3389,7 @@ function embRender(root){const wait=embMake();if(wait){root.innerHTML=`<div clas
  if(ti<0){root.innerHTML=`<div class="empty">${SH.on&&!SH.ready?'공유 DB 에서 트레이너를 불러오는 중…':'이 트레이너를 찾지 못했습니다 (비공개라면 「서명」을 확인하세요)'}</div>`;return true}
  const t=S.trainers[ti];if(!EMB.done){t.open=true;const p=EMB.p&&t.pokemon.find(x=>x.id===EMB.p);if(p){p.open=true;if(!p.tab)p.tab='base'}}
  root.innerHTML=`<div id="trs" class="embtrs">${trainerHTML(t,ti)}</div>`;fitFlist(root);
- if(!EMB.done){EMB.done=true;if(!EMB.one)setTimeout(()=>{const el=(EMB.sec&&document.querySelector('#tr-'+t.id+' .'+EMB.sec.replace(/[^a-z]/g,'')))||document.getElementById(EMB.p?'pk-'+EMB.p:'tr-'+t.id);if(el&&EMB.sec){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600)}if(el){const hd=document.querySelector('header.top');const off=EMB.embed||!hd?0:hd.offsetHeight;window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-off-8)})}},120)}
+ if(!EMB.done){EMB.done=true;if(EMB.sec==='pcard'){const pp=EMB.p&&t.pokemon.find(x=>x.id===EMB.p);if(pp)setTimeout(()=>openPokeCard(t,pp),150)}else if(!EMB.one)setTimeout(()=>{const el=(EMB.sec&&document.querySelector('#tr-'+t.id+' .'+EMB.sec.replace(/[^a-z]/g,'')))||document.getElementById(EMB.p?'pk-'+EMB.p:'tr-'+t.id);if(el&&EMB.sec){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600)}if(el){const hd=document.querySelector('header.top');const off=EMB.embed||!hd?0:hd.offsetHeight;window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-off-8)})}},120)}
  return true}
 /* 10-30 망령 「포켓몬 고치기를 누르면 제작기가 이상하게 떠 — 그 포켓몬 고치는 칸만 나오면 될 거 아니야」:
    ?p= 가 있으면 그 포켓몬 시트 한 장만 (위에 트레이너 이름 · 통솔점 · PT 기술점 한 줄). 「트레이너 전체 보기」로 예전처럼 */

@@ -711,7 +711,7 @@ html.modal-on #mk{overflow:hidden}
 #mk .pcd-ab{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;padding:5px 8px;border-radius:9px;background:color-mix(in srgb,var(--surface) 82%,transparent);border:1px solid var(--line)}
 #mk .pcd-ab>b{font-size:13px}#mk .pcd-ab>.pcd-e{flex:1 1 100%;margin:0}
 #mk .pcd-e{font-size:11.5px;line-height:1.45;color:var(--ink2,var(--ink));margin-top:1px}
-#mk .pcd-memo{white-space:pre-wrap;padding:4px 2px}
+#mk .pcd-memo{padding:0}
 #mk .pcd-st,#mk .pcd-ty{padding:7px 9px;border-radius:10px;background:var(--sunk);border:1px solid var(--line)}
 #mk .pcd-sr{display:grid;grid-template-columns:38px minmax(0,1fr) 30px 30px 30px;gap:5px;align-items:center;padding:1px 0}
 #mk .pcd-sl{font-size:11px;font-weight:700;color:var(--muted)}
@@ -1231,3 +1231,27 @@ html #mk .tfh.ftile.fmisag .favstar{color:#c9a24a!important}
 #mk .mpen.tc .mpen-q{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:11px}
 #mk .mgnote{display:block;margin-top:8px}
 #mk .mgnote textarea{width:100%;margin-top:4px;resize:vertical}
+
+/* 11-01 망령 「한 장 보기 — 왼쪽 위 트레이너가 잘린다 · 포텐셜 태그가 여러 개면 괄호와 글자가 겹친다」
+   트레이너는 머리 아랫줄 한 줄로. 크롬의 text-spacing-trim(】【 처럼 붙은 전각 괄호를 반각으로 줄임)이 Noto Sans KR 에서 괄호를 글자 위로 겹치게 해서 끈다 */
+#mk .pcd-trn{display:flex;align-items:baseline;gap:6px;margin:-2px 0 2px;padding:4px 8px;border-left:3px solid var(--c1,var(--accent));background:color-mix(in srgb,var(--ink) 5%,transparent);font-size:12px;min-width:0}
+#mk .pcd-trn b{font-weight:700;overflow-wrap:anywhere}
+#mk,#mk .pcd,#mk .cq,#mk .cq2,#mk .cq3{text-spacing-trim:space-all}
+#mk .cq3+.cq3{margin-left:1px}
+/* 11-01 망령: 한 장 요약 메모 카드 (왼쪽 칸) */
+#mk .pcd-memo{display:flex;flex-direction:column;gap:6px;padding:8px 10px 10px;border-radius:10px;border:1px solid var(--line);background:color-mix(in srgb,var(--ink) 4%,transparent);min-width:0}
+#mk .pcd-memo>.pcd-h{margin:0}
+#mk .pcd-mbody{display:flex;flex-direction:column;gap:7px;font-size:12px;line-height:1.55;min-width:0}
+#mk .pcd-mbody p{margin:0;overflow-wrap:anywhere}
+#mk .pcd-mhd{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;padding:6px 8px;border-radius:7px;border-left:3px solid var(--c1,var(--accent));background:color-mix(in srgb,var(--c1,var(--accent)) 14%,transparent)}
+#mk .pcd-mtag{font-size:10px;font-weight:800;letter-spacing:.06em;padding:1px 7px;border-radius:999px;background:var(--ink);color:var(--bg)}
+#mk .pcd-mhd b{font-size:14px;font-weight:800}
+#mk .pcd-msub{flex-basis:100%;font-size:11px;color:var(--muted)}
+#mk .pcd-mkv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;margin:0}
+#mk .pcd-mkv dt{font-size:10.5px;font-weight:700;color:var(--muted);padding:2px 0 0;white-space:nowrap;text-align:right}
+#mk .pcd-mkv dd{margin:0;overflow-wrap:anywhere}
+#mk .pcd-mkv dt+dd{border-bottom:1px dashed color-mix(in srgb,var(--ink) 12%,transparent);padding-bottom:4px}
+#mk .pcd-mkv dd:last-of-type{border-bottom:0;padding-bottom:0}
+html[data-vt="mm"] #mk .pcd-mtag{background:#cfae6e;color:#1a140d}
+html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
+#mk .wdsl code{display:block}   /* 11-01 특성 워딩 도우미: 추천 줄 한 줄씩 */
