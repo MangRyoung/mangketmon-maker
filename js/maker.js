@@ -327,7 +327,7 @@ const PRIDE_DEF={v:PRIDE_V,
  rows:[['C','1','480','40','1',''],['C+','1.5','503','43','1','최소종족치 임시'],['B','2','525','45','1',''],['B+','2.5','548','48','1','최소종족치 임시'],['A','3','570','50','1.5','특성 TO 덤 0.5 · 되팔 수 없음'],['EX','4','630','55','2','본가 전설종 또는 그에 준하는 스펙 · 직접 지정']],
  oldLow:{lab:'D',pt:'0.5',v:'455',prank:'짓궂은마음'},oldCap:'600',
  friendly:{name:'프렌들리 몬스터',d:'10',max:'B'},
- toStep:'45',toDown:'25',toFloor:'1',realMin:'400',absMin:'31',opp:'0.4',weakAtk:'60',
+ toStep:'45',toDown:'25',toFloor:'1',toMin:'0.5',realMin:'400',absMin:'31',opp:'0.4',weakAtk:'60',
  bulk:{lo:'85',hi:'105',k1:'0.5',k2:'0.75'},
  hp:{lo:'95',hi:'120',k1:'0.5',k2:'0.75'},
  fs:{lo:'105',hi:'120',k1:'0.5',k2:'1',slo:'90',shi:'140'},
@@ -389,7 +389,7 @@ function customCalc(p,t){const R=PR(),b=baseNums(p),real=b.reduce((a,c)=>a+c,0),
  const pri0=prioInfo(p),ov=String(p.prioOv??'').trim(),pri=ov===''?pri0:{floor:Math.max(0,pnum(ov,0)),src:pnum(ov,0)?'직접 지정':'직접 지정 · 없음',kind:'예외',auto:pri0,ov:true},opp=Math.round(main*pnum(R.opp,0.4)),s0=abSock(p),sb=sockBonus(p).ab,s=s0==null?null:Math.max(0,+(s0-sb).toFixed(2)),per=pnum(R.toStep,45)*2,perD=pnum(R.toDown,25)*2,toF=pnum(R.toFloor,1);
  const steps=prSteps().filter(x=>!isEX(x));let last=null;
  for(const st of steps){const fa=Math.max(0,Math.max(st.floor,b[1]<main?opp:0)-b[1]),fc=Math.max(0,Math.max(st.floor,b[3]<main?opp:0)-b[3]);const sf=Math.max(st.floor,pri.floor),fsp=Math.max(0,sf-b[5]);
-  const to=s==null?st.to:s;const toAdj=per*Math.max(0,to-st.to)-perD*Math.max(0,toF-to);   /* 10-27 망령: 1보다 내릴 때(되팔기)는 0.5당 25 (올릴 때 45 와 따로) */
+  const to=s==null?st.to:s;const toAdj=per*Math.max(0,to-st.to)-perD*Math.max(0,toF-Math.max(to,pnum(R.toMin,0.5)));   /* 11-01 망령 「0특 끼면 종족치뻥이 너무 많다 — 0특은 0.5랑 감소치 같게」: 되팔기는 TO 0.5 까지만 (toMin) */   /* 10-27 망령: 1보다 내릴 때(되팔기)는 0.5당 25 (올릴 때 45 와 따로) */
   const ct=real+fa+fc+fsp+bulk+hp+fs-dual+toAdj,cap=stepCap(st,down);last={real,b,fa,fc,fsp,sf,off:fa+fc+fsp,opp,bulk,hp,fs,dual,dualRaw,dualOk,pri,to,toRaw:s0,toBon:sb,toBase:st.to,toAdj,ct,step:st,cap,down,ok:ct<=cap+1e-9};if(last.ok)return last}
  return last||{real,b,ct:real,step:null,cap:0,down,ok:false,off:0,bulk:0,hp:0,fs:0,dual:0,toAdj:0,pri,opp,fa:0,fc:0,fsp:0,sf:0}}
 /* 올드 타입 */
@@ -502,7 +502,7 @@ function prideRulePanel(){const R=PR();const f=(path,v,w,ph)=>`<input data-p="db
   <p class="small muted" style="margin:0 0 8px">포켓몬 프라이드를 「자동」으로 두면 커스텀은 <b>계산 종족치</b>(실제 합 + 하한분 + 내구·HP·화력·스피드 할증 − 쌍두 할인 + 특성 TO 조정)를 담을 수 있는 가장 낮은 계단, 올드 타입은 실제 합을 버림한 계단이 됩니다. 여기 숫자를 바꾸면 모든 시트의 계산 · 막대 표시 · 경고 · 통솔점 자동 소모가 바로 따라갑니다. EX 계단은 자동으로 고르지 않고 직접 지정할 때만 씁니다.</p>
   <div class="tw"><table><tr><th>계단</th><th class="n">통솔점</th><th class="n">종족치 합</th><th class="n">최소종족치 (하한)</th><th class="n">기본 특성 TO</th><th>비고</th><th></th></tr>${R.rows.map((r,i)=>`<tr>${[0,1,2,3,4,5].map(j=>`<td${j&&j<5?' class="n"':''}><input data-p="db.pride.rows.${i}.${j}" value="${esc(r[j]??'')}" style="width:${j===0?'52px':j===5?'100%':'64px'}" ${j&&j<5?'inputmode="decimal"':''}></td>`).join('')}<td><button class="btn sm ghost danger" data-tact="prRowDel" data-i="${i}" aria-label="계단 삭제">✕</button></td></tr>`).join('')}</table></div>
   <div class="prgrid">
-   <div class="prg"><b>공통</b>${L('절대 하한','absMin',R.absMin)}${L('실제 합 하한','realMin',R.realMin)}${L('반대쪽 공격 하한 = 주력 ×','opp',R.opp)}${L('특성 TO 0.5 올릴 때','toStep',R.toStep,'','점')}${L('기준보다 0.5 내릴 때','toDown',R.toDown??PRIDE_DEF.toDown,'','점')}${L('되팔기 기준 TO','toFloor',R.toFloor)}${L('PT 1체 제한: 공·특공 둘 다 미만','weakAtk',R.weakAtk)}</div>
+   <div class="prg"><b>공통</b>${L('절대 하한','absMin',R.absMin)}${L('실제 합 하한','realMin',R.realMin)}${L('반대쪽 공격 하한 = 주력 ×','opp',R.opp)}${L('특성 TO 0.5 올릴 때','toStep',R.toStep,'','점')}${L('기준보다 0.5 내릴 때','toDown',R.toDown??PRIDE_DEF.toDown,'','점')}${L('되팔기 기준 TO','toFloor',R.toFloor)}${L('되팔기 최저 TO (0특 = 이 값)','toMin',R.toMin??PRIDE_DEF.toMin)}${L('PT 1체 제한: 공·특공 둘 다 미만','weakAtk',R.weakAtk)}</div>
    ${grp('내구 할증 · 방어·특방 중 낮은 쪽',R.bulk,'bulk')}
    ${grp('HP 할증',R.hp,'hp')}
    ${grp('화력·스피드 할증 · 화력 점수',R.fs,'fs',`${L('스피드 비율 0','fs.slo',R.fs.slo)}${L('스피드 비율 1','fs.shi',R.fs.shi)}`)}
@@ -561,7 +561,7 @@ function s3val(v6,v1,unitKey){const R=RULES().solo3||SOLO3_DEF;if(R.keep==='1'&&
    items 행: [이름, 등급(B·A), 설명, 대상(type 타입 · role 역할 · 빈칸)] — 통솔 대가에서 GM이 등급마다 하나씩 고른다 */
 const MISAG_CATS=['지시','육성','통솔','능력'];
 const MISAG_ITEMS_DEF=[['B-1','B','PT에 특정 타입을 2체 이상 필수.','type'],['B-2','B','PT의 역할 중 1개(GM 지정)가 발동하지 않는다.','role'],['A-1','A','자신 이외의 아군 중 특정 타입이 한 체도 없으면 자신의 포텐셜이 발동하지 않는다.','type'],['A-2','A','이 각성체가 필드 위에 나와 있는 동안 아군의 역할을 무효화한다.','']];
-const MISAG_DEF={free:'1',fixC:'1',cmdItems:'통솔점',cmdRatio:'4/6',cmdUnit:'0.5',cmdRound:'floor',distCap:'10',grade:'C:-, C+:-, B:B, B+:B, A:A, EX:EX',ordB:'2',ordA:'1',distB:'10',distA:'10',typeN:'2',exclB:'1',uqA:'0.5',uqOn:'1',uqOnce:'0.5',awExcl:'2',g3:'D:2:0, C:3:0, B:3:2, A:3:4',twoB1:'1',twoRole:'1',items:MISAG_ITEMS_DEF};   /* 10-30 망령: g3 = 3계제권 「육성:각성체 1체당 계제·속별 개수:PL 4체 중 3개 습득 개체 수」, twoB1 · twoRole = 각성체 2체 몫 검사 켜기 */
+const MISAG_DEF={free:'1',fixC:'1',cmdItems:'통솔점',cmdRatio:'4/6',cmdUnit:'0.5',cmdRound:'floor',distCap:'10',grade:'C:-, C+:-, B:B, B+:B, A:A, EX:EX',ordB:'2',ordA:'1',distB:'10',distA:'10',typeN:'2',exclB:'1',uqA:'0.5',uqOn:'1',uqOnce:'0.5',awExcl:'2',plCut:'B-:1, B:2, A:2',g3:'D:2:0, C:3:0, B:3:2, A:3:4',twoB1:'1',twoRole:'1',items:MISAG_ITEMS_DEF};   /* 10-30 망령: g3 = 3계제권 「육성:각성체 1체당 계제·속별 개수:PL 4체 중 3개 습득 개체 수」, twoB1 · twoRole = 각성체 2체 몫 검사 켜기 */
 const isMisag=t=>!!(t&&t.misag);
 /* 10-28 망령: 「미사그 캠퍼스」 폴더(rule:'misag') — 그 안(하위 폴더 포함)에 넣은 트레이너는 미사그 대학 (4+2) 규칙이 저절로 켜진다.
    폴더가 켠 건 t.misagF 로 표시해 두고, 폴더 밖으로 꺼내면 6체 기준으로 돌려 놓는다. 캠퍼스 폴더는 고정 id 라 여러 브라우저가 만들어도 하나 */
@@ -607,6 +607,8 @@ function misagOrdNeed(t){const e=misagEff(t).지시;if(!e)return {c:0,o:0};const
 const misagOrdOff=(t,kind)=>{const L=misagPen(t).ordOff[kind];return Array.isArray(L)?L:[]};
 const misagOffNow=(t,kind)=>misagOrdNeed(t)[kind]?misagOrdOff(t,kind):[];   /* 지금 걸린 지시 대가로 빠진 것만 */
 const misagExclPen=t=>misagEff(t).능력?mnum('exclB'):0;
+/* 11-01 망령 「각성체는 (능력 표의) 상시 제한을 받지 않게 하는 대신 기본 전체 수를 깐다 — B-1 에서 1개 · B-2 에서 2개 · A 에서 2개」: PL 4체 몫(능력 표 6체 개수)에서 뺀다. 룰 상수 미사그 plCut 「능력:개수」 */
+function misagPlCut(t){const r=String((t.ranks||{})['능력']||'').trim();const L=String(MR().plCut??MISAG_DEF.plCut).split(/[,，]/).map(x=>x.split(':').map(y=>(y||'').trim())).filter(x=>x[0]);const hit=L.find(x=>x[0]===r)||L.find(x=>x[0]===strip(r)&&!/[+-]$/.test(x[0]));return hit?Math.max(0,+hit[1]||0):0}
 const misagUqPen=t=>misagEff(t).능력==='A'?mnum('uqA'):0;
 /* 고유 포텐셜 점수: 상시 1 · 단발(【N/시】) 0.5. 능력 랭크의 「고유 표시」(예: 2 (상시1+단발1))에서 상한을 읽는다 */
 const uqIsOnce=u=>/【\s*\d+\s*\/\s*시\s*】/.test(String(u&&u.eff||''));
@@ -626,8 +628,8 @@ function misagTwoChecks(t){const out=[],A=awList(t);if(!A.length)return out;cons
  {const per=mnum('awExcl'),dOne=strip(t.ranks['능력'])==='D';const has=A.map(p=>exclAll(p).length);
   A.forEach((p,i)=>{if(has[i]>per)out.push(`${tag} — ${p.name||'이름 없음'} 전용 포텐셜 ${has[i]} / ${per}개 (각성체는 1체에 ${per}개)`)});
   if(dOne&&has.filter(n=>n>0).length>1)out.push(`${tag} — 능력 D 는 각성체 1체만 전용 포텐셜을 받습니다 (지금 ${has.filter(n=>n>0).length}체)`);
-  const PL=t.pokemon.filter(p=>!awOf(t,p)),xcap=Math.max(0,abilLimitsBase(t.ranks['능력']).x-misagExclPen(t)),xn=PL.reduce((a,p)=>a+exclAll(p).length,0);
-  if(xn>xcap)out.push(`PL 4체 — 전용 포텐셜 ${xn} / ${xcap}개 (능력 ${t.ranks['능력']||'-'}${misagExclPen(t)?` · 능력 대가 −${misagExclPen(t)}`:''} · 각성체 몫은 따로)`)}
+  const PL=t.pokemon.filter(p=>!awOf(t,p)),pc=misagPlCut(t),xcap=Math.max(0,abilLimitsBase(t.ranks['능력']).x-misagExclPen(t)-pc),xn=PL.reduce((a,p)=>a+exclAll(p).length,0);
+  if(xn>xcap)out.push(`PL 4체 — 전용 포텐셜 ${xn} / ${xcap}개 (능력 ${t.ranks['능력']||'-'}${pc?` · 각성체 상시 자유 −${pc}`:''}${misagExclPen(t)?` · 능력 대가 −${misagExclPen(t)}`:''} · 각성체 몫은 따로)`)}
  if(A.length===2&&mOn('twoRole')){const r1=roleOf(A[0]),r2=roleOf(A[1]);if(r1&&r1===r2&&r1!=='역할 포텐셜')out.push(`${tag} — 각성체 둘의 역할이 같습니다 (『${r1}』) · 2체 기준은 역할 중복 불가`)}
  const e=misagEff(t),P=misagPen(t);if(mOn('twoB1')&&e.통솔&&P.type&&misagItem(P.b)&&misagItem(P.b)[3]==='type'){const no=A.filter(p=>![p.t1,p.t2,p.t3].some(x=>x&&x!=='-'&&String(x).split(/[()]/).includes(P.type)));if(no.length)out.push(`${tag} — 통솔 대가 ${P.b}: 각성체 둘 다 ${P.type} 타입이어야 합니다 (${no.map(p=>p.name||'이름 없음').join(', ')})`)}
  return out}
@@ -2867,7 +2869,7 @@ function misagPanel(){const M=MR();const f=(k,l,w,note)=>`<label class="row smal
   <div class="row" style="gap:12px;flex-wrap:wrap"><b class="small">구성 · 자원</b>${f('free','각성 (대가) 수')}${f('fixC','각성 (보조) 수')}${f('cmdItems','4/6로 나눌 항목','90px')}${f('cmdRatio','비율','52px')}${f('cmdUnit','단위')}<label class="row small" style="gap:4px">맞춤<select data-p="db.rules.misag.cmdRound">${[['floor','내림'],['round','반올림'],['ceil','올림']].map(([v,l])=>`<option value="${v}" ${M.cmdRound===v?'selected':''}>${l}</option>`).join('')}</select></label>${f('distCap','분배레벨 1체 상한 ±')}</div>
   <div class="row" style="gap:12px;flex-wrap:wrap;margin-top:6px"><b class="small">2체 · 3계제권</b>${f('g3','3계제권 육성:각성체 개수:PL 3개 개체 수 (쉼표)','230px')}<label class="row small" style="gap:4px">B-1 이면 각성체 둘 다 지정 타입<select data-p="db.rules.misag.twoB1">${[['1','검사'],['0','안 함']].map(([v,l])=>`<option value="${v}" ${String(M.twoB1??'1')===v?'selected':''}>${l}</option>`).join('')}</select></label><label class="row small" style="gap:4px">각성체 역할 중복 불가<select data-p="db.rules.misag.twoRole">${[['1','검사'],['0','안 함']].map(([v,l])=>`<option value="${v}" ${String(M.twoRole??'1')===v?'selected':''}>${l}</option>`).join('')}</select></label></div>
   <div class="row" style="gap:12px;flex-wrap:wrap;margin-top:6px"><b class="small">등급</b>${f('grade','프라이드:등급 (쉼표 · 「-」는 대가 없음)','300px')}</div>
-  <div class="row" style="gap:12px;flex-wrap:wrap;margin-top:6px"><b class="small">대가 숫자</b>${f('ordB','지시 B · 6령 빼기')}${f('ordA','지시 A 추가 · 4식 빼기')}${f('distB','육성 B · 분배레벨 −')}${f('distA','육성 A 추가 · 분배레벨 −')}${f('typeN','통솔 B-1 타입 수')}${f('exclB','능력 B · 전용 −')}${f('awExcl','각성체 전용 (1체에)')}${f('uqA','능력 A 추가 · 고유 점수 −')}${f('uqOn','고유 점수 상시')}${f('uqOnce','단발')}</div>
+  <div class="row" style="gap:12px;flex-wrap:wrap;margin-top:6px"><b class="small">대가 숫자</b>${f('ordB','지시 B · 6령 빼기')}${f('ordA','지시 A 추가 · 4식 빼기')}${f('distB','육성 B · 분배레벨 −')}${f('distA','육성 A 추가 · 분배레벨 −')}${f('typeN','통솔 B-1 타입 수')}${f('exclB','능력 B · 전용 −')}${f('awExcl','각성체 전용 (1체에)')}${f('plCut','각성체 상시 자유 대신 PL 전용 − (능력:개수)','150px')}${f('uqA','능력 A 추가 · 고유 점수 −')}${f('uqOn','고유 점수 상시')}${f('uqOnce','단발')}</div>
   <p class="small muted" style="margin:6px 0">${esc(ex)} · PT 기술점 각성체 몫은 위 「1인 기준 (2체) PT 기술점」 표, 각성체 2체 분배레벨은 기초 템플릿의 「1인」 칸을 씁니다. 전용 포텐셜은 각성체 1체에 「각성체 전용」 개수(능력 D 면 1체만)를 따로 받고, 능력 표 개수는 PL 4체 몫입니다. 3계제권은 시트에 안내만 합니다(계제 · 속별 개수 자동 검사는 아직 없음). 오레마스는 통솔 항목 이름 B-2 · A-1 · A-2 로 배틀 중 포텐셜 발동을 막습니다.</p>
   <div class="tw"><table><tr><th>통솔 항목</th><th>등급</th><th>설명</th><th>대상</th><th></th></tr>${(M.items||[]).map((r,i)=>`<tr><td><input data-p="db.rules.misag.items.${i}.0" value="${esc(r[0]??'')}" style="width:64px"></td><td><select data-p="db.rules.misag.items.${i}.1">${['B','A'].map(v=>`<option ${String(r[1]).toUpperCase()===v?'selected':''}>${v}</option>`).join('')}</select></td><td><input data-p="db.rules.misag.items.${i}.2" value="${esc(r[2]??'')}" style="width:100%;min-width:260px"></td><td><select data-p="db.rules.misag.items.${i}.3">${[['','없음'],['type','특정 타입'],['role','역할']].map(([v,l])=>`<option value="${v}" ${(r[3]||'')===v?'selected':''}>${l}</option>`).join('')}</select></td><td><button class="btn sm ghost danger" data-tact="ruMgDel" data-i="${i}">×</button></td></tr>`).join('')}</table></div></div>`}
 function rulesPanels(){const R=RULES(),I=R.invest;const inp=(k,l,w,ph)=>`<label class="row small" style="gap:4px">${l}<input data-p="db.rules.invest.${k}" value="${esc(I[k]??'')}" style="width:${w||'56px'}" ${ph?`placeholder="${esc(ph)}"`:''}></label>`;
