@@ -596,7 +596,8 @@ function misagEff(t){const e={};if(!isMisag(t))return e;const g=misagGrade(t),P=
 const misagItems=lv=>(MR().items||[]).filter(r=>r&&r[0]&&(!lv||String(r[1]||'').toUpperCase()===lv));
 const misagItem=k=>(MR().items||[]).find(r=>r&&r[0]===k)||null;
 function misagDistPen(t){const e=misagEff(t).육성;return e==='A'?mnum('distB')+mnum('distA'):e==='B'?mnum('distB'):0}
-function misagOrdNeed(t){const e=misagEff(t).지시;return {c:e?mnum('ordB'):0,o:e==='A'?mnum('ordA'):0}}
+/* 11-01 망령: 지시 D 는 『6령』(교회식이면 『영창』)이 없으므로 B부터 『4식』(『결계』)을 뺀다 — 『4식』 1 = 『6령』 2 */
+function misagOrdNeed(t){const e=misagEff(t).지시;if(!e)return {c:0,o:0};const c=mnum('ordB'),o=e==='A'?mnum('ordA'):0;if((t.orders||{}).preset&&!ordAvail(t,'c').length)return {c:0,o:Math.ceil(c/2)+o};return {c,o}}
 const misagOrdOff=(t,kind)=>{const L=misagPen(t).ordOff[kind];return Array.isArray(L)?L:[]};
 const misagOffNow=(t,kind)=>misagOrdNeed(t)[kind]?misagOrdOff(t,kind):[];   /* 지금 걸린 지시 대가로 빠진 것만 */
 const misagExclPen=t=>misagEff(t).능력?mnum('exclB'):0;
@@ -2071,17 +2072,17 @@ function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요
  $('[data-pcpng]',l).onclick=async()=>{if(ED){ED=false;draw()}const el=$('.pcd',l);try{if(!window.html2canvas)await new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('html2canvas 를 불러오지 못했다'));document.head.appendChild(sc)});
   const bg=getComputedStyle(MKROOT()).getPropertyValue('--surface')||'#fff';const cv=await window.html2canvas(el,{backgroundColor:bg.trim()||'#fff',scale:2,useCORS:true,onclone:(cd,ce)=>{try{pngFix(cd,ce)}catch(e){}}});const a=document.createElement('a');a.download=(p.name||'포켓몬')+'.png';a.href=cv.toDataURL('image/png');a.click()}catch(err){toast('PNG 로 저장하지 못했습니다 ('+err.message+')')}}}
 /* 지시 체계 (10-23 망령): 명령 = ORDER(4식), 지령 = COMMAND(6령). t.orders={preset,tc,base}. 오레마스로 가져가면 이 설정으로 횟수가 채워진다 (오레마스 OM_ORDERS 와 같은 표) */
-const TORD=(()=>{const CL=['기본-일반','기본-숙달','기본-숙달 (지시 A)','십계-영창 (지시 B)','십계-영창 (지시 A)','십계-영창 (지시 AA)','특수-방해','특수-야생','십계-영창 (지시 C)'];
+const TORD=(()=>{const CL=['기본-일반','기본-숙달','기본-숙달 (지시 A)','십계-영창 (지시 B)','십계-영창 (지시 A)','십계-영창 (지시 AA)','특수-방해','특수-야생','십계-영창 (지시 C)','십계-결계 (지시 D)'];
  const OL=['협회식 4식','5계','칙령','주인의 칙령'];const LORD={0:['물러나!','피해라!','버텨라!','바꿔라!','맞춰라!'],1:['지킬 수 없다!','피할 수 없다!','버틸 수 없다!','맞출 수 없다!'],2:['물리결계','특수결계','정화의 법계','치유의 법계','윤회의 법계','파계'],3:['주인의 칙령']};
  const OK={0:['retreat','dodge','endure','return','snipe'],1:['retreat','dodge','endure','snipe'],2:['retreat','dodge','endure','return','snipe','special'],3:['retreat']};
- const ALL=['attack','defense','specialattack','specialdefense','speed','heal','accuracy','evasion'];const CK={0:ALL,1:ALL,2:ALL,3:ALL.slice(0,5),4:['attack','defense','specialattack','specialdefense','speed','accuracy','evasion'],5:['attack','defense','specialattack','specialdefense','speed','accuracy','evasion'],6:ALL,7:['attack','defense'],8:ALL.slice(0,5)};
+ const ALL=['attack','defense','specialattack','specialdefense','speed','heal','accuracy','evasion'];const CK={0:ALL,1:ALL,2:ALL,3:ALL.slice(0,5),4:['attack','defense','specialattack','specialdefense','speed','accuracy','evasion'],5:['attack','defense','specialattack','specialdefense','speed','accuracy','evasion'],6:ALL,7:['attack','defense'],8:ALL.slice(0,5),9:[]};
  const SP=['공격','방어','특공','특방','민첩','회복','저격','회피'];const YC=['검의 영창','방패의 영창','관의 영창','잔의 영창','날개의 영창','촛불의 영창','장막의 영창'];
- const LCMD={0:SP.map(x=>x+'지령'),1:SP.map(x=>'숙달'+x+'지령'),2:SP.map(x=>'숙달'+x+'지령'),3:YC.slice(0,5),4:YC,5:YC,6:SP.map(x=>'방해'+x+'지령'),7:['주인의 호령 : 능력','주인의 호령 : 회복'],8:YC.slice(0,5)};
+ const LCMD={0:SP.map(x=>x+'지령'),1:SP.map(x=>'숙달'+x+'지령'),2:SP.map(x=>'숙달'+x+'지령'),3:YC.slice(0,5),4:YC,5:YC,6:SP.map(x=>'방해'+x+'지령'),7:['주인의 호령 : 능력','주인의 호령 : 회복'],8:YC.slice(0,5),9:[]};
  const PRE=[['assoc','협회식'],['ten','십계'],['wild','야생'],['jam','방해'],['manual','직접 고름']];
- const tordOf=tc=>(tc>=3&&tc<=5)||tc===8?2:tc===6?1:tc===7?3:0;
+ const tordOf=tc=>(tc>=3&&tc<=5)||tc===8||tc===9?2:tc===6?1:tc===7?3:0;
  const rankLv=r=>{const b=String(r||'').replace(/[+\-]/g,'').toUpperCase();const m={E:0,D:0,C:1,B:2,A:3,AA:4,AAA:5,S:6,EX:6};return m.hasOwnProperty(b)?m[b]:1};
- const presetTc=(p,r)=>{const lv=rankLv(r);if(p==='assoc')return lv>=3?2:lv>=2?1:0;if(p==='ten')return lv>=4?5:lv>=3?4:lv>=2?3:8;if(p==='wild')return 7;if(p==='jam')return 6;return NaN};
- const zeros=(o,c)=>{let z=[];if(o===0)z=['special'];if(o===1)z=['return','special'];if(o===2)z=['heal'];if(o===3)z=['dodge','endure','return','snipe','special'];if(o===0&&c<=1)z.push('snipe','accuracy','evasion');if(o===0&&c===2)z.push('snipe');if(o===2&&c===3)z.push('special','accuracy','evasion');if(o===2&&c===4)z.push('special');if(o===2&&c===8)z.push('endure','return','snipe','special','accuracy','evasion');return z};
+ const presetTc=(p,r)=>{const lv=rankLv(r);if(p==='assoc')return lv>=3?2:lv>=2?1:0;if(p==='ten')return lv>=4?5:lv>=3?4:lv>=2?3:lv>=1?8:9;if(p==='wild')return 7;if(p==='jam')return 6;return NaN};
+ const zeros=(o,c)=>{let z=[];if(o===0)z=['special'];if(o===1)z=['return','special'];if(o===2)z=['heal'];if(o===3)z=['dodge','endure','return','snipe','special'];if(o===0&&c<=1)z.push('snipe','accuracy','evasion');if(o===0&&c===2)z.push('snipe');if(o===2&&c===3)z.push('special','accuracy','evasion');if(o===2&&c===4)z.push('special');if(o===2&&(c===8||c===9))z.push('endure','return','snipe','special','accuracy','evasion');return z};
  const LO=['retreat','dodge','endure','return','snipe','special'],LC=ALL;const KO={retreat:'물러나',dodge:'피해라',endure:'버텨라',return:'바꿔라',snipe:'맞춰라',special:'특수',attack:'공격',defense:'방어',specialattack:'특공',specialdefense:'특방',speed:'스피드',heal:'회복',accuracy:'명중',evasion:'회피'};
  const nameOf=(kind,fam,k)=>{const keys=(kind==='o'?OK:CK)[fam]||[];const i=keys.indexOf(k);return i<0?'':((kind==='o'?LORD:LCMD)[fam]||[])[i]||''};
  return {CL,OL,LORD,OK,CK,LCMD,PRE,tordOf,presetTc,zeros,LO,LC,KO,nameOf,rankLv}})();
@@ -2096,7 +2097,7 @@ function soloMustOk(t,pk,avail){if(!soloA(t))return true;const can=SOLO_A_MUST.f
 function tOrdPick(t,kind){const pk=((t.orders||{}).pick||{})[kind];return Array.isArray(pk)?pk:[]}
 function ordAvail(t,kind){const o=t.orders||{};if(!o.preset)return [];const tc=tOrdTc(t),to=TORD.tordOf(tc),z=TORD.zeros(to,tc),ty=o.type||{},def=kind==='o'?to:tc;
  return (kind==='o'?TORD.LO:TORD.LC).filter(k=>{const v=ty[kind+'_'+k];const f=v==null?def:+v;return !!TORD.nameOf(kind,f,k)&&(f!==def||!z.includes(k))})}
-function tOrdTc(t){const o=t.orders||{};if(o.preset==='manual')return Math.max(0,Math.min(8,+o.tc||0));return TORD.presetTc(o.preset,(t.ranks||{})['지시'])}
+function tOrdTc(t){const o=t.orders||{};if(o.preset==='manual')return Math.max(0,Math.min(TORD.CL.length-1,+o.tc||0));return TORD.presetTc(o.preset,(t.ranks||{})['지시'])}
 /* 10-29 망령 「4식 6령 설정도 (노트 학생증의) 고유 아래에」: 노트가 읽는 지시 체계 요약 — tOrdHTML 칩과 같은 규칙.
    {preset, presetName, rk, oName, cName, base, o:[{k,nm,n,ex,off,pick}], c:[…], mode:'solo'|'misag'|'', pickN:{o,c}, offN:{o,c}|null} */
 function ordSnap(t){const o=t.orders||{};const p=o.preset||'';if(!p)return {preset:''};const base=o.base==null||o.base===''?1:+o.base;const tc=tOrdTc(t),to=TORD.tordOf(tc),z=TORD.zeros(to,tc),ty=o.type||{};
@@ -2115,10 +2116,10 @@ function tOrdHTML(t,ti){const o=t.orders||{};const p=o.preset||'';const rk=(t.ra
   /* 미사그 대학: 각성체 대가(지시)로 빼는 항목을 GM이 고른다 */
   const offBar=kind=>{const n=misagOrdNeed(t)[kind];if(!isMisag(t)||!n)return '';const L=avl[kind],pk=misagOrdOff(t,kind).filter(k=>L.some(x=>x[0]===k));
    return `<div class="ordpick off ${pk.length===Math.min(n,L.length)?'':'need'}"><span class="small"><b>각성체 대가</b> · ${L.length}개 중 <b>${n}</b>개 빼기 <b class="num">${pk.length}/${n}</b></span>${L.map(([k,nm])=>`<button type="button" class="ordpb ${pk.includes(k)?'on':''}" data-act="tordOff" data-i="${ti}" data-kind="${kind}" data-key="${k}" aria-pressed="${pk.includes(k)}">${esc(nm)}</button>`).join('')}</div>`};
-  const pickBar=kind=>{const mg=isMisag(t)&&!t.solo;if(!t.solo&&!mg)return offBar(kind);const L=mg?avl[kind].filter(x=>!misagOffNow(t,kind).includes(x[0])):avl[kind],n=soloOrdN(kind,t),pk=tOrdPick(t,kind).filter(k=>L.some(x=>x[0]===k));const must=kind==='c'&&soloA(t)&&L.some(x=>SOLO_A_MUST.includes(x[0]));const mOk=kind!=='c'||soloMustOk(t,pk,L.map(x=>x[0]));const ok=pk.length===Math.min(n,L.length)&&mOk;
+  const pickBar=kind=>{const mg=isMisag(t)&&!t.solo;if(!t.solo&&!mg)return offBar(kind);if(!avl[kind].length)return '';const L=mg?avl[kind].filter(x=>!misagOffNow(t,kind).includes(x[0])):avl[kind],n=soloOrdN(kind,t),pk=tOrdPick(t,kind).filter(k=>L.some(x=>x[0]===k));const must=kind==='c'&&soloA(t)&&L.some(x=>SOLO_A_MUST.includes(x[0]));const mOk=kind!=='c'||soloMustOk(t,pk,L.map(x=>x[0]));const ok=pk.length===Math.min(n,L.length)&&mOk;
    return (mg?offBar(kind):'')+`<div class="ordpick ${ok?'':'need'}"><span class="small"><b>${mg?'2체 기준':'1인 기준'+(soloN(t)===3?' (3체)':'')}</b>${mg?' <span class="muted" title="6체(4+2) 배틀에서는 위 횟수 그대로 · 2체로 합칠 때만 고른 항목을 쓰고 나머지는 0회">· 2체로 합칠 때 들고 갈 것</span>':''} · ${L.length}개 중 <b>${n}</b>개 고르기 <b class="num">${pk.length}/${n}</b>${must?` · <b class="${mOk?'':'warn'}" title="지시 A 이상 1인 기준: 지령 셋 중 하나는 회피나 명중">회피 · 명중 중 1개 필수${mOk?' ✓':''}</b>`:''}</span>${L.map(([k,nm])=>`<button type="button" class="ordpb ${pk.includes(k)?'on':''}" data-act="tordPick" data-i="${ti}" data-kind="${kind}" data-key="${k}" aria-pressed="${pk.includes(k)}">${esc(nm)}</button>`).join('')}</div>`};
   prev=`<div class="ordp"><div><span class="ordk o">ORDER</span><b>명령 (4식)</b><span class="small muted">${esc(TORD.OL[to])} · 칩을 눌러 항목마다 계열을 바꾼다</span></div><div class="ordl">${chips('o')}</div>${pickBar('o')}
-   <div><span class="ordk c">COMMAND</span><b>지령 (6령)</b><span class="small muted">${esc(TORD.CL[tc])}</span></div><div class="ordl">${chips('c')}</div>${pickBar('c')}</div>`}
+   <div><span class="ordk c">COMMAND</span><b>지령 (6령)</b><span class="small muted">${esc(TORD.CL[tc])}</span></div><div class="ordl">${chips('c')||'<span class="small muted">이 계열엔 지령(『영창』)이 없다</span>'}</div>${pickBar('c')}</div>`}
  return `<div class="tord"><div class="tordh"><b>지시 체계</b><span class="ordk o">ORDER</span><span class="ordk c">COMMAND</span><span class="small muted">지시 ${esc(rk)}</span></div>
   <label class="plrow"><span>지령 종류</span><select data-tord="${ti}" data-k="preset">${opts}</select></label>
   ${p==='manual'?`<label class="plrow"><span>계열</span><select data-tord="${ti}" data-k="tc">${TORD.CL.map((n,i)=>`<option value="${i}" ${+o.tc===i?'selected':''}>${i+1}. ${esc(n)}</option>`).join('')}</select></label>`:''}
@@ -2135,7 +2136,7 @@ function misagTwoOut(t){let O=null;try{O=ordSnap(t)}catch(e){}const pk=kind=>O&&
  return {checks:misagChecks(t).filter(x=>/^(2체 기준|각성체 2체 몫)/.test(x)),pick:{o:pk('o').map(x=>x.k),c:pk('c').map(x=>x.k)},names:{o:pk('o').map(x=>x.nm),c:pk('c').map(x=>x.nm)},need:O&&O.pickN?O.pickN:{o:soloOrdN('o',t),c:soloOrdN('c',t)},g3:misagG3(t.ranks['육성'])||null,b1:mOn('twoB1'),role:mOn('twoRole')}}
 /* 10-28 망령: 각성체 대가를 짧은 줄로 — 트레이너 카드(서머리)와 각성체 한 장 요약에 띄운다 */
 function misagPenLines(t){if(!isMisag(t))return [];const o=misagOut(t),e=o.pen,out=[];const KO=k=>TORD.KO[k]||k;
- if(e.지시){const nd=misagOrdNeed(t);const off=[...o.ordOff.c,...o.ordOff.o].map(KO);out.push(['지시',e.지시,`지령 −${nd.c}${nd.o?` · 명령 −${nd.o}`:''}${off.length?` (${off.join(', ')})`:''}`])}
+ if(e.지시){const nd=misagOrdNeed(t);const off=[...o.ordOff.c,...o.ordOff.o].map(KO);out.push(['지시',e.지시,`${[nd.c?`지령 −${nd.c}`:'',nd.o?`명령 −${nd.o}`:''].filter(Boolean).join(' · ')}${off.length?` (${off.join(', ')})`:''}`])}
  if(e.육성)out.push(['육성',e.육성,`분배레벨 −${o.dist}`]);
  if(e.통솔)for(const it of o.items)out.push(['통솔',it.grade,`${it.key} ${it.desc}${it.need==='type'&&o.type?` [${o.type}]`:''}${it.need==='role'&&o.role?` [${o.role}]`:''}`]);
  if(e.통솔&&!o.items.length)out.push(['통솔',e.통솔,'항목을 아직 안 골랐다']);
