@@ -80,7 +80,7 @@ const tagKey=r=>String(r&&r[0]),tplKey=r=>[r&&r[0],r&&r[1],r&&r[2]].join('|');
 const TPL_DEF=[
  ['공통','*','메인','2','룰북 · 자질 투자 2점 (덤프 1개당 +1)','2'],
  ['통솔','D','통솔점','6','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','3'],['통솔','C','통솔점','6','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','1'],['통솔','B-','통솔점','7','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','1.5'],['통솔','B','통솔점','8','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','2'],['통솔','A','통솔점','10','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','3'],['통솔','AA','통솔점','12','룰북 · 1인(2체) 3/3/4/5에서 파트너 할인 2점(D는 없음)을 뺀 값','4'],
- ['육성','D','분배레벨','5','룰북 · 1인(2체)은 6체의 1/3 반올림','2'],['육성','C','분배레벨','10','룰북 「1인 기준 (2체)」 표 (+2 / +4 / +5 / +7)','4'],['육성','B-','분배레벨','10','룰북 「1인 기준 (2체)」 표 (+2 / +4 / +5 / +7)','4'],['육성','B','분배레벨','15','룰북 · 1인(2체)은 6체의 1/3 반올림','5'],['육성','A','분배레벨','20','룰북 · 1인(2체)은 6체의 1/3 반올림','7'],
+ ['육성','D','분배레벨','0','룰북 (11-01 망령: 육성 D 는 0)','0'],['육성','C','분배레벨','10','룰북 「1인 기준 (2체)」 표 (+2 / +4 / +5 / +7)','4'],['육성','B-','분배레벨','10','룰북 「1인 기준 (2체)」 표 (+2 / +4 / +5 / +7)','4'],['육성','B','분배레벨','15','룰북 · 1인(2체)은 6체의 1/3 반올림','5'],['육성','A','분배레벨','20','룰북 · 1인(2체)은 6체의 1/3 반올림','7'],
  ['공통','*','「기술 할인점」','6','공통 요소 · 1인(2체)은 6의 1/3 = 2','2'],['공통','*','【1/시】','3','공통 요소 · 1인은 1','1']
 ];
 const TPL_V=3;
@@ -561,8 +561,8 @@ function s3val(v6,v1,unitKey){const R=RULES().solo3||SOLO3_DEF;if(R.keep==='1'&&
    숫자는 전부 테이블·계산식 「미사그 대학」(공유 설정 meta/set.rules.misag). 트레이너 t.misag · t.misagPen, 포켓몬 p.awaken('free' | 'c').
    items 행: [이름, 등급(B·A), 설명, 대상(type 타입 · role 역할 · 빈칸)] — 통솔 대가에서 GM이 등급마다 하나씩 고른다 */
 const MISAG_CATS=['지시','육성','통솔','능력'];
-const MISAG_ITEMS_DEF=[['B-1','B','PT에 특정 타입을 2체 이상 필수.','type'],['B-2','B','PT의 역할 중 1개(GM 지정)가 발동하지 않는다.','role'],['A-1','A','자신 이외의 아군 중 특정 타입이 한 체도 없으면 자신의 포텐셜이 발동하지 않는다.','type'],['A-2','A','이 각성체가 필드 위에 나와 있는 동안 아군의 역할을 무효화한다.','']];
-const MISAG_DEF={free:'1',fixC:'1',cmdItems:'통솔점',cmdRatio:'4/6',cmdUnit:'0.5',cmdRound:'floor',distCap:'10',grade:'C:-, C+:-, B:B, B+:B, A:A, EX:EX',ordB:'2',ordA:'1',distB:'10',distA:'10',typeN:'2',exclB:'1',uqA:'0.5',uqOn:'1',uqOnce:'0.5',awExcl:'2',plCut:'B-:1, B:2, A:2',g3:'D:2:0, C:3:0, B:3:2, A:3:4',twoB1:'1',twoRole:'1',items:MISAG_ITEMS_DEF};   /* 10-30 망령: g3 = 3계제권 「육성:각성체 1체당 계제·속별 개수:PL 4체 중 3개 습득 개체 수」, twoB1 · twoRole = 각성체 2체 몫 검사 켜기 */
+const MISAG_ITEMS_DEF=[['B-1','B','PT에 특정 타입을 3체 이상 필수.','type'],['B-2','B','PT의 역할 중 1개(GM 지정)가 발동하지 않는다.','role'],['A-1','A','자신 이외의 아군 중 특정 타입이 한 체도 없으면 자신은 행동 불능이 된다.','type'],['A-2','A','이 각성체가 필드 위에 나와 있는 동안 아군의 역할을 무효화한다.','']];
+const MISAG_DEF={free:'1',fixC:'1',cmdItems:'통솔점',cmdRatio:'4/6',cmdUnit:'0.5',cmdRound:'floor',distCap:'10',grade:'C:-, C+:-, B:B, B+:B, A:A, EX:EX',ordB:'2',ordA:'1',distB:'15',distA:'15',typeN:'3',exclB:'1',uqA:'0.5',uqOn:'1',uqOnce:'0.5',awExcl:'2',plCut:'B-:1, B:2, A:2',g3:'D:2:0, C:3:0, B:3:2, A:3:4',twoB1:'1',twoRole:'1',items:MISAG_ITEMS_DEF};   /* 10-30 망령: g3 = 3계제권 「육성:각성체 1체당 계제·속별 개수:PL 4체 중 3개 습득 개체 수」, twoB1 · twoRole = 각성체 2체 몫 검사 켜기 */
 const isMisag=t=>!!(t&&t.misag);
 /* 10-28 망령: 「미사그 캠퍼스」 폴더(rule:'misag') — 그 안(하위 폴더 포함)에 넣은 트레이너는 미사그 대학 (4+2) 규칙이 저절로 켜진다.
    폴더가 켠 건 t.misagF 로 표시해 두고, 폴더 밖으로 꺼내면 6체 기준으로 돌려 놓는다. 캠퍼스 폴더는 고정 id 라 여러 브라우저가 만들어도 하나 */
@@ -594,7 +594,9 @@ function mRound(x){const R=MR();const u=parseFloat(R.cmdUnit)||0.5;const c=R.cmd
 const misagCmd=item=>ruleList(MR().cmdItems).includes(item);
 const awOf=(t,p)=>isMisag(t)&&p&&(p.awaken==='free'||p.awaken==='c')?p.awaken:'';
 const awList=(t,k)=>t.pokemon.filter(p=>awOf(t,p)&&(!k||awOf(t,p)===k));
-const AW_LAB={free:'각성 (대가)',c:'각성 (보조)'};   /* 10-28 망령: 보조 각성체는 C 권장일 뿐 프라이드를 묶지 않는다 */
+const AW_LAB={free:'각성 (대가)',c:'각성 (보조)'};
+/* 11-01 망령 「각성체 지정하면 분류 『현대종』이 『각성체』로 저절로」: 각성체면 현대종 → 각성체, 각성체를 풀면 각성체 → 현대종 (분류 칸에 다른 것을 고른 건 건드리지 않는다) */
+function awClassSync(t,p){if(!p||!Array.isArray(p.pots))return false;const aw=!!awOf(t,p),[from,to]=aw?['현대종','각성체']:['각성체','현대종'];const k=p.pots.indexOf(from);if(k<0||p.pots.includes(to))return false;p.pots[k]=to;return true}   /* 10-28 망령: 보조 각성체는 C 권장일 뿐 프라이드를 묶지 않는다 */
 function misagGradeOf(pr){if(!pr)return '';const m={};for(const x of String(MR().grade||'').split(/[,，]/)){const [a,b]=x.split(':').map(y=>(y||'').trim());if(a)m[a.toUpperCase()]=b&&b!=='-'?b.toUpperCase():''}const k=String(pr).toUpperCase();return k in m?m[k]:'?'}
 function misagGrade(t){const f=awList(t,'free')[0];return f?misagGradeOf(prideOf(f)):''}
 function misagPen(t){if(!t.misagPen||typeof t.misagPen!=='object')t.misagPen={};const P=t.misagPen;if(!P.ex||typeof P.ex!=='object')P.ex={};if(!P.ordOff||typeof P.ordOff!=='object')P.ordOff={};return P}
@@ -2423,7 +2425,7 @@ $('#v-char').addEventListener('change',e=>{const el=e.target;
  if(el.dataset.tord!=null){const t=S.trainers[+el.dataset.tord];if(!t)return;const k=el.dataset.k;const o=Object.assign({},t.orders||{});if(k==='preset'){if(!el.value){delete t.orders;save();refreshTrainer(t);return}o.preset=el.value;if(o.preset==='manual'&&o.tc==null){const tc=TORD.presetTc((t.orders||{}).preset,(t.ranks||{})['지시']);o.tc=isNaN(tc)?0:tc}}else if(k==='tc')o.tc=+el.value||0;else o.base=Math.max(0,Math.min(9,Math.round(+el.value||0)));if(o.base==null)o.base=1;t.orders=o;save();refreshTrainer(t);return}
  if(el.dataset.tmove!=null){const t=trOfRow(el.closest('section.folder'))||S.trainers[+el.dataset.tmove];if(t){t.folder=el.value;S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed[el.value||'_none'];save();renderChar();const f=S.folders.find(x=>x.id===el.value);toast(`「${t.name}」 → ${f?f.name:'폴더 없음'}`)}return}
  if(el.dataset.p){const t=trOf(el);const m=el.dataset.p.match(/^T\.\d+\.ranks\.(.+)$/);if(m&&t){if(el.tagName==='INPUT'){const v=el.value.trim().toUpperCase().replace(/\s+/g,'').replace(/＋/g,'+').replace(/[－−]/g,'-')||'C';el.value=v;t.ranks[m[1]]=v}applyTpl(t,m[1]);save()}
-  if(t&&/^T\.\d+\.solo$/.test(el.dataset.p)){for(const [n,d] of ptItems())t.base[n]=+d||0;t.misag=t.solo==='m';if(t.solo===''||t.solo==='0'||t.solo==='m')t.solo=false;else if(t.solo==='2')t.solo=true;else if(t.solo==='3')t.solo=3;applyTpl(t);save();toast(isMisag(t)?'미사그 대학 (4+2) — PL 4체 통솔점을 맞췄습니다 · 포켓몬 「기본」 탭에서 각성체 2체를 고르세요':soloN(t)===3?'1인 기준 (3체) — 6체 기준의 절반으로 맞췄습니다':soloN(t)?'1인 기준 (2체) 템플릿을 적용했습니다':'6체 기준 템플릿을 적용했습니다')}clearTimeout(rT);if(t)setTimeout(()=>refreshTrainer(t),0);return}
+  if(t&&/^T\.\d+\.solo$/.test(el.dataset.p)){for(const [n,d] of ptItems())t.base[n]=+d||0;t.misag=t.solo==='m';if(t.solo===''||t.solo==='0'||t.solo==='m')t.solo=false;else if(t.solo==='2')t.solo=true;else if(t.solo==='3')t.solo=3;applyTpl(t);save();toast(isMisag(t)?'미사그 대학 (4+2) — PL 4체 통솔점을 맞췄습니다 · 포켓몬 「기본」 탭에서 각성체 2체를 고르세요':soloN(t)===3?'1인 기준 (3체) — 6체 기준의 절반으로 맞췄습니다':soloN(t)?'1인 기준 (2체) 템플릿을 적용했습니다':'6체 기준 템플릿을 적용했습니다')}{const am=el.dataset.p.match(/^T\.\d+\.pokemon\.(\d+)\.awaken$/);if(am&&t&&awClassSync(t,t.pokemon[+am[1]]))save()}clearTimeout(rT);if(t)setTimeout(()=>refreshTrainer(t),0);return}
  if(el.dataset.img){const f=el.files[0];if(!f)return;const t=S.trainers[+el.dataset.img];readImg(f,640,'image/webp',u=>setImgOf(t,'t',u,t))}
  if(el.dataset.stf){const f=el.files[0];if(!f)return;const t=S.trainers[+el.dataset.stf];uploadStand(t,f).then(u=>{const inp=$('#stu-'+t.id);if(inp)inp.value=u;const l=$('#stl-'+t.id);if(l&&!l.value)l.value=f.name.replace(/\.[^.]+$/,'');toast('올렸습니다 — 「추가」를 누르세요')}).catch(e=>toast('올리지 못했습니다: '+e.message));el.value=''}
  if(el.dataset.pstf){const f=el.files[0];if(!f)return;const [a,b]=el.dataset.pstf.split('.').map(Number);const t=S.trainers[a],p=t&&t.pokemon[b];if(!p)return;uploadStand(p,f).then(u=>{const inp=$('#pstu-'+p.id);if(inp)inp.value=u;const l=$('#pstl-'+p.id);if(l&&!l.value)l.value=f.name.replace(/\.[^.]+$/,'');toast('올렸습니다 — 「추가」를 누르세요')}).catch(e=>toast('올리지 못했습니다: '+e.message));el.value='';return}
@@ -2566,7 +2568,7 @@ $('#v-char').addEventListener('click',async e=>{
   case 'tuneItemClr':{const T0=tuneOf(P);T0.item='';T0.itemName='';rf();break}
   case 'addP':{const p=newPoke();applySheetTpl(T,p);T.pokemon.push(p);rf();break}
   /* 10-29 망령: 미사그 — 각성체를 바로 추가 (대가 쪽이 비었으면 대가, 아니면 보조) */
-  case 'addAw':{const p=newPoke();applySheetTpl(T,p);p.awaken=T.pokemon.some(x=>awOf(T,x)==='free')?'c':'free';T.pokemon.push(p);rf();break}
+  case 'addAw':{const p=newPoke();applySheetTpl(T,p);p.awaken=T.pokemon.some(x=>awOf(T,x)==='free')?'c':'free';T.pokemon.push(p);awClassSync(T,p);rf();break}
   case 'stpl':{const n=applySheetTpl(T,P);rf();toast(n?`템플릿 포텐셜 ${n}개를 넣었습니다`:'더 넣을 템플릿 포텐셜이 없습니다');break}
   case 'delP':if(await ask(`포켓몬 시트 「${esc(P.name||'이름 없음')}」을(를) 삭제할까요?`,'삭제')){T.pokemon=T.pokemon.filter(x=>x!==P);rf()}break;
   case 'dupP':{const c=clone(P);c.id=uid();T.pokemon.splice(j+1,0,c);rf();break}
@@ -3424,7 +3426,7 @@ function embMake(){if(EMB.made||!(EMB.nu||EMB.add))return '';if(!embReady())retu
  if(EMB.nu){EMB.made=true;const NPC=EMB.nu==='misagnpc'&&S.folders.some(f=>f.id===MISAG_NPC_FID);const t=newTrainer();t.name=NPC?'새 NPC':'새 학생';t.open=true;t.folder=NPC?MISAG_NPC_FID:MISAG_FID;t.misag=true;t.misagF=true;t.solo=false;for(const [n,d] of ptItems())t.base[n]=+d||0;applyTpl(t);
   if(NPC){t.kind='npc';t.npcF=true;if(ME.gm&&ME.hash){t.priv=true;t.owner=ME.hash;t.ownerName=ME.name;t.npcP=true}}   /* 10-30: 노트 「＋ 새 NPC」 = 캠퍼스 / NPC 폴더에 비공개 NPC */
   S.trainers.push(t);save();EMB.t=t.id;EMB.p='';EMB.one=false;tell({kind:'trainer',id:t.id,name:t.name});return ''}
- const T=S.trainers.find(x=>x.id===EMB.t);if(!T)return '';EMB.made=true;const p=newPoke();applySheetTpl(T,p);if(EMB.add==='aw')p.awaken=T.pokemon.some(x=>x.awaken==='free')?'c':'free';
+ const T=S.trainers.find(x=>x.id===EMB.t);if(!T)return '';EMB.made=true;const p=newPoke();applySheetTpl(T,p);if(EMB.add==='aw'){p.awaken=T.pokemon.some(x=>x.awaken==='free')?'c':'free';awClassSync(T,p)}
  T.open=true;T.pokemon.push(p);save();EMB.p=p.id;EMB.one=true;tell({kind:'poke',id:p.id,tid:T.id,aw:p.awaken||''});return ''}
 function embRender(root){const wait=embMake();if(wait){root.innerHTML=`<div class="empty">${esc(wait)}</div>`;return true}
  const ti=S.trainers.findIndex(x=>x.id===EMB.t);
