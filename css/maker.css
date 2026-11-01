@@ -1122,6 +1122,7 @@ html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 .mkdtq{position:absolute;top:-6px;right:-6px;padding:1px 6px;border-radius:10px;background:var(--acc,#ffd12e);color:#111;font-size:12px;line-height:18px;font-variant-numeric:tabular-nums;box-shadow:0 1px 2px rgba(0,0,0,.4)}
 .mkdtn{margin-top:4px;font-size:12px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mkdtk{font-size:10.5px;color:var(--muted,#888);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mkdic{display:inline-block;padding:0 5px;border-radius:8px;background:color-mix(in srgb,var(--dcc,#6b7286) 18%,transparent);color:var(--fg,inherit);font-weight:600}   /* 11-01 은열쇠 아이콘 */
 .mkdtb{display:flex;gap:3px;margin-top:3px}
 .mkdtb button{flex:1;min-width:0;font:inherit;font-size:12px;line-height:1;padding:3px 0;border:1px solid var(--line,#ddd);border-radius:5px;background:transparent;color:inherit;cursor:pointer}
 .mkdtb button:hover{border-color:var(--acc,#ffd12e)}.mkdtb button.danger{color:var(--warn,#d33)}
