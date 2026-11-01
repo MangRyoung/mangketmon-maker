@@ -632,6 +632,10 @@ function misagTwoChecks(t){const out=[],A=awList(t);if(!A.length)return out;cons
   const PL=t.pokemon.filter(p=>!awOf(t,p)),pc=misagPlCut(t),xcap=Math.max(0,abilLimitsBase(t.ranks['능력']).x-misagExclPen(t)-pc),xn=PL.reduce((a,p)=>a+exclAll(p).length,0);
   if(xn>xcap)out.push(`PL 4체 — 전용 포텐셜 ${xn} / ${xcap}개 (능력 ${t.ranks['능력']||'-'}${pc?` · 각성체 상시 자유 −${pc}`:''}${misagExclPen(t)?` · 능력 대가 −${misagExclPen(t)}`:''} · 각성체 몫은 따로)`)}
  if(A.length===2&&mOn('twoRole')){const r1=roleOf(A[0]),r2=roleOf(A[1]);if(r1&&r1===r2&&r1!=='역할 포텐셜')out.push(`${tag} — 각성체 둘의 역할이 같습니다 (『${r1}』) · 2체 기준은 역할 중복 불가`)}
+ /* 11-01 망령 「PL 은 할인점 4점」: 「기술 할인점」 · 【1/시】는 각성체 2체가 1/3(6 → 2 · 3 → 1), PL 4체가 나머지 — 노트 PT 서머리와 같은 셈 */
+ for(const [n,,a] of ptItems()){if(a!=='disc'&&a!=='once')continue;const max=ptHave(t,n,a);if(!(max>0))continue;const awM=Math.round(max/3),f=a==='disc'?p=>p.moves.filter(m=>m.name&&m.half).length:onceCount;
+  const au=A.reduce((x,p)=>x+f(p),0),pu=t.pokemon.filter(p=>!awOf(t,p)).reduce((x,p)=>x+f(p),0);
+  if(au>awM)out.push(`${tag} — ${n} ${au} / ${awM}`);if(pu>max-awM)out.push(`PL 4체 — ${n} ${pu} / ${max-awM} (각성체 몫 ${awM} 따로)`)}
  const e=misagEff(t),P=misagPen(t);if(mOn('twoB1')&&e.통솔&&P.type&&misagItem(P.b)&&misagItem(P.b)[3]==='type'){const no=A.filter(p=>![p.t1,p.t2,p.t3].some(x=>x&&x!=='-'&&String(x).split(/[()]/).includes(P.type)));if(no.length)out.push(`${tag} — 통솔 대가 ${P.b}: 각성체 둘 다 ${P.type} 타입이어야 합니다 (${no.map(p=>p.name||'이름 없음').join(', ')})`)}
  return out}
 function partyTypeN(t,ty){return t.pokemon.filter(p=>[p.t1,p.t2,p.t3].some(x=>x&&x!=='-'&&String(x).split(/[()]/).includes(ty))).length}
