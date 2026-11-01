@@ -207,7 +207,10 @@ function buSub(g){g=String(g||'');return g.endsWith('+')?'+':g.endsWith('-')?'-'
 function gradeStep(v,n){v=+v||0;const R=buRows();const k=buAt(R,v);if(k<0||!n)return v;const cur=R[k];const L=[...new Set(R.map(r=>r.l))];const li=L.indexOf(cur.l);const tl=L[Math.max(0,Math.min(L.length-1,li+n))];if(tl===cur.l)return v;
  const ts=R.filter(r=>r.l===tl);const T=ts.find(r=>buSub(r.g)===buSub(cur.g))||ts[Math.min(R.filter(r=>r.l===cur.l).indexOf(cur),ts.length-1)]||ts[0];
  return T.lo}   /* 10-27: 옮겨 간 칸에서 가장 낮은 값 */
-function gradeMax(v){v=+v||0;const R=buRows();const k=buAt(R,v);if(k<0)return v;return Math.max(v,R[k].hi)}   /* 10-27: 지금 칸(- · 무 · +)의 맨 위 */
+function gradeMax(v){v=+v||0;const R=buRows();const k=buAt(R,v);if(k<0)return v;return Math.max(v,R[k].hi)}
+/* 11-01 망령 「-보정이나 종족치를 내리는 효과도 자동화?」: 「-」 보정 · 범위 최소화 = 지금 칸의 맨 아래 / 「X」의 종족치가 「E」가 된다 = 그 등급 칸(같은 - · 무 · +, 없으면 첫 칸)의 가장 낮은 값 */
+function gradeMin(v){v=+v||0;const R=buRows();const k=buAt(R,v);if(k<0)return v;return Math.min(v,R[k].lo)}
+function gradeSet(v,g){const R=buRows();const l=strip(g),sb=buSub(g);const L=R.filter(r=>r.l===l);if(!L.length)return v;const T=L.find(r=>buSub(r.g)===sb)||L.find(r=>buSub(r.g)==='')||L[0];return T.lo}   /* 10-27: 지금 칸(- · 무 · +)의 맨 위 */
 function buCondOk(t,p,txt){
  for(const m of txt.matchAll(/「([^」:]+?)\s*:\s*(EX|S|AAA|AA|A|B|C|D|E)([+-]?)」\s*(이상|이하)?일\s*때/g)){const sts=m[1].split(/[\/,·\s]+/).map(s=>BU_ST[s.trim()]).filter(x=>x!=null);if(!sts.length)continue;const need=buIdx(m[2]+m[3]);if(need<0)continue;
   for(const i of sts){const g=buIdx(grade(p.base[i]));if(m[4]==='이상'?g<need:m[4]==='이하'?g>need:g!==need)return false}}
@@ -218,13 +221,16 @@ function baseUp(t,p){const src=[];const ab=p.ability&&idx.abil?idx.abil.get(p.ab
  (p.pots||[]).forEach((n,i)=>{if(n&&n!=='-'){const e=potEffOf(p,i);if(e)src.push(['포텐셜',String(n).replace(/『|』/g,''),e])}});
  for(const x of exclAll(p))if(x.eff)src.push(['전용',x.name,x.eff]);
  const key=JSON.stringify([p.base,src.map(s=>s[2]),t&&t.ranks,p.auto]);const hit=BU_C.get(key);if(hit)return hit;
- const n=[0,0,0,0,0,0],mx=[0,0,0,0,0,0],by=[[],[],[],[],[],[]],miss=[];
+ const n=[0,0,0,0,0,0],mx=[0,0,0,0,0,0],mn=[0,0,0,0,0,0],set=[null,null,null,null,null,null],by=[[],[],[],[],[],[]],miss=[];
  for(const [kind,name,eff] of src){for(const cl of String(eff).replace(/<br\s*\/?>/g,'\n').split(/\n|(?=[①-⑳])/)){
   for(const m of cl.matchAll(/「([^」]+)」의\s*종족치(?:를|가|도)?\s*(\d+)\s*랭크\s*(상승|감소)/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;const d=(+m[2]||1)*(m[3]==='감소'?-1:1);
    for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;n[i]+=d;by[i].push(`${kind} 『${name}』 ${d>0?'+':''}${d}랭크`)}}
   for(const m of cl.matchAll(/「([^」]+)」의\s*종족치\s*범위를\s*최대화/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;mx[i]=1;by[i].push(`${kind} 『${name}』 범위 최대`)}}
-  /* 옛 「「+」 보정을 가한다」 = 범위 최대화 (10-27 룰북) */
-  for(const m of cl.matchAll(/「([^」]+)」에\s*「\+」\s*보정/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;mx[i]=1;by[i].push(`${kind} 『${name}』 「+」 보정 = 범위 최대`)}}
+  /* 옛 「「+」 보정을 가한다」 = 범위 최대화 (10-27 룰북). 11-01 망령 「종족치에 + 보정을 가하는 포텐셜 자동화 안 돼?」: 「「공격」 종족치에 「+」 보정」 · 「「공격」의 종족치에 + 보정」 꼴도 읽는다 */
+  for(const m of cl.matchAll(/「([^」]+)」\s*(?:의\s*)?(?:종족치\s*)?에\s*「?\s*[+＋]\s*」?\s*보정/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;mx[i]=1;by[i].push(`${kind} 『${name}』 「+」 보정 = 범위 최대`)}}
+  for(const m of cl.matchAll(/「([^」]+)」\s*(?:의\s*)?(?:종족치\s*)?에\s*「?\s*[-－−]\s*」?\s*보정/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;mn[i]=1;by[i].push(`${kind} 『${name}』 「-」 보정 = 범위 최소`)}}
+  for(const m of cl.matchAll(/「([^」]+)」의\s*종족치\s*범위를\s*최소화/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;mn[i]=1;by[i].push(`${kind} 『${name}』 범위 최소`)}}
+  for(const m of cl.matchAll(/「([^」]+)」의\s*종족치(?:가|를|는)?\s*「(EX|S|AAA|AA|A|B|C|D|E)([+-]?)」\s*(?:가|이|로|으로)\s*(?:된다|만든다)/g)){const pre=cl.slice(0,m.index);if(/(상대|대상|정면|아군)(?:의|을|를)?\s*$/.test(pre)||!buCondOk(t,p,pre))continue;for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;set[i]=m[2]+m[3];by[i].push(`${kind} 『${name}』 ${m[2]+m[3]} 로 고정`)}}
   /* 「자신을 「방어 : C+」로 만든다」 = 1랭크 상승 — 한 등급 아래 같은 칸(D+)일 때만 */
   for(const m of cl.matchAll(/「([^」:]+?)\s*:\s*(EX|S|AAA|AA|A|B|C|D|E)([+-]?)」\s*(?:으?로|가)\s*(?:만든|된다)/g)){const pre=cl.slice(0,m.index);if(!/자신(?:을|의)?\s*$/.test(pre)||!buCondOk(t,p,pre))continue;const tg=m[2]+m[3],ti=BU_L.indexOf(m[2]);
    for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null||p.base[i]===''||p.base[i]==null)continue;const g=grade(p.base[i]);if(g===tg)continue;
@@ -233,7 +239,7 @@ function baseUp(t,p){const src=[];const ab=p.ability&&idx.abil?idx.abil.get(p.ab
   /* 그 칸의 자동화 구문: 종족치 방어,특방 +1 · 종족치 스피드 최대 (구문 생성기 「종족치 (시트)」) */
   for(const ln of String(autoDsl(p,name)).split(/\n|;/)){const m=ln.trim().match(/^종족치\s+(.+?)\s+(최대|[+\-]?\d+)\s*$/);if(!m)continue;const d=m[2]==='최대'?0:+m[2];
    for(const s of m[1].split(/[,\/·\s]+/)){const i=BU_ST[s.trim().toUpperCase()==='HP'?'HP':s.trim()];if(i==null)continue;if(m[2]==='최대'){mx[i]=1;by[i].push(`${kind} 『${name}』 구문 범위 최대`)}else if(d){n[i]+=d;by[i].push(`${kind} 『${name}』 구문 ${d>0?'+':''}${d}랭크`)}}}}
- const base=p.base.map((v,i)=>{if(v===''||v==null||isNaN(+v))return v;let x=gradeStep(+v,n[i]);if(mx[i])x=gradeMax(x);return x});
+ const base=p.base.map((v,i)=>{if(v===''||v==null||isNaN(+v))return v;let x=gradeStep(+v,n[i]);if(mx[i])x=gradeMax(x);if(mn[i])x=gradeMin(x);if(set[i])x=gradeSet(x,set[i]);return x});
  const up=base.map((v,i)=>v!==p.base[i]&&+v!==+p.base[i]?{i,from:+p.base[i],to:+v,by:by[i]}:null).filter(Boolean);
  const r={base,up,miss};if(BU_C.size>400)BU_C.clear();BU_C.set(key,r);return r}
 const effB=(t,p)=>baseUp(t,p).base;
