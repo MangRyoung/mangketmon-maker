@@ -1255,3 +1255,4 @@ html #mk .tfh.ftile.fmisag .favstar{color:#c9a24a!important}
 html[data-vt="mm"] #mk .pcd-mtag{background:#cfae6e;color:#1a140d}
 html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 #mk .wdsl code{display:block}   /* 11-01 특성 워딩 도우미: 추천 줄 한 줄씩 */
+#mk .mvext{margin-top:12px}   /* 11-01: 기술 탭의 기능 확장 */
