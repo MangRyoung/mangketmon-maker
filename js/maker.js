@@ -222,7 +222,7 @@ function baseUp(t,p){const src=[];const ab=p.ability&&idx.abil?idx.abil.get(p.ab
  (p.pots||[]).forEach((n,i)=>{if(n&&n!=='-'){const e=potEffOf(p,i);if(e)src.push(['포텐셜',String(n).replace(/『|』/g,''),e])}});
  for(const x of exclAll(p))if(x.eff)src.push(['전용',x.name,x.eff]);
  const key=JSON.stringify([p.base,src.map(s=>s[2]),t&&t.ranks,p.auto]);const hit=BU_C.get(key);if(hit)return hit;
- const n=[0,0,0,0,0,0],mx=[0,0,0,0,0,0],mn=[0,0,0,0,0,0],set=[null,null,null,null,null,null],by=[[],[],[],[],[],[]],miss=[];
+ const n=[0,0,0,0,0,0],mx=[0,0,0,0,0,0],mn=[0,0,0,0,0,0],set=[null,null,null,null,null,null],by=[[],[],[],[],[],[]],miss=[];const add=[0,0,0,0,0,0],addBy=[[],[],[],[],[],[]],cp=[null,null,null,null,null,null];
  for(const [kind,name,eff] of src){for(const cl of String(eff).replace(/<br\s*\/?>/g,'\n').split(/\n|(?=[①-⑳])/)){
   for(const m of cl.matchAll(/「([^」]+)」의\s*종족치(?:를|가|도)?\s*(\d+)\s*랭크\s*(상승|감소)/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;const d=(+m[2]||1)*(m[3]==='감소'?-1:1);
    for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;n[i]+=d;by[i].push(`${kind} 『${name}』 ${d>0?'+':''}${d}랭크`)}}
@@ -238,14 +238,17 @@ function baseUp(t,p){const src=[];const ab=p.ability&&idx.abil?idx.abil.get(p.ab
     const ok=BU_L.indexOf(strip(g))===ti-1&&buSub(g)===m[3];if(ok){n[i]+=1;by[i].push(`${kind} 『${name}』 ${tg} 만들기 (+1랭크)`)}
     else miss.push(`${kind} 『${name}』: 「${STATS[i]} : ${tg}」 만들기는 「${STATS[i]} : ${BU_L[ti-1]||'-'}${m[3]}」일 때만 (지금 ${g} ${p.base[i]}) — 반영 안 함`)}}}
   /* 그 칸의 자동화 구문: 종족치 방어,특방 +1 · 종족치 스피드 최대 (구문 생성기 「종족치 (시트)」) */
-  for(const ln of String(autoDsl(p,name)).split(/\n|;/)){const m=ln.trim().match(/^종족치\s+(.+?)\s+(최대|[+\-]?\d+)\s*$/);if(!m)continue;const d=m[2]==='최대'?0:+m[2];
+  for(const ln of String(autoDsl(p,name)).split(/\n|;/)){const sc=ln.trim().match(/^실수치\s+(.+?)\s+=\s*(공격|방어|특공|특방|스피드)\s*$/);if(sc){const j=BU_ST[sc[2]];for(const x of sc[1].split(/[,\/·\s]+/)){const i=BU_ST[x.trim()];if(i==null||i===0||i===j)continue;cp[i]=j;addBy[i].push(`${kind} 『${name}』 실수치 = ${sc[2]}`)}continue}   /* 「공격을 특공과 같게」 */
+   const sa=ln.trim().match(/^실수치\s+(.+?)\s+([+\-]\d+)\s*$/);if(sa){for(const x of sa[1].split(/[,\/·\s]+/)){const i=BU_ST[x.trim().toUpperCase()==='HP'?'HP':x.trim()];if(i==null)continue;add[i]+=+sa[2];addBy[i].push(`${kind} 『${name}』 실수치 ${+sa[2]>0?'+':''}${+sa[2]}`)}continue}   /* 11-02 망령: 시트 실수치 ± */
+   const m=ln.trim().match(/^종족치\s+(.+?)\s+(최대|[+\-]?\d+)\s*$/);if(!m)continue;const d=m[2]==='최대'?0:+m[2];
    for(const s of m[1].split(/[,\/·\s]+/)){const i=BU_ST[s.trim().toUpperCase()==='HP'?'HP':s.trim()];if(i==null)continue;if(m[2]==='최대'){mx[i]=1;by[i].push(`${kind} 『${name}』 구문 범위 최대`)}else if(d){n[i]+=d;by[i].push(`${kind} 『${name}』 구문 ${d>0?'+':''}${d}랭크`)}}}}
  const base=p.base.map((v,i)=>{if(v===''||v==null||isNaN(+v))return v;let x=gradeStep(+v,n[i]);if(mx[i])x=gradeMax(x);if(mn[i])x=gradeMin(x);if(set[i])x=gradeSet(x,set[i]);return x});
  const up=base.map((v,i)=>v!==p.base[i]&&+v!==+p.base[i]?{i,from:+p.base[i],to:+v,by:by[i]}:null).filter(Boolean);
- const r={base,up,miss};if(BU_C.size>400)BU_C.clear();BU_C.set(key,r);return r}
+ const r={base,up,miss,add,addBy,cp};if(BU_C.size>400)BU_C.clear();BU_C.set(key,r);return r}
 const effB=(t,p)=>baseUp(t,p).base;
 const buTip=(t,p,i)=>{const u=baseUp(t,p).up.find(x=>x.i===i);return u?`${STATS[i]} ${u.from} (${grade(u.from)}) → ${u.to} (${grade(u.to)}) · ${u.by.join(' · ')}`:''};
-function stat(t,p,i){const b=+effB(t,p)[i]||0,L=lv(t,p);const core=Math.floor((Math.floor(b*2)+(+(p.ivs||[])[i]||0))*(L/100));return i===0?core+10+L:core+5}   /* 10-23: 개체값(알까기)도 더한다 — 오레마스와 같은 식 */
+function stat(t,p,i){const bu=t?baseUp(t,p):null;const raw=k=>{const b=+effB(t,p)[k]||0,L=lv(t,p);const core=Math.floor((Math.floor(b*2)+(+(p.ivs||[])[k]||0))*(L/100));return k===0?core+10+L:core+5};
+ const j=bu&&bu.cp&&bu.cp[i]!=null?bu.cp[i]:i;const ad=bu?(+(bu.add||[])[i]||0):0;return Math.max(1,raw(j)+ad)}   /* 11-02 망령: 시트 실수치 ± · 「공격을 특공과 같게」(구문 「실수치 공격 =특공」) */   /* 10-23: 개체값(알까기)도 더한다 — 오레마스와 같은 식 */
 /* 10-23 망령: 알까기 — 트레이너 육성 랭크만큼 1d32-1 ×6 후보를 굴려 하나 고른다 (오레마스 reroll_list 와 같은 표) */
 const IVROLL={E:1,D:3,C:5,B:10,A:15,AA:20,AAA:25,S:30},IVBIG=130;
 const ivCount=t=>+(IVROLL[strip((t.ranks||{})['육성'])]||5);const ivRoll=()=>STATS.map(()=>Math.floor(Math.random()*32));const ivSum=iv=>(iv||[]).reduce((a,b)=>a+(+b||0),0);
@@ -782,7 +785,7 @@ const fxReady=()=>!!(window.OM_FX&&window.OM_FX_UI);
 window.OM_APP=window.OM_APP||{openModal:h=>{const l=openModal(h,{wide:true});l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))closeModal()});return l},closeModal:()=>closeModal(),toast:t=>toast(t),ST:{role:'player',state:{}},set:async()=>false};
 let fxLoadP=null,FXST='';/* '' 불러오는 중 · ok · fail */
 function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
- const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611030700';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
+ const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611030701';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
  FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');await one('itemrule.js');FXST='ok';rmInit();stInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
 function fxRetry(){if(fxReady())return;fxLoadP=null;toast('구문 스크립트를 다시 불러옵니다…');loadFx();if(S.ui&&S.ui.tab)refreshAll()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fxretry]');if(!b)return;e.preventDefault();e.stopPropagation();fxRetry()},true);
@@ -3291,7 +3294,7 @@ $('#xlsxIn').addEventListener('change',async e=>{const f=e.target.files[0];e.tar
    펼침·탭 같은 화면 상태(open, tab)는 사람마다 따로 둔다. */
 const SH={on:false,ready:false,db:null,canWrite:true,init:{},buf:{},ed:new Map(),meta:null,synced:new Map(),flushing:false,again:false,dbDirty:true,dbDocs:null,last:''};
 const SH_KINDS=['trainers','pokemon','dbedit','meta','folders'];
-const UIK=new Set(['open','tab','effTxt','baseUp']);/* 10-26 점검: 공유에서 받은 effTxt · baseUp 이 눌러붙어 옛 값이 다시 올라가던 것 */
+const UIK=new Set(['open','tab','effTxt','baseUp','statAdd','statCp']);/* 10-26 점검: 공유에서 받은 effTxt · baseUp 이 눌러붙어 옛 값이 다시 올라가던 것 */
 const nowHM=()=>new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
 function shStatus(t){SH.last=t;const el=$('#saved');if(el)el.innerHTML=`<span class="shpill ${SH.canWrite?'':'ro'}">공유</span> ${esc(t)}`}
 const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(x=>[x,v[x]])):v);
@@ -3320,7 +3323,7 @@ function shSettings(){return {tpl:S.db.tpl||[],tplV:S.db.tplV||0,tags:S.db.tags|
 function shWant(){const out=new Map();
  S.folders.forEach((f,i)=>{f._ord=i;const d={ord:i,name:f.name||''};if(f.parent)d.parent=f.parent;if(f.priv)d.priv=true;if(f.rule)d.rule=f.rule;if(f.deco&&Object.keys(f.deco).length)d.deco=f.deco;if(f.owner){d.owner=f.owner;d.ownerName=f.ownerName||''}out.set('folders/'+f.id,d)});
  S.trainers.forEach((t,i)=>{t._ord=i;const d=stripUI(t);d.pids=t.pokemon.map(p=>p.id);if(isMisag(t))d.misagOut=misagOut(t);else delete d.misagOut;try{d.ptUse=ptSnap(t)}catch(e){delete d.ptUse}try{d.ordOut=ordSnap(t)}catch(e){delete d.ordOut}   /* 10-29 노트 대학 시트 PT 서머리가 읽는 사본 */   /* 10-28 미사그 대학: 오레마스가 읽는 각성체 대가 요약 */out.set('trainers/'+t.id,{ord:i,data:d});
-  t.pokemon.forEach(p=>{const bu=baseUp(t,p);out.set('pokemon/'+p.id,{tid:t.id,data:Object.assign(stripUI(p),{effTxt:effSnap(p)},bu.up.length?{baseUp:{base:bu.base.map(v=>v===''?'':+v),up:bu.up.map(u=>({i:u.i,from:u.from,to:u.to,by:u.by}))}}:{})})})});
+  t.pokemon.forEach(p=>{const bu=baseUp(t,p);out.set('pokemon/'+p.id,{tid:t.id,data:Object.assign(stripUI(p),{effTxt:effSnap(p)},bu.up.length?{baseUp:{base:bu.base.map(v=>v===''?'':+v),up:bu.up.map(u=>({i:u.i,from:u.from,to:u.to,by:u.by}))}}:{},(bu.add||[]).some(v=>v)?{statAdd:bu.add.slice()}:{},(bu.cp||[]).some(v=>v!=null)?{statCp:bu.cp.slice()}:{})})})});
  for(const [id,d] of SH.orph_ed||[])out.set('dbedit/'+id,d);   /* 붙을 행이 없는 수정도 지우지 않는다. 같은 이름 행이 다시 생기면 아래 줄이 덮는다 */
  for(const [p,b] of shDbDocs())out.set(p,b);
  /* 레디메이드 기본 행을 아직 못 읽었으면, 받아 둔 레디메이드 수정 행은 그대로 둔다 (지우지 않게) */
@@ -3368,7 +3371,7 @@ function shPutTrainer(id,d){let t=S.trainers.find(x=>x.id===id);const data=clone
  const all=new Map(t.pokemon.map(p=>[p.id,p]));for(const [pid,p] of SH.orph)if(p._tid===id){all.set(pid,p);SH.orph.delete(pid)}
  const list=pids.map(x=>all.get(x)).filter(Boolean);for(const p of all.values())if(!list.includes(p))list.push(p);t.pokemon=list}
 function shPutPoke(id,d){let p=null,owner=null;for(const t of S.trainers){const x=t.pokemon.find(q=>q.id===id);if(x){p=x;owner=t;break}}if(!p)p=SH.orph.get(id);
- if(!p)p={id,open:false,tab:'base'};{const dd=clone(d.data||{});delete dd.effTxt;delete dd.baseUp;replaceFields(p,dd,KEEP_P)}p.id=id;p._tid=d.tid;fixP(p);
+ if(!p)p={id,open:false,tab:'base'};{const dd=clone(d.data||{});delete dd.effTxt;delete dd.baseUp;delete dd.statAdd;delete dd.statCp;replaceFields(p,dd,KEEP_P)}p.id=id;p._tid=d.tid;fixP(p);
  const t=S.trainers.find(x=>x.id===d.tid);
  if(owner&&owner!==t)owner.pokemon=owner.pokemon.filter(q=>q!==p);
  if(t){if(!t.pokemon.includes(p)){const pos=(t._pids||[]).indexOf(id);if(pos>=0){const after=t.pokemon.filter(q=>(t._pids||[]).indexOf(q.id)>=0&&(t._pids||[]).indexOf(q.id)<pos).length;t.pokemon.splice(after,0,p)}else t.pokemon.push(p)}SH.orph.delete(id)}

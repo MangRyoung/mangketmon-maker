@@ -157,6 +157,13 @@ window.OM_FX=(()=>{
      case 'resetstates':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){const list=op.group==='condition_abnormal'?ABN:NEG;const c=[];for(const k of list)if((m.states||{})[k]){delete m.states[k];c.push(stKo(k))}L.push(`${m.name} ${c.length?'「'+c.join('」「')+'」 해제':'해제할 상태 없음'}`)}break}
      case 'raid':{self.raid=Object.assign({},self.raid||{},{segments:+op.x||(self.raid||{}).segments||0,floor:op.floor,cure:op.cure,cstat:op.cstat,rup:op.rup});L.push(`${self.name} 레이드 배틀 설정 (구간 ${self.raid.segments||'?'})`);break}
      case 'dex':{const ts=await targets(b,self,'enemy1',ctx);const tg=ts[0];L.push(`「${name}」 데이터 해석${tg?' → '+tg.name:''}`);if(tg&&window.OM_DEX_UI&&ctx.viewer!==undefined)setTimeout(()=>window.OM_DEX_UI.analyze(ctx.viewer||self.tid,tg.id,{forced:true,free:true}),400);break}
+     case 'statadd':L.push(`${self.name} 실수치 ${op.stats.join('·')} ${op.copy?'= '+op.copy:(op.n>0?'+':'')+op.n} (제작기 시트의 실수치에 이미 들어가 있다)`);break;
+     case 'statset':{const SI={공격:1,방어:2,특공:3,특방:4,스피드:5};const ix=op.stats.map(k=>SI[k]).filter(i=>i!=null);const keep=m=>{if(!Array.isArray(m.stats))return false;if(!m.statsOrig)m.statsOrig=m.stats.slice();return true};const nm=i=>['HP','공격','방어','특공','특방','스피드'][i];
+      const ts=await targets(b,self,op.tgt||'self',ctx);
+      if(op.mode==='swap'||op.mode==='avg'){for(const m of ts){if(m.id===self.id||!keep(m)||!keep(self))continue;const ch=[];for(const i of ix){const a=+self.stats[i]||0,c=+m.stats[i]||0;if(op.mode==='swap'){self.stats[i]=c;m.stats[i]=a}else{const v=Math.floor((a+c)/2);self.stats[i]=v;m.stats[i]=v}ch.push(`${nm(i)} ${self.name} ${a}→${self.stats[i]} · ${m.name} ${c}→${m.stats[i]}`)}L.push(`실수치 ${op.mode==='swap'?'교환':'평균'} — ${ch.join(' / ')} (교대하면 원래대로)`)}break}
+      for(const m of ts){if(!keep(m))continue;if(op.mode==='flip'){const [i,j]=ix;const a=+m.stats[i]||0,c=+m.stats[j]||0;m.stats[i]=c;m.stats[j]=a;L.push(`${m.name} 실수치 ${nm(i)} ↔ ${nm(j)} (${a} ↔ ${c}) · 교대하면 원래대로`);continue}
+       if(op.mode==='copy'){const j=SI[op.from];if(j==null)continue;const ch=[];for(const i of ix){if(i===j)continue;const a=+m.stats[i]||0;m.stats[i]=+m.stats[j]||a;ch.push(`${nm(i)} ${a}→${m.stats[i]}`)}L.push(`${m.name} 실수치 ${ch.join(' · ')} (= ${op.from} · 교대하면 원래대로)`);continue}
+       const ch=[];for(const i of ix){const a=+m.stats[i]||0;const v=op.mode==='set'?+op.n:op.mode==='mul'?Math.floor(a*(+op.n||1)):a+(+op.n||0);m.stats[i]=Math.max(1,Math.round(v));ch.push(`${nm(i)} ${a}→${m.stats[i]}`)}L.push(`${m.name} 실수치 ${ch.join(' · ')} (교대하면 원래대로)`)}break}
      case 'baseup':L.push(`${self.name} 종족치 ${op.stats.join('·')} ${op.max?'범위 최대':(op.n>0?'+':'')+op.n+'랭크'} (제작기 시트의 종족치 · 실수치에 이미 들어가 있다)`);break;
      case 'stmod':L.push(`${self.name} 「${stKo(op.st)}」 사양 ${op.n}/${op.d} (시트에 적힌 값 — 턴 종료 때 자동으로 읽는다)`);break;
      case 'stcount':{/* 상태 턴 조정 (10-23 망령): 걸려 있는 상태의 남은 턴을 늘리거나 줄인다 (계속되는 상태 · 0 이하가 되면 풀린다) */const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){const st=m.states||{};const keys=op.st==='all'?Object.keys(st).filter(k=>st[k]):op.st==='neg'?Object.keys(st).filter(k=>st[k]&&NEG.includes(k)):[op.st].filter(k=>st[k]);const out=[];
@@ -388,6 +395,11 @@ window.OM_FX=(()=>{
    case '해석':return {k:'dex',mode:'scouter'};
    case '레이드':{const m=words.join(' ').match(/구간[:：]?(\d+)/);return {k:'raid',on:1,x:m?+m[1]:'',cond:'cap',floor:1,cure:1,cstat:1,rup:1,rmod:0}}
    case '종족치':{/* 시트 종족치: 종족치 방어,특방 +1 · 종족치 스피드 최대 — 제작기가 시트 종족치 · 실수치에 넣는다 (배틀 중엔 바꾸지 않는다) */const all=words.join(' ');const mx=/최대/.test(all);const mm=all.match(/(^|\s)([+\-]?\d+)/);const nn=mm?+mm[2]:1;const st=[];for(const w of words)for(const s of w.split(/[,\/·]/)){const t=s.trim().toUpperCase()==='HP'?'HP':s.trim();if(['HP','공격','방어','특공','특방','스피드'].includes(t)&&!st.includes(t))st.push(t)}if(!st.length||(!mx&&!nn))return {k:'?',raw:line};return {k:'baseup',stats:st,n:mx?0:nn,max:mx?1:0}}
+   /* 11-02 망령 「실수치 변경 매크로」: 시트형(제작기 시트 실수치에 더함) · 배틀형(배틀 중 실수치 · 교대하면 원래대로) */
+   case '실수치':{const st=[];for(const w of words)for(const x of w.split(/[,\/·]/)){const t=x.trim().toUpperCase()==='HP'?'HP':x.trim();if(['HP','공격','방어','특공','특방','스피드'].includes(t)&&!st.includes(t))st.push(t)}const cpm=words.join(' ').match(/=\s*(공격|방어|특공|특방|스피드)/);if(cpm){const st2=st.filter(x=>x!=='HP'&&x!==cpm[1]);if(!st2.length)return {k:'?',raw:line};return {k:'statadd',stats:st2,copy:cpm[1]}}const mm=words.join(' ').match(/(^|\s)([+\-]\d+)/);if(!st.length||!mm)return {k:'?',raw:line};return {k:'statadd',stats:st,n:+mm[2]}}
+   case '실수치변경':{const tg=tgtOf(words);const st=[];for(const w of words)for(const x of w.split(/[,\/·]/)){const t=x.trim();if(['공격','방어','특공','특방','스피드'].includes(t)&&!st.includes(t))st.push(t)}const all=words.join(' ');let mode='',n=0,m,from='';
+    if((m=all.match(/=\s*(공격|방어|특공|특방|스피드)/))){mode='copy';from=m[1];const k=st.indexOf(from);if(k>=0)st.splice(k,1)}else if((m=all.match(/(^|\s)=\s*(\d+)/))){mode='set';n=+m[2]}else if((m=all.match(/(^|\s)([+\-]\d+)/))){mode='add';n=+m[2]}else if((m=all.match(/[×x*]\s*(\d+(?:\.\d+)?)/))){mode='mul';n=+m[1]}else if(/교환/.test(all))mode='swap';else if(/평균/.test(all))mode='avg';else if(/맞바꿈|서로/.test(all))mode='flip';
+    if(!st.length||!mode||(mode==='flip'&&st.length!==2))return {k:'?',raw:line};return Object.assign({k:'statset',stats:st,mode,n,tgt:tg||(mode==='swap'||mode==='avg'?'enemy1':'self')},from?{from}:{})}
    case '상태수정':case '상태사양':{const st=stEn(takeState(words));const f=words.map(w=>w.match(/^(\d+)\s*\/\s*(\d+)$/)).find(Boolean);if(!st||!f)return {k:'?',raw:line};return {k:'stmod',st,n:+f[1],d:+f[2]}}
    default:return {k:'?',raw:line}}}
  /* 여러 줄 구문: 「선택:」 뒤의 「- 라벨 → 구문; 구문」 줄들은 선택지 */
@@ -440,6 +452,8 @@ window.OM_FX=(()=>{
    case 'next':L.push('다음기술'+tg(op.tgt)+(op.sure?' 필중':'')+(op.uturn?' 유턴':'')+(op.pursuit?' 추격':'')+(op.prio?' 우선도'+(op.prio>0?'+':'')+op.prio:'')+(op.cr?' 급소+'+op.cr:'')+(op.cx==='sure'?' 확정급소':'')+(op.pw&&+op.pw!==1?' 위력×'+op.pw:''));break;
    case 'raid':L.push('레이드'+(op.x?' 구간:'+op.x:''));break;case 'dex':L.push('해석');break;
    case 'baseup':L.push('종족치 '+op.stats.join(',')+' '+(op.max?'최대':(op.n>0?'+':'')+op.n));break;
+   case 'statadd':L.push('실수치 '+op.stats.join(',')+' '+(op.copy?'='+op.copy:(op.n>0?'+':'')+op.n));break;
+   case 'statset':L.push('실수치변경 '+op.stats.join(',')+' '+({add:(op.n>0?'+':'')+op.n,set:'='+op.n,mul:'×'+op.n,swap:'교환',avg:'평균',flip:'맞바꿈',copy:'='+(op.from||'')}[op.mode]||'')+tga(op.tgt||'self'));break;
    case 'stmod':L.push('상태수정 '+stKoW(op.st)+' '+op.n+'/'+op.d);break;
    default:L.push('# '+JSON.stringify(op))}}
   return L}

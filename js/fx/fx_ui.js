@@ -30,7 +30,7 @@ window.OM_FX_UI=(()=>{
 또는 이름을 붙여서:  - ① 라벨 → 랭크 공격+1  /  - ② 5할 : 혼란 → 상태 혼란 상대1체
 효과 글의 표식: 【등장】 등장 때 자동 · 【상시】 처음 한 번 자동 · 【N/시】 횟수 · 드물게/저확률/중확률/고확률 확률 판정`;
  /* 10-23 망령: 생성기를 무리별 버튼 판으로 — 드롭다운 33개에서 찾지 않게 */
- const GROUPS=[['능력치',[['rank','랭크'],['mult','배율'],['rrand','무작위 능력치'],['reset','초기화']]],
+ const GROUPS=[['능력치',[['rank','랭크'],['mult','배율'],['rrand','무작위 능력치'],['statset','실수치 (배틀)'],['reset','초기화']]],
   ['위력 · 급소',[['boost','위력 강화'],['guard','위력 완화'],['next','다음 기술 부여']]],
   ['상태',[['state','상태 걸기'],['statefx','확률로 걸기'],['cure','치유'],['stcount','턴 조정'],['resetst','상태 초기화'],['immune','면역'],['stmod','회복 · 대미지 비율']]],
   ['HP',[['heal','회복'],['dmg','대미지 (비례 · 타입)'],['future','예고 공격']]],
@@ -39,7 +39,7 @@ window.OM_FX_UI=(()=>{
   ['무시',[['ignoreup','상대 상승·강화 / 감소·저하 무시 (계산에서 뺌)'],['nodrop','감소 무시 (내 능력이 안 깎임)'],['noind','비례 · 설치기 무시'],['float','하늘 위']]],
   ['모습',[['type','타입'],['trait','특성'],['transform','변신'],['role','역할']]],
   ['발동 조건',[['choice','선택지'],['chance','확률 보정'],['confirm','확인 질문'],['cond','자동 조건']]],
-  ['시트',[['baseup','종족치']]]];
+  ['시트',[['baseup','종족치'],['statadd','실수치']]]];
  const KINDS=GROUPS.flatMap(g=>g[1]);
  const DESC={rank:'능력 랭크를 올리거나 내린다',mult:'능력에 배율을 곱한다 (해제하면 되돌린다)',rrand:'정한 능력 중 무작위로 골라 랭크 · 배율을 바꾼다',reset:'랭크 · 배율을 처음으로',
   boost:'조건이 맞는 기술의 위력을 올린다 (공격 쪽)',guard:'조건이 맞는 기술의 대미지를 줄인다 (받는 쪽)',next:'다음에 쓰는 기술 한 번에 필중 · 유턴 · 추격 · 우선도 · 급소를 붙인다',
@@ -50,7 +50,7 @@ window.OM_FX_UI=(()=>{
   ignoreup:'상대의 랭크 상승 · 감소를 무시한다 (천진 · 성스러운칼)',nodrop:'자신의 능력이 내려가지 않는다',noind:'비례 대미지 · 설치기 · 강제 교대를 무시한다',float:'땅 위 효과를 받지 않는다',
   type:'타입을 더하거나 바꾼다',trait:'특성을 바꾼다',transform:'상대로 변신한다',role:'역할(에이스 · 블로커 …) 취급',
   choice:'여러 효과 중 고르게 한다 — 이 다음에 넣는 줄이 하나씩 선택지가 된다',chance:'이 포켓몬의 확률 효과가 더 잘 (또는 반드시) 발동한다',confirm:'발동할 때 조건을 물어본다',cond:'조건이 맞을 때만 자동으로 이어 간다',
-  baseup:'시트 종족치를 올린다 (제작기 시트에 반영)'};
+  baseup:'시트 종족치를 올린다 (제작기 시트에 반영)',statadd:'시트 실수치에 수를 더하거나 뺀다 (제작기 시트에 반영)',statset:'배틀 중 실수치를 더하기 · 정하기 · 곱하기 · 상대와 교환 · 평균 · 내 두 능력 맞바꿈 (교대하면 원래대로)'};
  const BU_STS=['HP','공격','방어','특공','특방','스피드'];
  const STMOD_STS=[['아쿠아링','1/8'],['뿌리박기','1/16'],['환희의노래','1/16'],['희망사항','1/2'],['씨뿌리기','1/8'],['독','1/8'],['화상','1/16'],['악몽','1/4'],['저주','1/4'],['조이기','1/8']];
  const TG=['self','ally','enemy','others','all','ally1','adj','enemy1','randother','randenemy','randall','area'];
@@ -92,6 +92,8 @@ window.OM_FX_UI=(()=>{
    case 'role':return `<div class="row">${sel('g_mode',[['add','추가'],['remove','제거'],['clear','초기화']],'add')} <label>역할 (쉼표) <input type="text" data-g="roles" placeholder="에이스,블로커"></label></div>`;
    case 'pursuit':return `<div class="row"><label><input type="checkbox" data-g="imm"> 추격 무시 (교대해도 상대의 추격을 받지 않는다)</label> <label>대상 ${tgSel('g_tgt')}</label> <label><input type="checkbox" data-g="hide"> 숨김</label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
    case 'confirm':return `<div class="row"><label>조건 문장 <input type="text" data-g="q" placeholder="자신이 「특성 : ○○오라」일 때" style="width:360px"></label></div>`;
+   case 'statadd':return `<div class="row">${BU_STS.map(s=>`<label><input type="checkbox" data-g="sa_${s}"> ${s}</label>`).join(' ')}</div><div class="row">${sel('g_sam',[['add','더하기 ±N'],['copy','다른 능력과 같게']],'add')} <label>N <input type="number" class="n xs" data-g="n" value="10"></label> <label>같게 할 능력 ${sel('g_saf',['공격','방어','특공','특방','스피드'].map(x=>[x,x]),'특공')}</label></div><div class="small dim">제작기 시트의 실수치에 바로 더한다 (종족치 · 등급은 그대로). 배틀로 가져가면 그 실수치로 나온다</div>`;
+   case 'statset':return `<div class="row">대상 ${tgSel('g_tgt')} ${sel('g_sm',[['add','더하기 ±N'],['set','N 으로 정하기'],['mul','× N'],['copy','다른 능력과 같게'],['swap','대상과 교환'],['avg','대상과 평균'],['flip','두 능력 맞바꿈']],'add')} <label>N <input type="number" class="n xs" data-g="n" value="10" step="any"></label> <label>같게 할 능력 ${sel('g_ssf',['공격','방어','특공','특방','스피드'].map(x=>[x,x]),'특공')}</label></div><div class="row">${BU_STS.filter(x=>x!=='HP').map(s=>`<label><input type="checkbox" data-g="ss_${s}"> ${s}</label>`).join(' ')}</div><div class="small dim">배틀 중 실수치(랭크 · 배율 전 값)를 바꾼다. 교환 · 평균은 자신과 대상 사이(대상 기본 상대 1체) · 맞바꿈은 능력 두 개만 (파워트릭처럼). 교대하면 원래대로</div>`;
    case 'baseup':return `<div class="row">${BU_STS.map(s=>`<label><input type="checkbox" data-g="bu_${s}"> ${s}</label>`).join(' ')}</div><div class="row">${sel('g_bm',[['up','랭크 상승'],['down','랭크 감소'],['max','범위 최대화']],'up')} <label>랭크 <input type="number" class="n xs" data-g="n" value="1" min="1"></label></div><div class="small dim">제작기 시트의 종족치 · 실수치 · 합계에 바로 들어간다 (1랭크 = 한 등급, C→B). 배틀 중엔 바뀌지 않는다</div>`;
    case 'stmod':return `<div class="row">${sel('g_sm',STMOD_STS.map(([k,d])=>[k,k+' (기본 '+d+')']),'아쿠아링')} → <label>비율 <input type="text" class="n xs" data-g="frac" value="1/6"></label></div><div class="small dim">이 포켓몬이 그 상태일 때 턴 종료 회복 · 대미지 비율을 바꾼다 (시트에 적어 두는 값)</div>`;
    case 'future':return `<div class="row"><label>상태 <input type="text" data-g="st" value="미래예지" style="width:90px"></label> <label>위력 <input type="number" class="n xs" data-g="pow" value="0" title="0 = 기술 위력"></label> <label>기술 <input type="text" data-g="mv" placeholder="미래예지" style="width:90px"></label> 대상 ${tgSel('g_tgt','enemy1')}</div><div class="small dim">다음 턴 가장 마지막에 대미지 계산 (공격 창의 「지연」 기술은 자동으로 건다)</div>`;
@@ -132,6 +134,9 @@ window.OM_FX_UI=(()=>{
    case 'role':return '역할 '+({add:'추가',remove:'제거',clear:'초기화'})[s('g_mode')]+' '+tyK(g('roles'));
    case 'pursuit':return '추격'+(g('imm')?' 무시'+tg(s('g_tgt')):'')+(g('off')?' 해제':'')+(g('hide')?' 숨김':'');
    case 'confirm':return '확인 "'+g('q')+'"';
+   case 'statadd':{const st=BU_STS.filter(x=>g('sa_'+x));if(s('g_sam')==='copy'){const f=s('g_saf');const st2=st.filter(x=>x!=='HP'&&x!==f);if(!st2.length)return '';return '실수치 '+st2.join(',')+' ='+f}const n=Math.round(+g('n')||0);if(!st.length||!n)return '';return '실수치 '+st.join(',')+' '+(n>0?'+':'')+n}
+   case 'statset':{let st=BU_STS.filter(x=>x!=='HP'&&g('ss_'+x));const m=s('g_sm');if(m==='copy'){st=st.filter(x=>x!==s('g_ssf'));if(!st.length)return '';return '실수치변경 '+st.join(',')+' ='+s('g_ssf')+tg(s('g_tgt'))}const n=+g('n')||0;if(!st.length)return '';if(m==='flip'&&st.length!==2)return '';const t=s('g_tgt');const tgw=(m==='swap'||m==='avg')?tga(t==='self'?'enemy1':t):tg(t);
+    return '실수치변경 '+st.join(',')+' '+({add:(n>0?'+':'')+Math.round(n),set:'='+Math.round(n),mul:'×'+n,swap:'교환',avg:'평균',flip:'맞바꿈'}[m])+tgw}
    case 'baseup':{const st=BU_STS.filter(x=>g('bu_'+x));if(!st.length)return '';const m=s('g_bm');return '종족치 '+st.join(',')+' '+(m==='max'?'최대':(m==='down'?'-':'+')+Math.max(1,+g('n')||1))}
    case 'stmod':{const f=String(g('frac')||'').replace(/\s+/g,'');if(!/^\d+\/\d+$/.test(f))return '';return '상태수정 '+s('g_sm')+' '+f}
    case 'future':return '예고 '+String(g('st')||'미래예지').replace(/\s+/g,'')+(+g('pow')>0?' 위력 '+(+g('pow')):'')+(String(g('mv')||'').trim()?' 기술 '+String(g('mv')).trim().replace(/\s+/g,''):'')+tga(s('g_tgt'));
