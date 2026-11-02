@@ -1260,3 +1260,17 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 /* 11-01 카드 DB 출처 폴더 */
 #mk .dbt table.cardsrc tr.csrch td{background:var(--sunk,rgba(127,127,127,.12));font-size:13px;padding:7px 10px;border-top:1px solid var(--line,#ddd);user-select:none}
 #mk .dbt table.cardsrc tr.csrch:hover td{filter:brightness(1.08)}
+/* 11-02 감우: 덱 관리 타일 = 은열쇠 카드 (skcard.css) */
+#mk .mkdgrid{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:14px 10px}
+@media(max-width:640px){#mk .mkdgrid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:12px 8px}}
+#mk .mkdtc2{all:unset;display:block;cursor:pointer;padding:4px 2px 2px;border-radius:8px}
+#mk .mkdtc2 .skc{width:100%}
+#mk .mkdtc2:hover .skc{transform:translateY(-3px)}#mk .mkdtc2 .skc{transition:transform .15s ease}
+#mk .mkdtc2:focus-visible{outline:2px solid var(--acc,#ffd12e);outline-offset:2px}
+#mk .mkdt.miss .skc{opacity:.55;filter:grayscale(.6)}
+#mk .mkdt .mkdtb{margin-top:6px}
+.mkcrow{display:flex;gap:18px;align-items:flex-start;flex:none}
+.mkcrow>.fgrid{flex:1;min-width:0}
+#mk .preview.mkcprev,.preview.mkcprev{flex:none;position:sticky;top:0;display:flex;flex-direction:column;align-items:center;gap:6px;margin:0;padding:4px 0;border:0;background:none;text-align:center;min-height:0}
+.mkcprev .skc{width:220px}.mkcprev .small{max-width:220px}
+@media(max-width:760px){.mkcrow{flex-direction:column-reverse;align-items:stretch}#mk .preview.mkcprev,.preview.mkcprev{position:static}.mkcprev .skc{width:190px}}
