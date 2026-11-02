@@ -587,7 +587,7 @@ function ensureCampus(){if(campusTried)return;if((SH.on||(window.MKM_STORE&&MKM_
 /* 10-30: 캠퍼스 안 NPC 폴더 — GM 이 열 때 없으면 한 번 만든다(지운 뒤엔 다시 안 만듦) */
 function ensureMisagNpc(){const c=S.folders.find(f=>f.id===MISAG_FID);if(!c)return;if(S.folders.some(f=>f.id===MISAG_NPC_FID)){lsSet('mkm_misag_npc','1');return}if(lsGet('mkm_misag_npc')==='1'||!ME.gm||!ME.hash||(SH.on&&SH.canWrite===false))return;if((SH.on||(window.MKM_STORE&&MKM_STORE.configured()&&!SH.failed))&&!SH.ready)return;
  S.folders.splice(S.folders.indexOf(c)+1,0,{id:MISAG_NPC_FID,name:'NPC',parent:MISAG_FID,priv:true,owner:ME.hash,ownerName:ME.name,deco:{icon:'🗝️',title:'미사그 NPC · 세션 노트 NPC 시트(GM만)로 들어감'}});lsSet('mkm_misag_npc','1');save()}
-function MR(){const R=RULES();if(!R.misag||!Array.isArray(R.misag.items))rulesNormalize(S.db);return (S.db.rules&&S.db.rules.misag)||MISAG_DEF}
+function MR(){const R=RULES();if(!R.misag||!Array.isArray(R.misag.items)||!(+R.misag.v>=2))rulesNormalize(S.db);return (S.db.rules&&S.db.rules.misag)||MISAG_DEF}
 const mnum=k=>{const v=parseFloat(MR()[k]);return isNaN(v)?(parseFloat(MISAG_DEF[k])||0):v};
 function fracNum(x,d){const m=String(x??'').trim().match(/^(-?[\d.]+)\s*\/\s*([\d.]+)$/);if(m)return +m[2]?+m[1]/+m[2]:d;const v=parseFloat(x);return isNaN(v)?d:v}
 function mRound(x){const R=MR();const u=parseFloat(R.cmdUnit)||0.5;const c=R.cmdRound==='ceil';const f=c?Math.ceil:R.cmdRound==='round'?Math.round:Math.floor;return Math.round(f(x/u+(c?-1e-9:1e-9))*u*1000)/1000}
@@ -663,7 +663,7 @@ function rulesDef(){return {misag:clone(MISAG_DEF),solo3:clone(SOLO3_DEF),soloOr
 function rulesNormalize(db){const d=rulesDef();if(!db.rules||typeof db.rules!=='object'||Array.isArray(db.rules))db.rules={};const R=db.rules;
  if(!R.soloOrd||typeof R.soloOrd!=='object')R.soloOrd={};for(const k in d.soloOrd)if(R.soloOrd[k]==null||R.soloOrd[k]==='')R.soloOrd[k]=d.soloOrd[k];
  if(!R.solo3||typeof R.solo3!=='object')R.solo3={};for(const k in d.solo3)if(R.solo3[k]==null||R.solo3[k]==='')R.solo3[k]=d.solo3[k];
- if(!R.misag||typeof R.misag!=='object'||Array.isArray(R.misag))R.misag={};for(const k in d.misag)if(R.misag[k]==null||R.misag[k]==='')R.misag[k]=clone(d.misag[k]);if(!Array.isArray(R.misag.items))R.misag.items=clone(MISAG_ITEMS_DEF);for(const r of R.misag.items)while(r.length<4)r.push('');
+ if(!R.misag||typeof R.misag!=='object'||Array.isArray(R.misag))R.misag={};for(const k in d.misag)if(R.misag[k]==null||R.misag[k]==='')R.misag[k]=clone(d.misag[k]);if(!(+R.misag.v>=2)){/* 11-02 망령 「분배레벨 −15 / 15 로 바꿨는데 A 가 −20」: 11-01 기본값을 10 · 10 · 2 → 15 · 15 · 3 으로 바꿨지만 공유 DB 규칙에 옛 기본값이 남아 덮고 있었다. 옛 기본값 그대로인 칸만 새 기본값으로 (손으로 바꾼 값은 둔다) */const OLD={distB:'10',distA:'10',typeN:'2'};for(const k in OLD)if(String(R.misag[k])===OLD[k])R.misag[k]=MISAG_DEF[k];R.misag.v=2}if(!Array.isArray(R.misag.items))R.misag.items=clone(MISAG_ITEMS_DEF);for(const r of R.misag.items)while(r.length<4)r.push('');
  if(!R.invest||typeof R.invest!=='object')R.invest={};for(const k in d.invest)if(R.invest[k]==null)R.invest[k]=d.invest[k];
  /* 10-30 망령 「메인 2점 + 덤프 1점은 전체 룰」: 투자 3회 · D 4회 → 2회 · D 3회 (예전 기본값일 때만) */
  if(!R.investV){if(String(R.invest.allow)==='3')R.invest.allow='2';if(String(R.invest.allowD)==='4')R.invest.allowD='3';R.investV=1}
