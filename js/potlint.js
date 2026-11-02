@@ -100,6 +100,14 @@ window.MKM_POTLINT=(()=>{
    if((m=c.match(/「(?:필드 : )?([가-힣]+필드)」(?:을|를)? ?(?:(\d)턴 동안 )?전개/)))L.push(`필드 ${m[1]} ${m[2]||5}`);
    if((m=c.match(/「우선도 : ([+-]\d(?:\.\d)?)」/)))L.push(`우선도 ${m[1]}${temp?' 이번턴':''}`);
    if((m=c.match(/「HP : (\d\/\d) 이하」일 때/))&&L.length)L.unshift(`조건 HP≤${m[1]}`);
+   /* 11-02 망령: 실수치 — 【상시】이고 때 · 턴 조건이 없으면 시트형(실수치 …), 아니면 배틀형(실수치변경 …) */
+   if(/실수치|같게|뒤바꾼|맞바꾼/.test(c)){const sheet=/【상시】/.test(tags)&&!/때|턴|교대|등장|선행/.test(c);const tw=tg&&tg!=='자신'?' '+tg:'';const sp=x=>x.split('/').filter(v=>v!=='HP'||sheet).join(',');
+    let q;
+    if((q=c.match(/「([^」]+)」(?:의 실수치)?(?:을|를|이|가)\s*「(공격|방어|특공|특방|스피드)」(?:의 실수치)?(?:과|와)\s*같(?:게|은)/))||(q=c.match(/「([^」]+)」의 실수치를\s*「(공격|방어|특공|특방|스피드)」의 실수치로\s*(?:만든다|한다)/))){const st=sp(q[1]).split(',').filter(v=>v&&v!=='HP'&&v!==q[2]).join(',');if(st)L.push(sheet?`실수치 ${st} =${q[2]}`:`실수치변경 ${st} =${q[2]}${tw}`)}
+    else if((q=c.match(/자신과\s*(?:대상|상대|정면)의\s*「([^」]+)」(?:의)?\s*실수치를\s*(?:서로\s*)?(교환|맞바꾼|바꾼|평균)/))){const st=sp(q[1]);if(st)L.push(`실수치변경 ${st} ${q[2]==='평균'?'평균':'교환'} ${tg&&tg!=='자신'?tg:'상대1체'}`)}
+    else if((q=c.match(/「(공격|방어|특공|특방|스피드)」(?:과|와)\s*「(공격|방어|특공|특방|스피드)」의\s*실수치를\s*(?:서로\s*)?(?:뒤바꾼|맞바꾼|바꾼)/)))L.push(`실수치변경 ${q[1]},${q[2]} 맞바꿈${tw}`);
+    else if((q=c.match(/「([^」]+)」의\s*실수치를\s*(\d+)\s*(?:으로|로)\s*(?:만든다|한다)/))){const st=sp(q[1]);if(st&&!sheet)L.push(`실수치변경 ${st} =${q[2]}${tw}`)}
+    else if((q=c.match(/「([^」]+)」의\s*실수치(?:를|가|에)?\s*([+-]?\d+)\s*(?:만큼\s*)?(상승|증가|올린|더한|감소|하락|내린|뺀)?/))&&/실수치/.test(c)){const st=sp(q[1]);let n=+q[2];if(/감소|하락|내린|뺀/.test(q[3]||''))n=-Math.abs(n);if(st&&n)L.push(sheet?`실수치 ${st} ${n>0?'+':''}${n}`:`실수치변경 ${st} ${n>0?'+':''}${n}${tw}`)}}
    /* 구문으로 읽히는 줄만 */
    for(const s of L){if(F&&F.parse){const r=F.parse(s);if(!r.ops.length||(r.errs&&r.errs.length))continue}if(!lines.includes(s)){lines.push(s);why.push(c0.length>60?c0.slice(0,60)+'…':c0)}}}
   /* 다른 줄에서 나온 「위력 ×1 급소+n」은 같은 위력 줄에 붙인다 */
