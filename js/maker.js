@@ -3338,10 +3338,11 @@ async function shFlush(){if(!SH.on||!SH.ready)return;if(!SH.canWrite){shStatus('
  if(SH.flushing){SH.again=true;return}
  const wait=800-(Date.now()-shLastFlush);if(wait>0){shSchedule(wait);return}
  SH.flushing=true;shLastFlush=Date.now();let retry=false,hard=0;SH.bad=SH.bad||new Map();
- try{do{SH.again=false;const want=shWant();const jobs=[];
+ try{if(SH.db&&SH.db.fresh)try{await SH.db.fresh(60000,['trainers','pokemon'])}catch(e){}
+  do{SH.again=false;const want=shWant();const jobs=[];
    for(const [p,b] of want){const j=canon(b);if(SH.synced.get(p)===j||SH.bad.get(p)===j)continue;
     if(j.length>1500000){if(shHostBig(p))continue;if(!SH.bigWarn){SH.bigWarn=true;toast('한 항목이 너무 커서 공유 저장하지 못했습니다 · 메모나 효과 글을 줄여 주세요')}SH.bad.set(p,j);continue}
-    jobs.push(async()=>{try{await SH.db.doc(p).set(JSON.parse(j));SH.synced.set(p,j);SH.bad.delete(p)}catch(e){const c=shErr(e);if(c==='unavailable'||c==='resource_exhausted')retry=true;else{SH.bad.set(p,j);hard++}}})}
+    jobs.push(async()=>{try{const o=JSON.parse(j);await SH.db.doc(p).set(o);SH.synced.set(p,j);SH.bad.delete(p);if(p.startsWith('trainers/'))rcvNote(p.slice(9),o.data)}catch(e){const c=shErr(e);if(c==='unavailable'||c==='resource_exhausted')retry=true;else{SH.bad.set(p,j);hard++}}})}
    for(const p of [...SH.synced.keys()])if(!want.has(p))jobs.push(async()=>{try{await SH.db.doc(p).delete();SH.synced.delete(p)}catch(e){const c=shErr(e);if(c==='unavailable'||c==='resource_exhausted')retry=true;else hard++}});
    if(jobs.length){shStatus(`저장 중… (${jobs.length})`);await runPool(jobs,2)}
   }while(SH.again&&!retry)}finally{SH.flushing=false}
@@ -3354,7 +3355,15 @@ function shHostBig(path){SH.hosting=SH.hosting||new Set();if(SH.hosting.has(path
  hostImg(tag,o.id,o.image).then(u=>{o.image=u;save();renderAll();toast('그림을 공유 저장소로 옮겼습니다')}).catch(e=>{toast('그림을 옮기지 못했습니다: '+e.message+' · 이미지를 작게 바꿔 주세요');SH.bad.set(path,canon(shWant().get(path)))}).finally(()=>SH.hosting.delete(path));return true}
 function replaceFields(o,d,keep){for(const k of Object.keys(o))if(!keep.has(k)&&k[0]!=='_'&&!(k in d))delete o[k];for(const k in d)if(!keep.has(k))o[k]=clone(d[k])}
 const KEEP_T=new Set(['open','pokemon']),KEEP_P=new Set(['open','tab']);
-function shPutTrainer(id,d){let t=S.trainers.find(x=>x.id===id);const data=clone(d.data||{});const pids=data.pids||[];delete data.pids;
+/* 11-02 망령 「대학 시트에서 각성체 · PT 가 날아갔다」: 오래 열어 둔(실시간이 끊겨 남의 새 포켓몬을 못 받은) 제작기가 트레이너 문서를 통째로 다시 올려
+   pids · ptUse(노트 PT 서머리) · misagOut 이 그 옛 목록으로 줄어든 일. 포켓몬 문서(tid)는 멀쩡했다.
+   ① 받은 트레이너 문서의 pids · ptUse.mons 에 이 화면에 붙어 있는 포켓몬이 빠져 있으면 → 잠시 뒤 지금 값으로 다시 올린다 (shHeal)
+   ② 올리기 전에 마지막으로 맞춘 지 1분 넘었으면 공유 DB 와 먼저 맞춘다 (store.fresh) */
+function rcvNote(id,data){if(!data)return;const pu=data.ptUse&&data.ptUse.mons;(SH.rcvT=SH.rcvT||new Map()).set(id,{pids:new Set(data.pids||[]),mons:pu&&typeof pu==='object'?new Set(Object.keys(pu)):null})}
+function shHeal(){if(!SH.on||!SH.ready||!SH.canWrite||!SH.rcvT)return;let n=0;
+ for(const t of S.trainers){const r=SH.rcvT.get(t.id);if(!r)continue;if(t.pokemon.some(p=>!r.pids.has(p.id)||(r.mons&&!r.mons.has(p.id)))){SH.synced.delete('trainers/'+t.id);n++}}
+ if(n){console.info('[공유 저장소] 포켓몬 목록이 빠진 트레이너 '+n+'명을 다시 올립니다');shSchedule(300)}}
+function shPutTrainer(id,d){let t=S.trainers.find(x=>x.id===id);const data=clone(d.data||{});rcvNote(id,data);const pids=data.pids||[];delete data.pids;
  if(!t){t={id,open:false,pokemon:[]};S.trainers.push(t)}replaceFields(t,data,KEEP_T);t.id=id;t._ord=+d.ord||0;t._pids=pids;fixT(t);
  const all=new Map(t.pokemon.map(p=>[p.id,p]));for(const [pid,p] of SH.orph)if(p._tid===id){all.set(pid,p);SH.orph.delete(pid)}
  const list=pids.map(x=>all.get(x)).filter(Boolean);for(const p of all.values())if(!list.includes(p))list.push(p);t.pokemon=list}
@@ -3401,7 +3410,7 @@ function shAfter(paths,what){
  /* 병합한 문서는 「받은 그대로」를 올라간 값으로 적어 둔다 → 합친 결과가 다음 저장 때 올라간다 */
  if(SH.mergeBase&&SH.mergeBase.size){for(const [p,j] of SH.mergeBase)SH.synced.set(p,j);SH.mergeBase.clear();shSchedule(300)}
  try{lsSet(K_T,JSON.stringify({trainers:S.trainers,folders:S.folders,ui:S.ui}));if(what.d)lsSet(K_DB,JSON.stringify({db:S.db,custom:S.custom}))}catch(e){}
- shRender(what);mkmChanged()}
+ shRender(what);mkmChanged();if(what.t&&SH.ready){clearTimeout(SH.healT);SH.healT=setTimeout(shHeal,4000)}}
 let shRT=null,shRW={};
 function shRender(what){shRW.t=shRW.t||what.t;shRW.d=shRW.d||what.d;clearTimeout(shRT);shRT=setTimeout(()=>{const w=shRW;shRW={};
  if(drag)return shRender(w);

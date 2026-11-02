@@ -51,16 +51,16 @@ window.MKM_STORE=(()=>{
    function emit(changes){if(changes.length){save();if(st.cb)st.cb({docs:[...st.cache.entries()].map(([id,d])=>mkDoc(id,d)),docChanges:()=>changes})}}
    function apply(id,data){const j=canon(data);const had=st.cache.has(id);if(had&&canon(st.cache.get(id))===j)return null;st.cache.set(id,data);return{type:had?'modified':'added',doc:mkDoc(id,data)}}
    function remove(id){if(!st.cache.has(id))return null;const d=st.cache.get(id);st.cache.delete(id);return{type:'removed',doc:mkDoc(id,d)}}
-   async function resync(){if(st.resyncing){st.again=true;return}st.resyncing=true;
+   async function resync(){if(st.resyncing){st.again=true;return st.rp}st.resyncing=true;let done;st.rp=new Promise(r=>done=r);
     try{do{st.again=false;
       /* 10-23 이그레스: 마지막으로 본 수정 시각 1분 전부터 바뀐 행만 받고, 지워진 행은 id 목록으로 찾는다. 본 적이 없으면 전부 */
       const since=st.at?new Date(st.at-60000).toISOString():null;
       const rows=await fetchAll(kind,since);const ids=since?new Set(await fetchIds(kind)):null;const got=new Set(),ch=[];
       for(const r of rows){got.add(r.id);seen(r.updated_at);const c=apply(r.id,r.data||{});if(c)ch.push(c)}
       for(const id of [...st.cache.keys()])if(!(ids?ids.has(id):got.has(id))){const c=remove(id);if(c)ch.push(c)}
-      emit(ch)}while(st.again)}
+      emit(ch);st.syncAt=Date.now()}while(st.again)}
     catch(e){if(st.err)st.err(mapErr(e))}
-    finally{st.resyncing=false}}
+    finally{st.resyncing=false;done()}}
    async function onRow(payload){
     try{
      if(payload.eventType==='DELETE'){/* Realtime 은 DELETE 에 kind 필터를 걸지 않으므로 다른 kind 의 삭제는 여기서 거른다 (replica identity full 이라 old 에 kind 가 있다) */const o=payload.old||{};if(o.kind!=null&&o.kind!==kind)return;const id=o.id;if(id==null)return resync();const c=remove(id);if(c)emit([c]);return}
@@ -81,12 +81,14 @@ window.MKM_STORE=(()=>{
          for(const id in c.rows)if(have.has(id))st.cache.set(id,c.rows[id]);st.at=c.at;for(const r of rows){st.cache.set(r.id,r.data||{});seen(r.updated_at)}st.t0=c.t;st.got={delta:rows.length,all:st.cache.size}}
         catch(e){st.cache.clear();st.at=0;c=null}}
        if(!c){const rows=await fetchAll(kind);for(const r of rows){st.cache.set(r.id,r.data||{});seen(r.updated_at)}st.t0=Date.now();st.got={full:rows.length}}
-       st.ready=true;save();
+       st.ready=true;st.syncAt=Date.now();save();
        cb({docs:[...st.cache.entries()].map(([id,d])=>mkDoc(id,d)),docChanges:()=>[]});subscribe()}
       catch(e){if(err)err(mapErr(e))}})();
      return()=>{if(st.chan)client.removeChannel(st.chan)}},
-    resync};
+    resync,age:()=>st.ready?Date.now()-(st.syncAt||0):0};
    cols.set(kind,col);return col}
+  /* 11-02: 올리기 전에 — 마지막으로 공유 DB 와 맞춘 지 ms 넘은 종류는 먼저 맞춘다 (실시간이 조용히 끊긴 탭이 옛 값으로 덮지 않게) */
+  async function fresh(ms,kinds){const L=[];for(const [k,c] of cols)if((!kinds||kinds.includes(k))&&c.age()>ms)L.push(c.resync());if(L.length)await Promise.all(L);return L.length}
   function doc(path){const i=path.indexOf('/');const kind=path.slice(0,i),id=path.slice(i+1);
    return{
     async set(data){const r=await client.from(TABLE()).upsert({kind,id,data},{onConflict:'kind,id'});if(r.error)throw mapErr(r.error)},
@@ -95,7 +97,7 @@ window.MKM_STORE=(()=>{
   const resyncAll=()=>{for(const c of cols.values())c.resync()};
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')resyncAll()});
   window.addEventListener('online',resyncAll);
-  return{collection,doc,canWrite:true,resyncAll}}
+  return{collection,doc,canWrite:true,resyncAll,fresh}}
 
  async function connect(){
   if(!configured())return null;
