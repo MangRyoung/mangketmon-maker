@@ -3319,7 +3319,7 @@ function shMetaMerge(){const L=SH.metaL&&typeof SH.metaL==='object'?SH.metaL:nul
 function shSettings(){return {tpl:S.db.tpl||[],tplV:S.db.tplV||0,tags:S.db.tags||[],tagsV:S.db.tagsV||0,ban:S.db.ban??'',stpl:S.db.stpl||[],stplV:S.db.stplV||0,oldSock:S.db.oldSock??5.5,ptItems:S.db.ptItems||PTI_DEF,ptiV:S.db.ptiV||0,pride:S.db.pride||PRIDE_DEF,prideExV:S.db.prideExV||0,tplSoloV:S.db.tplSoloV||0,soloSock:S.db.soloSock||SOLO_SOCK_DEF,ilock:S.db.ilock||[],rules:RULES()}}
 function shWant(){const out=new Map();
  S.folders.forEach((f,i)=>{f._ord=i;const d={ord:i,name:f.name||''};if(f.parent)d.parent=f.parent;if(f.priv)d.priv=true;if(f.rule)d.rule=f.rule;if(f.deco&&Object.keys(f.deco).length)d.deco=f.deco;if(f.owner){d.owner=f.owner;d.ownerName=f.ownerName||''}out.set('folders/'+f.id,d)});
- S.trainers.forEach((t,i)=>{const d=stripUI(t);d.pids=t.pokemon.map(p=>p.id);if(isMisag(t))d.misagOut=misagOut(t);else delete d.misagOut;try{d.ptUse=ptSnap(t)}catch(e){delete d.ptUse}try{d.ordOut=ordSnap(t)}catch(e){delete d.ordOut}   /* 10-29 노트 대학 시트 PT 서머리가 읽는 사본 */   /* 10-28 미사그 대학: 오레마스가 읽는 각성체 대가 요약 */out.set('trainers/'+t.id,{ord:i,data:d});
+ S.trainers.forEach((t,i)=>{t._ord=i;const d=stripUI(t);d.pids=t.pokemon.map(p=>p.id);if(isMisag(t))d.misagOut=misagOut(t);else delete d.misagOut;try{d.ptUse=ptSnap(t)}catch(e){delete d.ptUse}try{d.ordOut=ordSnap(t)}catch(e){delete d.ordOut}   /* 10-29 노트 대학 시트 PT 서머리가 읽는 사본 */   /* 10-28 미사그 대학: 오레마스가 읽는 각성체 대가 요약 */out.set('trainers/'+t.id,{ord:i,data:d});
   t.pokemon.forEach(p=>{const bu=baseUp(t,p);out.set('pokemon/'+p.id,{tid:t.id,data:Object.assign(stripUI(p),{effTxt:effSnap(p)},bu.up.length?{baseUp:{base:bu.base.map(v=>v===''?'':+v),up:bu.up.map(u=>({i:u.i,from:u.from,to:u.to,by:u.by}))}}:{})})})});
  for(const [id,d] of SH.orph_ed||[])out.set('dbedit/'+id,d);   /* 붙을 행이 없는 수정도 지우지 않는다. 같은 이름 행이 다시 생기면 아래 줄이 덮는다 */
  for(const [p,b] of shDbDocs())out.set(p,b);
@@ -3403,8 +3403,11 @@ function shApplyDoc(kind,id,d){
  if(kind==='dbedit'){d?SH.ed.set(id,d):SH.ed.delete(id);return 'd'}
  if(kind==='meta'){if(id==='settings')SH.metaL=d||null;else if(id.startsWith('set.')){SH.metaG=SH.metaG||{};if(d)SH.metaG[id.slice(4)]=d;else delete SH.metaG[id.slice(4)]}else return '';SH.meta=shMetaMerge();return 'd'}
  if(kind==='folders'){if(d){let f=S.folders.find(x=>x.id===id);if(!f){f={id};S.folders.push(f)}f.name=String(d.name||'');f._ord=+d.ord||0;f.priv=!!d.priv;if(d.rule)f.rule=String(d.rule);else delete f.rule;if(d.parent)f.parent=String(d.parent);else delete f.parent;if(d.deco&&typeof d.deco==='object')f.deco=d.deco;else delete f.deco;if(d.owner){f.owner=String(d.owner);f.ownerName=String(d.ownerName||'')}else{delete f.owner;delete f.ownerName}}else{S.folders=S.folders.filter(x=>x.id!==id)}return 't'}}
+/* 11-02 망령 「트레이너 문서가 1초마다 다시 써진다」: 같은 ord 가 둘 이상이면(예: 49 칼데아스 · 카구야 히메) 창마다 지금 순서대로 남아 서로 다른 ord 를 올리고, 그걸 받은 창이 또 고쳐 올리는 줄다리기가 됐다.
+   ord 가 같으면 id 순 → 모든 창이 같은 순서 · 같은 ord 로 한 번 맞춘 뒤 멈춘다. 이 줄다리기 중에 옛 화면의 창이 트레이너 문서를 통째로 덮은 것이 21:18 사고 */
+function ordCmp(a,b){return (a._ord-b._ord)||(a.id<b.id?-1:a.id>b.id?1:0)}
 function shAfter(paths,what){
- if(what.t){S.trainers.forEach((t,i)=>{if(t._ord==null)t._ord=i});S.trainers.sort((a,b)=>a._ord-b._ord);S.folders.forEach((f,i)=>{if(f._ord==null)f._ord=i});S.folders.sort((a,b)=>a._ord-b._ord)}
+ if(what.t){S.trainers.forEach((t,i)=>{if(t._ord==null)t._ord=i});S.trainers.sort(ordCmp);S.folders.forEach((f,i)=>{if(f._ord==null)f._ord=i});S.folders.sort(ordCmp)}
  if(what.d)shRebuildDB();
  const want=shWant();for(const p of paths){if(want.has(p))SH.synced.set(p,canon(want.get(p)));else SH.synced.delete(p)}
  /* 병합한 문서는 「받은 그대로」를 올라간 값으로 적어 둔다 → 합친 결과가 다음 저장 때 올라간다 */
@@ -3444,7 +3447,7 @@ async function shStart(){if(SH.ready||SH.starting)return;SH.starting=true;if(SH.
  /* 지난번 공유 DB 에 못 붙어 이 브라우저에만 저장한 수정이 있으면, 공유 DB 내용으로 바꾸기 전에 백업 파일로 남긴다 (백업 불러오기 「지금 목록에 추가」로 되살린다) */
  if(lsGet('mkm_unsynced')&&S.trainers.length){const j=JSON.stringify(backupObj());lsSet('mkm_local_before_share',j);try{saveFile(`망켓몬_제작기_미전송_${impStamp()}.json`,j)}catch(e){}toast('지난번 공유 DB에 못 올린 수정을 백업 파일로 저장했습니다')}lsSet('mkm_unsynced','');
  S.trainers=[];S.folders=[];SH.orph=new Map();SH.ed=new Map();SH.meta=null;SH.metaL=null;SH.metaG={};
- for(const [id,d] of B.folders||[])shApplyDoc('folders',id,clone(d));S.folders.sort((a,b)=>a._ord-b._ord);
+ for(const [id,d] of B.folders||[])shApplyDoc('folders',id,clone(d));S.folders.sort(ordCmp);
  for(const [id,d] of B.meta||[])shApplyDoc('meta',id,d);for(const [id,d] of B.dbedit||[])shApplyDoc('dbedit',id,clone(d));
  for(const [id,d] of B.trainers||[])shApplyDoc('trainers',id,clone(d));for(const [id,d] of B.pokemon||[])shApplyDoc('pokemon',id,clone(d));
  for(const t of S.trainers){const u=ui.get(t.id);if(u)t.open=u.open;for(const p of t.pokemon){const v=ui.get(p.id);if(v){p.open=v.open;p.tab=v.tab}}}
