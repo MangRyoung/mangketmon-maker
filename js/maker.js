@@ -2061,7 +2061,7 @@ function pokeCardHTML(t,p,ed){const E=(k,v,tt,x)=>ed?`<button type="button" clas
 /* 10-22 망령: 로그 탭(logtool/, 같은 출처 iframe)의 「제작기 그림 잇기」가 읽는 캐릭터 그림 목록 */
 window.MKM_CHARS=()=>S.trainers.flatMap(t=>[{name:t.name,image:safeImg(t.image)||'',kind:'trainer'},...(t.pokemon||[]).map(p=>({name:p.name,image:safeImg(p.image)||'',kind:'poke'}))]).filter(x=>x.name&&x.image);
 function goPoke(T,P){T.open=true;P.open=true;save();refreshTrainer(T);requestAnimationFrame(()=>{const el=document.getElementById('pk-'+P.id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'})})}
-function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요약</h2><span class="sp"></span><button class="btn sm" data-pced title="이 요약에서 바로 고치고 더한다 (✎ · ＋ · ×)">✎ 편집</button><button class="btn sm ghost" data-pcgo title="제작기에서 이 포켓몬 시트로 이동">시트로</button><button class="btn sm" data-pcpng title="이 요약을 그림 파일로 저장">PNG 저장</button><button class="btn sm ghost danger" data-pcdel title="이 포켓몬 시트를 지운다">삭제</button><button class="btn ghost" data-x>닫기</button></div><div class="mbody pcd-wrap">${pokeCardHTML(t,p)}</div>`,{wide:true});
+function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요약</h2><span class="sp"></span><button class="btn sm" data-pced title="이 요약에서 바로 고치고 더한다 (✎ · ＋ · ×)">✎ 편집</button><button class="btn sm ghost" data-pcgo title="제작기에서 이 포켓몬 시트로 이동">시트로</button><button class="btn sm" data-pcdc title="이 요약을 그림으로 만들어 디스코드의 정해 둔 스레드에 올린다 (웹툴 설정 「디스코드」 탭에서 이어 둔 곳)">디코로</button><button class="btn sm" data-pcpng title="이 요약을 그림 파일로 저장">PNG 저장</button><button class="btn sm ghost danger" data-pcdel title="이 포켓몬 시트를 지운다">삭제</button><button class="btn ghost" data-x>닫기</button></div><div class="mbody pcd-wrap">${pokeCardHTML(t,p)}</div>`,{wide:true});
  $('.mbox',l).classList.add('pcdbox');l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>closeModal());
  /* 10-24 망령: 「✎ 편집」 — 요약 위에서 이름 · 특성 · 도구 · 기술 · 포텐셜 · 메모를 고치고 더한다. 고르기 창은 시트와 같은 것을 쓴다 */
  let ED=false;const wrap=$('.pcd-wrap',l);const depth=layers.length;
@@ -2096,7 +2096,41 @@ function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요
  /* 10-24 망령: 트레이너 카드의 포켓몬 동그라미 → 한 장 요약에서도 바로 지울 수 있게 */
  $('[data-pcdel]',l).onclick=async()=>{const j=t.pokemon.indexOf(p);if(j<0)return;if(!await ask(`포켓몬 시트 「${esc(p.name||'이름 없음')}」을(를) 삭제할까요?<br><span class="small muted">${esc(t.name||'')} 의 ${j+1}번째 포켓몬 · 되돌릴 수 없습니다</span>`,'삭제'))return;t.pokemon.splice(j,1);save();closeModal();renderChar();toast(`「${p.name||'이름 없음'}」 삭제`)};
  $('[data-pcpng]',l).onclick=async()=>{if(ED){ED=false;draw()}const el=$('.pcd',l);try{if(!window.html2canvas)await new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('html2canvas 를 불러오지 못했다'));document.head.appendChild(sc)});
-  const bg=getComputedStyle(MKROOT()).getPropertyValue('--surface')||'#fff';const cv=await window.html2canvas(el,{backgroundColor:bg.trim()||'#fff',scale:2,useCORS:true,onclone:(cd,ce)=>{try{pngFix(cd,ce)}catch(e){}}});const a=document.createElement('a');a.download=(p.name||'포켓몬')+'.png';a.href=cv.toDataURL('image/png');a.click()}catch(err){toast('PNG 로 저장하지 못했습니다 ('+err.message+')')}}}
+  const bg=getComputedStyle(MKROOT()).getPropertyValue('--surface')||'#fff';const cv=await window.html2canvas(el,{backgroundColor:bg.trim()||'#fff',scale:2,useCORS:true,onclone:(cd,ce)=>{try{pngFix(cd,ce)}catch(e){}}});const a=document.createElement('a');a.download=(p.name||'포켓몬')+'.png';a.href=cv.toDataURL('image/png');a.click()}catch(err){toast('PNG 로 저장하지 못했습니다 ('+err.message+')')}};
+ /* 11-02 망령 「한 장 요약 「시트로」 옆에 디코로 — 지정해 둔 스레드에」: 그림(webp) → 저장소 oremas/dc/<방>/ → 웹툴 방의 om_dc_card (서버가 웹후크로 보낸다).
+    방 · 신분: 세션 노트 안이면 그 캠페인에 이어 둔 웹툴 방 · 노트의 웹툴 신분, 따로 열었으면 이 브라우저가 들어간 웹툴 방 (supabase/patch_2026-11-02_게시판_디스코드.sql) */
+ $('[data-pcdc]',l).onclick=async()=>{const b=$('[data-pcdc]',l);if(b.disabled)return;if(ED){ED=false;draw()}const lab=b.textContent;b.disabled=true;b.textContent='방 찾는 중…';
+  try{const tg=await dcTarget();if(!tg)throw new Error('이 브라우저가 들어간 웹툴 방이 없어요 — 웹툴 방에 한 번 들어온 뒤 다시 눌러 주세요');if(!tg.secret)throw new Error('이 브라우저는 그 웹툴 방(「'+tg.room+'」)에 앉은 적이 없어요 — 웹툴에서 GM 이나 자리로 한 번 들어와 주세요');
+   b.textContent='그리는 중…';const el=$('.pcd',l);if(!window.html2canvas)await new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('html2canvas 를 불러오지 못했다'));document.head.appendChild(sc)});
+   const bg=getComputedStyle(MKROOT()).getPropertyValue('--surface')||'#fff';const cv=await window.html2canvas(el,{backgroundColor:bg.trim()||'#fff',scale:2,useCORS:true,onclone:(cd,ce)=>{try{pngFix(cd,ce)}catch(e){}}});
+   const blob=await new Promise(r=>cv.toBlob(r,'image/webp',.9));if(!blob)throw new Error('그림을 만들지 못했어요');
+   b.textContent='올리는 중…';const SB=dcSb();const path='dc/'+tg.room+'/'+(p.id||'card')+'_'+Date.now().toString(36)+'.webp';
+   const up=await SB.storage.from('oremas').upload(path,blob,{upsert:true,contentType:'image/webp',cacheControl:'31536000'});if(up.error)throw new Error('그림을 올리지 못했어요: '+up.error.message);
+   const url=SB.storage.from('oremas').getPublicUrl(path).data.publicUrl;
+   b.textContent='보내는 중…';const av=/^https?:\/\//.test(t.image||'')?t.image:'';
+   const r1=await SB.rpc('om_dc_card',{p_room:tg.room,p_secret:tg.secret,p_title:p.name||'포켓몬',p_sub:t.name||'',p_img:url,p_who:{n:t.name||p.name||'',img:av}});
+   if(r1.error){const m=r1.error.message||'';throw new Error(/PGRST202|Could not find the function/i.test(m+(r1.error.code||''))?'디스코드 연동 함수가 아직 없어요 — Supabase 에 supabase/patch_2026-11-02_게시판_디스코드.sql 을 (다시) 실행해 주세요':m)}
+   let r=null;for(let i=0;i<12;i++){await new Promise(z=>setTimeout(z,900));const q=await SB.rpc('om_dc_card_result',{p_room:tg.room,p_secret:tg.secret,p_id:r1.data});if(q.error)break;r=q.data;if(r&&!r.wait)break}
+   if(!r||r.wait)toast('디스코드로 보냈어요 (대답은 아직 — 디스코드에서 확인해 주세요)');
+   else if(r.status>=200&&r.status<300)toast('디스코드에 올렸어요');
+   else{let c=0,m='';try{const j=JSON.parse(r.body||'{}');c=j.code;m=j.message||''}catch(e){}toast('디스코드가 거절했어요 — '+(c===10003?'스레드를 찾지 못했어요 (웹툴 설정 「디스코드」에서 스레드 링크 다시)':c===10015?'웹후크가 없어요 (웹툴 설정 「디스코드」에서 다시 이어 주세요)':(r.error||m||('오류 '+r.status))))}}
+  catch(err){toast(String((err&&err.message)||err))}
+  b.disabled=false;b.textContent=lab}}
+/* ---- 11-02 디코로: 웹툴 방 · 신분 찾기 (세션 노트 · 웹툴과 같은 주소라 localStorage 를 같이 본다) ---- */
+let DCSB=null;const dcSb=()=>DCSB||(DCSB=supabase.createClient(MKM_CONFIG.supabaseUrl,MKM_CONFIG.supabaseKey,{auth:{persistSession:false}}));
+const dcLS=(k,d)=>{try{const v=localStorage.getItem(k)??sessionStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}};
+async function dcWho(room){const C=[];const a=dcLS('om_acct',null);if(a&&a.token)C.push('u:'+a.token);const r=(dcLS('om_rooms',[])||[]).find(x=>x&&x.id===room);if(r&&r.gm)C.push(r.gm);const si=dcLS('om_seat_'+room,null);if(si&&si.secret)C.push(si.secret);
+ let seat='';for(const s of C){try{const q=await dcSb().rpc('om_whoami',{p_room:room,p_secret:s});if(!q.error&&q.data){if(q.data==='gm')return s;if(!seat)seat=s}}catch(e){}}return seat}
+async function dcTarget(){
+ /* 세션 노트 안(같은 주소의 부모 창): 그 캠페인에 이어 둔 웹툴 방 */
+ try{const P=window.parent;if(P&&P!==window&&P.NT&&P.NT_PHONE){const room=((((P.NT.ST||{}).campInfo||{}).data||{}).om||{}).room;if(room){try{await P.NT_PHONE.load()}catch(e){}const id=P.NT_PHONE.PH&&P.NT_PHONE.PH.id;return {room,secret:(id&&id.room===room&&id.secret)?id.secret:await dcWho(room)}}}}catch(e){}
+ /* 따로 연 제작기: 이 브라우저가 들어간 웹툴 방 (하나면 그것, 여럿이면 고른다 — 고른 방은 기억) */
+ const rooms=new Map();for(const r of (dcLS('om_rooms',[])||[]))if(r&&r.id)rooms.set(r.id,r.name||r.id);
+ try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('om_seat_')){const id=k.slice(8);if(id&&!rooms.has(id))rooms.set(id,id)}}}catch(e){}
+ if(!rooms.size)return null;const last=dcLS('mk_dc_room','');let room=last&&rooms.has(last)?last:rooms.size===1?[...rooms.keys()][0]:'';
+ if(!room)room=await new Promise(res=>{const m=openModal(`<div class="mhead"><h2>어느 웹툴 방의 디스코드로?</h2></div><div class="mbody"><div class="small muted" style="margin-bottom:8px">그 방의 설정 「디스코드」 탭에서 이어 둔 스레드로 가요. 고른 방은 기억해요.</div>${[...rooms].map(([id,n])=>`<button class="btn" style="display:block;width:100%;margin:4px 0;text-align:left" data-dcr="${esc(id)}">${esc(n)} <span class="small muted">${esc(id)}</span></button>`).join('')}</div><div class="mfoot"><span class="sp"></span><button class="btn" data-x>취소</button></div>`);
+  m.addEventListener('click',e=>{const x=e.target.closest('[data-dcr]');if(x){closeModal();res(x.dataset.dcr);return}if(e.target.closest('[data-x]')){closeModal();res('')}})});
+ if(!room)return null;const secret=await dcWho(room);if(secret)try{localStorage.setItem('mk_dc_room',JSON.stringify(room))}catch(e){}return {room,secret}}
 /* 지시 체계 (10-23 망령): 명령 = ORDER(4식), 지령 = COMMAND(6령). t.orders={preset,tc,base}. 오레마스로 가져가면 이 설정으로 횟수가 채워진다 (오레마스 OM_ORDERS 와 같은 표) */
 const TORD=(()=>{const CL=['기본-일반','기본-숙달','기본-숙달 (지시 A)','십계-영창 (지시 B)','십계-영창 (지시 A)','십계-영창 (지시 AA)','특수-방해','특수-야생','십계-영창 (지시 C)','십계-결계 (지시 D)','기본-4식 (지시 D)'];
  const OL=['협회식 4식','5계','칙령','주인의 칙령'];const LORD={0:['물러나!','피해라!','버텨라!','바꿔라!','맞춰라!'],1:['지킬 수 없다!','피할 수 없다!','버틸 수 없다!','맞출 수 없다!'],2:['물리결계','특수결계','정화의 법계','치유의 법계','윤회의 법계','파계'],3:['주인의 칙령']};
