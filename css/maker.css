@@ -1020,6 +1020,11 @@ html[data-vt="p4"] #mk .tfh.ftile{padding-left:26px}
 html[data-vt="p4"] #mk .ftile .fch{--ink:#fffbe6;--muted:#d8cf9a;background:#111!important;color:#fffbe6!important}
 html[data-vt="p4"] #mk .ftile .fch .fav{border-color:#111}
 html[data-vt="p4"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:none!important}
+/* 11-02 망령 「트레이너 이름이 안 보여」: 망각(mm) 테마는 카드가 양피지(글자 어둡게)인데 칩 바탕은 어두운 --sunk 그대로라 이름이 묻혔다 → 칩만 어두운 바탕 · 밝은 글자 */
+html[data-vt="mm"] #mk .ftile .fch{--ink:#e8dfcb;--muted:#b0a38a;background:#1a140d!important;color:#e8dfcb!important}
+html[data-vt="mm"] #mk .ftile .fch .fcn{color:#e8dfcb!important}
+html[data-vt="mm"] #mk .ftile .fch .fav{border-color:#1a140d}
+html[data-vt="mm"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:none!important}
 /* 10-24 망령: 알까기 — 이미 깐 값이 있을 때 (재굴림 버튼) */
 .ivhad{display:flex;gap:12px;align-items:center;justify-content:space-between;border:1px solid var(--yel2,#f0c84a);background:rgba(240,200,74,.08);border-radius:8px;padding:10px 12px;margin:8px 0}
 .ivhad>div{display:flex;flex-direction:column;gap:3px}
