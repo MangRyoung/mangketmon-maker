@@ -100,6 +100,8 @@ window.OM_FX=(()=>{
    }catch(e){L.push(`(${op.k} 처리 중 오류: ${e.message})`)}}
   RUNB=prevB;return {lines:L,b};
   async function runOp(op){
+    /* 11-02 망령 「고유나 포텐셜로 미래예지를 걸면?」: 「상태 미래예지 …」처럼 상태로만 적어도 예고 공격으로 — 상태만 걸면 다음 턴 끝에 「해제」만 뜨고 대미지가 없었다 */
+    if(op.k==='state'&&!op.remove&&FUTURE.includes(stEn(op.state)||op.state))op=Object.assign({},op,{k:'future',state:stEn(op.state)||op.state,tgt:op.tgt||'enemy1'});
     switch(op.k){
      case 'confirm':{const ok=ctx.confirm?await ctx.confirm(op.q):true;if(!ok){L.push(`「${name}」 조건을 만족하지 않아 발동하지 않았다 (${op.q})`);stop=true}break}
      case 'cond':{let ok=true;if(op.c==='ally_fainted')ok=Object.values(b.mons||{}).some(m=>teamOf(b,m)===teamOf(b,self)&&m.id!==self.id&&m.hp.cur<=0);
