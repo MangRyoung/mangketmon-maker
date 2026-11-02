@@ -1799,7 +1799,7 @@ function openPotBuilder(t,p,onPick,excl,preset){const C=prCtx(t,p);
   if(ek.has('위력 강화')&&R&&!/어태커|어쌔신|킬러|퀄러|디스럽터|타이트엔드/.test(R))out.push(`<span class="warn">위력 강화는 어태커 계열의 영역입니다 (대원칙 3) · 현재 역할 ${esc(R)}</span>`);
   if((ek.has('공격 상승')||ek.has('특공 상승')||ek.has('스피드 상승'))&&R&&/어태커/.test(R))out.push(`<span class="warn">능력 상승은 에이스·러너·블로커의 영역입니다 (대원칙 3)</span>`);
   const mulm=[...txt.matchAll(/강화\(([\d.]+)배\)/g)].map(m=>+m[1]);if(mulm.some(v=>v>=1.5)&&!tg.length&&!/일 때|했을 때/.test(txt))out.push(`<span class="warn">조건 없이 1.5배 이상 강화는 「소켓 2」 이상 소지품에 필적합니다 (대원칙 5)</span>`);
-  if(/전체기/.test(txt)&&/C\+([3-9])/.test(txt))out.push(`<span class="warn">「전체기」는 「C : +3」 이상으로 만들 수 없습니다 (대원칙 7)</span>`);
+  if(/전체기/.test(txt)&&/C\+([4-9])/.test(txt))out.push(`<span class="warn">「전체기」는 「C : +4」 이상으로 만들 수 없습니다 (대원칙 7)</span>`);
   if(/모든 기술|자신의 기술이 급소|자신의 기술에 「우선도/.test(txt)&&!/육성/.test(R))out.push(`<span class="warn">둘 이상의 기술에 동시에 적용되는 효과는 육성형이 아닌 한 삼갑니다 (대원칙 6)</span>`);
   for(const o of C.otherPots){const ot=prTags(o.eff);const shared=tg.filter(x=>ot.includes(x)&&!/방호|수세|공세|유일|탈진|보급/.test(x));if(shared.length)out.push(`<span class="warn">${esc(o.who)}의 「${esc(o.n)}」과 트리거 ${shared.map(x=>'【'+x+'】').join('')} 겹침 (대원칙 1)</span>`);
    const same=[...ek].filter(x=>prEffKeys(o.eff).has(x));if(same.length>=2)out.push(`<span class="warn">${esc(o.who)}의 「${esc(o.n)}」과 효과 겹침: ${esc(same.join('·'))} (대원칙 2)</span>`)}
