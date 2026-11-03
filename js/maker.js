@@ -3661,7 +3661,7 @@ function shPutPoke(id,d){let p=null,owner=null;for(const t of S.trainers){const 
  if(!p)p={id,open:false,tab:'base'};{const dd=clone(d.data||{});delete dd.effTxt;delete dd.baseUp;delete dd.statAdd;delete dd.statCp;replaceFields(p,dd,KEEP_P)}p.id=id;p._tid=d.tid;fixP(p);
  const t=S.trainers.find(x=>x.id===d.tid);
  if(owner&&owner!==t)owner.pokemon=owner.pokemon.filter(q=>q!==p);
- if(t){if(!t.pokemon.includes(p)){const pos=(t._pids||[]).indexOf(id);if(pos>=0){const after=t.pokemon.filter(q=>(t._pids||[]).indexOf(q.id)>=0&&(t._pids||[]).indexOf(q.id)<pos).length;t.pokemon.splice(after,0,p)}else t.pokemon.push(p)}SH.orph.delete(id)}
+ if(t){if(!t.pokemon.includes(p)){const pos=(t._pids||[]).indexOf(id);if(pos>=0){const after=t.pokemon.filter(q=>(t._pids||[]).indexOf(q.id)>=0&&(t._pids||[]).indexOf(q.id)<pos).length;t.pokemon.splice(after,0,p)}else t.pokemon.push(p)}SH.orph.delete(id);try{awSubSync(t)}catch(e){}}
  else SH.orph.set(id,p)}
 function shDelTrainer(id){S.trainers=S.trainers.filter(t=>t.id!==id)}
 function shDelPoke(id){for(const t of S.trainers)t.pokemon=t.pokemon.filter(p=>p.id!==id);SH.orph.delete(id)}
