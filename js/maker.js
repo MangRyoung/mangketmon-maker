@@ -372,7 +372,7 @@ const baseNums=p=>[0,1,2,3,4,5].map(i=>+p.base[i]||0);
 const listOf=s=>String(s||'').split(/[,，\n]/).map(x=>x.trim()).filter(Boolean);
 /* 특성 소켓. 「1.5/2.5」처럼 둘이면 비자속/자속 — 효과 글의 첫 타입 「X」가 포켓몬 타입에 있으면 뒤 값 (10-26 망령: 트랜지스터 · 용의턱) */
 function abStabType(eff){const T=new Set((S.db.types||[]).map(x=>x[0]));for(const m of String(eff||'').matchAll(/「([^」]+)」/g))if(T.has(m[1]))return m[1];return ''}
-function abSock(p){const ab=idx.abil&&idx.abil.get(p.ability);if(!ab)return null;const v=String(ab[0]??'').trim();
+function abSock(p){/* 11-03 망령 「특성 소켓을 지정할 수 있는 옵션이 없다」: 시트에 직접 적은 특성 소켓(abSockOv)이 DB 값보다 우선 — DB 에 없는 오리지널 특성도 */const ov=String(p.abSockOv??'').trim();if(ov!==''&&!isNaN(+ov))return +ov;const ab=idx.abil&&idx.abil.get(p.ability);if(!ab)return null;const v=String(ab[0]??'').trim();
  const two=v.match(/^(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);if(two){const ty=abStabType(ab[2]);return +(ty&&[p.t1,p.t2,p.t3].includes(ty)?two[2]:two[1])}
  return v!==''&&!isNaN(+v)?+v:null}
 const hasPotName=(p,re)=>(p.pots||[]).some(n=>n&&re.test(n));
@@ -2429,7 +2429,7 @@ function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=itemRow(p),own
    <label class="lbl" for="e1-${id}">알그룹1${sel(P+'.egg1',p.egg1||'-',eggOpts(),{id:'e1-'+id})}</label><label class="lbl" for="e2-${id}">알그룹2${sel(P+'.egg2',p.egg2||'-',eggOpts(),{id:'e2-'+id})}</label>
   </div>
   <div class="fgrid" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)">
-   <div class="lbl">특성<button class="pickbtn" data-act="pickAbil" data-i="${ti}" data-j="${pi}">${p.ability?`<b>${esc(p.ability)}</b><span class="sp"></span><span class="faint small">${ab?'소켓 '+esc(ab[0]):'DB에 없음'}</span>`:'<span class="ph0">특성 검색…</span>'}</button></div>
+   <div class="lbl">특성<div class="abrow"><button class="pickbtn" data-act="pickAbil" data-i="${ti}" data-j="${pi}">${p.ability?`<b>${esc(p.ability)}</b><span class="sp"></span><span class="faint small">${nz(p.abSockOv)?`소켓 ${esc(p.abSockOv)} <span title="직접 지정 — DB ${ab?esc(ab[0]):'없음'}">(직접)</span>`:ab?'소켓 '+esc(ab[0]):'DB에 없음'}</span>`:'<span class="ph0">특성 검색…</span>'}</button><label class="absock small muted" title="이 포켓몬만 특성 소켓을 직접 정해요 (비우면 특성 DB 값). 계산 종족치의 특성 TO 에 들어가요">소켓${inp(P+'.abSockOv',p.abSockOv,{w:'48px',num:1,ph:ab?String(ab[0]):'-'})}</label></div></div>
    <div class="lbl">소지품<button class="pickbtn" data-act="pickItem" data-i="${ti}" data-j="${pi}">${p.item?`<b>${esc(p.item)}</b>${ilockChip(p.item)}<span class="sp"></span><span class="faint small">${own?'오리지널 · 시트에만':it?'소켓 '+esc(it[5]):'DB에 없음'}</span>`:'<span class="ph0">소지품 검색…</span>'}</button></div>
   </div>
   ${ab?`<div class="effbox"><b>${esc(p.ability)}</b> ${rich(ab[2])}<span class="fxrow">${fxAutoBtn(p,'trait',p.ability,ti,pi)}</span></div>`:p.ability?`<div class="effbox">DB에 없는 특성입니다. <button class="btn sm" data-act="newAbil" data-i="${ti}" data-j="${pi}">이 이름으로 오리지널 특성 만들기</button><span class="fxrow">${fxAutoBtn(p,'trait',p.ability,ti,pi)}</span></div>`:''}

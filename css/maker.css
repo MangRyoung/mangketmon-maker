@@ -1352,3 +1352,5 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 /* 편의 1: 새 카드로 스크롤할 때 붙어 있는 윗줄(.top)에 가려지지 않게 */
 #mk section.folder,#mk article.pk,#mk .tfold{scroll-margin-top:calc(var(--topH,104px) + 10px)}
 @media (max-width:700px){#mk section.folder,#mk article.pk,#mk .tfold{--topH:48px}}
+/* 11-03 특성 소켓 직접 지정 */
+#mk .abrow{display:flex;align-items:center;gap:6px}#mk .abrow .pickbtn{flex:1;min-width:0}#mk .absock{display:flex;align-items:center;gap:4px;white-space:nowrap;margin:0}#mk .absock input{text-align:center}
