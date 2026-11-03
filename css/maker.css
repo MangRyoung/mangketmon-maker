@@ -1385,3 +1385,5 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 @media(max-width:640px){.mksk-pg{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}}
 #mk .mksk-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}#mk .mksk-c{margin-top:auto}
 @media(max-width:760px){#mk .mksk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#mk .mksk3{container-type:inline-size}#mk .mksk-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+@container (max-width:620px){#mk .mksk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
