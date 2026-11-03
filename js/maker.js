@@ -422,6 +422,7 @@ const fmtN=x=>String(Math.round(x*100)/100);
 function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);const w=(x,k)=>out.push({w:1,t:x,k}),i=(x,k)=>out.push({w:0,t:x,k});
  {const L=bigMvs(t,p);if(L.length)w(bigMvTxt(t,L),'mv')}
  {const F=followWide(p);if(F)w(followWideTxt(F),'mv')}
+ {const L=[];for(let k=0;k<(p.pots||[]).length;k++){const n=p.pots[k];if(!n||n==='-')continue;const e=String(potEffOf(p,k)||'');if(/전체기/.test(e)&&WIDE_C4.test(e))L.push(n)}if(L.length)w(`「전체기」를 「C : +4」 이상으로 만드는 포텐셜 (대원칙 7) · ${L.join(', ')}`,'pot')}   /* 11-03 */
  if(!isOld(p)){const L=(p.moves||[]).filter(m=>m.name&&mvOldOnly(idx.moves.get(m.name)));if(L.length)w(`『올드 타입』 전용 기술입니다 (이 포켓몬은 올드 타입 계열이 아님) · ${L.map(m=>m.name).join(', ')}`,'mv')}
  if(!tot)return out;const b=baseNums(p);
  if(t)for(const x of baseUp(t,p).miss||[])w(x,'bu');   /* 10-27: 「X : R」로 만들기 조건이 안 맞음 */
@@ -447,7 +448,15 @@ function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);
 /* PT: 공격·특공이 둘 다 기준 미만인 커스텀 포켓몬은 1체까지 (올드 타입은 세지 않음) */
 function ptChecks(t){const th=pnum(PR().weakAtk,60);const L=t.pokemon.filter(p=>!isOld(p)&&baseTot(p)&&(+p.base[1]||0)<th&&(+p.base[3]||0)<th);const out=L.length>1?[`공격·특공이 둘 다 ${th} 미만인 포켓몬이 ${L.length}체입니다 (${L.map(p=>p.name||'이름 없음').join(', ')}) · PT에 1체까지`]:[];
  /* 10-29 망령: 「통솔 : D」는 『올드 타입』 최대 1체 */
- const O=strip(((t.ranks||{})['통솔'])||'')===DOWN_LEAD?t.pokemon.filter(p=>p.name&&isOld(p)):[];if(O.length>1)out.push(`통솔 D는 『올드 타입』 계열을 PT에 1체까지 넣을 수 있습니다 · 지금 ${O.length}체 (${O.map(p=>p.name).join(', ')})`);return out}
+ const O=strip(((t.ranks||{})['통솔'])||'')===DOWN_LEAD?t.pokemon.filter(p=>p.name&&isOld(p)):[];if(O.length>1)out.push(`통솔 D는 『올드 타입』 계열을 PT에 1체까지 넣을 수 있습니다 · 지금 ${O.length}체 (${O.map(p=>p.name).join(', ')})`);
+ /* 11-03: 같은 소지품을 둘 이상이 들면(2 · 3번 칸 포함) 경고 · 잠긴(특제 미해금) 소지품 착용 경고 */
+ {const who=new Map();for(const p of t.pokemon)for(const n of pokeItems(p)){if(!who.has(n))who.set(n,[]);who.get(n).push(p.name||'이름 없음')}
+  const dup=[...who].filter(([,L])=>L.length>1);if(dup.length)out.push(`같은 소지품을 둘 이상이 들었습니다 · ${dup.map(([n,L])=>`${n} (${L.join(', ')})`).join(' / ')}`);
+  const lk=[];for(const p of t.pokemon)for(const n of pokeItems(p)){const l=ilockOf(n);if(l&&!l.open)lk.push(`${p.name||'이름 없음'}: ${n} (${l.place}${l.cond?' · '+l.cond:''})`)}if(lk.length)out.push(`아직 잠긴 특제 소지품을 들었습니다 · ${lk.join(' / ')}`)}
+ return out}
+const pokeItems=p=>[p.item,...(p.items2||[]).map(x=>x&&x.item)].filter(Boolean);
+/* 「전체기 C+4」 꼴 (11-03: 「C : +4」 · 「C:+4」 띄어 쓴 꼴도) */
+const WIDE_C4=/C\s*:?\s*\+\s*([4-9])/;
 /* 능력치 막대: 하한·할증·할인 구간 (0~200 눈금) */
 /* 10-25 망령: 능력치 막대 표시 — 줄무늬 = 지금 계산에 더해지는(쌍두는 빠지는) 부분, 옅은 칸 = 그 구간이지만 지금은 영향 없음, 빨간 선 = 하한. 오른쪽 끝 작은 글씨 = 이 칸 때문에 붙는 값 */
 function statMarks(p,i){if(isOld(p)||!baseTot(p))return '';const R=PR(),c=customCalc(p),b=c.b,main=Math.max(b[1],b[3]),v=b[i];const X=x=>Math.max(0,Math.min(100,x/2));
@@ -686,6 +695,20 @@ function investCheck(t){const I=RULES().invest;const v=q=>RV[strip(t.ranks[q])]?
  for(const pr of String(I.banPair||'').split(/[,，]/)){const qs=ruleList(pr).filter(q=>QUAL.includes(q));if(qs.length>1&&qs.every(q=>v(q)>=2))msg.push(`${qs.join('·')} 모두 「A」 이상은 금지 조합`)}
  for(const q of ruleList(I.banAA))if(QUAL.includes(q)&&v(q)>=3)msg.push(`「${q} : AA」는 사용 금지`);
  return {steps,allow,msg}}
+
+/* 11-03: 트레이너 한 명의 ⚠ 경고 모음 (폴더 점검표 · 시트의 경고 생성 함수를 그대로 다시 쓴다) */
+function trainerWarns(t){const out=[];try{
+ const iv=investCheck(t);for(const m of iv.msg)out.push({who:'',t:m});
+ const use=pointUse(t);for(const k in use){const m=+t.base[k]||0;if(k&&(use[k]||0)>m)out.push({who:'',t:`${k} 초과 (${Math.round((use[k]||0)*100)/100}/${m})`})}
+ const pu=ptSockets(t),pm=ptMax(t);if(pu>pm)out.push({who:'',t:`PT 기술점 초과 (${pu}/${pm})`});
+ for(const x of ptChecks(t))out.push({who:'',t:x});
+ if(typeof deckChecks==='function')for(const x of deckChecks(t))out.push({who:'',t:x});
+ for(const p of t.pokemon)for(const c of pokeChecks(t,p))if(c.w)out.push({who:p.name||'이름 없음',pid:p.id,t:c.t})}catch(e){out.push({who:'',t:'점검 중 오류: '+(e&&e.message||e)})}
+ return out}
+function openFolderCheck(fid){const f=fid?fById(fid):null;const ids=fid?[fid,...fDesc(fid)]:[''];const L=S.trainers.filter(t=>tVis(t)&&ids.includes(tFolder(t)));
+ const rows=L.map(t=>[t,trainerWarns(t)]);const n=rows.reduce((a,[,w])=>a+w.length,0);
+ const l=openModal(`<div class="mhead"><h2>점검 — ${esc(f?f.name||'이름 없는 폴더':'폴더 없음')}</h2><span class="small muted">트레이너 ${L.length}명 · 경고 ${n}건</span><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
+ <div class="mbody">${L.length?rows.map(([t,w])=>`<div class="fchk"><div class="row" style="gap:6px;align-items:center"><b>${esc(t.name||'이름 없음')}</b><span class="small muted">포켓몬 ${t.pokemon.length}체 · ${w.length?`<span class="warn">⚠ ${w.length}건</span>`:'<span class="ok">✓ 이상 없음</span>'}</span><span class="sp"></span><button type="button" class="btn xs ghost" data-goto-t="${esc(t.id)}">시트로</button></div>${w.length?`<ul class="small fchkl">${w.map(x=>`<li>${x.who?`<button type="button" class="lnk" data-goto-t="${esc(t.id)}" data-goto-p="${esc(x.pid||'')}">${esc(x.who)}</button> · `:''}${esc(x.t)}</li>`).join('')}</ul>`:''}</div>`).join(''):'<div class="empty">이 폴더에 (보이는) 트레이너가 없습니다</div>'}</div>`,{wide:true});l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))closeModal()})}
 
 /* ---------- 복사용 텍스트 (더블용 시트 AI118 규칙) ---------- */
 const potRow=n=>idx.pots.get(n);
@@ -1017,6 +1040,7 @@ const layers=[];
 function openModal(html,{wide=false,onClose}={}){const l=document.createElement('div');l.className='layer';l.innerHTML=`<div class="mbox ${wide?'wide':''}" role="dialog" aria-modal="true" tabindex="-1">${html}</div>`;
  const opener=document.activeElement;MKROOT().appendChild(l);document.documentElement.classList.add('modal-on');layers.push({l,onClose,opener});l.addEventListener('mousedown',e=>{if(e.target===l)closeModal()});
  setTimeout(()=>{const touch=matchMedia('(pointer:coarse)').matches;const f=$('[autofocus]',l)||(!touch&&$('input,textarea',l));if(f&&!(touch&&f.matches('input,textarea')))f.focus();else $('.mbox',l).focus()},30);return l}
+function closeAllModals(){while(layers.length)closeModal()}
 function closeModal(){const o=layers.pop();if(!o)return;o.l.remove();if(!layers.length)document.documentElement.classList.remove('modal-on');o.onClose&&o.onClose();
  if(o.opener&&o.opener.isConnected&&!layers.length)try{o.opener.focus({preventScroll:true})}catch(e){}}
 document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;const m=$('.menu');if(m){m.remove();return}const tm=MTOP();if(tm&&tm.classList.contains('tools-open')){toolsOpen(false);return}if(layers.length)closeModal()});
@@ -1267,7 +1291,7 @@ function openEdit(kind,i,{preset={},onSaved}={}){const D=DBS[kind];
  const order=kind==='moves'?[2,5,6,0,7,8,9,10,11,12,14,15,18,19,1,17,3,4,16,13]:D.cols.map((_,n)=>n);
  const l=openModal(`<div class="mhead"><h2>${D.t} ${i<0?'오리지널 만들기':'수정'}</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
  <div class="mbody"><datalist id="L-kinds">${[...new Set(S.db.pots.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist><datalist id="L-ikinds">${[...new Set(S.db.items.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist>
- <div class="fgrid">${order.map(n=>fieldHTML(kind,n,r[n])).join('')}</div><div class="preview" data-prev></div>${kind==='abil'?'<div data-abassist></div>':''}</div>
+ <div class="fgrid">${order.map(n=>fieldHTML(kind,n,r[n])).join('')}</div><div class="preview" data-prev></div>${kind==='abil'?'<div data-abassist></div>':''}${i>=0&&['abil','items','pots','moves','points','cards'].includes(kind)?`<div data-rowrefs>${rowRefsHtml(kind,r[D.key])}</div>`:''}</div>
  <div class="mfoot">${i>=0?'<button class="btn danger" data-del>삭제</button>':''}<label class="row small" style="gap:4px" title="오리지널로 표시 · 포켓몬 만들 때 특성 · 기술 목록에서는 「오리지널 보기」를 눌러야 보인다"><input type="checkbox" data-origchk ${i<0||S.custom[kind].includes(r[D.key])?'checked':''}>오리지널</label>${kind==='moves'?`<label class="row small" style="gap:4px" title="켜면 『올드 타입』 계열이 아닌 포켓몬의 기술 목록에는 안 뜬다"><input type="checkbox" data-oldchk ${i>=0&&mvOldOnly(r)?'checked':''}>올드 타입 전용</label>`:''}<span class="sp"></span><button class="btn" data-x>취소</button><button class="btn pri" data-save>저장</button></div>`,{wide:true});
  const rgi=kind==='moves'?$('[data-f="9"]',l):null;if(rgi)rgi.addEventListener('input',()=>{$('[data-rg]',l).innerHTML=rangeGrid(rgi.value)});
  if(kind==='st'){const inp=$('[data-f="12"]',l),im=$('[data-sticon]',l),fi=$('[data-sticonf]',l);const show=()=>{im.src=stIcon(inp.value.trim());im.style.visibility=inp.value.trim()?'visible':'hidden'};inp.addEventListener('input',show);
@@ -1301,10 +1325,11 @@ function openEdit(kind,i,{preset={},onSaved}={}){const D=DBS[kind];
   l.addEventListener('input',up);l.addEventListener('change',up);l.addEventListener('click',e=>{if(e.target.closest('[data-cardic]'))setTimeout(up,0)});const im=$('[data-cardimg]',l);if(im)im.addEventListener('load',up);up()}
  const okey=i>=0?r[D.key]:null;const cur=()=>okey==null?-1:S.db[kind].findIndex(x=>x[D.key]===okey);
  l.addEventListener('click',async e=>{if(e.target.closest('[data-x]'))return closeModal();
-  if(e.target.closest('[data-del]')){if(await ask(`「${esc(r[D.key])}」을(를) DB에서 삭제할까요?`,'삭제')){const ii=cur();if(ii>=0)S.db[kind].splice(ii,1);reindex();save(true);closeModal();refreshAll()}return}
+  if(e.target.closest('[data-del]')){const used=rowRefs(kind,r[D.key]);if(await ask(`「${esc(r[D.key])}」을(를) DB에서 삭제할까요?${used.length?`<br><span class="warn">이 행을 쓰는 시트가 ${used.length}곳 있습니다 (${esc([...new Set(used.map(x=>x.t.name||'이름 없음'))].slice(0,5).join(', '))}${used.length>5?' …':''}) — 시트의 이름은 남고 효과 글만 비게 됩니다</span>`:''}`,'삭제')){const ii=cur();if(ii>=0)S.db[kind].splice(ii,1);reindex();save(true);closeModal();refreshAll()}return}
   if(e.target.closest('[data-save]')){if(okey!=null){i=cur();if(i<0)return toast('이 항목은 다른 사람이 지웠습니다')}const nr=D.cols.map((_,n)=>{const el=$(`[data-f="${n}"]`,l);return el?el.value:''});nr[D.key]=nr[D.key].trim();
    if(kind==='moves'){const oc=$('[data-oldchk]',l);nr[MV_OLDONLY]=oc&&oc.checked?'O':''}
    if(!nr[D.key])return toast(D.cols[D.key]+'을(를) 입력하세요');
+   if(kind==='abil'&&/\s/.test(nr[D.key]))setTimeout(()=>toast('특성 이름에 띄어쓰기가 있습니다 — 「특성 : 이름」 구문 · 오레마스 DB 와 안 맞을 수 있어요'),1900);   /* 11-03: 막지는 않는다 */
    const dup=S.db[kind].findIndex(x=>x[D.key]===nr[D.key]);if(dup>=0&&dup!==i)return toast('같은 이름이 이미 DB에 있습니다');
    if(i<0){S.db[kind].unshift(nr);if(!S.custom[kind].includes(nr[D.key]))S.custom[kind].push(nr[D.key])}
    else{const old=S.db[kind][i][D.key];S.db[kind][i]=nr;const ci=S.custom[kind].indexOf(old);if(ci>=0)S.custom[kind][ci]=nr[D.key];
@@ -1339,6 +1364,22 @@ function openOwnItem(P,name,done){const o0=ownItem(P)&&(!name||name===P.item)?ow
 function renameRefs(kind,a,b){let n=0;for(const t of S.trainers){if(kind==='points')t.pts=t.pts.map(x=>x===a?(n++,b):x);
   for(const p of t.pokemon){if(kind==='moves')p.moves.forEach(m=>{if(m.name===a){m.name=b;n++}});if(kind==='abil'&&p.ability===a){p.ability=b;n++}if(kind==='items'&&p.item===a){p.item=b;n++}
    if(kind==='pots')p.pots.forEach((x,i)=>{if(x===a){p.pots[i]=b;n++}})}}return n}
+
+/* 11-03: 이 DB 행을 쓰는 시트 — [{t, p?, where}] (특성 · 소지품(2 · 3번 칸 · 폼 포함) · 포텐셜(폼 포함) · 기술 · 포인트 · 카드) */
+function rowRefs(kind,key){const out=[];const add=(t,p,where)=>out.push({t,p,where});
+ for(const t of S.trainers){if(kind==='points'&&(t.pts||[]).includes(key))add(t,null,'포인트');if(kind==='cards'&&(t.deck||[]).some(x=>x&&x.n===key))add(t,null,'덱');
+  for(const p of t.pokemon||[]){if(kind==='moves'&&(p.moves||[]).some(m=>m&&m.name===key))add(t,p,'기술');
+   if(kind==='abil'){if(p.ability===key)add(t,p,'특성');(p.forms||[]).forEach((f,k)=>{if(f&&f.ability===key)add(t,p,`폼 ${k+1} 특성`)})}
+   if(kind==='items'){if(p.item===key)add(t,p,'소지품');(p.items2||[]).forEach((x,k)=>{if(x&&x.item===key)add(t,p,`소지품 ${k+2}`)})}
+   if(kind==='pots'){if((p.pots||[]).includes(key))add(t,p,'포텐셜');(p.forms||[]).forEach((f,k)=>{if(f&&(f.pots||[]).some(x=>x&&x.name===key))add(t,p,`폼 ${k+1} 포텐셜`)})}
+   if(kind==='old'&&(p.forms||[]).some(f=>f&&f.name===key))add(t,p,'폼 (올드 타입)')}}
+ return out}
+function rowRefsHtml(kind,key){const L=rowRefs(kind,key);if(!L.length)return '<span class="small muted">이 행을 쓰는 시트가 없습니다</span>';
+ return `<div class="small" style="margin-top:6px"><b>이 행을 쓰는 시트</b> <span class="muted">${L.length}곳 · 누르면 그 시트로</span><div class="row" style="flex-wrap:wrap;gap:4px;margin-top:4px">${L.map(x=>`<button type="button" class="btn xs ghost" data-goto-t="${esc(x.t.id)}" data-goto-p="${esc(x.p?x.p.id:'')}">${esc(x.t.name||'이름 없음')}${x.p?' › '+esc(x.p.name||'이름 없음'):''} <span class="muted">${esc(x.where)}</span></button>`).join('')}</div></div>`}
+/* 시트로 가기: 캐릭터 탭 → 트레이너 펼치고 (포켓몬이면 그 포켓몬도) 스크롤 */
+function gotoSheet(tid,pid){const t=S.trainers.find(x=>x.id===tid);if(!t)return false;closeAllModals();if(S.ui.tab!=='char')showTab('char');t.open=true;if(pid){const p=t.pokemon.find(x=>x.id===pid);if(p)p.open=true}save();renderChar();
+ const el=document.getElementById(pid?'pk-'+pid:'tr-'+tid)||document.getElementById('tr-'+tid);if(el){const r=MKROOT(),hd=r.querySelector('.top');r.scrollTo({top:Math.max(0,el.getBoundingClientRect().top-r.getBoundingClientRect().top+r.scrollTop-(hd?hd.offsetHeight:0)-10)});el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600)}return true}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-goto-t]');if(!b)return;e.preventDefault();gotoSheet(b.dataset.gotoT,b.dataset.gotoP||'')});
 
 /* ---------- 포텐셜 편집기 ---------- */
 function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전용 칸) or {unique:i} */
@@ -1803,7 +1844,7 @@ function openPotBuilder(t,p,onPick,excl,preset){const C=prCtx(t,p);
   if(ek.has('위력 강화')&&R&&!/어태커|어쌔신|킬러|퀄러|디스럽터|타이트엔드/.test(R))out.push(`<span class="warn">위력 강화는 어태커 계열의 영역입니다 (대원칙 3) · 현재 역할 ${esc(R)}</span>`);
   if((ek.has('공격 상승')||ek.has('특공 상승')||ek.has('스피드 상승'))&&R&&/어태커/.test(R))out.push(`<span class="warn">능력 상승은 에이스·러너·블로커의 영역입니다 (대원칙 3)</span>`);
   const mulm=[...txt.matchAll(/강화\(([\d.]+)배\)/g)].map(m=>+m[1]);if(mulm.some(v=>v>=1.5)&&!tg.length&&!/일 때|했을 때/.test(txt))out.push(`<span class="warn">조건 없이 1.5배 이상 강화는 「소켓 2」 이상 소지품에 필적합니다 (대원칙 5)</span>`);
-  if(/전체기/.test(txt)&&/C\+([4-9])/.test(txt))out.push(`<span class="warn">「전체기」는 「C : +4」 이상으로 만들 수 없습니다 (대원칙 7)</span>`);
+  if(/전체기/.test(txt)&&WIDE_C4.test(txt))out.push(`<span class="warn">「전체기」는 「C : +4」 이상으로 만들 수 없습니다 (대원칙 7)</span>`);
   if(/모든 기술|자신의 기술이 급소|자신의 기술에 「우선도/.test(txt)&&!/육성/.test(R))out.push(`<span class="warn">둘 이상의 기술에 동시에 적용되는 효과는 육성형이 아닌 한 삼갑니다 (대원칙 6)</span>`);
   for(const o of C.otherPots){const ot=prTags(o.eff);const shared=tg.filter(x=>ot.includes(x)&&!/방호|수세|공세|유일|탈진|보급/.test(x));if(shared.length)out.push(`<span class="warn">${esc(o.who)}의 「${esc(o.n)}」과 트리거 ${shared.map(x=>'【'+x+'】').join('')} 겹침 (대원칙 1)</span>`);
    const same=[...ek].filter(x=>prEffKeys(o.eff).has(x));if(same.length>=2)out.push(`<span class="warn">${esc(o.who)}의 「${esc(o.n)}」과 효과 겹침: ${esc(same.join('·'))} (대원칙 2)</span>`)}
@@ -1874,7 +1915,7 @@ function folderHead(f,name,n,open,pv,kids){const fid=f?f.id:'',key=fid||'_none',
  return `<div class="tfh ftile tcard ${f?tDecoCls(f):''} ${fid?'':'fnone'} ${f&&f.rule==='misag'?'fmisag':''}" style="${f?tDecoVars(f):''}"${A}><span class="caret">▸</span><span class="ficon">${d.icon?`<b class="fem">${esc(d.icon)}</b>`:FOLDER_SVG}</span>
   <div class="fmain"><div class="fl1">${f&&f.rule==='misag'?'<span class="fcrest" aria-hidden="true">MISAG<br>UNIV.</span>':''}<span class="fname${fid?'':' muted'}">${esc(name)}</span>${f&&f.rule==='misag'?'<span class="kindb fmrule" title="이 폴더(하위 폴더 포함)에 넣은 트레이너는 미사그 대학 (4+2) 규칙이 저절로 적용됩니다">미사그 규칙</span>':''}${fid?FAV.btn('f',fid):''}${f&&f.priv?`<span class="kindb privchip" title="${esc('비공개 · '+(f.ownerName||'')+(ME.gm?' (GM 열람)':''))}">🔒</span>`:''}</div>${d.title?`<div class="fsub">${esc(d.title)}</div>`:''}<div class="fmeta" title="${esc((kids?`하위 폴더 ${kids}개 · `:'')+`트레이너 ${n.length}명 · 포켓몬 ${pk}체`)}">${kids?`폴더 ${kids}개 · ${n.length}명 · ${pk}체`:`트레이너 ${n.length}명 · 포켓몬 ${pk}체`}</div></div>
   <div class="fbot"><div class="favs flist" data-n="${n.length}">${av}</div>
-  ${pv?'':`<div class="facts"><button class="btn sm" data-act="addTin" data-f="${esc(fid)}" title="이 폴더에 트레이너 추가">+ 트레이너</button>${fid?`<button class="btn sm ghost fsubb" data-act="addFin" data-f="${esc(fid)}" title="이 폴더 안에 폴더 만들기">+ 폴더</button>`:''}${fid?`<span class="facts2"><button class="btn sm ghost fic" data-act="moveF" data-f="${esc(fid)}" title="다른 폴더 안으로 옮기기 · 맨 위로 꺼내기" aria-label="폴더 옮기기">📂</button><button class="btn sm ghost fic" data-act="decoF" data-f="${esc(fid)}" title="폴더 꾸미기 (색 · 아이콘 · 부제 · 무늬 · 배경 그림)" aria-label="폴더 꾸미기">🎨</button><button class="btn sm ghost fic" data-act="privF" data-f="${esc(fid)}" title="${f&&f.priv?'지금 비공개 — 눌러서 공개로':'지금 공개 — 눌러서 비공개로 (만든 사람과 GM 에게만 보임)'}" aria-label="${f&&f.priv?'공개로':'비공개로'}">${f&&f.priv?'🔒':'🌐'}</button><button class="btn sm ghost fic" data-act="renF" data-f="${esc(fid)}" title="이름 바꾸기" aria-label="이름 바꾸기">✏️</button><button class="btn sm ghost fic danger" data-act="delF" data-f="${esc(fid)}" title="폴더 삭제 (안의 트레이너는 「폴더 없음」으로)" aria-label="폴더 삭제">🗑</button></span>`:''}</div>`}</div></div>`}
+  ${pv?'':`<div class="facts"><button class="btn sm" data-act="addTin" data-f="${esc(fid)}" title="이 폴더에 트레이너 추가">+ 트레이너</button><button class="btn sm ghost" data-act="chkF" data-f="${esc(fid)}" title="이 폴더 트레이너 · 포켓몬의 ⚠ 경고를 한 화면에">점검</button>${fid?`<button class="btn sm ghost fsubb" data-act="addFin" data-f="${esc(fid)}" title="이 폴더 안에 폴더 만들기">+ 폴더</button>`:''}${fid?`<span class="facts2"><button class="btn sm ghost fic" data-act="moveF" data-f="${esc(fid)}" title="다른 폴더 안으로 옮기기 · 맨 위로 꺼내기" aria-label="폴더 옮기기">📂</button><button class="btn sm ghost fic" data-act="decoF" data-f="${esc(fid)}" title="폴더 꾸미기 (색 · 아이콘 · 부제 · 무늬 · 배경 그림)" aria-label="폴더 꾸미기">🎨</button><button class="btn sm ghost fic" data-act="privF" data-f="${esc(fid)}" title="${f&&f.priv?'지금 비공개 — 눌러서 공개로':'지금 공개 — 눌러서 비공개로 (만든 사람과 GM 에게만 보임)'}" aria-label="${f&&f.priv?'공개로':'비공개로'}">${f&&f.priv?'🔒':'🌐'}</button><button class="btn sm ghost fic" data-act="renF" data-f="${esc(fid)}" title="이름 바꾸기" aria-label="이름 바꾸기">✏️</button><button class="btn sm ghost fic danger" data-act="delF" data-f="${esc(fid)}" title="폴더 삭제 (안의 트레이너는 「폴더 없음」으로)" aria-label="폴더 삭제">🗑</button></span>`:''}</div>`}</div></div>`}
 /* ---------- 즐겨찾기 (10-26 망령): 폴더 · 트레이너에 ★ → 왼쪽 레일에서 바로 가기. 이 브라우저(localStorage mkm_fav)에만 ---------- */
 const FAV={get(){try{return JSON.parse(localStorage.getItem('mkm_fav')||'[]')||[]}catch(e){return []}},set(v){lsSet('mkm_fav',JSON.stringify(v))},has(k,id){return this.get().some(f=>f.k===k&&f.id===id)},
  toggle(k,id){const L=this.get();const i=L.findIndex(f=>f.k===k&&f.id===id);if(i>=0)L.splice(i,1);else L.push({k,id});this.set(L);toast(i>=0?'즐겨찾기에서 뺐습니다':'즐겨찾기에 넣었습니다 ★');renderChar()},
@@ -1900,8 +1941,12 @@ function openFHide(){const rows=[];const walk=(p,d)=>{for(const f of fKids(p)){i
  l.addEventListener('click',e=>{const a=e.target.closest('[data-fh]');if(a){const hide=a.dataset.fh==='none';l.querySelectorAll('[data-fhid]').forEach(c=>{c.checked=!hide;FHIDE.toggle(c.dataset.fhid,hide)});renderChar();return}if(e.target.closest('[data-x]'))closeModal()})}
 function renderChar(){ensureCampus();ensureMisagNpc();if(misagSync())save();const root=$('#v-char');if((EMB.t||EMB.nu)&&embRender(root))return;
  const inF=fid=>S.trainers.map((t,ti)=>[t,ti]).filter(([t])=>tFolder(t)===fid&&tVis(t));const hiddenN=S.trainers.filter(t=>!tVis(t)).length;
+ /* 11-03: 이름 검색 — 폴더를 가로질러 트레이너 · 포켓몬 이름이 맞는 카드만 (맞는 포켓몬만 남기고 나머지 포켓몬 칸은 숨긴다) */
+ const cq=CQ.trim().toLowerCase();let hitP=null,hitT=null;
  let body;
- if(!S.folders.length)body=`<div id="trs" data-sort="trainers" data-fid="">${S.trainers.map((t,ti)=>tVis(t)?trainerHTML(t,ti):'').join('')||'<div class="empty">트레이너가 없습니다. 「+ 트레이너」를 눌러 시작하세요.</div>'}</div>`;
+ if(cq){hitT=new Set();hitP=new Set();const M=[];S.trainers.forEach((t,ti)=>{if(!tVis(t))return;const tn=String(t.name||'').toLowerCase().includes(cq);const ps=t.pokemon.filter(p=>String(p.name||'').toLowerCase().includes(cq));if(tn)hitT.add(t.id);for(const p of ps)hitP.add(p.id);if(tn||ps.length)M.push([t,ti])});
+  body=`<p class="small muted" style="margin:0 0 8px">「${esc(CQ.trim())}」 — 트레이너 ${hitT.size}명 · 포켓몬 ${hitP.size}체${M.length?'':' · 맞는 카드가 없습니다'}</p><div id="trs" data-sort="trainers" data-fid="">${M.map(([t,ti])=>trainerHTML(t,ti)).join('')}</div>`}
+ else if(!S.folders.length)body=`<div id="trs" data-sort="trainers" data-fid="">${S.trainers.map((t,ti)=>tVis(t)?trainerHTML(t,ti):'').join('')||'<div class="empty">트레이너가 없습니다. 「+ 트레이너」를 눌러 시작하세요.</div>'}</div>`;
  else{
   /* 10-24 망령: 폴더 안의 폴더 — 연 폴더 안에 하위 폴더 카드 격자, 그 아래 트레이너. 닫힌 카드의 얼굴 · 수는 하위 폴더까지 다 센다 */
   const grp=(fid,name)=>{const f=fById(fid);if(f&&!fVis(f))return '';if(FHIDE.has(fid))return '';const n=inF(fid),open=fOpen(fid),key=fid||'_none';const kids=fid?fKids(fid).filter(fVis):[];const all=fid?n.concat(...fDesc(fid).map(inF)):n;
@@ -1909,8 +1954,12 @@ function renderChar(){ensureCampus();ensureMisagNpc();if(misagSync())save();cons
    ${open?`${kids.length?`<div class="tsubf" data-sort="folders">${kids.map(k=>grp(k.id,k.name||'이름 없는 폴더')).join('')}</div>`:''}<div class="tfb" data-sort="trainers" data-fid="${esc(fid)}">${n.map(([t,ti])=>trainerHTML(t,ti)).join('')}</div>`:''}</div>`};
   body=`<div id="trs" data-sort="folders">${fKids('').map(f=>grp(f.id,f.name||'이름 없는 폴더')).join('')}${grp('','폴더 없음')}</div>`}
  root.innerHTML=`${hiddenN?`<p class="small faint" style="margin:0 0 8px">🔒 비공개라서 안 보이는 트레이너 ${hiddenN}명 (내 것이면 「서명」에 같은 비밀구를 적으세요)</p>`:''}<div class="intro"><h1>캐릭터 시트</h1><p>트레이너 폴더마다 자질·포인트·PT 서머리를 관리하고, 그 아래에 포켓몬 시트를 자유롭게 추가합니다. 「+ 폴더」로 세션별 대분류를 만들고 트레이너를 끌어다 넣을 수 있습니다. ${SH.on?'모든 내용은 공유 DB에 자동 저장되어, 링크를 아는 사람 모두가 같이 보고 고칩니다.':'모든 내용은 이 브라우저에 자동 저장됩니다.'}</p>
- <button class="btn pri" data-act="addT">+ 트레이너</button><button class="btn" data-act="addF">+ 폴더</button>${S.folders.length?`<button class="btn ghost" data-act="fhide" title="나와 상관없는 폴더를 이 브라우저에서 숨기기">🙈 보이는 폴더${FHIDE.count()?` <small>(${FHIDE.count()}개 숨김)</small>`:''}</button>`:''}<button class="btn" data-act="impText">복사용 텍스트 붙여넣기</button></div>
- ${body}${FAV.rail()}`;fitFlist(root)}
+ <button class="btn pri" data-act="addT">+ 트레이너</button><button class="btn" data-act="addF">+ 폴더</button>${S.folders.length?`<button class="btn ghost" data-act="fhide" title="나와 상관없는 폴더를 이 브라우저에서 숨기기">🙈 보이는 폴더${FHIDE.count()?` <small>(${FHIDE.count()}개 숨김)</small>`:''}</button>`:''}<button class="btn" data-act="impText">복사용 텍스트 붙여넣기</button><span class="csearch"><input type="search" id="cq" value="${esc(CQ)}" placeholder="이름 검색 (트레이너 · 포켓몬)" autocomplete="off" aria-label="트레이너 · 포켓몬 이름 검색">${cq?'<button type="button" class="btn sm ghost" data-act="cqClear" title="검색 지우기">✕</button>':''}</span></div>
+ ${body}${cq?'':FAV.rail()}`;
+ if(cq){for(const el of root.querySelectorAll('article.pk')){const sec=el.closest('section.folder');const tid=sec?sec.id.slice(3):'';if(!hitP.has(el.id.slice(3))&&!hitT.has(tid))el.style.display='none'}}
+ fitFlist(root)}
+let CQ='',cqT=null;
+document.addEventListener('input',e=>{if(!e.target.matches||!e.target.matches('#cq'))return;CQ=e.target.value;clearTimeout(cqT);cqT=setTimeout(()=>{renderChar();const n=$('#cq');if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length)}catch(_){}}},250)});
 /* 폴더 카드 트레이너 칩: 한 줄에 이름까지 안 들어가면 얼굴만 (10-24 망령) — 글꼴이 늦게 오거나 창 크기가 바뀌면 다시 잰다 */
 function fitFlist(root){const over=l=>l.scrollWidth>l.clientWidth+1;const run=()=>(root||document).querySelectorAll('.ftile .flist').forEach(l=>{l.classList.remove('ico');l.querySelectorAll('.fch.fx').forEach(x=>x.remove());const ch=[...l.querySelectorAll('.fch:not(.more):not(.none)')];ch.forEach(x=>x.style.display='');const mo=l.querySelector('.fch.more');if(mo)mo.style.display='';if(!l.clientWidth||!over(l))return;l.classList.add('ico');if(!over(l))return;const tot=+l.dataset.n||ch.length;const x=document.createElement('span');x.className='fch more fx';l.append(x);if(mo)mo.style.display='none';let vis=ch.length;while(vis>1){ch[--vis].style.display='none';x.textContent='+'+(tot-vis);if(!over(l))break}});run();setTimeout(run,350)}
 {let ft=null;addEventListener('resize',()=>{clearTimeout(ft);ft=setTimeout(()=>{const r=document.getElementById('v-char');if(r)fitFlist(r)},150)})}
@@ -1920,6 +1969,12 @@ function askText(title,label,val=''){return new Promise(res=>{const l=openModal(
  const done=ok=>{layers[layers.length-1].onClose=null;closeModal();res(ok?inp.value.trim()||null:null)};
  inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();done(true)}});
  l.addEventListener('click',e=>{const x=e.target.dataset.x;if(x)done(x==='ok')})})}
+/* 11-03: 포켓몬을 다른 트레이너로 옮기기 / 복사 — 돌려줌 {tid, copy} · null = 취소 */
+function askMoveP(T,P){return new Promise(res=>{const L=S.trainers.filter(t=>t!==T&&tVis(t));const fname=t=>{const f=fById(tFolder(t));return f?f.name||'이름 없는 폴더':'폴더 없음'};
+ const l=openModal(`<div class="mhead"><h2>「${esc(P.name||'이름 없음')}」 옮기기 / 복사</h2></div><div class="mbody">${L.length?`<label class="lbl">대상 트레이너<select data-mt style="width:100%">${L.map(t=>`<option value="${esc(t.id)}">${esc(t.name||'이름 없음')} — ${esc(fname(t))} · ${t.pokemon.length}체</option>`).join('')}</select></label>
+ <div class="row small" style="gap:14px;margin-top:8px"><label class="row" style="gap:4px"><input type="radio" name="mvmode" value="move" checked>옮기기 (${esc(T.name||'이름 없음')}에게서 빠진다)</label><label class="row" style="gap:4px"><input type="radio" name="mvmode" value="copy">복사 (양쪽에 남는다)</label></div>`:'<p class="muted" style="margin:0">옮길 수 있는 다른 트레이너가 없습니다</p>'}</div><div class="mfoot"><span class="sp"></span><button class="btn" data-x="no">취소</button>${L.length?'<button class="btn pri" data-x="ok">확인</button>':''}</div>`,{onClose:()=>res(null)});
+ l.addEventListener('click',e=>{const x=e.target.dataset.x;if(!x)return;layers[layers.length-1].onClose=null;const tid=x==='ok'?$('[data-mt]',l).value:'';const copy=x==='ok'&&($('input[name="mvmode"]:checked',l)||{}).value==='copy';closeModal();res(x==='ok'&&tid?{tid,copy}:null)})})}
+const delHint=()=>SH.on&&SH.canWrite?'<br><span class="small muted">지운 것은 「파일 ▾ → 최근 지운 것」에서 되살릴 수 있습니다 (30일)</span>':'';
 function rkChip(q,r){return `<span class="rk">${q[0]}<b style="background:${gcol(r)}">${esc(r)}</b></span>`}
 /* 알그룹 선택지: 올드 타입 일람(실기 포켓몬)에 나오는 알그룹, 원작 도감 순 */
 const EGG_ORDER=['괴수','수중1','벌레','비행','육상','요정','식물','인간형','수중3','광물','부정형','수중2','메타몽','드래곤','알미발견'];
@@ -2293,7 +2348,7 @@ function pokeHTML(t,ti,p,pi){const v=formView(p);const P=`T.${ti}.pokemon.${pi}`
   <div class="hide-s ptyab"><div class="pab"><span class="pabk">특성</span><b>${esc(v.ability||'특성 없음')}</b>${v.item?`<span class="faint"> · ${esc(v.item)}</span>`:''}</div>${abE?`<div class="pabe" title="${esc(abE)}">${esc(abE)}</div>`:''}</div>
   <div class="pexcl ${XL.length?'':'none'} ${XL.length>1?'multi':''}">${XL.map(x=>{const e=oneLn(x.eff);return `<div class="pxi"><div class="pxn"><span class="pxk">전용</span><b>${esc(x.name)}</b></div>${e?`<div class="pxe" title="${esc(e)}">${esc(e)}</div>`:''}</div>`}).join('')}</div>
   <div class="hide-s pkstat">${radar(v)}<div style="min-width:0">${miniGrades(v,t)}<div class="psub" style="margin-top:3px">종족치 합 <b class="num">${tot||'-'}</b>${(()=>{const pl=v._form?null:planRange(v);if(!pl||!tot)return '';return `<span class="${pl.ok?'faint':'warn'}" title="계산 종족치 / 계단 기준"> · 계산 ${fmtN(pl.ct)}/${pl.v}</span>`})()} · 기술 <span class="${c.cap!=null&&c.used>c.cap?'warn':''}">${capTxt(c,'-','/')}</span> · 포텐셜 ${npot}</div></div></div>
-  <div class="pact"><button class="btn sm ghost" data-act="pcard" data-i="${ti}" data-j="${pi}" title="이 포켓몬을 한 장으로 요약해서 본다 (PNG 저장)">한 장</button><button class="btn sm ghost" data-act="copy" data-i="${ti}" data-j="${pi}" title="복사용 텍스트 복사">복사</button><button class="btn sm ghost" data-act="dupP" data-i="${ti}" data-j="${pi}">복제</button><button class="btn sm danger pdel" data-act="delP" data-i="${ti}" data-j="${pi}" title="이 포켓몬 시트 삭제">🗑 삭제</button></div></div>
+  <div class="pact"><button class="btn sm ghost" data-act="pcard" data-i="${ti}" data-j="${pi}" title="이 포켓몬을 한 장으로 요약해서 본다 (PNG 저장)">한 장</button><button class="btn sm ghost" data-act="copy" data-i="${ti}" data-j="${pi}" title="복사용 텍스트 복사">복사</button><button class="btn sm ghost" data-act="dupP" data-i="${ti}" data-j="${pi}">복제</button><button class="btn sm ghost" data-act="moveP" data-i="${ti}" data-j="${pi}" title="다른 트레이너에게 옮기거나 복사">옮기기</button><button class="btn sm danger pdel" data-act="delP" data-i="${ti}" data-j="${pi}" title="이 포켓몬 시트 삭제">🗑 삭제</button></div></div>
  ${p.open?`<div class="pbody"><nav class="ptabs">${[['base','기본<span class="wide-only">·능력치</span>',''],['moves','기술',filled],['pots','포텐셜',npot],['tune','상세<span class="wide-only"> 조정</span>',tuneCount(p)||''],['text','<span class="wide-only">복사용 </span>텍스트','']].map(([k,n,cn])=>`<button data-ptab="${k}" data-i="${ti}" data-j="${pi}" class="${p.tab===k?'on':''}">${n}${cn!==''?`<span class="cnt">${cn}</span>`:''}</button>`).join('')}</nav>
  ${p.tab==='moves'?movesTab(t,ti,p,pi,P,c):p.tab==='pots'?potsTab(t,ti,p,pi):p.tab==='tune'?tuneTab(t,ti,p,pi):p.tab==='text'?textTab(t,ti,p,pi,P):baseTab(t,ti,p,pi,P)}</div>`:''}</article>`}
 function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=itemRow(p),own=ownItem(p)&&!idx.items.get(p.item);const types=S.db.types.map(x=>x[0]);const tot=p.base.reduce((a,b)=>a+(+b||0),0);const id=p.id;
@@ -2553,6 +2608,8 @@ $('#v-char').addEventListener('click',async e=>{
  switch(b.dataset.act){
   case 'fav':FAV.toggle(b.dataset.fk,b.dataset.fid);break;
   case 'fhide':openFHide();break;
+  case 'cqClear':CQ='';renderChar();break;
+  case 'chkF':openFolderCheck(b.dataset.f||'');break;
   case 'favtog':lsSet('mkm_fav_open',localStorage.getItem('mkm_fav_open')==='0'?'1':'0');renderChar();break;
   case 'favgo':{const L=FAV.get().filter(f=>FAV.label(f)!=null);const f=L[+b.dataset.i];if(f)FAV.go(f);break}
   case 'favdel':{e.stopPropagation();const L=FAV.get().filter(f=>FAV.label(f)!=null);L.splice(+b.dataset.i,1);FAV.set(L);renderChar();break}
@@ -2565,7 +2622,7 @@ $('#v-char').addEventListener('click',async e=>{
    if(await ask(`폴더 「${esc(f.name)}」를 삭제할까요?<br><span class="small muted">안에 있던 트레이너 ${n}명${kids.length?`과 하위 폴더 ${kids.length}개`:''}는 지워지지 않고 ${up?`상위 폴더 「${esc(up.name||'')}」`:'「폴더 없음」'}으로 옮겨집니다.</span>`,'폴더 삭제')){S.trainers.forEach(t=>{if(t.folder===f.id)t.folder=up?up.id:''});kids.forEach(k=>{if(up)k.parent=up.id;else delete k.parent});S.folders=S.folders.filter(x=>x!==f);save();renderChar()}break}
   case 'addFin':{const p=fById(b.dataset.f);if(!p)break;const name=await askText('하위 폴더',`「${p.name||''}」 안에 만들 폴더 이름`);if(name){const at=S.folders.indexOf(p)+1+fDesc(p.id).length;S.folders.splice(at,0,{id:uid(),name,parent:p.id});S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed[p.id];save();renderChar()}break}
   case 'moveF':{const f=fById(b.dataset.f);if(!f)break;const v=await askFolder(`「${f.name||''}」 옮기기`,'어느 폴더 안으로 옮길까요?',fPar(f),f.id);if(v==null)break;if(v)f.parent=v;else delete f.parent;S.ui.fclosed=S.ui.fclosed||{};if(v)delete S.ui.fclosed[v];save();renderChar();const p=fById(v);toast(`「${f.name}」 → ${p?fPath(p):'맨 위'}`);break}
-  case 'delT':if(await ask(`트레이너 「${esc(T.name)}」와 소속 포켓몬 ${T.pokemon.length}체를 모두 삭제할까요?`,'삭제')){S.trainers=S.trainers.filter(x=>x!==T);save();renderChar()}break;
+  case 'delT':if(await ask(`트레이너 「${esc(T.name)}」와 소속 포켓몬 ${T.pokemon.length}체를 모두 삭제할까요?${delHint()}`,'삭제')){S.trainers=S.trainers.filter(x=>x!==T);save();renderChar()}break;
   case 'dupT':{const c=clone(T);c.id=uid();c.name+=' (복사)';c.pokemon.forEach(p=>p.id=uid());S.trainers.splice(i+1,0,c);save();renderChar();break}
   case 'noimg':T.image='';rf();break;
   case 'ivHatch':if(P)openIvHatch(T,P);break;
@@ -2609,8 +2666,12 @@ $('#v-char').addEventListener('click',async e=>{
   /* 10-29 망령: 미사그 — 각성체를 바로 추가 (대가 쪽이 비었으면 대가, 아니면 보조) */
   case 'addAw':{const p=newPoke();applySheetTpl(T,p);p.awaken=T.pokemon.some(x=>awOf(T,x)==='free')?'c':'free';T.pokemon.push(p);awClassSync(T,p);rf();break}
   case 'stpl':{const n=applySheetTpl(T,P);rf();toast(n?`템플릿 포텐셜 ${n}개를 넣었습니다`:'더 넣을 템플릿 포텐셜이 없습니다');break}
-  case 'delP':if(await ask(`포켓몬 시트 「${esc(P.name||'이름 없음')}」을(를) 삭제할까요?`,'삭제')){T.pokemon=T.pokemon.filter(x=>x!==P);rf()}break;
+  case 'delP':if(await ask(`포켓몬 시트 「${esc(P.name||'이름 없음')}」을(를) 삭제할까요?${delHint()}`,'삭제')){T.pokemon=T.pokemon.filter(x=>x!==P);rf()}break;
   case 'dupP':{const c=clone(P);c.id=uid();T.pokemon.splice(j+1,0,c);rf();break}
+  case 'moveP':{const r=await askMoveP(T,P);if(!r)break;const D=S.trainers.find(x=>x.id===r.tid);if(!D)break;
+   if(r.copy){const c=clone(P);c.id=uid();c.open=false;D.pokemon.push(c);toast(`「${P.name||'이름 없음'}」을(를) ${D.name||'이름 없음'}에게 복사했습니다`)}
+   else{T.pokemon=T.pokemon.filter(x=>x!==P);D.pokemon.push(P);toast(`「${P.name||'이름 없음'}」을(를) ${D.name||'이름 없음'}에게 옮겼습니다`)}
+   D.open=true;save();renderChar();break}
   case 'noPimg':P.image='';rf();break;
   case 'pstadd':{const l=($('#pstl-'+P.id)||{}).value||'',u=(($('#pstu-'+P.id)||{}).value||'').trim();if(!/^https?:\/\//.test(u)){toast('그림 주소(https://…)가 필요합니다. 파일은 「올리기」로');break}P.stands=P.stands||[];P.stands.push({label:l.trim()||'기본',src:u,point:0});if(P.stands.length===1)P.standActive=0;rf();break}
   case 'pstdef':P.standActive=+b.dataset.k;rf();break;

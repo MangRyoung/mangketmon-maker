@@ -1273,3 +1273,12 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 #mk .preview.mkcprev,.preview.mkcprev{flex:none;position:sticky;top:0;display:flex;flex-direction:column;align-items:center;gap:6px;margin:0;padding:4px 0;border:0;background:none;text-align:center;min-height:0}
 .mkcprev .skc{width:220px}.mkcprev .small{max-width:220px}
 @media(max-width:760px){.mkcrow{flex-direction:column-reverse;align-items:stretch}#mk .preview.mkcprev,.preview.mkcprev{position:static}.mkcprev .skc{width:190px}}
+
+/* 11-03 캐릭터 탭 이름 검색 */
+#mk .csearch{display:inline-flex;align-items:center;gap:4px;margin-left:auto}
+#mk .csearch input{width:200px;max-width:60vw}
+@media (max-width:640px){#mk .csearch{margin-left:0;flex:1 1 100%}#mk .csearch input{flex:1;max-width:none}}
+#mk .fchk{padding:8px 0;border-bottom:1px solid var(--line,rgba(0,0,0,.08))}
+#mk .fchkl{margin:4px 0 0;padding-left:18px}
+#mk .fchkl li{margin:2px 0}
+#mk .lnk{background:none;border:0;padding:0;color:var(--text-accent,inherit);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline dotted}
