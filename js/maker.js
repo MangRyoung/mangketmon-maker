@@ -179,7 +179,7 @@ function save(dbToo){if(dbToo){dbDirty=true;SH.dbDirty=true}clearTimeout(svT);sv
  mkmChanged();if(SH.failed)lsSet('mkm_unsynced','1');let ok=lsSet(K_T,JSON.stringify({trainers:S.trainers,folders:S.folders,ui:S.ui}));
  if(dbDirty){ok=lsSet(K_DB,JSON.stringify({db:S.db,custom:S.custom}))&&ok;dbDirty=false}
  if(SH.on){shFlush();return}
- $('#saved').textContent=ok?'자동 저장 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'브라우저 저장 실패 · 백업 저장을 눌러 파일로 보관하세요'},300)}
+ $('#saved').textContent=ok?'자동 저장 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'브라우저 저장 실패 · 백업 저장을 눌러 파일로 보관하세요';shDot()},300)}
 const idx={};
 function reindex(){for(const r of (S.db&&S.db.pots)||[])if(r&&r[0])r[0]=normKind(r[0]);for(const r of (S.db&&S.db.stpl)||[])if(r&&r[2])r[2]=normKind(r[2]);
  for(const k in DBS){const m=new Map();for(const r of S.db[k])if(r[DBS[k].key]!==''&&!m.has(r[DBS[k].key]))m.set(r[DBS[k].key],r);idx[k]=m}}
@@ -1956,15 +1956,16 @@ function renderChar(){ensureCampus();ensureMisagNpc();if(misagSync())save();cons
  /* 11-03: 이름 검색 — 폴더를 가로질러 트레이너 · 포켓몬 이름이 맞는 카드만 (맞는 포켓몬만 남기고 나머지 포켓몬 칸은 숨긴다) */
  const cq=CQ.trim().toLowerCase();let hitP=null,hitT=null;
  let body;
- if(cq){hitT=new Set();hitP=new Set();const M=[];S.trainers.forEach((t,ti)=>{if(!tVis(t))return;const tn=String(t.name||'').toLowerCase().includes(cq);const ps=t.pokemon.filter(p=>String(p.name||'').toLowerCase().includes(cq));if(tn)hitT.add(t.id);for(const p of ps)hitP.add(p.id);if(tn||ps.length)M.push([t,ti])});
+ if(cq){hitT=new Set();hitP=new Set();const M=[];S.trainers.forEach((t,ti)=>{if(!tVis(t))return;const tn=String(t.name||'').toLowerCase().includes(cq);const ps=t.pokemon.filter(p=>String(p.name||'').toLowerCase().includes(cq));if(tn)hitT.add(t.id);for(const p of ps)hitP.add(p.id);t._q=!!(tn||ps.length);if(t._q)M.push([t,ti])});
   body=`<p class="small muted" style="margin:0 0 8px">「${esc(CQ.trim())}」 — 트레이너 ${hitT.size}명 · 포켓몬 ${hitP.size}체${M.length?'':' · 맞는 카드가 없습니다'}</p><div id="trs" data-sort="trainers" data-fid="">${M.map(([t,ti])=>trainerHTML(t,ti)).join('')}</div>`}
- else if(!S.folders.length)body=`<div id="trs" data-sort="trainers" data-fid="">${S.trainers.map((t,ti)=>tVis(t)?trainerHTML(t,ti):'').join('')||'<div class="empty">트레이너가 없습니다. 「+ 트레이너」를 눌러 시작하세요.</div>'}</div>`;
+ else{for(const t of S.trainers)delete t._q;
+ if(!S.folders.length)body=`<div id="trs" data-sort="trainers" data-fid="">${S.trainers.map((t,ti)=>tVis(t)?trainerHTML(t,ti):'').join('')||'<div class="empty">트레이너가 없습니다. 「+ 트레이너」를 눌러 시작하세요.</div>'}</div>`;
  else{
   /* 10-24 망령: 폴더 안의 폴더 — 연 폴더 안에 하위 폴더 카드 격자, 그 아래 트레이너. 닫힌 카드의 얼굴 · 수는 하위 폴더까지 다 센다 */
   const grp=(fid,name)=>{const f=fById(fid);if(f&&!fVis(f))return '';if(FHIDE.has(fid))return '';const n=inF(fid),open=fOpen(fid),key=fid||'_none';const kids=fid?fKids(fid).filter(fVis):[];const all=fid?n.concat(...fDesc(fid).map(inF)):n;
    return `<div class="tfold ${open?'open':''} ${f&&f.priv?'priv':''} ${f&&fPar(f)?'sub':''}" ${fid?`data-si="${S.folders.indexOf(f)}"`:''} data-fold="${esc(key)}">${folderHead(f,name,all,open,0,kids.length)}
    ${open?`${kids.length?`<div class="tsubf" data-sort="folders">${kids.map(k=>grp(k.id,k.name||'이름 없는 폴더')).join('')}</div>`:''}<div class="tfb" data-sort="trainers" data-fid="${esc(fid)}">${n.map(([t,ti])=>trainerHTML(t,ti)).join('')}</div>`:''}</div>`};
-  body=`<div id="trs" data-sort="folders">${fKids('').map(f=>grp(f.id,f.name||'이름 없는 폴더')).join('')}${grp('','폴더 없음')}</div>`}
+  body=`<div id="trs" data-sort="folders">${fKids('').map(f=>grp(f.id,f.name||'이름 없는 폴더')).join('')}${grp('','폴더 없음')}</div>`}}
  root.innerHTML=`${hiddenN?`<p class="small faint" style="margin:0 0 8px">🔒 비공개라서 안 보이는 트레이너 ${hiddenN}명 (내 것이면 「서명」에 같은 비밀구를 적으세요)</p>`:''}<div class="intro"><h1>캐릭터 시트</h1><p>트레이너 폴더마다 자질·포인트·PT 서머리를 관리하고, 그 아래에 포켓몬 시트를 자유롭게 추가합니다. 「+ 폴더」로 세션별 대분류를 만들고 트레이너를 끌어다 넣을 수 있습니다. ${SH.on?'모든 내용은 공유 DB에 자동 저장되어, 링크를 아는 사람 모두가 같이 보고 고칩니다.':'모든 내용은 이 브라우저에 자동 저장됩니다.'}</p>
  <button class="btn pri" data-act="addT">+ 트레이너</button><button class="btn" data-act="addF">+ 폴더</button>${S.folders.length?`<button class="btn ghost" data-act="fhide" title="나와 상관없는 폴더를 이 브라우저에서 숨기기">🙈 보이는 폴더${FHIDE.count()?` <small>(${FHIDE.count()}개 숨김)</small>`:''}</button>`:''}<button class="btn" data-act="impText">복사용 텍스트 붙여넣기</button><span class="csearch"><input type="search" id="cq" value="${esc(CQ)}" placeholder="이름 검색 (트레이너 · 포켓몬)" autocomplete="off" aria-label="트레이너 · 포켓몬 이름 검색">${cq?'<button type="button" class="btn sm ghost" data-act="cqClear" title="검색 지우기">✕</button>':''}</span></div>
  ${body}${cq?'':FAV.rail()}`;
@@ -2295,13 +2296,14 @@ function misagHTML(t,ti){const P=misagPen(t),R=MR(),g=misagGrade(t),e=misagEff(t
   ${W.map(x=>`<p class="small warn" style="margin:6px 0 0">⚠ ${esc(x)}</p>`).join('')}</div>`}
 function trainerHTML(t,ti){if(EMB.one&&t.id===EMB.t&&t.pokemon.some(x=>x.id===EMB.p))return embOneHTML(t,ti);   /* 10-30 노트 「포켓몬 고치기」 = 그 포켓몬 칸만 */
  const P=`T.${ti}`;const use=pointUse(t);const iv=investCheck(t);const pu=ptSockets(t),pm=ptMax(t);
- return `<section class="folder ${t.open?'open':''}" id="tr-${t.id}" data-ti="${ti}" data-si="${ti}">
+ const tOpen=t.open||!!t._q;/* 11-03 이름 검색 중에는 맞는 트레이너를 펼쳐 보인다 (상태는 안 바꿈) */
+ return `<section class="folder ${tOpen?'open':''}" id="tr-${t.id}" data-ti="${ti}" data-si="${ti}">
  <header class="fh tcard ${tDecoCls(t)}" style="${tDecoVars(t)}" data-tog="${P}" data-grab tabindex="0" role="button" data-kbd aria-expanded="${!!t.open}" aria-label="${esc(t.name||'트레이너')} 펼치기/접기"><span class="caret">▸</span><span class="avatar">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="">`:esc([...(t.name||'?')][0]||'?')}</span>
   <div class="tmain"><div class="tl1"><span class="tname">${esc(t.name)}</span>${FAV.btn('t',t.id)}${t.kind==='npc'?'<span class="plchip npc" title="NPC — 오레마스 관계도에 NPC 노드로 들어간다">NPC</span>':''}${t.priv?`<span class="kindb privchip" title="${esc('비공개 · '+(t.ownerName||'')+(ME.gm?' (GM 열람)':''))}">🔒</span>`:''}${(t.pl||'').trim()?`<span class="plchip" title="PL">PL <b>${esc(t.pl.trim())}</b></span>`:''}</div>${(t.deco||{}).title?`<div class="ttitle">${esc(t.deco.title)}</div>`:''}
    <div class="tl3"><span class="row trk">${QUAL.map(q=>rkChip(q,t.ranks[q])).join('')}</span><span class="small muted tmeta">${(()=>{const n=(ptItems().find(r=>r[2]==='pride')||[])[0];if(!n)return `포켓몬 ${t.pokemon.length}체`;const u=Math.round((use[n]||0)*100)/100,m=+t.base[n]||0;return `통솔점 <b class="${u>m?'warn':''} num">${u}/${m}</b>`})()} · PT 기술점 <b class="${pu>pm?'warn':''} num">${pu}/${pm}</b></span></div></div>
   ${tPartyHTML(t,ti)}${tUqHTML(t,ti)}<span class="sp"></span>
-  <div class="tacts">${S.folders.length?`<select class="tmove" data-tmove="${ti}" aria-label="폴더 이동" title="폴더 이동"><option value="">폴더 없음</option>${[fTreeOpts(tFolder(t))].join('')}</select>`:''}<button class="btn sm ghost" data-act="decoT" data-i="${ti}" title="카드 색 · 칭호 · 배경 그림 · 무늬">🎨 꾸미기</button><button class="btn sm ghost" data-act="privT" data-i="${ti}" title="비공개 트레이너는 만든 사람(같은 비밀구)과 GM 에게만 보입니다">${t.priv?'공개로':'비공개'}</button><button class="btn sm ghost" data-act="dupT" data-i="${ti}">복제</button><button class="btn sm ghost danger" data-act="delT" data-i="${ti}">삭제</button></div></header>
- ${t.open?`<div class="fb"><div class="tgrid">
+  <div class="tacts">${S.folders.length?`<select class="tmove" data-tmove="${ti}" aria-label="폴더 이동" title="폴더 이동"><option value="">폴더 없음</option>${[fTreeOpts(tFolder(t))].join('')}</select>`:''}<button class="btn sm ghost" data-act="decoT" data-i="${ti}" title="카드 색 · 칭호 · 배경 그림 · 무늬">🎨 꾸미기</button><button class="btn sm ghost" data-act="privT" data-i="${ti}" title="비공개 트레이너는 만든 사람(같은 비밀구)과 GM 에게만 보입니다">${t.priv?'공개로':'비공개'}</button><button class="btn sm ghost" data-act="dupT" data-i="${ti}">복제</button>${SH.on?`<button class="btn sm ghost" data-act="histT" data-i="${ti}" title="공유 DB 에 남은 옛 판 보기 · 되돌리기">이력</button>`:''}<button class="btn sm ghost danger" data-act="delT" data-i="${ti}">삭제</button></div></header>
+ ${tOpen?`<div class="fb"><div class="tgrid">
   <div class="panel"><h3>프로필<span class="sp"></span><button class="btn sm" data-act="bioT" data-i="${ti}" title="백스토리 · 성격 · 말투 · 선호하는 전법 · 그 밖에 — 오레마스 캐릭터 탭에 그대로 보인다">상세${bioN(t)?` <b class="num">${bioN(t)}</b>`:''}</button></h3><label class="lbl" for="tn-${t.id}">이름${inp(P+'.name',t.name,{id:'tn-'+t.id})}</label>
    <div class="imgbox" style="margin-top:8px">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="트레이너 이미지">`:'<span class="small">이미지 없음</span>'}</div>
    <div class="row" style="margin-top:6px"><label class="btn sm" for="img-${t.id}" tabindex="0" role="button" data-kbd>이미지 삽입</label><input type="file" id="img-${t.id}" accept="image/*" data-img="${ti}" hidden>${t.image?`<button class="btn sm ghost" data-act="noimg" data-i="${ti}">제거</button>`:''}</div>
@@ -2360,7 +2362,7 @@ function pokeHTML(t,ti,p,pi){const v=formView(p);const P=`T.${ti}.pokemon.${pi}`
   <div class="hide-s ptyab"><div class="pab"><span class="pabk">특성</span><b>${esc(v.ability||'특성 없음')}</b>${v.item?`<span class="faint"> · ${esc(v.item)}</span>`:''}</div>${abE?`<div class="pabe" title="${esc(abE)}">${esc(abE)}</div>`:''}</div>
   <div class="pexcl ${XL.length?'':'none'} ${XL.length>1?'multi':''}">${XL.map(x=>{const e=oneLn(x.eff);return `<div class="pxi"><div class="pxn"><span class="pxk">전용</span><b>${esc(x.name)}</b></div>${e?`<div class="pxe" title="${esc(e)}">${esc(e)}</div>`:''}</div>`}).join('')}</div>
   <div class="hide-s pkstat">${radar(v)}<div style="min-width:0">${miniGrades(v,t)}<div class="psub" style="margin-top:3px">종족치 합 <b class="num">${tot||'-'}</b>${(()=>{const pl=v._form?null:planRange(v);if(!pl||!tot)return '';return `<span class="${pl.ok?'faint':'warn'}" title="계산 종족치 / 계단 기준"> · 계산 ${fmtN(pl.ct)}/${pl.v}</span>`})()} · 기술 <span class="${c.cap!=null&&c.used>c.cap?'warn':''}">${capTxt(c,'-','/')}</span> · 포텐셜 ${npot}</div></div></div>
-  <div class="pact"><button class="btn sm ghost" data-act="pcard" data-i="${ti}" data-j="${pi}" title="이 포켓몬을 한 장으로 요약해서 본다 (PNG 저장)">한 장</button><button class="btn sm ghost" data-act="copy" data-i="${ti}" data-j="${pi}" title="복사용 텍스트 복사">복사</button><button class="btn sm ghost" data-act="dupP" data-i="${ti}" data-j="${pi}">복제</button><button class="btn sm ghost" data-act="moveP" data-i="${ti}" data-j="${pi}" title="다른 트레이너에게 옮기거나 복사">옮기기</button><button class="btn sm danger pdel" data-act="delP" data-i="${ti}" data-j="${pi}" title="이 포켓몬 시트 삭제">🗑 삭제</button></div></div>
+  <div class="pact"><button class="btn sm ghost" data-act="pcard" data-i="${ti}" data-j="${pi}" title="이 포켓몬을 한 장으로 요약해서 본다 (PNG 저장)">한 장</button><button class="btn sm ghost" data-act="copy" data-i="${ti}" data-j="${pi}" title="복사용 텍스트 복사">복사</button><button class="btn sm ghost" data-act="dupP" data-i="${ti}" data-j="${pi}">복제</button><button class="btn sm ghost" data-act="moveP" data-i="${ti}" data-j="${pi}" title="다른 트레이너에게 옮기거나 복사">옮기기</button>${SH.on?`<button class="btn sm ghost" data-act="histP" data-i="${ti}" data-j="${pi}" title="공유 DB 에 남은 옛 판 보기 · 되돌리기">이력</button>`:''}<button class="btn sm danger pdel" data-act="delP" data-i="${ti}" data-j="${pi}" title="이 포켓몬 시트 삭제">🗑 삭제</button></div></div>
  ${p.open?`<div class="pbody"><nav class="ptabs">${[['base','기본<span class="wide-only">·능력치</span>',''],['moves','기술',filled],['pots','포텐셜',npot],['tune','상세<span class="wide-only"> 조정</span>',tuneCount(p)||''],['text','<span class="wide-only">복사용 </span>텍스트','']].map(([k,n,cn])=>`<button data-ptab="${k}" data-i="${ti}" data-j="${pi}" class="${p.tab===k?'on':''}">${n}${cn!==''?`<span class="cnt">${cn}</span>`:''}</button>`).join('')}</nav>
  ${p.tab==='moves'?movesTab(t,ti,p,pi,P,c):p.tab==='pots'?potsTab(t,ti,p,pi):p.tab==='tune'?tuneTab(t,ti,p,pi):p.tab==='text'?textTab(t,ti,p,pi,P):baseTab(t,ti,p,pi,P)}</div>`:''}</article>`}
 function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=itemRow(p),own=ownItem(p)&&!idx.items.get(p.item);const types=S.db.types.map(x=>x[0]);const tot=p.base.reduce((a,b)=>a+(+b||0),0);const id=p.id;
@@ -2621,6 +2623,8 @@ $('#v-char').addEventListener('click',async e=>{
   case 'fav':FAV.toggle(b.dataset.fk,b.dataset.fid);break;
   case 'fhide':openFHide();break;
   case 'cqClear':CQ='';renderChar();break;
+  case 'histT':if(T)openHistory('trainers',T.id,'트레이너 '+(T.name||'이름 없음'));break;
+  case 'histP':if(T&&P)openHistory('pokemon',P.id,`${T.name||'이름 없음'} › ${P.name||'이름 없음'}`);break;
   case 'chkF':openFolderCheck(b.dataset.f||'');break;
   case 'favtog':lsSet('mkm_fav_open',localStorage.getItem('mkm_fav_open')==='0'?'1':'0');renderChar();break;
   case 'favgo':{const L=FAV.get().filter(f=>FAV.label(f)!=null);const f=L[+b.dataset.i];if(f)FAV.go(f);break}
@@ -2892,7 +2896,7 @@ $('#v-db').addEventListener('click',async e=>{const t=e.target;
   ta.addEventListener('input',chk);$('[data-stf]',l).addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;ta.value=await f.text();chk()});
   l.addEventListener('click',async e=>{if(e.target.closest('[data-x]'))return closeModal();if(!e.target.closest('[data-stgo]'))return;const o=chk();if(!o)return toast('JSON 을 확인해 주세요');
    const keep=S.db.st.filter(r=>r[0]&&!o.st[r[0]]);const icon=new Map(S.db.st.map(r=>[r[0],r[12]||'']));S.db.st=stRowsOf(o).map(r=>{if(!r[12]&&icon.get(r[0]))r[12]=icon.get(r[0]);return r}).concat(keep);const base=new Set((DEF.st||[]).map(r=>r[0]));S.custom.st=S.db.st.map(r=>r[0]).filter(k=>!base.has(k));reindex();save(true);stApply();closeModal();renderDB();toast(`상태 변화 DB 를 불러왔습니다 (${S.db.st.length}개)`)});return}
- if(a.dataset.dbact==='reset'&&await ask(`${DBS[k].t} DB를 원본 시트 값으로 되돌릴까요? 추가하거나 고친 내용(오리지널 ${S.custom[k].length}건 포함)이 사라집니다.`,'되돌리기')){S.db[k]=clone(DEF[k]);S.custom[k]=[];reindex();save(true);renderDB();toast('원본으로 되돌렸습니다')}});
+ if(a.dataset.dbact==='reset'&&await ask(`${DBS[k].t} DB를 원본 시트 값으로 되돌릴까요? 추가하거나 고친 내용(오리지널 ${S.custom[k].length}건 포함)이 사라집니다.<br><span class="small muted">되돌리기 전에 백업 파일을 먼저 내려받습니다</span>`,'되돌리기')){try{await impAutoBackup()}catch(e){}S.db[k]=clone(DEF[k]);S.custom[k]=[];reindex();save(true);renderDB();toast('원본으로 되돌렸습니다')}});
 let dqT;$('#v-db').addEventListener('input',e=>{if(e.target.id==='dbq'){clearTimeout(dqT);dqT=setTimeout(()=>{dbs.q=e.target.value;dbs.lim=150;const r=$('#dbres');if(r)r.innerHTML=dbResults()},220)}
  else if(e.target.dataset.pr){clearTimeout(dqT);dqT=setTimeout(()=>{dbs[e.target.dataset.pr]=e.target.value.trim();dbs.lim=150;const r=$('#dbres');if(r)r.innerHTML=dbResults();const fb=$('[data-dbftog] .fn');if(fb)fb.textContent=fCount(dbs.k,dbs)?' '+fCount(dbs.k,dbs):''},300)}});
 $('#v-db').addEventListener('change',e=>{const id=e.target.id;
@@ -3292,7 +3296,46 @@ function chooseMode(o){return new Promise(res=>{const D=impDiff(o);let armed=fal
  l.addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(!b)return;const m=b.dataset.m;
   if(m==='replace'&&!armed){armed=true;b.classList.add('impbadbtn');b.textContent=D.cur?`정말 덮어쓰기? (지금 트레이너 ${D.cur}명 삭제)`:'정말 덮어쓰기?';return}
   layers[layers.length-1].onClose=null;closeModal();res(m)})})}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-act="bakOut"],[data-act="xlsxOut"]');if(!b)return;b.dataset.act==='bakOut'?saveFile('망켓몬_제작기_백업.json',JSON.stringify(backupObj())):exportXlsx()});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act="bakOut"],[data-act="xlsxOut"],[data-act="deleted"]');if(!b)return;b.dataset.act==='bakOut'?saveFile('망켓몬_제작기_백업.json',JSON.stringify(backupObj())):b.dataset.act==='deleted'?openDeleted():exportXlsx()});
+/* ---------- 11-03 변경 이력 · 최근 지운 것 (supabase/patch_2026-11-03_제작기.sql 의 보안 정의자 RPC) ---------- */
+const RPC_HINT='공유 DB 에 패치 SQL(supabase/patch_2026-11-03_제작기.sql)을 실행해야 쓸 수 있는 기능입니다';
+async function shRpc(name,args){if(!SH.on||!SH.db||!SH.db.rpc)throw Object.assign(new Error('공유 DB 에 연결되어 있지 않습니다'),{code:'no_share'});return await SH.db.rpc(name,args)}
+const rpcMsg=e=>e&&e.code==='no_rpc'?RPC_HINT:e&&e.code==='no_share'?'공유 DB 에 연결되어 있지 않습니다':'불러오지 못했습니다: '+(e&&e.message||e);
+const fmtAt=t=>{const d=new Date(t);return isNaN(d)?String(t||''):d.toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})};
+const OP_KO={UPDATE:'고침',DELETE:'삭제',SNAPSHOT:'되돌리기 전'};
+function histSummary(kind,doc){const d=(doc&&doc.data)||{};try{
+ if(kind==='trainers')return `${d.name||'이름 없음'} · 포켓몬 ${(d.pids||[]).length}체${d.ranks?` · ${Object.entries(d.ranks).filter(([,v])=>v).map(([k,v])=>k[0]+v).join(' ')}`:''}`;
+ if(kind==='pokemon'){const b=(d.base||[]).map(v=>+v||0);return `${d.name||'이름 없음'} · 종족치 합 ${b.reduce((a,v)=>a+v,0)} · 기술 ${(d.moves||[]).filter(m=>m&&m.name).length} · 포텐셜 ${(d.pots||[]).filter(x=>x&&x!=='-').length}${d.ability?' · '+d.ability:''}${d.item?' · '+d.item:''}`}
+ if(kind==='folders')return `${doc.name||'이름 없는 폴더'}`}catch(e){}return ''}
+async function openHistory(kind,id,label){const path=kind+'/'+id;toast('이력을 불러오는 중…');let L;try{L=await shRpc('mk_history',{doc_path:path,lim:40})}catch(e){toast(rpcMsg(e));return}
+ L=Array.isArray(L)?L:[];const cur=shWant().get(path);
+ const l=openModal(`<div class="mhead"><h2>이력 — ${esc(label)}</h2><span class="small muted">${L.length}판 · 30일 보관 · 5분 안에 거듭 고친 것은 한 판으로 남습니다</span><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
+ <div class="mbody">${cur?`<div class="hrow now"><b>지금</b><span class="small muted">${esc(histSummary(kind,cur))}</span></div>`:''}${L.length?L.map(h=>`<div class="hrow"><span class="small"><b>${esc(fmtAt(h.at))}</b> <span class="muted">${esc(OP_KO[h.op]||h.op)}</span></span><span class="small muted" style="flex:1;min-width:0">${esc(histSummary(kind,h.data))}</span><button type="button" class="btn xs" data-hid="${esc(h.hid)}">이 판으로 되돌리기</button></div>`).join(''):'<div class="empty">남은 옛 판이 없습니다</div>'}</div>`,{wide:true});
+ l.addEventListener('click',async e=>{if(e.target.closest('[data-x]'))return closeModal();const b=e.target.closest('[data-hid]');if(!b)return;const h=L.find(x=>String(x.hid)===b.dataset.hid);if(!h||!h.data)return;
+  if(!SH.canWrite)return toast('읽기 전용이라 되돌릴 수 없습니다');if(!await ask(`${esc(fmtAt(h.at))} 판으로 되돌릴까요?<br><span class="small muted">지금 값은 이력에 먼저 남깁니다</span>`,'되돌리기',false))return;
+  try{await shRpc('mk_snapshot',{doc_path:path})}catch(e){console.warn('[이력] 스냅샷 실패',e)}
+  histRestore(kind,id,h.data);closeAllModals();toast('되돌렸습니다 — 곧 공유 DB 에 저장됩니다')})}
+/* 옛 판 · 지운 문서를 지금 화면에 적용 (받은 문서와 같은 길로 → 다음 저장 때 shWant 가 올린다) */
+function histRestore(kind,id,doc){const d=clone(doc);if(kind==='trainers'){shPutTrainer(id,d);const t=S.trainers.find(x=>x.id===id);if(t)t.open=true}else if(kind==='pokemon'){shPutPoke(id,d);for(const t of S.trainers){const p=t.pokemon.find(x=>x.id===id);if(p){p.open=true;t.open=true}}}else if(kind==='folders')shApplyDoc('folders',id,d);
+ SH.synced.delete(kind+'/'+id);save();renderChar()}
+async function openDeleted(){if(!SH.on)return toast('공유 DB 에 연결되어 있지 않습니다');toast('최근 지운 것을 불러오는 중…');let T,P,F;try{[T,P,F]=await Promise.all([shRpc('mk_deleted',{doc_kind:'trainers'}),shRpc('mk_deleted',{doc_kind:'pokemon'}),shRpc('mk_deleted',{doc_kind:'folders'})])}catch(e){toast(rpcMsg(e));return}
+ T=Array.isArray(T)?T:[];P=Array.isArray(P)?P:[];F=Array.isArray(F)?F:[];const pById=new Map(P.map(x=>[x.id,x]));
+ const tname=tid=>{const t=S.trainers.find(x=>x.id===tid);if(t)return t.name||'이름 없음';const d=T.find(x=>x.id===tid);return d?`${(d.data&&d.data.data&&d.data.data.name)||'이름 없음'} (지워짐)`:'(트레이너 없음)'};
+ const row=(kind,x,extra)=>`<div class="hrow"><span class="small"><b>${esc(fmtAt(x.at))}</b></span><span class="small" style="flex:1;min-width:0"><b>${esc(histSummary(kind,x.data).split(' · ')[0])}</b> <span class="muted">${esc(histSummary(kind,x.data).split(' · ').slice(1).join(' · '))}${extra?' · '+esc(extra):''}</span></span><button type="button" class="btn xs" data-rs="${kind}" data-id="${esc(x.id)}">되살리기</button></div>`;
+ const l=openModal(`<div class="mhead"><h2>최근 지운 것</h2><span class="small muted">30일 안에 지운 문서 · 트레이너 ${T.length} · 포켓몬 ${P.length} · 폴더 ${F.length}</span><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
+ <div class="mbody">${T.length?`<h3 class="small" style="margin:0 0 4px">트레이너 <span class="muted">(같이 지운 포켓몬도 함께 되살린다)</span></h3>${T.map(x=>row('trainers',x,`지운 포켓몬 ${((x.data&&x.data.data&&x.data.data.pids)||[]).filter(id=>pById.has(id)).length}체 함께`)).join('')}`:''}
+ ${P.length?`<h3 class="small" style="margin:10px 0 4px">포켓몬</h3>${P.map(x=>row('pokemon',x,'→ '+tname(x.data&&x.data.tid))).join('')}`:''}
+ ${F.length?`<h3 class="small" style="margin:10px 0 4px">폴더</h3>${F.map(x=>row('folders',x)).join('')}`:''}
+ ${T.length||P.length||F.length?'':'<div class="empty">최근 30일 안에 지운 것이 없습니다</div>'}</div>`,{wide:true});
+ l.addEventListener('click',async e=>{if(e.target.closest('[data-x]'))return closeModal();const b=e.target.closest('[data-rs]');if(!b)return;if(!SH.canWrite)return toast('읽기 전용이라 되살릴 수 없습니다');const kind=b.dataset.rs,id=b.dataset.id;
+  const L=kind==='trainers'?T:kind==='pokemon'?P:F;const x=L.find(y=>y.id===id);if(!x||!x.data)return;
+  if(kind==='trainers'){const d=clone(x.data);const pids=(d.data&&d.data.pids)||[];histRestore('trainers',id,d);let n=0;for(const pid of pids){const pd=pById.get(pid);if(pd&&pd.data&&!S.trainers.some(t=>t.pokemon.some(p=>p.id===pid))){histRestore('pokemon',pid,pd.data);n++}}toast(`트레이너를 되살렸습니다${n?` · 포켓몬 ${n}체 함께`:''}`)}
+  else if(kind==='pokemon'){const d=clone(x.data);if(!S.trainers.some(t=>t.id===d.tid)){const to=await askTrainerPick('되살릴 포켓몬을 넣을 트레이너');if(!to)return;d.tid=to}histRestore('pokemon',id,d);toast('포켓몬을 되살렸습니다')}
+  else{histRestore('folders',id,x.data);toast('폴더를 되살렸습니다')}
+  closeAllModals()})}
+function askTrainerPick(title){return new Promise(res=>{const L=S.trainers.filter(tVis);if(!L.length){toast('트레이너가 없습니다');return res(null)}
+ const l=openModal(`<div class="mhead"><h2>${esc(title)}</h2></div><div class="mbody"><select data-tp style="width:100%">${L.map(t=>`<option value="${esc(t.id)}">${esc(t.name||'이름 없음')} · ${t.pokemon.length}체</option>`).join('')}</select></div><div class="mfoot"><span class="sp"></span><button class="btn" data-x="no">취소</button><button class="btn pri" data-x="ok">확인</button></div>`,{onClose:()=>res(null)});
+ l.addEventListener('click',e=>{const x=e.target.dataset.x;if(!x)return;layers[layers.length-1].onClose=null;const v=$('[data-tp]',l).value;closeModal();res(x==='ok'?v:null)})})}
 $('#bakIn').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;let o;try{o=JSON.parse(await f.text())}catch(err){toast('백업 파일 형식이 맞지 않습니다');return}
  if(!o||(o.app!=='mangketmon-maker'&&!(o.db&&o.trainers))){toast('백업 파일 형식이 맞지 않습니다');return}
  const m=await chooseMode(o);if(!m)return;
@@ -3366,7 +3409,38 @@ const SH={on:false,ready:false,db:null,canWrite:true,init:{},buf:{},ed:new Map()
 const SH_KINDS=['trainers','pokemon','dbedit','meta','folders'];
 const UIK=new Set(['open','tab','effTxt','baseUp','statAdd','statCp']);/* 10-26 점검: 공유에서 받은 effTxt · baseUp 이 눌러붙어 옛 값이 다시 올라가던 것 */
 const nowHM=()=>new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-function shStatus(t){SH.last=t;const el=$('#saved');if(el)el.innerHTML=`<span class="shpill ${SH.canWrite?'':'ro'}">공유</span> ${esc(t)}`}
+function shStatus(t){SH.last=t;const el=$('#saved');if(el)el.innerHTML=`<span class="shpill ${SH.canWrite?'':'ro'}">공유</span> ${esc(t)}`;shDot()}
+/* 11-03: 상단 상태 점 — 「파일 ▾」 안의 #saved 는 좁은 화면에서 안 보여서. 누르면 자세히(실패한 시트 · 다시 시도 · 다시 연결) */
+function shState(){const cfg=window.MKM_STORE&&MKM_STORE.configured();
+ if(!SH.on){if(cfg)return {k:'off',s:'연결 안 됨',t:'공유 DB 에 연결하지 못했습니다 · 이 브라우저에만 저장 중'};return {k:'local',s:'이 브라우저',t:'공유 DB 설정이 없어 이 브라우저에만 저장합니다'}}
+ if(!SH.ready)return {k:'busy',s:'연결 중',t:'공유 저장소를 읽는 중…'};
+ if(!SH.canWrite)return {k:'ro',s:'읽기 전용',t:SH.initFail?'공유 DB 를 다 읽지 못해 읽기 전용 · 「다시 연결」로 다시 시도':'읽기 전용 · 고친 내용은 공유되지 않습니다'};
+ if(SH.net==='off')return {k:'off',s:'연결 끊김',t:'실시간 연결이 끊겼습니다 · 남의 수정이 안 보일 수 있어요 (「다시 연결」)'};
+ const bad=SH.bad?SH.bad.size:0;if(bad)return {k:'warn',s:`실패 ${bad}건`,t:`저장 실패 ${bad}건 · ${SH_ERR_KO[SH.lastErr]||SH.lastErr||''}`};
+ if(SH.flushing||(shTimer&&SH.retryAt))return {k:'busy',s:SH.retryAt?'다시 시도 중':'저장 중',t:SH.retryAt?`잠시 뒤 다시 저장합니다 (${SH_ERR_KO[SH.lastErr]||SH.lastErr||''})`:'저장 중…'};
+ if(shDirty())return {k:'busy',s:'저장 대기',t:'곧 저장합니다'};
+ return {k:'ok',s:'저장됨',t:'공유 DB 와 맞습니다 · '+(SH.last||'')}}
+function shDot(){const el=$('#shdot');if(!el)return;const st=shState();el.className='shdot '+st.k;el.title=st.t;const b=el.querySelector('b');if(b)b.textContent=st.s;el.setAttribute('aria-label','저장 · 연결 상태: '+st.s)}
+function shBadNames(){const out=[];for(const p of (SH.bad||new Map()).keys()){const i=p.indexOf('/'),kind=p.slice(0,i),id=p.slice(i+1);let n='';
+ if(kind==='trainers'){const t=S.trainers.find(x=>x.id===id);n='트레이너 '+(t?t.name||'이름 없음':id)}else if(kind==='pokemon'){let f=null;for(const t of S.trainers){const q=t.pokemon.find(x=>x.id===id);if(q){f=`${t.name||'이름 없음'} › ${q.name||'이름 없음'}`;break}}n='포켓몬 '+(f||id)}
+ else if(kind==='dbedit'){const d=(SH.ed&&SH.ed.get(id))||{};n=`DB 행 ${d.kind?(DBS[d.kind]||{}).t||d.kind:''} ${d.key||id}`}else if(kind==='meta')n='설정 '+id.replace(/^set\./,'');else if(kind==='folders'){const f=fById(id);n='폴더 '+(f?f.name||'이름 없음':id)}else n=p;out.push(n)}return out}
+function openShInfo(){const st=shState();const bad=shBadNames();const cfg=window.MKM_STORE&&MKM_STORE.configured();
+ const l=openModal(`<div class="mhead"><h2>저장 · 연결 상태</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div><div class="mbody shinfo">
+ <dl><dt>지금</dt><dd><span class="shdot ${st.k}" style="pointer-events:none"><i></i><b>${esc(st.s)}</b></span> ${esc(st.t)}</dd>
+ <dt>마지막</dt><dd>${esc(SH.last||'—')}</dd>${SH.lastErr?`<dt>마지막 오류</dt><dd>${esc(SH_ERR_KO[SH.lastErr]||SH.lastErr)}${SH.netCode?` <span class="muted">(${esc(SH.netCode)})</span>`:''}</dd>`:''}
+ ${bad.length?`<dt>실패한 항목</dt><dd><ul>${bad.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></dd>`:''}</dl>
+ ${!SH.on&&!cfg?'<p class="small muted">js/config.js 에 공유 DB 설정이 없어 혼자 쓰기 모드입니다.</p>':''}</div>
+ <div class="mfoot"><span class="sp"></span>${SH.on&&SH.canWrite?'<button class="btn" data-retry>다시 시도</button>':''}${cfg?'<button class="btn pri" data-reconn>다시 연결</button>':''}</div>`);
+ l.addEventListener('click',async e=>{if(e.target.closest('[data-x]'))return closeModal();
+  if(e.target.closest('[data-retry]')){if(SH.bad)SH.bad.clear();SH.bigWarn=false;closeModal();toast('다시 저장합니다…');shFlush();return}
+  if(e.target.closest('[data-reconn]')){closeModal();shReconnect()}})}
+/* 「다시 연결」: 켜져 있으면 실시간 채널을 다시 붙이고 전부 맞춘다 · 처음 연결에 실패했거나 다 못 읽어 읽기 전용이면 새로고침 없이 처음부터 다시 */
+async function shReconnect(){if(SH.on&&SH.ready&&!SH.initFail){toast('다시 연결하는 중…');SH.net='ok';try{SH.db.reconnect?SH.db.reconnect():SH.db.resyncAll()}catch(e){}shDot();shFlush();return}
+ if(SH.reconnecting)return;SH.reconnecting=true;toast('공유 DB 에 다시 연결하는 중…');
+ try{for(const u of SH.unsubs||[])try{u()}catch(e){}SH.unsubs=[];
+  Object.assign(SH,{on:false,ready:false,starting:false,initFail:false,failed:false,canWrite:true,init:{},buf:{},synced:new Map(),net:'ok',db:null});SH.bad=new Map();shDot();await shInit()}
+ finally{SH.reconnecting=false;shDot()}}
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#shdot'))openShInfo()});
 const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(x=>[x,v[x]])):v);
 function fnv(s){let h=2166136261;for(const c of String(s)){h^=c.codePointAt(0);h=Math.imul(h,16777619)>>>0}return h.toString(16)}
 function keySeg(k){const h=[...new TextEncoder().encode(String(k))].map(b=>b.toString(16).padStart(2,'0')).join('');return h.length<=180?h:'h'+fnv(k)+h.slice(0,40)}
@@ -3405,6 +3479,7 @@ async function runPool(jobs,n){let i=0;const w=async()=>{while(i<jobs.length){co
 const SH_ERR_KO={invalid_argument:'저장이 거부됨(권한 없음 또는 항목이 너무 큼)',resource_exhausted:'저장 요청이 너무 잦음',quota_exceeded:'공유 저장소 용량 초과',unavailable:'일시적인 연결 문제',revoked:'접근 권한이 바뀜',not_granted:'공유 저장소 사용이 허용되지 않음',capability_disabled:'공유 저장소를 쓸 수 없는 화면'};
 function shErr(e){const c=(e&&e.code)||'unknown';const m=SH_ERR_KO[c]||('알 수 없는 오류: '+((e&&e.message)||c));SH.lastErr=c;
  if(c==='revoked'||c==='not_granted'||c==='capability_disabled'){SH.canWrite=false}
+ if(c==='unavailable'){SH.net='off';SH.netCode=e&&e.message||c}shDot();
  if(!SH.toasted)SH.toasted=new Set();if(!SH.toasted.has(c)&&c!=='unavailable'&&c!=='resource_exhausted'){SH.toasted.add(c);toast('공유 저장: '+m)}
  console.warn('[공유 저장소]',c,e&&e.message);return c}
 /* 11-03 버그: 올린 뒤 SH.synced 만 갱신하고 SH.ed · SH.metaG(받은 사본)는 그대로 둬서, 뒤에 남의 dbedit · meta 가 오면 shRebuildDB 가 옛 사본으로 S.db 를 다시 지어 화면이 되돌아가고
@@ -3413,7 +3488,7 @@ function shTrack(p,o){const i=p.indexOf('/'),kind=p.slice(0,i),id=p.slice(i+1);
  if(kind==='dbedit'){if(o)SH.ed.set(id,clone(o));else SH.ed.delete(id)}
  else if(kind==='meta'){if(id==='settings')SH.metaL=o?clone(o):null;else if(id.startsWith('set.')){SH.metaG=SH.metaG||{};if(o)SH.metaG[id.slice(4)]=clone(o);else delete SH.metaG[id.slice(4)]}else return;SH.meta=shMetaMerge()}}
 let shTimer=null,shBack=0,shLastFlush=0;
-function shSchedule(ms){clearTimeout(shTimer);shTimer=setTimeout(()=>shFlush(),ms)}
+function shSchedule(ms){clearTimeout(shTimer);shTimer=setTimeout(()=>shFlush(),ms);shDot()}
 async function shFlush(){if(!SH.on||!SH.ready)return;if(!SH.canWrite){shStatus('읽기 전용 · 고친 내용은 공유되지 않습니다');return}
  if(SH.flushing){SH.again=true;return}
  const wait=800-(Date.now()-shLastFlush);if(wait>0){shSchedule(wait);return}
@@ -3426,8 +3501,8 @@ async function shFlush(){if(!SH.on||!SH.ready)return;if(!SH.canWrite){shStatus('
    for(const p of [...SH.synced.keys()])if(!want.has(p))jobs.push(async()=>{try{await SH.db.doc(p).delete();SH.synced.delete(p);shTrack(p,null)}catch(e){const c=shErr(e);if(c==='unavailable'||c==='resource_exhausted')retry=true;else hard++}});
    if(jobs.length){shStatus(`저장 중… (${jobs.length})`);await runPool(jobs,2)}
   }while(SH.again&&!retry)}finally{SH.flushing=false}
- if(retry){shBack=Math.min(30000,(shBack||1500)*2);shStatus(`잠시 뒤 다시 저장합니다 (${SH_ERR_KO[SH.lastErr]||SH.lastErr})`);shSchedule(shBack);return}
- shBack=0;shStatus(hard?`저장 실패 ${hard}건 · ${SH_ERR_KO[SH.lastErr]||SH.lastErr}`:'저장됨 '+nowHM());if(SH.again)shSchedule(300)}
+ if(retry){shBack=Math.min(30000,(shBack||1500)*2);SH.retryAt=Date.now()+shBack;shStatus(`잠시 뒤 다시 저장합니다 (${SH_ERR_KO[SH.lastErr]||SH.lastErr})`);shSchedule(shBack);return}
+ SH.retryAt=0;if(SH.net==='off'&&!hard)SH.net='ok';shBack=0;shStatus(hard?`저장 실패 ${hard}건 · ${SH_ERR_KO[SH.lastErr]||SH.lastErr}`:'저장됨 '+nowHM());if(SH.again)shSchedule(300)}
 /* 1.5MB 를 넘는 문서: 안에 든 그림(data URL)을 공유 저장소로 옮기고 주소만 남긴 뒤 다시 저장한다 */
 function shHostBig(path){SH.hosting=SH.hosting||new Set();if(SH.hosting.has(path))return true;const [kind,id]=[path.slice(0,path.indexOf('/')),path.slice(path.indexOf('/')+1)];
  let o=null,tag='';if(kind==='trainers'){o=S.trainers.find(t=>t.id===id);tag='t'}else if(kind==='pokemon'){for(const t of S.trainers){o=t.pokemon.find(p=>p.id===id);if(o)break}tag='p'}
@@ -3505,11 +3580,11 @@ function shRender(what){shRW.t=shRW.t||what.t;shRW.d=shRW.d||what.d;clearTimeout
  else if(S.ui.tab==='type'){if((w.t||w.d)&&!layers.length)renderType()}
  else if(w.d&&!layers.length){if(S.ui.tab==='db'){const q=$('#dbq');const f=q&&document.activeElement===q;renderDB();if(f){const n=$('#dbq');n.focus();n.setSelectionRange(n.value.length,n.value.length)}}else if(!$('#v-tbl').contains(document.activeElement))renderTbl()}},120)}
 async function shInit(){let db=null;try{db=window.MKM_STORE?await MKM_STORE.connect():null}catch(e){console.warn('[공유 DB]',e);toast('공유 DB에 연결하지 못했습니다: '+(e&&e.message||e))}
- if(!db){if(window.MKM_RULEBOOK)try{MKM_RULEBOOK.attach(null)}catch(e){}if(window.MKM_STORE&&MKM_STORE.configured())SH.failed=true;const el=$('#saved');if(el)el.textContent=window.MKM_STORE&&MKM_STORE.configured()?'공유 DB 연결 실패 · 이 브라우저에만 저장':'이 브라우저에만 저장 (js/config.js에 공유 DB 설정 없음)';return}
- SH.db=db;SH.on=true;SH.orph=new Map();if(window.MKM_NOTES)try{MKM_NOTES.attach(db)}catch(e){}if(window.MKM_RULEBOOK)try{MKM_RULEBOOK.attach(db,()=>SH.canWrite!==false)}catch(e){}shStatus('공유 저장소 연결 중…');
+ if(!db){if(window.MKM_RULEBOOK)try{MKM_RULEBOOK.attach(null)}catch(e){}if(window.MKM_STORE&&MKM_STORE.configured())SH.failed=true;const el=$('#saved');if(el)el.textContent=window.MKM_STORE&&MKM_STORE.configured()?'공유 DB 연결 실패 · 이 브라우저에만 저장':'이 브라우저에만 저장 (js/config.js에 공유 DB 설정 없음)';shDot();return}
+ SH.db=db;SH.on=true;SH.orph=new Map();SH.unsubs=[];SH.net='ok';if(db.onState)try{db.onState((st,code)=>{SH.net=st==='off'?'off':'ok';if(st==='off')SH.netCode=code||'';shDot()})}catch(e){}if(window.MKM_NOTES)try{MKM_NOTES.attach(db)}catch(e){}if(window.MKM_RULEBOOK)try{MKM_RULEBOOK.attach(db,()=>SH.canWrite!==false)}catch(e){}shStatus('공유 저장소 연결 중…');
  SH.canWrite=db.canWrite!==false;
  for(const kind of SH_KINDS){SH.init[kind]=false;
-  db.collection(kind).onSnapshot(snap=>{
+  SH.unsubs.push(db.collection(kind).onSnapshot(snap=>{
    if(!SH.ready){SH.buf[kind]=snap.docs.map(d=>[d.id,d.data()]);SH.init[kind]=true;if(SH_KINDS.every(k=>SH.init[k]))shStart();return}
    const paths=[],what={};let W=null;for(const ch of snap.docChanges()){const id=ch.doc.id,p=kind+'/'+id;let d=ch.type==='removed'?null:ch.doc.data();
     if(d){const dj=canon(d);if(SH.synced.get(p)===dj)continue;W=W||shWant();const w=W.get(p);if(w&&canon(w)===dj){SH.synced.set(p,dj);shTrack(p,d);continue}}if(!d&&!SH.synced.has(p))continue;
@@ -3518,7 +3593,7 @@ async function shInit(){let db=null;try{db=window.MKM_STORE?await MKM_STORE.conn
      if(mine&&bj&&canon(mine)!==bj){const theirs=canon(d);const mg=shMerge(JSON.parse(bj),mine,d);if(mg){d=mg;(SH.mergeBase=SH.mergeBase||new Map()).set(p,theirs)}}}
     const w=shApplyDoc(kind,id,d?clone(d):null);if(w)what[w]=true;paths.push(p)}
    if(paths.length)shAfter(paths,what)},
-  e=>{shErr(e);if(!SH.ready&&!SH.init[kind]){SH.initFail=true;SH.buf[kind]=[];SH.init[kind]=true;if(SH_KINDS.every(k=>SH.init[k]))shStart()}})}}   /* 처음 읽기에 실패한 종류가 있으면 읽기 전용으로 시작한다 — 빈 목록으로 보고 기본값을 올려 모두의 설정을 덮지 않게. 이미 읽은 종류의 실시간 오류는 받은 내용을 지우지 않는다 */
+  e=>{shErr(e);if(!SH.ready&&!SH.init[kind]){SH.initFail=true;SH.buf[kind]=[];SH.init[kind]=true;if(SH_KINDS.every(k=>SH.init[k]))shStart()}}))}}   /* 처음 읽기에 실패한 종류가 있으면 읽기 전용으로 시작한다 — 빈 목록으로 보고 기본값을 올려 모두의 설정을 덮지 않게. 이미 읽은 종류의 실시간 오류는 받은 내용을 지우지 않는다 */
 async function shStart(){if(SH.ready||SH.starting)return;SH.starting=true;if(SH.initFail){SH.canWrite=false;toast('공유 DB를 다 읽지 못해 읽기 전용으로 열었습니다 · 새로고침해 주세요')}
  const B=SH.buf;const empty=SH_KINDS.every(k=>!(B[k]||[]).length);
  const ui=new Map();for(const t of S.trainers){ui.set(t.id,{open:t.open});for(const p of t.pokemon)ui.set(p.id,{open:p.open,tab:p.tab})}

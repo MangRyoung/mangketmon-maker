@@ -31,6 +31,9 @@ window.MKM_STORE=(()=>{
 
  function makeDB(client){
   const cols=new Map();
+  /* 11-03: 연결 상태 알림 — 제작기 상단 상태 점이 쓴다. 'ok' (읽기 · 구독 성공) / 'off' (실시간 채널 오류 · 네트워크 실패, code 와 함께) */
+  const stateCb=new Set();let state='ok';
+  function setState(s,code){state=s;for(const f of stateCb)try{f(s,code)}catch(e){}}
   /* since(ISO 시각)를 주면 그 뒤에 고쳐진 행만 (10-23 이그레스: 다시 맞출 때 그림 든 시트까지 전부 받지 않게) */
   async function fetchAll(kind,since){const out=[];let from=0;
    for(;;){let q=client.from(TABLE()).select('id,data,updated_at').eq('kind',kind);if(since)q=q.gt('updated_at',since);
@@ -58,8 +61,8 @@ window.MKM_STORE=(()=>{
       const rows=await fetchAll(kind,since);const ids=since?new Set(await fetchIds(kind)):null;const got=new Set(),ch=[];
       for(const r of rows){got.add(r.id);seen(r.updated_at);const c=apply(r.id,r.data||{});if(c)ch.push(c)}
       for(const id of [...st.cache.keys()])if(!(ids?ids.has(id):got.has(id))){const c=remove(id);if(c)ch.push(c)}
-      emit(ch);st.syncAt=Date.now()}while(st.again)}
-    catch(e){if(st.err)st.err(mapErr(e))}
+      emit(ch);st.syncAt=Date.now();setState('ok')}while(st.again)}
+    catch(e){const me=mapErr(e);if(me.code==='unavailable')setState('off',me.code);if(st.err)st.err(me)}
     finally{st.resyncing=false;done()}}
    async function onRow(payload){
     try{
@@ -74,7 +77,7 @@ window.MKM_STORE=(()=>{
      .on('postgres_changes',{event:'*',schema:'public',table:TABLE(),filter:'kind=eq.'+kind},onRow)
      .subscribe(status=>{
       if(status==='SUBSCRIBED'){st.subs++;resync()}   /* 처음 읽은 뒤 구독이 붙기까지 사이의 남의 변경도 잡는다 (점검 6-5) — 10-23 부터는 그 사이 바뀐 행만 */
-      else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){if(st.err)st.err(Object.assign(new Error('realtime '+status),{code:'unavailable'}))}})}
+      else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){setState('off','realtime_'+status.toLowerCase());if(st.err)st.err(Object.assign(new Error('realtime '+status),{code:'unavailable'}))}})}
    const col={onSnapshot(cb,err){st.cb=cb;st.err=err||null;
      (async()=>{try{let c=null;try{c=await cacheGet(kind)}catch(e){}
        if(c){try{const since=new Date(c.at-60000).toISOString();const [rows,ids]=await Promise.all([fetchAll(kind,since),fetchIds(kind)]);const have=new Set(ids);
@@ -85,7 +88,7 @@ window.MKM_STORE=(()=>{
        cb({docs:[...st.cache.entries()].map(([id,d])=>mkDoc(id,d)),docChanges:()=>[]});subscribe()}
       catch(e){if(err)err(mapErr(e))}})();
      return()=>{if(st.chan)client.removeChannel(st.chan)}},
-    resync,age:()=>st.ready?Date.now()-(st.syncAt||0):0};
+    resync,age:()=>st.ready?Date.now()-(st.syncAt||0):0,resub(){if(!st.ready)return;try{if(st.chan)client.removeChannel(st.chan)}catch(e){}st.chan=null;subscribe()}};
    cols.set(kind,col);return col}
   /* 11-02: 올리기 전에 — 마지막으로 공유 DB 와 맞춘 지 ms 넘은 종류는 먼저 맞춘다 (실시간이 조용히 끊긴 탭이 옛 값으로 덮지 않게) */
   async function fresh(ms,kinds){const L=[];for(const [k,c] of cols)if((!kinds||kinds.includes(k))&&c.age()>ms)L.push(c.resync());if(L.length)await Promise.all(L);return L.length}
@@ -97,7 +100,11 @@ window.MKM_STORE=(()=>{
   const resyncAll=()=>{for(const c of cols.values())c.resync()};
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')resyncAll()});
   window.addEventListener('online',resyncAll);
-  return{collection,doc,canWrite:true,resyncAll,fresh}}
+  /* 11-03: 실시간 채널을 다시 붙이고(끊긴 것은 떼고) 전부 다시 맞춘다 — 「다시 연결」 */
+  function reconnect(){for(const c of cols.values())c.resub();resyncAll()}
+  return{collection,doc,canWrite:true,resyncAll,fresh,reconnect,onState(f){stateCb.add(f);return()=>stateCb.delete(f)},state:()=>state,
+   /* 보안 정의자 RPC (이력 · 최근 지운 것, patch_2026-11-03). 함수가 없으면 code 'no_rpc' */
+   async rpc(name,args){const r=await client.rpc(name,args||{});if(r.error){const e=mapErr(r.error);if(/function|PGRST202|404|does not exist|not find/i.test(String(r.error.message||'')+(r.error.code||'')+(r.error.status||''))||r.error.code==='PGRST202'||r.error.code==='42883')e.code='no_rpc';throw e}return r.data}}}
 
  async function connect(){
   if(!configured())return null;

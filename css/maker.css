@@ -1282,3 +1282,22 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 #mk .fchkl{margin:4px 0 0;padding-left:18px}
 #mk .fchkl li{margin:2px 0}
 #mk .lnk{background:none;border:0;padding:0;color:var(--text-accent,inherit);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline dotted}
+/* 11-03 저장 · 연결 상태 점 (상단, 좁은 화면에서도 보인다) */
+#mk .shdot{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 9px 3px 7px;font-size:11.5px;color:var(--muted);cursor:pointer;white-space:nowrap;flex:none;line-height:1}
+#mk .shdot i{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
+#mk .shdot b{font-weight:600}
+#mk .shdot.ok i{background:var(--ok)}
+#mk .shdot.busy i{background:#e0a800;animation:shdot-pulse 1s ease-in-out infinite}
+#mk .shdot.warn i,#mk .shdot.off i{background:var(--warn)}
+#mk .shdot.warn,#mk .shdot.off{border-color:var(--warn);color:var(--warn)}
+#mk .shdot.ro i{background:var(--muted)}
+#mk .shdot.local i{background:var(--faint)}
+@keyframes shdot-pulse{50%{opacity:.35}}
+@media (max-width:700px){#mk .shdot{padding:3px 7px}#mk .shdot b{display:none}#mk .shdot.warn b,#mk .shdot.off b{display:inline}}
+#mk .shinfo dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:13px}#mk .shinfo dt{color:var(--muted)}#mk .shinfo dd{margin:0}
+#mk .shinfo ul{margin:4px 0 0;padding-left:18px;font-size:13px}
+/* 11-03 이력 · 최근 지운 것 */
+#mk .hrow{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
+#mk .hrow.now{background:var(--sunk);padding:6px 8px;border-radius:6px;border:0;margin-bottom:4px}
+#mk .hrow .btn{flex:none}
+@media (max-width:600px){#mk .hrow{flex-wrap:wrap}#mk .hrow .btn{margin-left:auto}}
