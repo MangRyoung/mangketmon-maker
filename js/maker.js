@@ -360,7 +360,7 @@ const isOld=p=>OLDK.includes(classOf(p));
 const DOWN_LEAD='D',DOWN_CLASS='현대종';
 const lowStep=()=>{const L=PR().oldLow||PRIDE_DEF.oldLow;return {lab:String(L.lab||'D'),pt:pnum(L.pt,0.5),v:pnum(L.v,455),floor:0,to:1,note:''}};
 const trOfPoke=p=>(S.trainers||[]).find(t=>(t.pokemon||[]).some(x=>x===p||(p&&p.id&&x&&x.id===p.id)))||null;
-const leadDown=(p,t)=>{if(!p||classOf(p)!==DOWN_CLASS)return false;const tr=t||trOfPoke(p);if(tr&&typeof isMisag==='function'&&isMisag(tr))return false;/* 11-03 22:58 망령: 미사그 대학에서는 이 보정을 쓰지 않는다 (대신 통솔 D 의 각성 (보조) = D) */return !!tr&&strip(((tr.ranks||{})['통솔'])||'')===DOWN_LEAD};
+const leadDown=(p,t)=>{if(!p)return false;const tr=t||trOfPoke(p);if(!tr||strip(((tr.ranks||{})['통솔'])||'')!==DOWN_LEAD)return false;if(typeof isMisag==='function'&&isMisag(tr))return p.awaken==='free';/* 11-03 22:58 · 11-04 01:52 망령: 미사그 대학에서는 『현대종』 대신 「각성 (대가)」에 한 단계 아래 종족치 (보조는 D) */return classOf(p)===DOWN_CLASS};
 function stepCap(st,down){if(!st)return 0;if(!down)return st.v;const L=[lowStep(),...prSteps()];const i=L.findIndex(x=>x.lab===st.lab);return i>0?L[i-1].v:st.v}
 /* 10-27 망령: 「올드 타입 전용」 기술 — 기술 DB 줄의 21번째 칸(r[20]) 'O'. 칸이 없는 줄(원본 · 예전에 고친 줄 · 엑셀/토큰 가져오기)은
    원본 시트 「기술 목록(더블)」에서 이름이 붉은 글씨인 기술(아래 목록)을 따른다. 올드 타입 계열(isOld)이 아닌 포켓몬의 기술 목록에는 안 뜬다 */
@@ -440,7 +440,7 @@ function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);
   return out}
  const c=customCalc(p,t);const parts=[`실제 합 ${c.real}`];if(c.off)parts.push(`하한 +${fmtN(c.off)}`);if(c.bulk)parts.push(`내구 +${fmtN(c.bulk)}`);if(c.hp)parts.push(`HP +${fmtN(c.hp)}`);if(c.fs)parts.push(`화력·스피드 +${fmtN(c.fs)}`);if(c.dual)parts.push(`쌍두 −${fmtN(c.dual)}`);if(c.toAdj)parts.push(`특성 TO ${c.to} ${c.toAdj>0?'+':'−'}${fmtN(Math.abs(c.toAdj))}`);
  i(`계산 종족치 ${fmtN(c.ct)} (${parts.join(' · ')}) → 프라이드 ${c.step?c.step.lab:'-'}${c.ok?` (남는 점수 ${fmtN(c.cap-c.ct)})`:''}${prideIsAuto(p)?'':` · 직접 지정 ${pk}`} · 통솔점 ${prideCost(t,p)}`,'calc');
- if(c.down&&c.step)i(`통솔 D · 『${DOWN_CLASS}』: 프라이드 ${c.step.lab}의 통솔점을 내고 종족치는 한 단계 아래 ${c.cap}까지`,'calc');
+ if(c.down&&c.step)i(p.awaken==='free'?`통솔 D · 각성 (대가): 프라이드 ${c.step.lab}(대가 등급 그대로) · 종족치는 한 단계 아래 ${c.cap}까지`:`통솔 D · 『${DOWN_CLASS}』: 프라이드 ${c.step.lab}의 통솔점을 내고 종족치는 한 단계 아래 ${c.cap}까지`,'calc');
  if(!c.ok&&c.step)w(`계산 종족치 ${fmtN(c.ct)}가 커스텀 상한 ${c.step.lab}(${c.cap}${c.down?' · 통솔 D 한 단계 아래':''})를 ${fmtN(c.ct-c.cap)} 넘습니다 · 능력치를 덜거나 특성 소켓을 낮춰 주세요`);
  if(!prideIsAuto(p)){const m=prStep(pk);if(m&&!isEX(m)&&stepCap(m,c.down)<c.ct-1e-9)w(`직접 지정한 프라이드 ${pk}(${stepCap(m,c.down)})는 계산 종족치 ${fmtN(c.ct)}를 담지 못합니다`)}
  if(c.real<pnum(R.realMin,400))w(`실제 종족치 합 ${c.real} · ${pnum(R.realMin,400)} 이상이어야 합니다`);
