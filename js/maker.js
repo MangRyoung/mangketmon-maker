@@ -2460,7 +2460,8 @@ function mvExtHtml(t,ti,p,pi){const L=(t.ext||[]).map((e,k)=>[e,k]).filter(([e])
    오레마스 import.js 가 st → 자동화 「상세 조정」의 「상태수정」 줄로, item → itemTune 으로 가져간다. 효과 글 · 「구문」 버튼으로 걸어 둔 것도 같이 보여 준다 */
 const TUNE_ST=[['아쿠아링','AquaRing',1,8,'회복'],['뿌리박기','Ingrain',1,16,'회복'],['환희의노래','Chant',1,16,'회복'],['희망사항','Wish',1,2,'회복'],['씨뿌리기','LeechSeed',1,8,'흡수'],['독','Poison',1,8,'대미지'],['화상','Burn',1,16,'대미지'],['악몽','Nightmare',1,4,'대미지'],['저주','Curse',1,4,'대미지'],['조이기','Bind',1,8,'대미지']];
 const FRAC_RE=/^\s*(\d+)\s*\/\s*(\d+)\s*$/;
-function tuneOf(p){let t=p.tune;if(!t||typeof t!=='object')t=p.tune={};if(!Array.isArray(t.st))t.st=[];t.st=t.st.filter(x=>x&&TUNE_ST.some(r=>r[0]===x.st));t.item=String(t.item||'');t.itemName=String(t.itemName||'');if(!t.crit||typeof t.crit!=='object'||Array.isArray(t.crit))t.crit={};return t}
+/* 11-03 저녁: 읽기만 할 때는 p.tune 을 만들지 않는다 (펼친 시트마다 문서가 바뀐 것으로 잡혀 열 때마다 다시 올라갔다). 고칠 곳은 tuneOf(p,true) */
+function tuneOf(p,w){let t=p.tune;if(!t||typeof t!=='object'){if(!w)return {st:[],item:'',itemName:'',crit:{}};t=p.tune={}}if(!Array.isArray(t.st))t.st=[];t.st=t.st.filter(x=>x&&TUNE_ST.some(r=>r[0]===x.st));t.item=String(t.item||'');t.itemName=String(t.itemName||'');if(!t.crit||typeof t.crit!=='object'||Array.isArray(t.crit))t.crit={};return t}
 function tuneDsl(p){return tuneOf(p).st.filter(x=>FRAC_RE.test(x.v||'')&&+String(x.v).split('/')[1]>0).map(x=>`상태수정 ${x.st} ${String(x.v).replace(/\s+/g,'')}`).join('\n')}
 function tuneCount(p){const t=tuneOf(p);return t.st.length+(t.item.trim()?1:0)+(Object.keys(t.crit).length?1:0)+(p.dexFw!=null&&p.dexFw!==''?1:0)}
 /* 10-23 망령: 포켓몬마다 급소 규칙 — 오레마스가 불러오면 공격 창이 자동으로 쓴다 (critRule) */
@@ -2551,7 +2552,7 @@ let rT=null;
 let composing=false;
 $('#v-char').addEventListener('compositionstart',()=>{composing=true;clearTimeout(rT)});
 $('#v-char').addEventListener('compositionend',e=>{composing=false;const t=trOf(e.target);if(t&&e.target.tagName!=='TEXTAREA'){clearTimeout(rT);rT=setTimeout(()=>refreshTrainer(t),550)}});
-$('#v-char').addEventListener('input',e=>{if(e.target.dataset.tuneitem){const t=S.trainers[+e.target.dataset.i];const P=t&&t.pokemon[+e.target.dataset.j];if(!P)return;const T0=tuneOf(P);T0.item=e.target.value;T0.itemName=T0.item.trim()?P.item:'';save();const pv=$('#tunePrev-'+P.id);if(pv&&fxReady())pv.innerHTML=tuneItemPrev(T0.item);return}
+$('#v-char').addEventListener('input',e=>{if(e.target.dataset.tuneitem){const t=S.trainers[+e.target.dataset.i];const P=t&&t.pokemon[+e.target.dataset.j];if(!P)return;const T0=tuneOf(P,true);T0.item=e.target.value;T0.itemName=T0.item.trim()?P.item:'';save();const pv=$('#tunePrev-'+P.id);if(pv&&fxReady())pv.innerHTML=tuneItemPrev(T0.item);return}
  const p=e.target.dataset.p;if(!p)return;if(/^T\.\d+\.rp\./.test(p)){const tt=S.trainers[+p.split('.')[1]];if(tt&&(!tt.rp||typeof tt.rp!=='object'))tt.rp={}}const[o,k]=getRef(p);if(!o)return;o[k]=e.target.type==='checkbox'?e.target.checked:e.target.value;{const c=e.target.closest('article.pk,section.folder');SVF.id=c?c.id:null}save();
  const t=trOf(e.target);if(e.target.tagName==='TEXTAREA'||e.isComposing||composing)return;clearTimeout(rT);rT=setTimeout(()=>t&&refreshTrainer(t),550)});
 /* 10-25 망령: 능력치 막대를 좌우로 끌어 종족치 조절 (0~200 눈금 · 놓으면 저장하고 다시 그림) */
@@ -2567,8 +2568,8 @@ $('#v-char').addEventListener('change',e=>{const el=e.target;
  if(el.dataset.tdexfw!=null){const t=S.trainers[+el.dataset.i];if(!t)return;t.dexFw=el.value==='0'?'':el.value;save();refreshTrainer(t);return}
  if(el.dataset.tdexp!=null){const t=S.trainers[+el.dataset.i];if(!t)return;const o=Object.assign({},t.dexFwParts||{});if(el.checked)o[el.dataset.dexp]=1;else delete o[el.dataset.dexp];t.dexFwParts=o;save();return}
  if(el.dataset.dexfw){const t=S.trainers[+el.dataset.i];const P=t&&t.pokemon[+el.dataset.j];if(!P)return;if(el.dataset.dexfw==='lv'){if(el.value==='')delete P.dexFw;else P.dexFw=el.value;save();refreshTrainer(t);return}const o=Object.assign({},P.dexFwParts||{});if(el.checked)o[el.dataset.dexp]=1;else delete o[el.dataset.dexp];P.dexFwParts=o;save();return}
- if(el.dataset.tunecr){const t=S.trainers[+el.dataset.i];const P=t&&t.pokemon[+el.dataset.j];if(!P)return;const c=tuneOf(P).crit;const k=el.dataset.tunecr;const v=el.type==='checkbox'?el.checked:String(el.value).trim();if(v===''||v===false||(k!=='tbl'&&k!=='dmg'&&el.type==='number'&&!+v))delete c[k];else c[k]=el.type==='checkbox'?1:v;save();return}
- if(el.dataset.tunest){const t=S.trainers[+el.dataset.i];const P=t&&t.pokemon[+el.dataset.j];if(!P)return;const v=el.value.replace(/\s+/g,'');const x=tuneOf(P).st.find(q=>q.st===el.dataset.tunest);if(!x)return;if(!FRAC_RE.test(v)||!(+v.split('/')[1]>0)){toast('비율을 1/6 처럼 적어 주세요');el.value=x.v;return}x.v=v;save();refreshTrainer(t);return}
+ if(el.dataset.tunecr){const t=S.trainers[+el.dataset.i];const P=t&&t.pokemon[+el.dataset.j];if(!P)return;const c=tuneOf(P,true).crit;const k=el.dataset.tunecr;const v=el.type==='checkbox'?el.checked:String(el.value).trim();if(v===''||v===false||(k!=='tbl'&&k!=='dmg'&&el.type==='number'&&!+v))delete c[k];else c[k]=el.type==='checkbox'?1:v;save();return}
+ if(el.dataset.tunest){const t=S.trainers[+el.dataset.i];const P=t&&t.pokemon[+el.dataset.j];if(!P)return;const v=el.value.replace(/\s+/g,'');const x=tuneOf(P,true).st.find(q=>q.st===el.dataset.tunest);if(!x)return;if(!FRAC_RE.test(v)||!(+v.split('/')[1]>0)){toast('비율을 1/6 처럼 적어 주세요');el.value=x.v;return}x.v=v;save();refreshTrainer(t);return}
  if(el.dataset.sfiles){const fs=[...el.files];el.value='';stUpload(el.dataset.sfiles,fs);return}
  if(el.dataset.srep||el.dataset.sl!=null||el.dataset.spt!=null||el.dataset.skd!=null){const ref=el.dataset.srep||el.dataset.sl||el.dataset.spt||el.dataset.skd;const c=ref.lastIndexOf(':');const R=stRef(ref.slice(0,c));const s=R.o&&(R.o.stands||[])[+ref.slice(c+1)];if(!s)return;
   if(el.dataset.srep){const f=el.files[0];el.value='';if(!f)return;toast('올리는 중…');uploadStand(R.o,f).then(u=>{s.src=u;save();refreshTrainer(R.t);toast('그림을 바꿨습니다')}).catch(er=>toast('올리지 못했습니다: '+er.message));return}
@@ -2723,10 +2724,10 @@ $('#v-char').addEventListener('click',async e=>{
   case 'addU':T.unique.push({name:'',eff:''});rf();openPotEditor(T,null,{unique:T.unique.length-1});break;
   case 'editU':if(e.target.closest('[data-act="delU"],[data-act="decoU"]'))break;openPotEditor(T,null,{unique:j});break;
   case 'delU':e.stopPropagation();T.unique.splice(j,1);rf();break;
-  case 'tuneAdd':{const sel=$(`[data-tuneadd="${P.id}"]`),vi=$(`[data-tuneaddv="${P.id}"]`);const v=String((vi||{}).value||'').replace(/\s+/g,'');if(!sel||!FRAC_RE.test(v)||!(+v.split('/')[1]>0)){toast('비율을 1/6 처럼 적어 주세요');break}tuneOf(P).st.push({st:sel.value,v});rf();toast(`「${sel.value}」 ${v} — 이 포켓몬만`);break}
-  case 'tuneDel':{const T0=tuneOf(P);T0.st=T0.st.filter(x=>x.st!==b.dataset.k);rf();break}
-  case 'tuneItemCopy':{const T0=tuneOf(P);const bs=tuneItemBase(P);if(T0.item.trim()&&!await ask('지금 적어 둔 소지품 구문을 DB 구문으로 바꿀까요?','바꾸기'))break;T0.item=bs;T0.itemName=P.item;rf();break}
-  case 'tuneItemClr':{const T0=tuneOf(P);T0.item='';T0.itemName='';rf();break}
+  case 'tuneAdd':{const sel=$(`[data-tuneadd="${P.id}"]`),vi=$(`[data-tuneaddv="${P.id}"]`);const v=String((vi||{}).value||'').replace(/\s+/g,'');if(!sel||!FRAC_RE.test(v)||!(+v.split('/')[1]>0)){toast('비율을 1/6 처럼 적어 주세요');break}tuneOf(P,true).st.push({st:sel.value,v});rf();toast(`「${sel.value}」 ${v} — 이 포켓몬만`);break}
+  case 'tuneDel':{const T0=tuneOf(P,true);T0.st=T0.st.filter(x=>x.st!==b.dataset.k);rf();break}
+  case 'tuneItemCopy':{const T0=tuneOf(P,true);const bs=tuneItemBase(P);if(T0.item.trim()&&!await ask('지금 적어 둔 소지품 구문을 DB 구문으로 바꿀까요?','바꾸기'))break;T0.item=bs;T0.itemName=P.item;rf();break}
+  case 'tuneItemClr':{const T0=tuneOf(P,true);T0.item='';T0.itemName='';rf();break}
   case 'addP':{const p=newPoke();applySheetTpl(T,p);T.pokemon.push(p);rf();goNew('pk-'+p.id,'nm-'+p.id);break}
   /* 10-29 망령: 미사그 — 각성체를 바로 추가 (대가 쪽이 비었으면 대가, 아니면 보조) */
   case 'addAw':{const p=newPoke();applySheetTpl(T,p);p.awaken=T.pokemon.some(x=>awOf(T,x)==='free')?'c':'free';T.pokemon.push(p);awClassSync(T,p);rf();goNew('pk-'+p.id,'nm-'+p.id);break}
@@ -3497,7 +3498,7 @@ function openShInfo(){const st=shState();const bad=shBadNames();const cfg=window
 async function shReconnect(){if(SH.on&&SH.ready&&!SH.initFail){toast('다시 연결하는 중…');SH.net='ok';try{SH.db.reconnect?SH.db.reconnect():SH.db.resyncAll()}catch(e){}shDot();shFlush();return}
  if(SH.reconnecting)return;SH.reconnecting=true;toast('공유 DB 에 다시 연결하는 중…');
  try{for(const u of SH.unsubs||[])try{u()}catch(e){}SH.unsubs=[];
-  Object.assign(SH,{on:false,ready:false,starting:false,initFail:false,failed:false,canWrite:true,init:{},buf:{},synced:new Map(),net:'ok',db:null});SH.bad=new Map();shDot();await shInit()}
+  Object.assign(SH,{on:false,ready:false,live:false,starting:false,initFail:false,failed:false,canWrite:true,init:{},buf:{},synced:new Map(),net:'ok',db:null});SH.bad=new Map();shDot();await shInit()}
  finally{SH.reconnecting=false;shDot()}}
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#shdot'))openShInfo()});
 const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(x=>[x,v[x]])):v);
@@ -3589,10 +3590,12 @@ function shPutPoke(id,d){let p=null,owner=null;for(const t of S.trainers){const 
  else SH.orph.set(id,p)}
 function shDelTrainer(id){S.trainers=S.trainers.filter(t=>t.id!==id)}
 function shDelPoke(id){for(const t of S.trainers)t.pokemon=t.pokemon.filter(p=>p.id!==id);SH.orph.delete(id)}
-function shRebuildDB(){/* 아직 올리지 않은 내 설정 묶음은 받은 값으로 덮지 않는다 */const keepG={};SH.kept=new Set();if(SH.ready){const loc=shMetaGroups();for(const g in loc){const p='meta/set.'+g;if(SH.synced.has(p)&&SH.synced.get(p)!==canon(loc[g])){keepG[g]=clone(loc[g]);SH.kept.add(p)}}}
+/* 11-03 저녁 버그: 아래 「미전송 보존」은 공유 DB 를 다 읽은 뒤(SH.live)에만. 처음 읽을 때는 SH.synced 가 비어 있어 지난 세션 사본(localStorage)의 dbedit 행 전부가 「미전송」으로 잡혀
+   매번 열 때마다 수백 행을 다시 올리고(노트 「저장하고 닫기」가 변경 없이도 9초 대기), 남이 그사이 고친 행을 내 옛 사본으로 덮었다 */
+function shRebuildDB(){/* 아직 올리지 않은 내 설정 묶음은 받은 값으로 덮지 않는다 */const keepG={};SH.kept=new Set();if(SH.live){const loc=shMetaGroups();for(const g in loc){const p='meta/set.'+g;if(SH.synced.has(p)&&SH.synced.get(p)!==canon(loc[g])){keepG[g]=clone(loc[g]);SH.kept.add(p)}}}
  const keepNonDb={};for(const k in DEF)if(!(k in DBS))keepNonDb[k]=clone(DEF[k]);
  /* 11-03: 아직 못 올린 내 DB 수정 행(dbedit)도 받은 사본 위에 얹는다 — 올리기 전에 남의 dbedit 가 오면 내 수정이 화면에서 사라지고 다음 저장이 그 행을 지우던 버그 */
- const ED=new Map(SH.ed);if(SH.ready){try{const okK=k=>lazyOk(k)&&Array.isArray(S.db[k])&&S.db[k].length>0;/* 아직 한 번도 짓지 않은 표(레디메이드 · 상태 변화 기본 행이 방금 생긴 때)는 비교하지 않는다 */const loc=dbEditDocs();for(const [p,d] of loc){if(!okK(d.kind))continue;if(SH.synced.get(p)!==canon(d)){ED.set(p.slice(7),d);SH.kept.add(p)}}
+ const ED=new Map(SH.ed);if(SH.live){try{const okK=k=>lazyOk(k)&&Array.isArray(S.db[k])&&S.db[k].length>0;/* 아직 한 번도 짓지 않은 표(레디메이드 · 상태 변화 기본 행이 방금 생긴 때)는 비교하지 않는다 */const loc=dbEditDocs();for(const [p,d] of loc){if(!okK(d.kind))continue;if(SH.synced.get(p)!==canon(d)){ED.set(p.slice(7),d);SH.kept.add(p)}}
   for(const p of SH.synced.keys())if(p.startsWith('dbedit/')&&!loc.has(p)){const d=ED.get(p.slice(7));if(d&&okK(d.kind)){ED.delete(p.slice(7));SH.kept.add(p)}}}catch(e){console.warn('[공유 저장소] 미전송 수정 행 보존 실패',e)}}
  const byKind={};for(const [id,d] of ED){if(d&&d.kind)(byKind[d.kind]=byKind[d.kind]||[]).push([id,d])}
  /* 10-27 망령: DB 새 판이 올라와도 고친 것을 잃지 않게.
@@ -3660,7 +3663,7 @@ async function shStart(){if(SH.ready||SH.starting)return;SH.starting=true;if(SH.
   let up=false;
   if(!up&&has&&!SH.initFail){lsSet('mkm_local_before_share',JSON.stringify(backupObj()));saveFile('망켓몬_제작기_이_브라우저_백업.json',JSON.stringify(backupObj()))}
   if(!up&&!SH.initFail){S.trainers=SH.canWrite?[sampleTrainer()]:[];S.folders=[];SH.ed=new Map();SH.meta=null;SH.metaL=null;SH.metaG={};shRebuildDB()}
-  SH.synced=new Map();SH.ready=true;SH.dbDirty=true;renderAll();await shFlush();return}
+  SH.synced=new Map();SH.ready=true;SH.live=true;SH.dbDirty=true;renderAll();await shFlush();return}
  /* 지난번 공유 DB 에 못 붙어 이 브라우저에만 저장한 수정이 있으면, 공유 DB 내용으로 바꾸기 전에 백업 파일로 남긴다 (백업 불러오기 「지금 목록에 추가」로 되살린다) */
  if(lsGet('mkm_unsynced')&&S.trainers.length){const j=JSON.stringify(backupObj());lsSet('mkm_local_before_share',j);try{saveFile(`망켓몬_제작기_미전송_${impStamp()}.json`,j)}catch(e){}toast('지난번 공유 DB에 못 올린 수정을 백업 파일로 저장했습니다')}lsSet('mkm_unsynced','');
  S.trainers=[];S.folders=[];SH.orph=new Map();SH.ed=new Map();SH.meta=null;SH.metaL=null;SH.metaG={};
@@ -3669,7 +3672,7 @@ async function shStart(){if(SH.ready||SH.starting)return;SH.starting=true;if(SH.
  for(const [id,d] of B.trainers||[])shApplyDoc('trainers',id,clone(d));for(const [id,d] of B.pokemon||[])shApplyDoc('pokemon',id,clone(d));
  for(const t of S.trainers){const u=ui.get(t.id);if(u)t.open=u.open;for(const p of t.pokemon){const v=ui.get(p.id);if(v){p.open=v.open;p.tab=v.tab}}}
  const paths=[];for(const k of SH_KINDS)for(const [id] of B[k]||[])paths.push(k+'/'+id);
- SH.synced=new Map();SH.ready=true;shAfter(paths,{t:true,d:true});if(SH.purge){SH.purge=false;SH.synced.delete('meta/set.stpl');const n=stplPurge();if(n){SH.dbDirty=true;toast(`템플릿 『계제 포텐셜』 칸 ${n}개를 비웠습니다 (종족 포텐셜로 대체)`)}}renderAll();shStatus(SH.canWrite?'연결됨 · 함께 수정 중':'읽기 전용 · 보기만 가능합니다');
+ SH.synced=new Map();SH.ready=true;shAfter(paths,{t:true,d:true});SH.live=true;if(SH.purge){SH.purge=false;SH.synced.delete('meta/set.stpl');const n=stplPurge();if(n){SH.dbDirty=true;toast(`템플릿 『계제 포텐셜』 칸 ${n}개를 비웠습니다 (종족 포텐셜로 대체)`)}}renderAll();shStatus(SH.canWrite?'연결됨 · 함께 수정 중':'읽기 전용 · 보기만 가능합니다');
  shFlush();setTimeout(shMigrateImgs,4000)}
 function renderAll(){if(S.ui.tab==='char')renderChar();else refreshAll()}
 
@@ -3709,9 +3712,14 @@ function embOneHTML(t,ti){const pi=t.pokemon.findIndex(x=>x.id===EMB.p);const p=
  const use=pointUse(t);const n=(ptItems().find(r=>r[2]==='pride')||[])[0];const u=n?Math.round((use[n]||0)*100)/100:0,m=n?+t.base[n]||0:0;const pu=ptSockets(t),pm=ptMax(t);
  return `<section class="folder open embone" id="tr-${t.id}" data-ti="${ti}" data-si="${ti}"><div class="embhd"><b>${esc(t.name||'')}</b><span class="small muted">${n?`통솔점 <b class="${u>m?'warn':''} num">${u}/${m}</b> · `:''}PT 기술점 <b class="${pu>pm?'warn':''} num">${pu}/${pm}</b></span><span class="sp" style="flex:1"></span><button type="button" class="btn sm ghost" data-emball title="이 트레이너의 다른 포켓몬 · 자질 · 포인트까지 펼쳐 봐요">트레이너 전체 보기</button></div><div class="plist">${pokeHTML(t,ti,p,pi)}</div></section>`}
 document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-emball]')){e.preventDefault();EMB.one=false;renderChar();setTimeout(()=>{const el=document.getElementById('pk-'+EMB.p);if(el)window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-8)})},60)}});
-function shDirty(){if(!SH.on||!SH.ready||!SH.canWrite)return false;if(SH.flushing)return true;try{for(const [p,b] of shWant()){const j=canon(b);if(SH.synced.get(p)!==j&&!(SH.bad&&SH.bad.get(p)===j))return true}}catch(_){}return false}
+/* 아직 안 올라간 문서 경로 목록 (only 를 주면 그 경로만 본다) */
+function shDirtyPaths(only){const out=[];if(!SH.on||!SH.ready||!SH.canWrite)return out;try{const W=shWant();if(only){for(const p of only){const b=W.get(p);const j=b?canon(b):null;if(j==null?SH.synced.has(p):(SH.synced.get(p)!==j&&!(SH.bad&&SH.bad.get(p)===j)))out.push(p)}return out}
+ for(const [p,b] of W){const j=canon(b);if(SH.synced.get(p)!==j&&!(SH.bad&&SH.bad.get(p)===j))out.push(p)}for(const p of SH.synced.keys())if(!W.has(p))out.push(p)}catch(_){}return out}
+function shDirty(){if(!SH.on||!SH.ready||!SH.canWrite)return false;if(SH.flushing)return true;return shDirtyPaths().length>0}
+/* 11-03 저녁: 올릴 게 없으면 바로 답하고, 있으면 「지금 안 올라간 것」만 올라갈 때까지 기다린다 (다른 올리기 · fresh 재동기화가 돌고 있어도 응답을 막지 않게) */
 window.addEventListener('message',async e=>{const d=e.data;if(!d||d.mkm!=='flush'||e.source!==window.parent)return;const t0=Date.now();let ok=true;
- try{while(shDirty()){if(!SH.flushing){shLastFlush=0;await shFlush()}await new Promise(r=>setTimeout(r,250));if(Date.now()-t0>9000){ok=false;break}}}catch(x){ok=false}
+ try{const need=shDirtyPaths();if(need.length){clearTimeout(shTimer);SH.pendT=false;let kicked=false;
+  while(shDirtyPaths(need).length){if(!SH.flushing){shLastFlush=0;shFlush()}else if(!kicked){SH.again=true}kicked=true;await new Promise(r=>setTimeout(r,100));if(Date.now()-t0>9000){ok=false;break}}}}catch(x){ok=false}
  try{e.source.postMessage({mkm:'flushed',ok,ro:SH.on&&SH.ready&&!SH.canWrite},'*')}catch(_){}});
 /* ---------- 시작 ---------- */
 load();
