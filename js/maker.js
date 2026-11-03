@@ -179,7 +179,11 @@ function save(dbToo){if(dbToo){dbDirty=true;SH.dbDirty=true}clearTimeout(svT);sv
  mkmChanged();if(SH.failed)lsSet('mkm_unsynced','1');let ok=lsSet(K_T,JSON.stringify({trainers:S.trainers,folders:S.folders,ui:S.ui}));
  if(dbDirty){ok=lsSet(K_DB,JSON.stringify({db:S.db,custom:S.custom}))&&ok;dbDirty=false}
  if(SH.on){shFlush();return}
- $('#saved').textContent=ok?'자동 저장 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'브라우저 저장 실패 · 백업 저장을 눌러 파일로 보관하세요';shDot()},300)}
+ $('#saved').textContent=ok?'자동 저장 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'브라우저 저장 실패 · 백업 저장을 눌러 파일로 보관하세요';shDot();if(ok)savedFx()},300)}
+/* 11-03 감우 (20번 검토 연출 4): 저장 피드백 — 상태 점 한 번 깜빡 + 방금 고친 카드 테두리 0.6초 반짝 (입력한 칸이 든 포켓몬 · 트레이너 카드) */
+const SVF={id:null};
+function savedFx(){const d=$('#shdot');if(d){d.classList.remove('blink');void d.offsetWidth;d.classList.add('blink');setTimeout(()=>d.classList.remove('blink'),700)}
+ const id=SVF.id;SVF.id=null;if(!id)return;const el=document.getElementById(id);if(!el)return;el.classList.remove('savedflash');void el.offsetWidth;el.classList.add('savedflash');setTimeout(()=>el.classList.remove('savedflash'),700)}
 const idx={};
 function reindex(){for(const r of (S.db&&S.db.pots)||[])if(r&&r[0])r[0]=normKind(r[0]);for(const r of (S.db&&S.db.stpl)||[])if(r&&r[2])r[2]=normKind(r[2]);
  for(const k in DBS){const m=new Map();for(const r of S.db[k])if(r[DBS[k].key]!==''&&!m.has(r[DBS[k].key]))m.set(r[DBS[k].key],r);idx[k]=m}}
@@ -2043,7 +2047,7 @@ function openUqDeco(T,j,done){const u=T.unique[j];if(!u)return;const st={color:s
  $('[data-x="ok"]',l).onclick=()=>{if(st.color&&st.color!==UQ_COL[0])u.color=st.color;else delete u.color;if(st.icon)u.icon=st.icon;else delete u.icon;if(st.sub)u.sub=st.sub;else delete u.sub;closeModal();done()}}
 /* 10-22 망령: 트레이너 카드 — 꾸미기(색 · 칭호 · 배경 그림 · 무늬) · 소지 포켓몬 초상 6칸 · 고유 포텐셜 */
 const cssu=s=>String(s??'').replace(/[\s"'()\\<>]/g,c=>'%'+c.charCodeAt(0).toString(16).padStart(2,'0').toUpperCase());
-const TD_PAT=[['','없음'],['stripe','줄무늬'],['dot','점'],['grid','격자'],['wave','물결']];
+const TD_PAT=[['','기본 (옅은 볼 마크)'],['none','무늬 없음'],['stripe','줄무늬'],['dot','점'],['grid','격자'],['wave','물결']];   /* 11-03 (20번 검토 연출 3): 꾸미기 없는 카드도 옅은 볼 마크 — 끄려면 「무늬 없음」 */
 function tDecoVars(t){const d=t.deco||{};const c=safeCss(d.color);const bg=safeImg(d.bg);return [c?`--tc:${c}`:'',bg?`--tbg:url('${cssu(bg)}')`:''].filter(Boolean).join(';')}
 function tDecoCls(t){const d=t.deco||{};return [safeCss(d.color)?'tdc':'',safeImg(d.bg)?'tdb':'',TD_PAT.some(x=>x[0]&&x[0]===d.pat)?'tdp-'+d.pat:''].filter(Boolean).join(' ')}
 function tPartyHTML(t,ti){const ms=t.pokemon.slice(0,6);if(!ms.length&&!isMisag(t))return '';const ring=p=>{const a=tyCol(p.t1)||'var(--sunk2)',b=tyCol(p.t2)||a;return `background:conic-gradient(${a} 0 50%,${b} 50% 100%)`};
@@ -2121,6 +2125,14 @@ const PNG_PROPS=['color','background-color','background-image','border-top-color
 const PNG_BAD=/color\(|oklch\(|oklab\(|\blab\(|\blch\(/;
 function pngRgb(v){v=String(v).replace(/color\(srgb\s+([\d.e-]+)\s+([\d.e-]+)\s+([\d.e-]+)(?:\s*\/\s*([\d.e-]+%?))?\)/g,(_,r,g,b,a)=>`rgba(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)},${a==null?1:/%$/.test(a)?parseFloat(a)/100:+a})`);
  if(PNG_BAD.test(v)){let cx=null;try{cx=document.createElement('canvas').getContext('2d')}catch(e){}v=v.replace(/(color|oklch|oklab|lab|lch)\([^()]*\)/g,m=>{if(!cx)return 'rgba(0,0,0,0)';cx.fillStyle='rgba(0,0,0,0)';cx.fillStyle=m;const f=String(cx.fillStyle);return /^(#|rgb)/.test(f)?f:'rgba(0,0,0,0)'})}return v}
+/* 11-03 감우 (20번 검토 연출 2): 한 장 요약 그림 — 테마 배경색 · 바깥 24px 여백 · 아래 각주(트레이너 이름 · 날짜) */
+function pngBg(){const r=getComputedStyle(MKROOT());const v=(r.getPropertyValue('--bg')||'').trim()||(r.getPropertyValue('--surface')||'').trim()||'#fff';return PNG_BAD.test(v)?pngRgb(v):v}
+function pngFrame(cdoc,cw,t,p,bg){const W=cdoc.defaultView;const ink=W?W.getComputedStyle(cw).color:'';cw.style.padding='24px';cw.style.boxSizing='border-box';cw.style.background=bg;cw.style.overflow='visible';cw.style.maxHeight='none';cw.style.height='auto';cw.style.flex='none';
+ const f=cdoc.createElement('div');f.setAttribute('style',`margin-top:14px;padding-top:8px;border-top:1px solid rgba(127,127,127,.35);display:flex;justify-content:space-between;gap:12px;font-size:12px;opacity:.75;color:${ink||'inherit'}`);
+ const d=new Date();const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+ f.innerHTML=`<span>${esc(t.name||'트레이너')} · ${esc(p.nick||p.name||'포켓몬')}${p.nick&&p.name?` (${esc(p.name)})`:''}</span><span>망켓몬 제작기 · ${ds}</span>`;cw.appendChild(f)}
+/* 한 장 요약을 감싼 .pcd-wrap 을 찍는다 (카드 바깥 24px 여백 + 각주). 높이는 카드 + 여백 48 + 각주 자리 */
+function pngOpts(el,bg,t,p){const wrap=el.parentNode;return {backgroundColor:bg,scale:2,useCORS:true,width:wrap.clientWidth,height:el.offsetHeight+48+42,scrollX:0,scrollY:0,onclone:(cd,cw)=>{try{pngFrame(cd,cw,t,p,bg);pngFix(cd,cw)}catch(e){}}}}
 function pngFix(cdoc,root){const W=cdoc.defaultView;if(!W)return;const css=[];let n=0;const els=[root,...root.querySelectorAll('*')];
  for(const el of els){const cs=W.getComputedStyle(el);for(const p of PNG_PROPS){const v=cs.getPropertyValue(p);if(v&&PNG_BAD.test(v))el.style.setProperty(p,pngRgb(v),'important')}
   for(const ps of ['::before','::after']){const c2=W.getComputedStyle(el,ps);if(!c2||c2.content==='none'||c2.content==='normal')continue;const fx=[];for(const p of PNG_PROPS){const v=c2.getPropertyValue(p);if(v&&PNG_BAD.test(v))fx.push(`${p}:${pngRgb(v)} !important`)}
@@ -3267,13 +3279,14 @@ function renderType(){const root=$('#v-type');if(!root)return;const o=tyOpt();
   ${many.length?`<div class="tynote"><b>평균의 2배 이상</b>${many.map(x=>tchip(x)+`<span class="small muted">${tyFmt(tot[x])}</span>`).join('')}</div>`:''}
   ${few.length?`<div class="tynote"><b>평균의 절반 이하</b>${few.map(x=>tchip(x)+`<span class="small muted">${tyFmt(tot[x])}</span>`).join('')}</div>`:''}
  </div>
- <div class="tygrid"><div class="panel"><h3>전체 타입 분포</h3><div class="tybars">${order.map(bar).join('')}</div></div>
+ <div class="tygrid"><div class="panel"><h3>전체 타입 분포${(()=>{const z=order.filter(x=>!(tot[x]>0)).length;return z?`<span class="sp"></span><button type="button" class="btn sm ghost" data-yact="zero" data-v="${o.zero?'':'1'}" aria-pressed="${!!o.zero}" title="0 인 타입 막대 보이기 · 숨기기">${o.zero?'0 인 타입 숨기기':`0 인 타입 ${z}개 보기`}</button>`:''})()}</h3><div class="tybars">${order.filter(x=>o.zero||tot[x]>0).map(bar).join('')||'<div class="small faint">아직 타입이 없습니다</div>'}</div>${!o.zero&&order.some(x=>!(tot[x]>0))?`<p class="small faint" style="margin:6px 0 0">0 인 타입 ${order.filter(x=>!(tot[x]>0)).length}개는 숨겼습니다 — 위 「아직 없는 타입」 칩에 있어요</p>`:''}</div>
   <div class="panel"><h3>타입 조합 <span class="small muted">(타입1/타입2)</span></h3><p class="small faint" style="margin:2px 0 0">같은 조합이 2체 이상이면 붉게 표시합니다.</p><div class="tycombo">${cl.map(e=>`<span class="cb ${e.n>1?'dup':''}" title="${e.who.map(esc).join('\n')}">${e.k.map(tchip).join('')}<b>${e.n}</b></span>`).join('')||'<span class="small faint">없음</span>'}</div></div></div>
  <div class="panel"><h3>트레이너별 현황</h3><div class="tw"><table class="tymx"><thead>${head}</thead><tbody>${body}</tbody>${foot}</table></div></div>`}`}
 $('#v-type').addEventListener('click',e=>{const b=e.target.closest('[data-yact]');if(!b||b.tagName==='INPUT')return;const o=tyOpt(),a=b.dataset.yact,v=b.dataset.v;
  if(a==='open'){const t=S.trainers.find(x=>x.id===v);if(!t)return;t.open=true;showTab('char');setTimeout(()=>{const el=document.getElementById('tr-'+t.id);if(el)el.scrollIntoView({block:'start'})},30);return}
  if(a==='pick'){const i=o.pick.indexOf(v);if(i<0)o.pick.push(v);else o.pick.splice(i,1);save();renderType();return}
  if(a==='pickAll'){o.pick=S.trainers.map(t=>t.id);save();renderType();return}if(a==='pickNone'){o.pick=[];save();renderType();return}
+ if(a==='zero'){o.zero=v?1:0;save();renderType();return}   /* 11-03 (20번 검토 연출 5): 0 인 타입 막대는 숨기고 「전부 보기」 */
  if(a==='scope'||a==='mode'||a==='sort'){o[a]=v;save();renderType()}});
 $('#v-type').addEventListener('change',e=>{const a=e.target.dataset.yact;if(a==='t3'||a==='tera'){tyOpt()[a]=e.target.checked?1:0;save();renderType()}
  if(e.target.dataset.ysel==='trainer'){tyOpt().scope=e.target.value||'';save();renderType()}});
