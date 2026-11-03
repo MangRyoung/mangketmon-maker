@@ -55,7 +55,7 @@ window.OM_FX=(()=>{
  function rmAll(){const base=DB().readymade||{};const ov=(((window.OM_APP||{}).ST||{}).state||{}).dbx;const o=(ov&&ov.rm)||{};const ed=typeof window.MKM_RM==='function'?window.MKM_RM():null;/* 제작기 DB 관리의 레디메이드 행이 기본을 덮고, 방의 dbx.rm 이 그 위를 덮는다 */const all=Object.assign({},base,ed||{},o);for(const k in all)if(all[k]&&all[k].deleted)delete all[k];return all}
  function rm(name){if(!name)return null;const all=rmAll();name=String(name).replace(/『|』/g,'').trim();return all[name]||null}
  /* 포켓몬의 포텐셜/특성/소지품에 붙은 자동화: 개별 구문(m.auto[name]) → 레디메이드 */
- function autoOf(m,kind,name){name=String(name||'').replace(/『|』/g,'').trim();const own=(m&&m.auto||{})[name];if(own&&own.ops)return Object.assign({name,src:'own'},own);
+ function autoOf(m,kind,name){name=String(name||'').replace(/『|』/g,'').trim();const own=(m&&m.auto||{})[name];if(own&&own.ops&&own.ops.length)return Object.assign({name,src:'own'},own);   /* 11-03 21:58 망령 「어태커 · 에이스 자동화가 안 들어가 있다」: 시트 구문 칸이 비었거나 못 읽는 글(ops 0개)이면 레디메이드로 넘어간다 — 예전엔 빈 시트 구문이 레디메이드를 가렸다 */
   if(kind==='pot'&&m&&m.tid){const bt=(((window.OM_APP||{}).ST||{}).state||{}).battle;const tr=bt&&bt.trainers&&bt.trainers[m.tid];const u=tr&&(tr.unique||[]).find(x=>x&&String(x.name||'').replace(/『|』/g,'').trim()===name);if(u&&u.auto&&u.auto.ops&&u.auto.ops.length)return Object.assign({name,src:'unique'},u.auto)}
   const key=kind==='trait'?'특성 : '+name:kind==='item'?'소지품 : '+name:name;const r=rm(key)||(kind!=='pot'?rm(name):null);if(!r)return null;
   /* 10-24 망령: 레디메이드 특성 · 소지품은 글(text)이 빈 것이 많아 확률(N할로) · 【등장】 표식을 못 읽었다 — 비었으면 DB 효과 글을 채워 준다 */
