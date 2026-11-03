@@ -1358,3 +1358,4 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 #mk .ph>.pact{display:grid;grid-template-columns:repeat(3,auto);gap:3px;justify-content:end;align-content:start}
 #mk .ph>.pact .btn{justify-content:center}
 @media (max-width:600px){#mk .ph>.pact{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px}}
+#mk .mhead .pcdelb{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}   /* 11-03 한 장 요약 삭제 단추 (⋯ 대신) */
