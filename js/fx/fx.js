@@ -48,7 +48,8 @@ window.OM_FX=(()=>{
    case 'scrappy':return `${e.types&&e.types.length?tyK(e.types):'모든'} 기술이 ${[...(e.vs||[]).map(t=>'타입 : '+(TYPE_KO[t]||t)),...(e.float?['하늘 위']:[])].join(' · ')}에게도 명중`;case 'evade':return `${f||'공격'}을 ${e.pct}% 로 회피`;
    case 'secx':return `${f||'기술'}의 추가 효과 발생률 ×${e.v}`;case 'redirect':return `${f||'단일 대상 기술'}의 대상을 자신으로`;case 'bounce':return `${e.cat||'변화기'}를 되받아친다`;default:return e.sp}}
  const WEATHERS=['맑음','비','모래바람','눈','싸라기눈','짙은안개','밤','별하늘','설경'];
- function spExt(self,what){let n=0;const by=[];for(const e of spOf(self,'ext')){const W=e.what||[];if(!W.length||W.some(x=>x===what||(x==='날씨'&&WEATHERS.includes(what))||(x==='필드'&&/필드$/.test(what))||(x==='벽'&&['리플렉터','빛의장막','오로라베일'].includes(what)))){n+=+e.n||0;by.push(e.name)}}return {n,by}}
+ /* 11-04 감우 (망령 「높음 두 개 개선」): 빛의점토 · 바위 · 그라운드코트 같은 연장 소지품은 itemExt 가 +3 을 이미 준다 — 같은 소지품이 【소지품】 구문(지속연장)으로 또 건 ext 는 세지 않는다 (리플렉터 5+3+3=11 이던 것) */
+ function spExt(self,what){let n=0;const by=[];const it0=itemExt(self,what);const nm=x=>String(x||'').replace(/[『』「」]/g,'').trim();for(const e of spOf(self,'ext')){if(it0&&nm(e.name)===nm(it0))continue;const W=e.what||[];if(!W.length||W.some(x=>x===what||(x==='날씨'&&WEATHERS.includes(what))||(x==='필드'&&/필드$/.test(what))||(x==='벽'&&['리플렉터','빛의장막','오로라베일'].includes(what)))){n+=+e.n||0;by.push(e.name)}}return {n,by}}
  const alive=m=>m&&m.hp&&m.hp.cur>0;
 
  /* ===== 레디메이드 찾기: 방 덮어쓰기(dbx.rm) → 기본 ===== */
@@ -123,6 +124,7 @@ window.OM_FX=(()=>{
      case 'confirm':{const ok=ctx.confirm?await ctx.confirm(op.q):true;if(!ok){L.push(`「${name}」 조건을 만족하지 않아 발동하지 않았다 (${op.q})`);stop=true}break}
      case 'cond':{let ok=true;if(op.c==='ally_fainted')ok=Object.values(b.mons||{}).some(m=>teamOf(b,m)===teamOf(b,self)&&m.id!==self.id&&m.hp.cur<=0);
        else if(op.c==='self_state'){ok=!!((self.states||{})[op.st]);if(!ok){L.push(`「${name}」 ${self.name}이(가) 「${stKo(op.st)}」 상태가 아니라 발동하지 않았다`);stop=true;break}}
+       else if(op.c==='foe_type'){/* 11-04 감우 (망령 「높음 두 개 개선」 — 에리식톤 『폭식죄의 요살』 「적진에 「타입 : 풀, 페어리」가 있을 때」): 필드에 나와 있는 상대 중 그 타입이 하나라도 */const want=(op.types||[]).map(String);ok=Object.values(b.mons||{}).some(m=>m&&m.entry&&m.hp&&m.hp.cur>0&&teamOf(b,m)!==teamOf(b,self)&&(m.types||[]).some(t=>want.includes(t)));if(!ok){L.push(`「${name}」 적진에 「${want.map(t=>TYPE_KO[t]||t).join(' · ')}」 타입이 없어 발동하지 않았다`);stop=true}break}
        else if(op.c==='hp_le')ok=self.hp.cur<=frac(self.hp.max,op.frac);if(!ok){L.push(`「${name}」 조건(${op.c==='ally_fainted'?'빈사 상태인 아군':'HP '+op.frac+' 이하'})을 만족하지 않아 발동하지 않았다`);stop=true}break}
      case 'choice':{let idx=[0];if(ctx.choose)idx=await ctx.choose(op.opts.map(o=>o.label),!!(op.multi||op.opts.some(o=>o.multi)));if(!idx||!idx.length){stop=true;break}
        for(const i of idx){const o=op.opts[i];if(!o)continue;const pl=timing(o.label).percent;const ch=ctx.noRoll||lineChance(o.ops)?0:(chanceOf(o.label)||(pl?percentOf(pl):0));if(ch&&(ch<100||(self&&self.fx&&(self.fx.chance||[]).length))){const rr=rollP(self,ch,ctx);if(!rr.ok){L.push(`▶ ${o.label} — ${rr.p}% 판정 실패 (${rr.r}/${rr.p})${rr.adj}`);continue}L.push(`▶ ${o.label} — ${rr.p}% 판정 성공 (${rr.r}/${rr.p})${rr.adj}`)}else L.push(`▶ ${o.label}`);const r=await run(o.ops,ctx);L.push(...r.lines)}break}
@@ -422,7 +424,7 @@ window.OM_FX=(()=>{
    case '없음':return {k:'none'};   /* 11-03 22:40 망령 「공용 포텐셜 다 자동화」: 배틀 효과가 없는 포텐셜(바닐라 · 베테랑 · 풍작술 …) — 「자동화 확인」에 「배틀 효과 없음」으로 */
    case '확인':return {k:'confirm',q:words.join(' ').replace(/^["“]|["”]$/g,'')};
    case '상태턴':{const tgt=tgtOf(words)||'self';const vi=words.findIndex(w=>/^[+\-=]\d+$/.test(w));let v=0,mode='add';if(vi>=0){const w=words.splice(vi,1)[0];if(w[0]==='=')mode='set';v=n(w)}const rest=words.join('');const st=rest==='전부'||rest==='모두'?'all':rest==='부정'||rest==='이상'?'neg':stEn(rest)||rest;return {k:'stcount',tgt,st,v,mode}}
-   case '조건':{const w=words.join('');if(/아군빈사/.test(w))return {k:'cond',c:'ally_fainted'};{const sm=w.match(/^(?:자신)?상태[:：](.+)$/);if(sm)return {k:'cond',c:'self_state',st:stEn(sm[1])||sm[1]}}const m=w.match(/HP[≤<=]+(\d+\/\d+)/);if(m)return {k:'cond',c:'hp_le',frac:m[1]};return {k:'confirm',q:words.join(' ')}}
+   case '조건':{const w=words.join('');if(/아군빈사/.test(w))return {k:'cond',c:'ally_fainted'};{const ft=w.match(/^적진타입[:：]?(.+)$/);if(ft){const ts=ft[1].split(/[,·/]/).map(x=>x.trim()).filter(Boolean).map(x=>KO_TYPE[x]||x);if(ts.length)return {k:'cond',c:'foe_type',types:ts}}}{const sm=w.match(/^(?:자신)?상태[:：](.+)$/);if(sm)return {k:'cond',c:'self_state',st:stEn(sm[1])||sm[1]}}const m=w.match(/HP[≤<=]+(\d+\/\d+)/);if(m)return {k:'cond',c:'hp_le',frac:m[1]};return {k:'confirm',q:words.join(' ')}}
    case '해석':return {k:'dex',mode:'scouter'};
    case '레이드':{const m=words.join(' ').match(/구간[:：]?(\d+)/);return {k:'raid',on:1,x:m?+m[1]:'',cond:'cap',floor:1,cure:1,cstat:1,rup:1,rmod:0}}
    /* ----- 11-03 특수 효과(sp) 구문 ----- */
@@ -491,7 +493,7 @@ window.OM_FX=(()=>{
    case 'resetstates':L.push('상태초기화'+tg(op.tgt)+(op.group==='negative'?' 전부':''));break;
    case 'confirm':L.push('확인 "'+op.q+'"');break;
    case 'none':L.push('없음');break;
-   case 'cond':L.push('조건 '+(op.c==='ally_fainted'?'아군빈사':op.c==='self_state'?'상태:'+stKoW(op.st):'HP≤'+op.frac));break;
+   case 'cond':L.push('조건 '+(op.c==='ally_fainted'?'아군빈사':op.c==='self_state'?'상태:'+stKoW(op.st):op.c==='foe_type'?'적진타입 '+(op.types||[]).map(t=>TYPE_KO[t]||t).join(','):'HP≤'+op.frac));break;
    case 'stcount':L.push('상태턴'+tg(op.tgt)+' '+(op.st==='all'?'전부':op.st==='neg'?'부정':stKoW(op.st))+' '+(op.mode==='set'?'=':(op.v>=0?'+':''))+op.v);break;
    case 'choice':L.push((op.multi?'선택 여럿:':'선택:')+'\n'+op.opts.map(o=>'- '+o.label+' → '+unparse(o.ops).join('; ')).join('\n'));break;
    case 'chance':L.push(op.mode==='off'?'확률 해제'+tg(op.tgt):'확률 '+(op.sure?'반드시':(op.v>0?'+':'')+op.v+'%')+tg(op.tgt)+(op.uses>0?' '+op.uses+'회':'')+(op.turns>0?' '+op.turns+'턴':''));break;

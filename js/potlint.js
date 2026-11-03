@@ -77,9 +77,11 @@ window.MKM_POTLINT=(()=>{
  const ST_EN={'공격':'공격','방어':'방어','특공':'특공','특방':'특방','스피드':'스피드','명중':'명중','회피':'회피'};
  function tgtOf(c){if(/아군 전체/.test(c))return '아군전체';if(/상대 전체|적진 전체/.test(c))return '상대전체';if(/(?:^|[\s/】])아군에게/.test(c)||(/(?:^|[\s/】])아군의/.test(c)&&/턴 종료 시까지/.test(c)))return '지정에리어';if(/(?:^|[\s/】])아군(?:의|을|를)/.test(c))return '아군1체';if(/(?:^|[\s/】])(?:상대|정면|대상)(?:에게|의|을|를)/.test(c))return '상대1체';return ''}
  function clauses(text){const t=String(text||'').replace(/<br\s*\/?>/g,'\n');return t.split(/(?=[①②③④⑤⑥⑦⑧⑨])|\n/).map(s=>s.trim()).filter(Boolean)}
- function suggest(text){const lines=[],why=[];const F=window.OM_FX;const all=String(text||'');
+ function suggest(text){const lines=[],why=[];let DEFER=null;const F=window.OM_FX;const all=String(text||'');
   for(const c0 of clauses(all)){const tags=(c0.match(/【[^】]+】/g)||[]).join('');const c=c0.replace(/^[①-⑨]/,'').replace(/^(?:【[^】]+】)+\s*\/?/,'');const tg=tgtOf(c);const temp=/턴 종료 시까지|턴 종료시 까지/.test(c);const turns=(c.match(/(\d)턴 동안/)||[])[1];
    const L=[];let m;
+   /* 11-04 감우: 「적진에 「타입 : 풀, 페어리」가 있을 때」 → 조건 줄을 먼저 (이 조건이 거짓이면 뒤 줄은 안 건다) */
+   if((m=c.match(/적진에\s*「타입\s*:\s*([^」]+)」\s*(?:이|가)?\s*있을 때/)))L.push('조건 적진타입 '+m[1].split(/[,·/]/).map(x=>x.trim()).filter(Boolean).join(','));
    /* 랭크 */
    const rk=[...c.matchAll(/「((?:공격|방어|특공|특방|스피드|명중|회피)(?:\/(?:공격|방어|특공|특방|스피드|명중|회피))*) : ([+-]\d)」/g)];
    if(rk.length&&/한다|된다/.test(c)&&!/종족치/.test(c)){const parts=[];for(const x of rk)for(const s of x[1].split('/'))parts.push(ST_EN[s]+x[2]);L.push(`랭크${tg?' '+tg:''} ${parts.join(' ')}${temp?' 임시':''}`)}
@@ -140,7 +142,10 @@ window.MKM_POTLINT=(()=>{
    /* 구문으로 읽히는 줄만 */
    /* 11-03 미사그 점검: 「저확률로 · 중확률로 · 드물게 · N할로」가 추천에서 빠져 늘 켜지는 줄이 됐다 → 줄 앞에 붙인다 (회피 · 상태확률은 제 안에 확률이 있어 그대로) */
    {const pc=(c.match(/(저확률|중확률|고확률|드물게)/)||[])[1],pn=(c.match(/(\d)할로/)||[])[1];const pre=pc?pc+': ':pn?pn+'할: ':'';if(pre)for(let i=0;i<L.length;i++)if(!/^(회피|상태확률|임의교대|기술사용)/.test(L[i])&&!/^(드물게|저확률|중확률|고확률|\d+할)/.test(L[i]))L[i]=pre+L[i]}
-   for(const s of L){if(F&&F.parse){const r=F.parse(s);if(!r.ops.length||(r.errs&&r.errs.length))continue}if(!lines.includes(s)){lines.push(s);why.push(c0.length>60?c0.slice(0,60)+'…':c0)}}}
+   /* 조건 줄은 거짓이면 그 뒤 줄을 다 멈춘다 → 조건이 붙은 마디(조건 + 그 효과)는 맨 뒤로 미룬다 */
+   const dst=L.length&&/^조건 /.test(L[0])?(DEFER=DEFER||[]):null;
+   for(const s of L){if(F&&F.parse){const r=F.parse(s);if(!r.ops.length||(r.errs&&r.errs.length))continue}if(dst){dst.push([s,c0]);continue}if(!lines.includes(s)){lines.push(s);why.push(c0.length>60?c0.slice(0,60)+'…':c0)}}}
+  for(const [s,c0] of DEFER||[])if(!lines.includes(s)){lines.push(s);why.push(c0.length>60?c0.slice(0,60)+'…':c0)}
   /* 다른 줄에서 나온 「위력 ×1 급소+n」은 같은 위력 줄에 붙인다 */
   {const bi=lines.findIndex(s=>/^위력 ×(?!1(?:\s|$))/.test(s)),ci=lines.findIndex(s=>/^위력 ×1 급소\+\d$/.test(s));if(bi>=0&&ci>=0){lines[bi]+=' '+lines[ci].replace(/^위력 ×1 /,'');lines.splice(ci,1);why.splice(ci,1)}}
   const timing=/【등장/.test(all)?'【등장】이 있어 오레마스에서 나올 때 자동으로 걸린다':/【상시】/.test(all)?'【상시】라 늘 켜져 있다':'배틀의 포텐셜 칸 「발동」 버튼으로 건다';
