@@ -3528,11 +3528,14 @@ function stripUI(o){const c={};for(const k in o){if(UIK.has(k)||k[0]==='_'||k===
 let DEFJ=null,DEFJN=-1;function defJ(){const rn=(DEF.rm||[]).length*100000+(DEF.st||[]).length;if(DEFJ&&DEFJN===rn)return DEFJ;DEFJN=rn;DEFJ={};for(const k in DBS){const m=new Map();for(const r of DEF[k]||[]){const key=r[DBS[k].key];if(key!==''&&!m.has(key))m.set(key,rowJ(r))}DEFJ[k]=m}return DEFJ}
 /* 행 비교: 뒤쪽 빈 칸은 없는 것과 같다 (10-24 레디메이드 「확률」 칸을 더해도 예전 행이 「바뀐 행」으로 잡히지 않게) */
 function rowJ(r){const a=Array.isArray(r)?r.slice():r;if(Array.isArray(a))while(a.length&&(a[a.length-1]===''||a[a.length-1]==null))a.pop();return JSON.stringify(a)}
+const MASS_DEL=30;
+/* 공유 모드: 표를 지을 때의 기본 행 수와 지금 기본 행 수가 같아야 비교한다 (레디메이드 · 상태 변화는 기본 행이 늦게 생긴다) */
+function builtOk(k){if(!(k==='rm'||k==='st'))return true;let on=false;try{on=!!(SH&&SH.on&&SH.ready)}catch(e){}if(!on)return true;return !!(SH.builtN&&SH.builtN[k]===(DEF[k]||[]).length&&(DEF[k]||[]).length>0)}
 function dbEditDocs(out=new Map()){const dj=defJ();
- for(const k in DBS){if(!lazyOk(k))continue;/* 레디메이드 기본 행이 아직 없으면 비교하지 않는다 (915행이 전부 「바뀐 행」으로 잡히는 것 방지) */const seen=new Set(),cust=new Set(S.custom[k]||[]);
+ for(const k in DBS){if(!lazyOk(k)||!builtOk(k))continue;/* 레디메이드 기본 행이 아직 없으면 비교하지 않는다 (915행이 전부 「바뀐 행」으로 잡히는 것 방지) */const seen=new Set(),cust=new Set(S.custom[k]||[]);
   S.db[k].forEach((r,ix)=>{const key=r[DBS[k].key];if(key===''||key==null||seen.has(key))return;seen.add(key);const d=dj[k].get(key);
    if(d===rowJ(r)&&!cust.has(key))return;out.set('dbedit/'+k+'.'+keySeg(key),{kind:k,key,row:r,custom:cust.has(key),pos:d?-1:ix})});
-  for(const key of dj[k].keys())if(!seen.has(key))out.set('dbedit/'+k+'.'+keySeg(key),{kind:k,key,deleted:true})}
+  {const miss=[...dj[k].keys()].filter(key=>!seen.has(key));if((k==='rm'||k==='st')&&miss.length>=MASS_DEL){console.warn('[DB] '+k+' 기본 행 '+miss.length+'개가 비어 있음 — 한꺼번에 지운 것으로 보지 않는다');continue}for(const key of miss)out.set('dbedit/'+k+'.'+keySeg(key),{kind:k,key,deleted:true})}}
  return out}
 function shDbDocs(){if(SH.dbDocs&&!SH.dbDirty)return SH.dbDocs;const out=dbEditDocs();
  const st=shSettings();for(const g in META_G){const o={};for(const k of META_G[g])o[k]=st[k];out.set('meta/set.'+g,o)}
@@ -3549,7 +3552,7 @@ function shWant(){const out=new Map();
  for(const [id,d] of SH.orph_ed||[])out.set('dbedit/'+id,d);   /* 붙을 행이 없는 수정도 지우지 않는다. 같은 이름 행이 다시 생기면 아래 줄이 덮는다 */
  for(const [p,b] of shDbDocs())out.set(p,b);
  /* 레디메이드 기본 행을 아직 못 읽었으면, 받아 둔 레디메이드 수정 행은 그대로 둔다 (지우지 않게) */
- for(const lk of ['rm','st'])if(!lazyOk(lk))for(const [id,d] of SH.ed)if(d&&d.kind===lk)out.set('dbedit/'+id,d);
+ for(const lk of ['rm','st'])if(!lazyOk(lk)||!builtOk(lk))for(const [id,d] of SH.ed)if(d&&d.kind===lk)out.set('dbedit/'+id,d);   /* 11-03: 기본 행이 생긴 뒤 아직 다시 짓지 않은 표도 받아 둔 수정 행을 그대로 둔다 */
  if(SH.metaL)out.set('meta/settings',SH.metaL);return out}
 async function runPool(jobs,n){let i=0;const w=async()=>{while(i<jobs.length){const j=jobs[i++];await j()}};await Promise.all(Array.from({length:Math.min(n,jobs.length)},w))}
 const SH_ERR_KO={invalid_argument:'저장이 거부됨(권한 없음 또는 항목이 너무 큼)',resource_exhausted:'저장 요청이 너무 잦음',quota_exceeded:'공유 저장소 용량 초과',unavailable:'일시적인 연결 문제',revoked:'접근 권한이 바뀜',not_granted:'공유 저장소 사용이 허용되지 않음',capability_disabled:'공유 저장소를 쓸 수 없는 화면'};
@@ -3611,8 +3614,11 @@ function shDelPoke(id){for(const t of S.trainers)t.pokemon=t.pokemon.filter(p=>p
 function shRebuildDB(){/* 아직 올리지 않은 내 설정 묶음은 받은 값으로 덮지 않는다 */const keepG={};SH.kept=new Set();if(SH.live){const loc=shMetaGroups();for(const g in loc){const p='meta/set.'+g;if(SH.synced.has(p)&&SH.synced.get(p)!==canon(loc[g])){keepG[g]=clone(loc[g]);SH.kept.add(p)}}}
  const keepNonDb={};for(const k in DEF)if(!(k in DBS))keepNonDb[k]=clone(DEF[k]);
  /* 11-03: 아직 못 올린 내 DB 수정 행(dbedit)도 받은 사본 위에 얹는다 — 올리기 전에 남의 dbedit 가 오면 내 수정이 화면에서 사라지고 다음 저장이 그 행을 지우던 버그 */
- const ED=new Map(SH.ed);if(SH.live){try{const okK=k=>lazyOk(k)&&Array.isArray(S.db[k])&&S.db[k].length>0;/* 아직 한 번도 짓지 않은 표(레디메이드 · 상태 변화 기본 행이 방금 생긴 때)는 비교하지 않는다 */const loc=dbEditDocs();for(const [p,d] of loc){if(!okK(d.kind))continue;if(SH.synced.get(p)!==canon(d)){ED.set(p.slice(7),d);SH.kept.add(p)}}
+ const ED=new Map(SH.ed);if(SH.live){try{const okK=k=>lazyOk(k)&&Array.isArray(S.db[k])&&S.db[k].length>0&&builtOk(k);/* 아직 한 번도 짓지 않은 표(레디메이드 · 상태 변화 기본 행이 방금 생긴 때)는 비교하지 않는다 */const loc=dbEditDocs();for(const [p,d] of loc){if(!okK(d.kind))continue;if(SH.synced.get(p)!==canon(d)){ED.set(p.slice(7),d);SH.kept.add(p)}}
   for(const p of SH.synced.keys())if(p.startsWith('dbedit/')&&!loc.has(p)){const d=ED.get(p.slice(7));if(d&&okK(d.kind)){ED.delete(p.slice(7));SH.kept.add(p)}}}catch(e){console.warn('[공유 저장소] 미전송 수정 행 보존 실패',e)}}
+ /* 11-03 23:35 망령 「레디메이드 DB 다 어디 갔니?」(제작기 레디메이드 DB 1행): 레디메이드 · 상태 변화의 기본 행은 fx 스크립트를 읽은 뒤에야 생기는데, 그 전에 직접 추가한 행(작살잡이) 하나만 있는 표를
+    「다 지운 것」으로 잘못 읽어 기본 행 전부에 「지움」 수정 행(dbedit deleted)을 올렸다. 한 번에 이렇게 많이 지운 것은 사람이 한 일이 아니니 지움 표시를 버린다 — 다음 저장 때 공유 DB 에서도 그 문서가 지워진다 */
+ SH.healed=SH.healed||{};for(const lk of ['rm','st']){if(!lazyOk(lk))continue;const dels=[...ED].filter(([id,d])=>d&&d.kind===lk&&d.deleted);if(dels.length>=MASS_DEL){for(const [id] of dels)ED.delete(id);if(!SH.healed[lk]){SH.healed[lk]=dels.length;setTimeout(()=>{try{shSchedule(1500)}catch(e){}},600);setTimeout(()=>toast(`${DBS[lk].t} DB 기본 행 ${dels.length}개에 잘못 붙은 「지움」 표시를 되돌렸습니다 (공유 DB 에도 저장)`),400)}}}
  const byKind={};for(const [id,d] of ED){if(d&&d.kind)(byKind[d.kind]=byKind[d.kind]||[]).push([id,d])}
  /* 10-27 망령: DB 새 판이 올라와도 고친 것을 잃지 않게.
     · 기본 DB에 이름이 없어진 수정 → 버리지 않고 SH.orph_ed 에 남긴다 (공유 DB 에서도 지우지 않음 · DB 탭에서 살리기/옮겨 붙이기/버리기)
@@ -3628,6 +3634,7 @@ function shRebuildDB(){/* 아직 올리지 않은 내 설정 묶음은 받은 �
  S.db.tpl=m&&m.tpl?((m.tplV||0)>=TPL_V?clone(m.tpl):verMerge(m.tpl,TPL_DEF,tplKey)):clone(TPL_DEF);S.db.tplV=TPL_V;S.db.tags=m&&m.tags?((m.tagsV||0)>=TAGS_V?clone(m.tags):verMerge(m.tags,TAGS_DEF,tagKey)):clone(TAGS_DEF);S.db.tagsV=TAGS_V;S.db.ban=m&&m.ban!=null?m.ban:DEF.ban;{const _sv=m&&m.stplV||0;S.db.stpl=stplMigrate(m&&m.stpl?clone(m.stpl):null,_sv);S.db.stplV=STPL_V;if(_sv<4&&_sv>0)SH.purge=true}S.db.oldSock=m&&m.oldSock!=null?m.oldSock:5.5;S.db.ptItems=m&&m.ptItems?clone(m.ptItems):clone(PTI_DEF);S.db.ptiV=m&&m.ptiV||0;ptiMigrate(S.db);S.db.pride=m&&m.pride?clone(m.pride):clone(PRIDE_DEF);S.db.prideExV=m&&m.prideExV||0;prideMigrate(S.db);
  S.db.tplSoloV=m&&m.tplSoloV||0;S.db.soloSock=m&&m.soloSock?clone(m.soloSock):null;S.db.ilock=m&&Array.isArray(m.ilock)?clone(m.ilock):[];S.db.rules=m&&m.rules&&typeof m.rules==='object'?clone(m.rules):null;tplNormalize(S.db);
  for(const g in keepG)Object.assign(S.db,keepG[g]);
+ SH.builtN={};for(const k in DBS)SH.builtN[k]=(DEF[k]||[]).length;   /* 이 표를 기본 행 몇 줄로 지었나 — 기본 행이 나중에 생긴 표는 다시 짓기 전까지 비교하지 않는다 */
  SH.dbDirty=true;reindex()}
 /* base = 마지막으로 맞춘 문서, mine = 지금 내 화면의 문서, theirs = 방금 받은 남의 문서. 문서 칸과 data 안의 칸 하나하나를 비교해 내가 바꾼 칸만 내 값으로. 바꾼 칸이 없으면 null */
 function shMerge(base,mine,theirs){const out=clone(theirs);let any=false;
