@@ -35,7 +35,8 @@ window.OM_FX_UI=(()=>{
   ['상태',[['state','상태 걸기'],['statefx','확률로 걸기'],['cure','치유'],['stcount','턴 조정'],['resetst','상태 초기화'],['immune','면역'],['stmod','회복 · 대미지 비율']]],
   ['HP',[['heal','회복'],['dmg','대미지 (비례 · 타입)'],['future','예고 공격']]],
   ['필드',[['weather','날씨'],['terrain','필드 · 룸'],['etc','필드의 상태'],['object','설치기 · 벽'],['clearobj','철거']]],
-  ['행동',[['prio','우선도'],['pursuit','추격'],['freesw','반드시 교대']]],
+  ['행동',[['prio','우선도'],['pursuit','추격'],['freesw','반드시 교대'],['freeswitch','임의 교대'],['usemove','기술 내보내기']]],
+  ['특수',[['extra','추가 공격'],['mvtype','기술 타입'],['scrappy','무효 관통'],['evade','N할 회피'],['secx','추가 효과 배율'],['redirect','끌어오기'],['bounce','반사'],['mold','특성 무시'],['protect','변경 보호'],['ext','지속 연장'],['nodex','해석 차단']]],
   ['무시',[['ignoreup','상대 상승·강화 / 감소·저하 무시 (계산에서 뺌)'],['nodrop','감소 무시 (내 능력이 안 깎임)'],['noind','비례 · 설치기 무시'],['float','하늘 위']]],
   ['모습',[['type','타입'],['trait','특성'],['transform','변신'],['role','역할']]],
   ['발동 조건',[['choice','선택지'],['chance','확률 보정'],['confirm','확인 질문'],['cond','자동 조건']]],
@@ -50,7 +51,7 @@ window.OM_FX_UI=(()=>{
   ignoreup:'상대의 랭크 상승 · 감소를 무시한다 (천진 · 성스러운칼)',nodrop:'자신의 능력이 내려가지 않는다',noind:'비례 대미지 · 설치기 · 강제 교대를 무시한다',float:'땅 위 효과를 받지 않는다',
   type:'타입을 더하거나 바꾼다',trait:'특성을 바꾼다',transform:'상대로 변신한다',role:'역할(에이스 · 블로커 …) 취급',
   choice:'여러 효과 중 고르게 한다 — 이 다음에 넣는 줄이 하나씩 선택지가 된다',chance:'이 포켓몬의 확률 효과가 더 잘 (또는 반드시) 발동한다',confirm:'발동할 때 조건을 물어본다',cond:'조건이 맞을 때만 자동으로 이어 간다',
-  baseup:'시트 종족치를 올린다 (제작기 시트에 반영)',statadd:'시트 실수치에 수를 더하거나 뺀다 (제작기 시트에 반영)',statset:'배틀 중 실수치를 더하기 · 정하기 · 곱하기 · 상대와 교환 · 평균 · 내 두 능력 맞바꿈 (교대하면 원래대로)'};
+  baseup:'시트 종족치를 올린다 (제작기 시트에 반영)',freeswitch:'그 자리에서 임의 교대 창을 연다 (맞았을 때 · 턴 종료 뒤 같은 계기에)',usemove:'그 기술을 내보낸다 — 공격 창을 그 기술로 연다 (기술 목록에 없어도 기술 DB 에서)',extra:'맞는 기술이 포켓몬 하나에게 명중하면 1번 더 공격 (난무 · 흡혈귀)',mvtype:'기술의 타입을 바꾼다 (카세트 · 메모리 · 스킨)',scrappy:'무효 타입에도 맞는다 (배짱 · 코어드릴)',evade:'N할로 공격을 피한다',secx:'추가 효과(N할) 발생률을 곱한다',redirect:'상대의 단일 대상 기술을 자신에게 끌어온다 (피뢰침 · 마중물 · 음절초)',bounce:'상대의 변화기를 되받아친다 (매직미러)',mold:'자신의 기술이 상대의 특성(완화)을 무시한다 (틀깨기)',protect:'특성 · 소지품이 바뀌거나 없어지지 않는다',ext:'날씨 · 필드 · 벽의 지속 턴을 늘린다',nodex:'자신에 대한 데이터 해석을 막는다',statadd:'시트 실수치에 수를 더하거나 뺀다 (제작기 시트에 반영)',statset:'배틀 중 실수치를 더하기 · 정하기 · 곱하기 · 상대와 교환 · 평균 · 내 두 능력 맞바꿈 (교대하면 원래대로)'};
  const BU_STS=['HP','공격','방어','특공','특방','스피드'];
  const STMOD_STS=[['아쿠아링','1/8'],['뿌리박기','1/16'],['환희의노래','1/16'],['희망사항','1/2'],['씨뿌리기','1/8'],['독','1/8'],['화상','1/16'],['악몽','1/4'],['저주','1/4'],['조이기','1/8']];
  const TG=['self','ally','enemy','others','all','ally1','adj','enemy1','randother','randenemy','randall','area'];
@@ -94,7 +95,18 @@ window.OM_FX_UI=(()=>{
    case 'confirm':return `<div class="row"><label>조건 문장 <input type="text" data-g="q" placeholder="자신이 「특성 : ○○오라」일 때" style="width:360px"></label></div>`;
    case 'statadd':return `<div class="row">${BU_STS.map(s=>`<label><input type="checkbox" data-g="sa_${s}"> ${s}</label>`).join(' ')}</div><div class="row">${sel('g_sam',[['add','더하기 ±N'],['copy','다른 능력과 같게']],'add')} <label>N <input type="number" class="n xs" data-g="n" value="10"></label> <label>같게 할 능력 ${sel('g_saf',['공격','방어','특공','특방','스피드'].map(x=>[x,x]),'특공')}</label></div><div class="small dim">제작기 시트의 실수치에 바로 더한다 (종족치 · 등급은 그대로). 배틀로 가져가면 그 실수치로 나온다</div>`;
    case 'statset':return `<div class="row">대상 ${tgSel('g_tgt')} ${sel('g_sm',[['add','더하기 ±N'],['set','N 으로 정하기'],['mul','× N'],['copy','다른 능력과 같게'],['swap','대상과 교환'],['avg','대상과 평균'],['flip','두 능력 맞바꿈']],'add')} <label>N <input type="number" class="n xs" data-g="n" value="10" step="any"></label> <label>같게 할 능력 ${sel('g_ssf',['공격','방어','특공','특방','스피드'].map(x=>[x,x]),'특공')}</label></div><div class="row">${BU_STS.filter(x=>x!=='HP').map(s=>`<label><input type="checkbox" data-g="ss_${s}"> ${s}</label>`).join(' ')}</div><div class="small dim">배틀 중 실수치(랭크 · 배율 전 값)를 바꾼다. 교환 · 평균은 자신과 대상 사이(대상 기본 상대 1체) · 맞바꿈은 능력 두 개만 (파워트릭처럼). 교대하면 원래대로</div>`;
-   case 'baseup':return `<div class="row">${BU_STS.map(s=>`<label><input type="checkbox" data-g="bu_${s}"> ${s}</label>`).join(' ')}</div><div class="row">${sel('g_bm',[['up','랭크 상승'],['down','랭크 감소'],['max','범위 최대화']],'up')} <label>랭크 <input type="number" class="n xs" data-g="n" value="1" min="1"></label></div><div class="small dim">제작기 시트의 종족치 · 실수치 · 합계에 바로 들어간다 (1랭크 = 한 등급, C→B). 배틀 중엔 바뀌지 않는다</div>`;
+   case 'freeswitch':return `<div class="small dim">계기(맞았을 때 · 턴 종료 이후 …)는 효과 글의 【】 표식대로. 구문 「임의교대」</div>`;
+   case 'usemove':return `<div class="row"><label>기술 이름 <input type="text" data-g="mv" placeholder="김밥말이"></label></div>`;
+   case 'extra':return `<div class="row"><label>타입 (쉼표) <input type="text" data-g="types" placeholder="드래곤 (비우면 모든 기술)"></label> <label>태그 <input type="text" data-g="tg" placeholder="베기"></label> 분류 ${sel('g_ecat',[['','모두'],['물리','물리'],['특수','특수']],'')}</div><div class="row"><label>위력 × <input type="number" step="0.05" class="n xs" data-g="pw" value="0.25"></label> <label><input type="checkbox" data-g="sure" checked> 필중</label> <label>횟수 <input type="number" class="n xs" data-g="n" value="1" min="1"></label></div>`;
+   case 'mvtype':return `<div class="row"><label>기술 이름 <input type="text" data-g="mv" placeholder="비우면 아래 타입 · 전부"></label> <label>원래 타입 ${tySel('g_from','', '제한 없음')}</label> → <label>바꿀 타입 ${tySel('g_to','Steel')}</label></div>`;
+   case 'scrappy':return `<div class="row"><label>기술 타입 ${tySel('g_st','', '모든 기술')}</label> <label>무효였던 타입 (쉼표) <input type="text" data-g="vs" placeholder="노말,격투"></label> <label><input type="checkbox" data-g="float"> 하늘 위에도</label></div>`;
+   case 'evade':return `<div class="row"><label>확률 <input type="number" class="n xs" data-g="p" value="2" min="1" max="10">할</label> 분류 ${sel('g_vcat',[['','모두'],['물리','물리'],['특수','특수'],['접촉','접촉기']],'')} <label>타입 (쉼표) <input type="text" data-g="types"></label> <label>태그 <input type="text" data-g="tg"></label></div>`;
+   case 'secx':return `<div class="row"><label>배율 × <input type="number" step="0.5" class="n xs" data-g="v" value="2"></label> <label>타입 (쉼표) <input type="text" data-g="types" placeholder="독"></label> <label>태그 <input type="text" data-g="tg"></label></div>`;
+   case 'redirect':return `<div class="row"><label>타입 (쉼표) <input type="text" data-g="types" placeholder="전기"></label> <label>태그 <input type="text" data-g="tg" placeholder="소리"></label> 분류 ${sel('g_rcat',[['','모두'],['물리','물리'],['특수','특수'],['변화기','변화기']],'')}</div><div class="small dim">상대의 「1체」 기술만 끌어온다</div>`;
+   case 'bounce':case 'mold':case 'nodex':return `<div class="small dim">${esc(DESC[kind]||'')}</div>`;
+   case 'protect':return `<div class="row"><label><input type="checkbox" data-g="pt" checked> 특성</label> <label><input type="checkbox" data-g="pi"> 소지품</label></div>`;
+   case 'ext':return `<div class="row"><label>무엇 (쉼표) <input type="text" data-g="what" placeholder="눈 · 날씨 · 필드 · 리플렉터 · 벽"></label> <label>+ <input type="number" class="n xs" data-g="n" value="3">턴</label></div>`;
+   case 'baseup':return `<div class="row">${BU_STS.map(s=>`<label><input type="checkbox" data-g="bu_${s}"> ${s}</label>`).join(' ')}</div><div class="row">${sel('g_bm',[['up','랭크 상승'],['down','랭크 감소'],['max','범위 최대화'],['top','가장 높은 종족치와 같은 랭크']],'up')} <label>랭크 <input type="number" class="n xs" data-g="n" value="1" min="1"></label></div><div class="small dim">제작기 시트의 종족치 · 실수치 · 합계에 바로 들어간다 (1랭크 = 한 등급, C→B). 배틀 중엔 바뀌지 않는다</div>`;
    case 'stmod':return `<div class="row">${sel('g_sm',STMOD_STS.map(([k,d])=>[k,k+' (기본 '+d+')']),'아쿠아링')} → <label>비율 <input type="text" class="n xs" data-g="frac" value="1/6"></label></div><div class="small dim">이 포켓몬이 그 상태일 때 턴 종료 회복 · 대미지 비율을 바꾼다 (시트에 적어 두는 값)</div>`;
    case 'future':return `<div class="row"><label>상태 <input type="text" data-g="st" value="미래예지" style="width:90px"></label> <label>위력 <input type="number" class="n xs" data-g="pow" value="0" title="0 = 기술 위력"></label> <label>기술 <input type="text" data-g="mv" placeholder="미래예지" style="width:90px"></label> 대상 ${tgSel('g_tgt','enemy1')}</div><div class="small dim">다음 턴 가장 마지막에 대미지 계산 (공격 창의 「지연」 기술은 자동으로 건다)</div>`;
    case 'transform':return `<div class="row">대상 ${tgSel('g_tgt','enemy1')} <label><input type="checkbox" data-g="keep"> 그림 유지</label> <label><input type="checkbox" data-g="off"> 변신 해제</label></div>`;
@@ -137,7 +149,18 @@ window.OM_FX_UI=(()=>{
    case 'statadd':{const st=BU_STS.filter(x=>g('sa_'+x));if(s('g_sam')==='copy'){const f=s('g_saf');const st2=st.filter(x=>x!=='HP'&&x!==f);if(!st2.length)return '';return '실수치 '+st2.join(',')+' ='+f}const n=Math.round(+g('n')||0);if(!st.length||!n)return '';return '실수치 '+st.join(',')+' '+(n>0?'+':'')+n}
    case 'statset':{let st=BU_STS.filter(x=>x!=='HP'&&g('ss_'+x));const m=s('g_sm');if(m==='copy'){st=st.filter(x=>x!==s('g_ssf'));if(!st.length)return '';return '실수치변경 '+st.join(',')+' ='+s('g_ssf')+tg(s('g_tgt'))}const n=+g('n')||0;if(!st.length)return '';if(m==='flip'&&st.length!==2)return '';const t=s('g_tgt');const tgw=(m==='swap'||m==='avg')?tga(t==='self'?'enemy1':t):tg(t);
     return '실수치변경 '+st.join(',')+' '+({add:(n>0?'+':'')+Math.round(n),set:'='+Math.round(n),mul:'×'+n,swap:'교환',avg:'평균',flip:'맞바꿈'}[m])+tgw}
-   case 'baseup':{const st=BU_STS.filter(x=>g('bu_'+x));if(!st.length)return '';const m=s('g_bm');return '종족치 '+st.join(',')+' '+(m==='max'?'최대':(m==='down'?'-':'+')+Math.max(1,+g('n')||1))}
+   case 'freeswitch':return '임의교대';
+   case 'usemove':{const v=String(g('mv')||'').trim();return v?'기술사용 '+v:''}
+   case 'extra':{const pw=+g('pw')||0.25;const n=Math.max(1,+g('n')||1);return '추가공격'+(g('types').trim()?' 타입:'+tyK(g('types')).replace(/ /g,''):'')+(g('tg').trim()?' 태그:'+g('tg').trim().replace(/\s+/g,''):'')+(s('g_ecat')?' '+s('g_ecat'):'')+(pw!==0.25?' 위력×'+pw:'')+(g('sure')?'':' 명중판정')+(n>1?' '+n+'번':'')}
+   case 'mvtype':{const to=s('g_to');if(!to)return '';const mv=String(g('mv')||'').trim();const fr=s('g_from');return '기술타입 '+(mv||(fr?'타입:'+K.TYPE_KO[fr]:'전부'))+' '+K.TYPE_KO[to]}
+   case 'scrappy':{const st=s('g_st');const vs=tyK(g('vs')).replace(/ /g,'');if(!vs&&!g('float'))return '';return '명중확장 '+(st?K.TYPE_KO[st]:'전부')+(vs?' '+vs:'')+(g('float')?' 하늘위':'')}
+   case 'evade':{const p=Math.max(1,Math.min(10,+g('p')||2));return '회피 '+p+'할'+(s('g_vcat')?' '+s('g_vcat'):'')+(g('types').trim()?' 타입:'+tyK(g('types')).replace(/ /g,''):'')+(g('tg').trim()?' 태그:'+g('tg').trim().replace(/\s+/g,''):'')}
+   case 'secx':return '추가효과 ×'+(+g('v')||2)+(g('types').trim()?' 타입:'+tyK(g('types')).replace(/ /g,''):'')+(g('tg').trim()?' 태그:'+g('tg').trim().replace(/\s+/g,''):'');
+   case 'redirect':return '끌어오기'+(g('types').trim()?' 타입:'+tyK(g('types')).replace(/ /g,''):'')+(g('tg').trim()?' 태그:'+g('tg').trim().replace(/\s+/g,''):'')+(s('g_rcat')?' '+s('g_rcat'):'');
+   case 'bounce':return '반사 변화기';case 'mold':return '특성무시';case 'nodex':return '해석차단';
+   case 'protect':{const w=[g('pt')?'특성':'',g('pi')?'소지품':''].filter(Boolean);return w.length?'보호 '+w.join(' '):''}
+   case 'ext':{const w=String(g('what')||'').split(/[,·\s]+/).filter(Boolean).join(',');return '지속연장 '+(w||'날씨')+' +'+(Math.max(1,+g('n')||3))}
+   case 'baseup':{const st=BU_STS.filter(x=>g('bu_'+x));if(!st.length)return '';const m=s('g_bm');return '종족치 '+st.join(',')+' '+(m==='top'?'최고':m==='max'?'최대':(m==='down'?'-':'+')+Math.max(1,+g('n')||1))}
    case 'stmod':{const f=String(g('frac')||'').replace(/\s+/g,'');if(!/^\d+\/\d+$/.test(f))return '';return '상태수정 '+s('g_sm')+' '+f}
    case 'future':return '예고 '+String(g('st')||'미래예지').replace(/\s+/g,'')+(+g('pow')>0?' 위력 '+(+g('pow')):'')+(String(g('mv')||'').trim()?' 기술 '+String(g('mv')).trim().replace(/\s+/g,''):'')+tga(s('g_tgt'));
    case 'transform':return g('off')?'변신 해제':'변신'+tga(s('g_tgt'))+(g('keep')?' 그림유지':'');
