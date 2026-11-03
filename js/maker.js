@@ -2223,7 +2223,7 @@ function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요
    const bg=pngBg();const cv=await window.html2canvas(el.parentNode,pngOpts(el,bg,t,p));
    const blob=await new Promise(r=>cv.toBlob(r,'image/webp',.9));if(!blob)throw new Error('그림을 만들지 못했어요');
    b.textContent='올리는 중…';const SB=dcSb();const path='dc/'+tg.room+'/'+(p.id||'card')+'_'+Date.now().toString(36)+'.webp';
-   const up=await SB.storage.from('oremas').upload(path,blob,{upsert:true,contentType:'image/webp',cacheControl:'31536000'});if(up.error)throw new Error('그림을 올리지 못했어요: '+up.error.message);
+   const up=await SB.storage.from('oremas').upload(path,blob,{upsert:false,contentType:'image/webp',cacheControl:'31536000'});if(up.error)throw new Error('그림을 올리지 못했어요: '+up.error.message);
    const url=SB.storage.from('oremas').getPublicUrl(path).data.publicUrl;
    b.textContent='보내는 중…';const av=/^https?:\/\//.test(t.image||'')?t.image:'';
    const r1=await SB.rpc('om_dc_card',{p_room:tg.room,p_secret:tg.secret,p_title:p.name||'포켓몬',p_sub:t.name||'',p_img:url,p_who:{n:t.name||p.name||'',img:av}});
@@ -2590,7 +2590,7 @@ $('#v-char').addEventListener('change',e=>{const el=e.target;
 async function shrinkUpload(blob,maxSide){try{if(!/^image\/(png|jpe?g|webp|bmp)$/i.test(blob.type||''))return blob;const bmp=await createImageBitmap(blob);const sc=Math.min(1,(maxSide||2048)/Math.max(bmp.width,bmp.height));if(sc>=1&&blob.type==='image/webp')return blob;const cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(bmp.width*sc));cv.height=Math.max(1,Math.round(bmp.height*sc));cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);const out=await new Promise(r=>cv.toBlob(r,'image/webp',.86));return out&&out.size<blob.size?out:blob}catch(e){return blob}}
 async function putImg(path,blob){const c=window.MKM_CONFIG||{};if(!c.supabaseUrl||!c.supabaseKey)throw new Error('공유 저장소 설정이 없습니다 (js/config.js)');blob=await shrinkUpload(blob,2048);
  const ty=blob.type||'image/png';const ext=ty.includes('png')?'png':ty.includes('webp')?'webp':ty.includes('gif')?'gif':'jpg';const full=`${path}.${ext}`;const base=c.supabaseUrl.replace(/\/$/,'');
- const r=await fetch(`${base}/storage/v1/object/oremas/${full}`,{method:'POST',headers:{apikey:c.supabaseKey,Authorization:'Bearer '+c.supabaseKey,'Content-Type':ty,'x-upsert':'true','cache-control':'31536000'},body:blob});
+ const r=await fetch(`${base}/storage/v1/object/oremas/${full}`,{method:'POST',headers:{apikey:c.supabaseKey,Authorization:'Bearer '+c.supabaseKey,'Content-Type':ty,'cache-control':'31536000'},body:blob});
  if(!r.ok){let m='';try{m=(await r.json()).message||''}catch(e){}if(/bucket not found/i.test(m))m='그림 저장소(버킷 oremas)가 없습니다 — supabase/schema.sql 을 다시 실행해 주세요';throw new Error(m||('HTTP '+r.status))}
  return `${base}/storage/v1/object/public/oremas/${full}`}
 /* 스탠딩 그림(트레이너·포켓몬)을 공유 저장소(Supabase Storage, 버킷 oremas — 오레마스와 같은 프로젝트)에 원본 그대로 올리고 공개 주소를 돌려준다. 투명 배경이 그대로 남는다 */
