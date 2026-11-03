@@ -3338,18 +3338,23 @@ function shErr(e){const c=(e&&e.code)||'unknown';const m=SH_ERR_KO[c]||('알 수
  if(c==='revoked'||c==='not_granted'||c==='capability_disabled'){SH.canWrite=false}
  if(!SH.toasted)SH.toasted=new Set();if(!SH.toasted.has(c)&&c!=='unavailable'&&c!=='resource_exhausted'){SH.toasted.add(c);toast('공유 저장: '+m)}
  console.warn('[공유 저장소]',c,e&&e.message);return c}
+/* 11-03 버그: 올린 뒤 SH.synced 만 갱신하고 SH.ed · SH.metaG(받은 사본)는 그대로 둬서, 뒤에 남의 dbedit · meta 가 오면 shRebuildDB 가 옛 사본으로 S.db 를 다시 지어 화면이 되돌아가고
+   다음 저장이 내 dbedit 행을 지우거나 설정 기본값을 다시 올렸다. 올리기(또는 남의 저장이 내 값과 같아 「올라간 것」으로 친 때)에 성공하면 받은 사본에도 같은 값을 적는다 */
+function shTrack(p,o){const i=p.indexOf('/'),kind=p.slice(0,i),id=p.slice(i+1);
+ if(kind==='dbedit'){if(o)SH.ed.set(id,clone(o));else SH.ed.delete(id)}
+ else if(kind==='meta'){if(id==='settings')SH.metaL=o?clone(o):null;else if(id.startsWith('set.')){SH.metaG=SH.metaG||{};if(o)SH.metaG[id.slice(4)]=clone(o);else delete SH.metaG[id.slice(4)]}else return;SH.meta=shMetaMerge()}}
 let shTimer=null,shBack=0,shLastFlush=0;
 function shSchedule(ms){clearTimeout(shTimer);shTimer=setTimeout(()=>shFlush(),ms)}
 async function shFlush(){if(!SH.on||!SH.ready)return;if(!SH.canWrite){shStatus('읽기 전용 · 고친 내용은 공유되지 않습니다');return}
  if(SH.flushing){SH.again=true;return}
  const wait=800-(Date.now()-shLastFlush);if(wait>0){shSchedule(wait);return}
  SH.flushing=true;shLastFlush=Date.now();let retry=false,hard=0;SH.bad=SH.bad||new Map();
- try{if(SH.db&&SH.db.fresh)try{await SH.db.fresh(60000,['trainers','pokemon'])}catch(e){}
+ try{if(SH.db&&SH.db.fresh)try{await SH.db.fresh(60000,SH_KINDS)}catch(e){}   /* 11-03: meta · dbedit · folders 도 표 통째 쓰기라 낡은 탭이 덮지 않게 먼저 맞춘다 */
   do{SH.again=false;const want=shWant();const jobs=[];
    for(const [p,b] of want){const j=canon(b);if(SH.synced.get(p)===j||SH.bad.get(p)===j)continue;
     if(j.length>1500000){if(shHostBig(p))continue;if(!SH.bigWarn){SH.bigWarn=true;toast('한 항목이 너무 커서 공유 저장하지 못했습니다 · 메모나 효과 글을 줄여 주세요')}SH.bad.set(p,j);continue}
-    jobs.push(async()=>{try{const o=JSON.parse(j);await SH.db.doc(p).set(o);SH.synced.set(p,j);SH.bad.delete(p);if(p.startsWith('trainers/'))rcvNote(p.slice(9),o.data)}catch(e){const c=shErr(e);if(c==='unavailable'||c==='resource_exhausted')retry=true;else{SH.bad.set(p,j);hard++}}})}
-   for(const p of [...SH.synced.keys()])if(!want.has(p))jobs.push(async()=>{try{await SH.db.doc(p).delete();SH.synced.delete(p)}catch(e){const c=shErr(e);if(c==='unavailable'||c==='resource_exhausted')retry=true;else hard++}});
+    jobs.push(async()=>{try{const o=JSON.parse(j);await SH.db.doc(p).set(o);SH.synced.set(p,j);shTrack(p,o);SH.bad.delete(p);if(p.startsWith('trainers/'))rcvNote(p.slice(9),o.data)}catch(e){const c=shErr(e);if(c==='unavailable'||c==='resource_exhausted')retry=true;else{SH.bad.set(p,j);hard++}}})}
+   for(const p of [...SH.synced.keys()])if(!want.has(p))jobs.push(async()=>{try{await SH.db.doc(p).delete();SH.synced.delete(p);shTrack(p,null)}catch(e){const c=shErr(e);if(c==='unavailable'||c==='resource_exhausted')retry=true;else hard++}});
    if(jobs.length){shStatus(`저장 중… (${jobs.length})`);await runPool(jobs,2)}
   }while(SH.again&&!retry)}finally{SH.flushing=false}
  if(retry){shBack=Math.min(30000,(shBack||1500)*2);shStatus(`잠시 뒤 다시 저장합니다 (${SH_ERR_KO[SH.lastErr]||SH.lastErr})`);shSchedule(shBack);return}
@@ -3381,9 +3386,12 @@ function shPutPoke(id,d){let p=null,owner=null;for(const t of S.trainers){const 
  else SH.orph.set(id,p)}
 function shDelTrainer(id){S.trainers=S.trainers.filter(t=>t.id!==id)}
 function shDelPoke(id){for(const t of S.trainers)t.pokemon=t.pokemon.filter(p=>p.id!==id);SH.orph.delete(id)}
-function shRebuildDB(){/* 아직 올리지 않은 내 설정 묶음은 받은 값으로 덮지 않는다 */const keepG={};if(SH.ready){const loc=shMetaGroups();for(const g in loc){const p='meta/set.'+g;if(SH.synced.has(p)&&SH.synced.get(p)!==canon(loc[g]))keepG[g]=clone(loc[g])}}
+function shRebuildDB(){/* 아직 올리지 않은 내 설정 묶음은 받은 값으로 덮지 않는다 */const keepG={};SH.kept=new Set();if(SH.ready){const loc=shMetaGroups();for(const g in loc){const p='meta/set.'+g;if(SH.synced.has(p)&&SH.synced.get(p)!==canon(loc[g])){keepG[g]=clone(loc[g]);SH.kept.add(p)}}}
  const keepNonDb={};for(const k in DEF)if(!(k in DBS))keepNonDb[k]=clone(DEF[k]);
- const byKind={};for(const [id,d] of SH.ed){if(d&&d.kind)(byKind[d.kind]=byKind[d.kind]||[]).push([id,d])}
+ /* 11-03: 아직 못 올린 내 DB 수정 행(dbedit)도 받은 사본 위에 얹는다 — 올리기 전에 남의 dbedit 가 오면 내 수정이 화면에서 사라지고 다음 저장이 그 행을 지우던 버그 */
+ const ED=new Map(SH.ed);if(SH.ready){try{const okK=k=>lazyOk(k)&&Array.isArray(S.db[k])&&S.db[k].length>0;/* 아직 한 번도 짓지 않은 표(레디메이드 · 상태 변화 기본 행이 방금 생긴 때)는 비교하지 않는다 */const loc=dbEditDocs();for(const [p,d] of loc){if(!okK(d.kind))continue;if(SH.synced.get(p)!==canon(d)){ED.set(p.slice(7),d);SH.kept.add(p)}}
+  for(const p of SH.synced.keys())if(p.startsWith('dbedit/')&&!loc.has(p)){const d=ED.get(p.slice(7));if(d&&okK(d.kind)){ED.delete(p.slice(7));SH.kept.add(p)}}}catch(e){console.warn('[공유 저장소] 미전송 수정 행 보존 실패',e)}}
+ const byKind={};for(const [id,d] of ED){if(d&&d.kind)(byKind[d.kind]=byKind[d.kind]||[]).push([id,d])}
  /* 10-27 망령: DB 새 판이 올라와도 고친 것을 잃지 않게.
     · 기본 DB에 이름이 없어진 수정 → 버리지 않고 SH.orph_ed 에 남긴다 (공유 DB 에서도 지우지 않음 · DB 탭에서 살리기/옮겨 붙이기/버리기)
     · 직접 추가한 행과 같은 이름이 기본 DB에 생기면 → 추가한 행이 그 자리의 기본 행을 덮는다 (줄 순서와 상관없이)
@@ -3415,7 +3423,7 @@ function ordCmp(a,b){return (a._ord-b._ord)||(a.id<b.id?-1:a.id>b.id?1:0)}
 function shAfter(paths,what){
  if(what.t){S.trainers.forEach((t,i)=>{if(t._ord==null)t._ord=i});S.trainers.sort(ordCmp);S.folders.forEach((f,i)=>{if(f._ord==null)f._ord=i});S.folders.sort(ordCmp)}
  if(what.d)shRebuildDB();
- const want=shWant();for(const p of paths){if(want.has(p))SH.synced.set(p,canon(want.get(p)));else SH.synced.delete(p)}
+ const want=shWant();let reup=false;for(const p of paths){if(SH.kept&&SH.kept.has(p)){/* 11-03: 내 미전송 수정을 남긴 문서 — 서버 값과 다르므로 다음 저장 때 내 값을 다시 올린다 */SH.synced.delete(p);reup=true;continue}if(want.has(p))SH.synced.set(p,canon(want.get(p)));else SH.synced.delete(p)}if(reup)shSchedule(300);
  /* 병합한 문서는 「받은 그대로」를 올라간 값으로 적어 둔다 → 합친 결과가 다음 저장 때 올라간다 */
  if(SH.mergeBase&&SH.mergeBase.size){for(const [p,j] of SH.mergeBase)SH.synced.set(p,j);SH.mergeBase.clear();shSchedule(300)}
  try{lsSet(K_T,JSON.stringify({trainers:S.trainers,folders:S.folders,ui:S.ui}));if(what.d)lsSet(K_DB,JSON.stringify({db:S.db,custom:S.custom}))}catch(e){}
@@ -3435,7 +3443,7 @@ async function shInit(){let db=null;try{db=window.MKM_STORE?await MKM_STORE.conn
   db.collection(kind).onSnapshot(snap=>{
    if(!SH.ready){SH.buf[kind]=snap.docs.map(d=>[d.id,d.data()]);SH.init[kind]=true;if(SH_KINDS.every(k=>SH.init[k]))shStart();return}
    const paths=[],what={};let W=null;for(const ch of snap.docChanges()){const id=ch.doc.id,p=kind+'/'+id;let d=ch.type==='removed'?null:ch.doc.data();
-    if(d){const dj=canon(d);if(SH.synced.get(p)===dj)continue;W=W||shWant();const w=W.get(p);if(w&&canon(w)===dj){SH.synced.set(p,dj);continue}}if(!d&&!SH.synced.has(p))continue;
+    if(d){const dj=canon(d);if(SH.synced.get(p)===dj)continue;W=W||shWant();const w=W.get(p);if(w&&canon(w)===dj){SH.synced.set(p,dj);shTrack(p,d);continue}}if(!d&&!SH.synced.has(p))continue;
     /* 칸 단위 3-way 병합 (점검 6-3): 아직 못 올린 내 수정이 있는 시트에 남의 저장이 오면, 내가 바꾼 칸은 내 것으로 두고 나머지 칸만 받는다. 합친 결과는 shAfter 뒤에 다시 올린다 */
     if(d&&(kind==='trainers'||kind==='pokemon')){W=W||shWant();const mine=W.get(p),bj=SH.synced.get(p);
      if(mine&&bj&&canon(mine)!==bj){const theirs=canon(d);const mg=shMerge(JSON.parse(bj),mine,d);if(mg){d=mg;(SH.mergeBase=SH.mergeBase||new Map()).set(p,theirs)}}}
