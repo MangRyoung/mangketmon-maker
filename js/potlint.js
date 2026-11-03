@@ -82,11 +82,15 @@ window.MKM_POTLINT=(()=>{
    for(const x of c.matchAll(/「([^」]+)」(?:을|를) (\d+(?:\.\d+)?)배로 만든다/g)){const ss=x[1].split('/');if(ss.every(s=>ST_EN[s]))for(const s of ss)mul.push(`${s}×${x[2]}`)}
    if(mul.length)L.push(`배율${tg&&tg!=='상대1체'?' '+tg:''} ${mul.join(' ')}${temp?' 임시':''}`);
    /* 위력 */
-   if((m=c.match(/(?:기술|「[^」]+기」|「[^」]+」 기술)(?:의|이 주는)? (?:대미지|위력)(?:을|를) 강화\((\d+(?:\.\d+)?)배\)/))){let s=`위력 ×${m[1]}`;const ty=c.match(/「([가-힣]+)」 기술/);if(/「단일기」/.test(c))s+=' 단일';if(/「전체기」/.test(c))s+=' 전체기';if(/「물리기」/.test(c))s+=' 물리';if(/「특수기」/.test(c))s+=' 특수';if(ty&&!/단일기|전체기|물리기|특수기|접촉기/.test(ty[1]))s+=' 타입:'+ty[1];if(/비일치|자속이 아닌/.test(c))s+=' 비자속';const cr=c.match(/\(C\+(\d)\)/);if(cr)s+=' 급소+'+cr[1];if(/【공세】/.test(tags+c0))s+=' 공세';L.push(s)}
+   if((m=c.match(/(?:기술|「[^」]+기(?: : [가-힣]+)?」|「[^」]+」 기술)(?:의|이 주는)? (?:대미지|위력)(?:을|를) 강화 ?\((\d+(?:\.\d+)?)배\)/))){let s=`위력 ×${m[1]}`;const ty=c.match(/「([가-힣]+)」 기술/)||c.match(/「(?:단일기|전체기|물리기|특수기|접촉기) : ([가-힣]+)」/);if(/「단일기 : /.test(c))s+=' 단일';if(/「전체기 : /.test(c))s+=' 전체기';if(/「물리기 : /.test(c))s+=' 물리';if(/「특수기 : /.test(c))s+=' 특수';if(/「단일기」/.test(c))s+=' 단일';if(/「전체기」/.test(c))s+=' 전체기';if(/「물리기」/.test(c))s+=' 물리';if(/「특수기」/.test(c))s+=' 특수';if(ty&&!/단일기|전체기|물리기|특수기|접촉기/.test(ty[1]))s+=' 타입:'+ty[1];if(/비일치|자속이 아닌/.test(c))s+=' 비자속';const cr=c.match(/\(C\+(\d)\)/);if(cr)s+=' 급소+'+cr[1];if(/【공세】/.test(tags+c0))s+=' 공세';L.push(s)}
    else if((m=c.match(/\(C\+(\d)\)/))){const ty=c.match(/「([가-힣]+)」 기술/);L.push(`위력 ×1${ty?' 타입:'+ty[1]:''} 급소+${m[1]}`)}
    /* 완화 */
    if((m=c.match(/받을 대미지를 완화\((\d?\.\d+)배\)/))||/받을 대미지를 반감/.test(c)){let s=`완화 ×${m?m[1]:'0.5'}`;if(/상성 : 2배?~8배/.test(c))s+=' 굉장';if(/「전체기」/.test(c))s+=' 전체기';if(/【수세】/.test(tags+c0))s+=' 수세';if(turns)s+=` ${turns}턴`;else if(temp)s+=' 이번턴';L.push(s)}
    else if((m=c.match(/「전체기」의 위력을 저하\((\d?\.\d+)배\)/)))L.push(`완화 ×${m[1]} 전체기${/【수세】/.test(tags+c0)?' 수세':''}`);
+   /* 11-03 검토: 「강철」 기술로 받는 대미지를 반감 · 자신에 대한 「베기」 기술의 대미지를 반감 · 「탄」「볼」 등의 기술 · 받을 기술의 대미지를 완화(N배) · 급소에 맞기 어려워진다(C-N) */
+   else if((m=c.match(/((?:「[^」]+」)+)\s*(?:등의\s*)?기술(?:로 받는|의)\s*대미지를\s*(반감|완화\s?\((\d?\.\d+)배\))/))&&!/상대의|대상이 받/.test(c.slice(0,m.index).slice(-6))){const ks=[...m[1].matchAll(/「([^」]+)」/g)].map(x=>x[1]);const T=window.OM_FX&&OM_FX.TYPE_KO?Object.values(OM_FX.TYPE_KO):[];const tys=ks.filter(k=>T.includes(k)),tgs=ks.filter(k=>!T.includes(k)&&!/:/.test(k));if(tys.length||tgs.length)L.push(`완화 ×${m[3]||'0.5'}${tys.length?' 타입:'+tys.join(','):''}${tgs.length?' 태그:'+tgs.join(','):''}`)}
+   else if((m=c.match(/받을 기술의 대미지를 완화\s?\((\d?\.\d+)배\)/)))L.push(`완화 ×${m[1]}`);
+   if((m=c.match(/급소에 맞기 어려워진다\s?\(C-(\d)\)/)))L.push(`완화 ×1 급소방호${m[1]}`);
    /* 회복 · 치유 */
    if((m=c.match(/「HP」를 (\d+\/\d+)만큼 회복/)))L.push(`회복 ${m[1]}${tg&&tg!=='상대1체'?' '+tg:''}`);
    if(/상태 이상.*치유|치유한다/.test(c)&&/상태 이상/.test(c))L.push(`치유${tg?' '+tg:''} 이상`);
