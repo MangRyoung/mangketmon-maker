@@ -8,6 +8,33 @@
 --   mk_snapshot(doc_path)       : 지금 값을 이력에 한 줄 남긴다 (「이 판으로 되돌리기」 직전에 — docs_audit 은 5분 안의 수정은 남기지 않으므로)
 -- 제작기(js/maker.js)는 함수가 없으면 「패치 SQL 을 실행해 달라」 안내만 하고 깨지지 않는다.
 
+-- ★ 11-03 11:51 망령: 「relation docs_history does not exist」 — 10-20 보호 패치가 실제 DB 에 안 들어가 있었다.
+--   그래서 이력 표 · docs_audit 트리거(20행 보호 · 그림 삭제 정책 제외)를 여기에 같이 둔다. 10-20 패치를 이미 돌렸어도 안전하다.
+create table if not exists public.docs_history (
+  hid  bigserial primary key,
+  kind text not null,
+  id   text not null,
+  data jsonb,
+  op   text not null,
+  at   timestamptz not null default now()
+);
+create index if not exists docs_history_kind_id on public.docs_history (kind, id, at desc);
+create index if not exists docs_history_at on public.docs_history (at);
+alter table public.docs_history enable row level security;   -- 정책 없음 → anon 직접 접근 불가(아래 함수로만)
+
+create or replace function public.docs_audit() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'DELETE' or old.updated_at < now() - interval '5 minutes' then
+    insert into public.docs_history(kind, id, data, op) values (old.kind, old.id, old.data, tg_op);
+  end if;
+  if random() < 0.01 then delete from public.docs_history where at < now() - interval '30 days'; end if;
+  return null;
+end $$;
+drop trigger if exists docs_audit on public.docs;
+create trigger docs_audit after update or delete on public.docs
+  for each row execute function public.docs_audit();
+
 -- 이력 조회: doc_path = 'kind/id' (id 안에 '/' 가 있어도 첫 '/' 에서만 자른다)
 create or replace function public.mk_history(doc_path text, lim int default 30)
 returns table (hid bigint, op text, at timestamptz, data jsonb)
