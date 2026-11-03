@@ -72,7 +72,10 @@ window.OM_FX=(()=>{
  function sideMons(b,side){return Object.values(b.mons||{}).filter(m=>m.side===side&&m.entry&&alive(m))}
  /* 10-24 망령: 개인전 — 트레이너에 solo 가 켜져 있으면 같은 진영이어도 그 트레이너 혼자 한 편 (오레마스 OM_TEAM 과 같은 규칙) */
  function teamOf(b,m){const t=((b&&b.trainers)||{})[m&&m.tid];return t&&t.solo?'solo:'+m.tid:(m&&m.side)||''}
- async function targets(b,self,tgt,ctx){const tm=teamOf(b,self);const live=Object.values(b.mons||{}).filter(m=>m.entry&&alive(m));const allies=live.filter(m=>teamOf(b,m)===tm),enemies=live.filter(m=>teamOf(b,m)!==tm);
+ /* 11-03 20:44 망령 「커맨더 · 옵저버 같은 【방호】 아군 배율」: 【유일】 — 같은 이름의 효과를 다른 포켓몬에게서 이미 받은 대상은 빼고 건다 (같은 효과가 겹치지 않게) */
+ function uqHas(m,name,self){const nm=String(name||'').replace(/『|』/g,'').trim();if(!nm||!m||!m.fx)return false;const own=nm+' ← '+(self&&self.name);
+  for(const k of HL)for(const e of (m.fx[k]||[])){const kk=String(e&&e.key||'');if(kk.startsWith(nm+' ← ')&&!kk.startsWith(own))return true}return false}
+ async function targets(b,self,tgt,ctx){if(ctx&&ctx.uniq){const r=await targets(b,self,tgt,Object.assign({},ctx,{uniq:0}));return r.filter(m=>m===self||!uqHas(m,ctx.name,self))}const tm=teamOf(b,self);const live=Object.values(b.mons||{}).filter(m=>m.entry&&alive(m));const allies=live.filter(m=>teamOf(b,m)===tm),enemies=live.filter(m=>teamOf(b,m)!==tm);
   const pick=async(list,label)=>{if(!list.length)return [];if(list.length===1)return [list[0]];if(ctx.pick)return [await ctx.pick(list,label)].filter(Boolean);return [list[0]]};
   const rnd=list=>list.length?[list[Math.floor(Math.random()*list.length)]]:[];
   switch(tgt){case 'self':return [self];case 'ally':return allies.length?allies:[self];case 'allyx':return allies.filter(m=>m.id!==self.id);   /* 10-27 드래곤옐 */case 'enemy':return enemies;case 'others':return [...allies,...enemies].filter(m=>m.id!==self.id);case 'all':return [...allies,...enemies];
@@ -108,7 +111,7 @@ window.OM_FX=(()=>{
     if((op.p||op.pl)&&!ctx.noRoll){const base=op.p?+op.p:percentOf(op.pl);const rr=rollP(self,base,ctx);const lb=op.pl||(op.p%10===0?op.p/10+'할':op.p+'%');if(!rr.ok){L.push(`${lb} 판정 실패 (${rr.r}/${rr.p})${rr.adj} — ${unparse([Object.assign({},op,{p:0,pl:''})])[0]||''}`);continue}L.push(`${lb} 판정 성공 (${rr.r}/${rr.p})${rr.adj}`)}
     const hs=(op.hold||ctx.hold)&&self&&op.k!=='choice'?holdSnap(b):null;
     await runOp(op);
-    if(hs)holdDiff(b,self,hs,name);
+    if(hs)holdDiff(b,self,hs,name,ctx.uniq);
    }catch(e){L.push(`(${op.k} 처리 중 오류: ${e.message})`)}}
   RUNB=prevB;return {lines:L,b};
   async function runOp(op){
@@ -204,7 +207,7 @@ window.OM_FX=(()=>{
  /* ===== 「필드 위에 있는 한」 (10-23 망령): 그 효과가 바꾼 것을 기억했다가, 쓴 포켓몬이 필드를 떠나면 되돌린다 ===== */
  const HL=['mods','noind','prio','immune','nodrop','mults','chance'];
  function holdSnap(b){const s={mons:{},f:JSON.parse(JSON.stringify(b.field||{}))};for(const id in b.mons||{}){const m=b.mons[id];const F=m.fx||{};s.mons[id]={keys:HL.map(k=>(F[k]||[]).map(e=>e.key)),st:Object.assign({},m.states||{}),rank:Object.assign({},m.rank||{}),iu:F.ignoreUp?F.ignoreUp.name:'',fl:!!F.float,ty:!!m.typesOrig,ab:m.abilityOrig!=null,ro:(F.roles||[]).slice()}}return s}
- function holdDiff(b,self,s,name){const H=self.holds=self.holds||[];const push=x=>H.push(Object.assign({name},x));
+ function holdDiff(b,self,s,name,uq){const H=self.holds=self.holds||[];const push=x=>H.push(Object.assign({name},uq?{uq:1}:{},x));
   for(const id in b.mons||{}){const m=b.mons[id];const o=s.mons[id];if(!o)continue;const F=m.fx||{};
    HL.forEach((k,i)=>{for(const e of (F[k]||[]))if(!o.keys[i].includes(e.key))push({mid:id,list:k,key:e.key,e:JSON.parse(JSON.stringify(e)),rel:id===self.id?'self':teamOf(b,m)===teamOf(b,self)?'ally':'enemy'})});
    for(const k in m.states||{})if(o.st[k]==null)push({mid:id,st:k});
@@ -216,13 +219,13 @@ window.OM_FX=(()=>{
   for(const sd of ['left','right'])for(const k in ((f.objects||{})[sd]||{}))if(!(((g.objects||{})[sd]||{})[k]))push({fld:'obj',sd,v:k})}
  /* 10-26 (서서 VS 마리 시험): 「필드 위에 있는 한」 효과(재앙의그릇 · 승리의별 …)는 나중에 들어온 포켓몬에게도 — 등장할 때 필드의 다른 포켓몬이 걸어 둔 효과를 같은 관계(아군/상대)로 옮겨 건다 */
  function reAura(b,nm){const L=[];if(!nm||!nm.entry)return L;for(const x of Object.values(b.mons||{})){if(!x||x.id===nm.id||!x.entry||!alive(x)||!(x.holds||[]).length)continue;const rel=teamOf(b,x)===teamOf(b,nm)?'ally':'enemy';const done=new Set();
-   for(const h of x.holds){if(!h.list||!h.e||!h.rel||h.rel==='self'||h.rel!==rel||done.has(h.list+'|'+h.key))continue;done.add(h.list+'|'+h.key);const F=fx(nm);if((F[h.list]||[]).some(e=>e.key===h.key))continue;const e=JSON.parse(JSON.stringify(h.e));F[h.list].push(e);
+   for(const h of x.holds){if(!h.list||!h.e||!h.rel||h.rel==='self'||h.rel!==rel||done.has(h.list+'|'+h.key))continue;done.add(h.list+'|'+h.key);const F=fx(nm);if((F[h.list]||[]).some(e=>e.key===h.key))continue;if(h.uq&&uqHas(nm,h.name,x))continue;const e=JSON.parse(JSON.stringify(h.e));F[h.list].push(e);
     if(h.list==='mults'){nm.mod=nm.mod||{};for(const k in e.stats||{}){nm.mod[k]=Math.round(((+nm.mod[k]||1)*(+e.stats[k]||1))*1000)/1000;if(Math.abs(nm.mod[k]-1)<0.002)delete nm.mod[k]}}
     x.holds.push(Object.assign({},h,{mid:nm.id}));L.push(`${nm.name} 「${h.name}」 ${h.list==='mults'?Object.entries(e.stats||{}).map(([k,v])=>(STAT_KO[k]||k)+' ×'+v).join(' · '):'효과'} — ${x.name}이(가) 필드에 있는 동안`)}}
   /* 「있는한」 기록이 없는 상시 효과(특성 · 포텐셜 이름으로 걸린 것)는 같은 관계의 다른 포켓몬에게 걸린 것을 본떠 건다 — 기술 효과는 옮기지 않는다 */
   for(const x of Object.values(b.mons||{})){if(!x||x.id===nm.id||!x.entry||!alive(x))continue;const srcN=new Set([x.ability,...((x.pots||[]).map(p=>p&&p.name)),...(x.excl?[x.excl.name]:[])].filter(Boolean).map(n=>String(n).replace(/『|』/g,'').trim()));const rel=teamOf(b,x)===teamOf(b,nm)?'ally':'enemy';
    for(const y of Object.values(b.mons||{})){if(!y||y.id===nm.id||y.id===x.id||!y.entry||!alive(y)||!y.fx)continue;if((teamOf(b,x)===teamOf(b,y)?'ally':'enemy')!==rel)continue;
-    for(const k of HL)for(const e0 of (y.fx[k]||[])){const kk=String(e0.key||'');const tail=' ← '+x.name;if(!kk.endsWith(tail)||e0.temp||e0.next||(e0.until!=null&&+e0.until>=0)||(+e0.turn>0))continue;const nmS=kk.slice(0,-tail.length).trim();if(!srcN.has(nmS))continue;const F=fx(nm);if((F[k]||[]).some(e=>e.key===kk))continue;const e=JSON.parse(JSON.stringify(e0));F[k].push(e);
+    for(const k of HL)for(const e0 of (y.fx[k]||[])){const kk=String(e0.key||'');const tail=' ← '+x.name;if(!kk.endsWith(tail)||e0.temp||e0.next||(e0.until!=null&&+e0.until>=0)||(+e0.turn>0))continue;const nmS=kk.slice(0,-tail.length).trim();if(!srcN.has(nmS))continue;if((x.holds||[]).some(h=>h.name===nmS&&h.list))continue;   /* 「있는 한」 기록이 있는 효과는 위에서(【유일】까지 보고) 처리했다 */const F=fx(nm);if((F[k]||[]).some(e=>e.key===kk))continue;const e=JSON.parse(JSON.stringify(e0));F[k].push(e);
      if(k==='mults'){nm.mod=nm.mod||{};for(const s2 in e.stats||{}){nm.mod[s2]=Math.round(((+nm.mod[s2]||1)*(+e.stats[s2]||1))*1000)/1000;if(Math.abs(nm.mod[s2]-1)<0.002)delete nm.mod[s2]}}
      L.push(`${nm.name} 「${nmS}」 ${k==='mults'?Object.entries(e.stats||{}).map(([q,v])=>(STAT_KO[q]||q)+' ×'+v).join(' · '):'효과'} — ${x.name}이(가) 필드에 있는 동안`)}}}
   return L}
