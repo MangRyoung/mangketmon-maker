@@ -867,7 +867,7 @@ html.modal-on #mk{overflow:hidden}
  #mk .tcard .tuqc.more{grid-column:auto}
  #mk .tcard .tacts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;justify-content:stretch}
  #mk .tcard .tacts .tmove{grid-column:1/-1;max-width:none;width:100%;height:32px}
- #mk .tcard .tacts .btn{min-height:40px;padding:0 4px;justify-content:center;white-space:nowrap;font-size:12.5px}
+ #mk .tcard .tacts .btn{min-height:40px;padding:0 4px;justify-content:center;white-space:nowrap;font-size:12.5px;margin-left:0}
 }
 /* 10-23 망령: 캐릭터 시트 지시 체계 (명령 ORDER 4식 · 지령 COMMAND 6령) */
 #mk .tord{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line,#ccc)}
