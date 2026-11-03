@@ -986,12 +986,12 @@ function sk3Html(t,ti){const s=t.sk3||{};const V=t.vault||[];const used=new Set(
 /* 칸 고르기 창: 그 종류 공통 카드 + 보관소 카드를 카드 그림으로 */
 function openSk3Pick(T,k,rf){const L=skChoices(T,k);const s=T.sk3||{};const lab=SK3N[k];
  const other=n=>Object.entries(s).find(([kk,v])=>kk!==k&&v===n);
- const tile=x=>{const o=other(x.n);return `<button type="button" class="mksk-p${s[k]===x.n?' on':''}${o?' dim':''}" data-pk="${esc(x.n)}" ${o?'disabled':''} title="${esc(x.n)}${o?` — ${SK3N[o[0]]} 칸에 있음`:''}">${skcOf(x.n,{cls:'skc-mini',badge:x.v?'보관소':'',sel:s[k]===x.n})}${o?`<span class="small faint">${SK3N[o[0]]} 칸</span>`:''}</button>`};
+ const tile=x=>{const o=other(x.n);return `<button type="button" class="mksk-p${s[k]===x.n?' on':''}${o?' dim':''}" data-pk="${esc(x.n)}" ${o?'disabled':''} title="${esc(x.n)}${o?` — ${SK3N[o[0]]} 칸에 있음`:''}">${skcOf(x.n,{cls:'',badge:x.v?'보관소':''})}${o?`<span class="small faint">${SK3N[o[0]]} 칸</span>`:''}</button>`};
  const com=L.filter(x=>!x.v),va=L.filter(x=>x.v);
  const l=openModal(`<div class="mhead"><h2>${esc(T.name||'트레이너')} · ${lab} 칸</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
   <div class="mbody"><p class="small muted" style="margin:0 0 8px">${esc((SK3.find(x=>x[0]===k)||[])[2]||'')}</p>
-  <b class="small">공통 카드 ${com.length}</b><div class="mksk-pg">${com.map(tile).join('')||'<p class="small faint">카드 DB 에 「은열쇠 · 공통」 '+lab+' 카드가 없습니다</p>'}</div>
-  <b class="small" style="display:block;margin-top:12px">보관소 ${va.length}</b><div class="mksk-pg">${va.map(tile).join('')||'<p class="small faint">이 종류의 보관소 카드가 없습니다</p>'}</div></div>
+  <b class="small">공통 카드 ${com.length}</b><div class="mksk-pg">${com.map(tile).join('')||'<p class="small faint mksk-none">카드 DB 에 「은열쇠 · 공통」 '+lab+' 카드가 없습니다</p>'}</div>
+  <b class="small" style="display:block;margin-top:12px">보관소 ${va.length}</b><div class="mksk-pg">${va.map(tile).join('')||'<p class="small faint mksk-none">이 종류의 보관소 카드가 없습니다 — GM 이 웹툴에서 건네주면 여기 뜹니다</p>'}</div></div>
   <div class="mfoot">${s[k]?'<button class="btn danger" data-clr>칸 비우기</button>':''}<span class="sp"></span><button class="btn pri" data-x>닫기</button></div>`,{wide:true});
  l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))return closeModal();
   if(e.target.closest('[data-clr]')){T.sk3=Object.assign({},T.sk3||{});delete T.sk3[k];closeModal();return rf()}

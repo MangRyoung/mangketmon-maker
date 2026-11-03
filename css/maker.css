@@ -1381,3 +1381,5 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 .mksk-p{all:unset;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px;border-radius:10px;border:2px solid transparent}
 .mksk-p .skc{width:100%}.mksk-p:hover .skc{transform:translateY(-3px)}.mksk-p .skc{transition:transform .15s ease}
 .mksk-p.on{border-color:var(--acc,#ffd12e)}.mksk-p.dim{opacity:.4;cursor:not-allowed}.mksk-p:focus-visible{outline:2px solid var(--acc,#ffd12e)}
+.mksk-pg{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.mksk-none{grid-column:1/-1;margin:2px 0}
+@media(max-width:640px){.mksk-pg{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}}
