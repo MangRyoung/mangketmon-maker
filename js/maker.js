@@ -933,6 +933,7 @@ function deckChecks(t){const L=t.deck||[];if(!L.length)return [];const out=[];co
  for(const x of L){const r=idx.cards&&idx.cards.get(x.n);const q=+x.q||0;if(!q)continue;const c=r?String(r[12]||'').trim():'';cnt[c in cnt?c:'']+=q;
   const mx=cardMax(r);if(q>mx)out.push(mx===1?`「${x.n}」은(는) 덱에 1장만 넣을 수 있습니다 (지금 ${q}장)`:`「${x.n}」 ${q}장 — 같은 카드는 ${mx}장까지`)}
  const main=cnt.열쇠+cnt.준비+cnt[''];
+ if(!(cnt.열쇠||cnt.준비||cnt.증상)){/* 아직 분류를 안 쓴 카드 DB: 예전처럼 10장 넘을 때만 */if(main>10)out.push(`덱 ${main}장 — 열쇠 2 + 준비 6 = 8장, 증상까지 10장 상한 (카드 DB 에 「분류」를 넣으면 자세히 검사합니다)`);return out}
  if(cnt.열쇠>2)out.push(`열쇠 카드 ${cnt.열쇠}장 — 2장 기준`);if(cnt.준비>6)out.push(`준비 카드 ${cnt.준비}장 — 6장 기준`);
  if(main>8)out.push(`열쇠 · 준비 ${main}장 — 열쇠 2 + 준비 6 = 8장 기준${cnt['']?` (분류 없는 카드 ${cnt['']}장 포함)`:''}`);
  if(main+cnt.증상>10)out.push(`덱 ${main+cnt.증상}장 — 증상까지 10장 상한`);return out}
@@ -3418,7 +3419,7 @@ function shState(){const cfg=window.MKM_STORE&&MKM_STORE.configured();
  if(SH.net==='off')return {k:'off',s:'연결 끊김',t:'실시간 연결이 끊겼습니다 · 남의 수정이 안 보일 수 있어요 (「다시 연결」)'};
  const bad=SH.bad?SH.bad.size:0;if(bad)return {k:'warn',s:`실패 ${bad}건`,t:`저장 실패 ${bad}건 · ${SH_ERR_KO[SH.lastErr]||SH.lastErr||''}`};
  if(SH.flushing||(shTimer&&SH.retryAt))return {k:'busy',s:SH.retryAt?'다시 시도 중':'저장 중',t:SH.retryAt?`잠시 뒤 다시 저장합니다 (${SH_ERR_KO[SH.lastErr]||SH.lastErr||''})`:'저장 중…'};
- if(shDirty())return {k:'busy',s:'저장 대기',t:'곧 저장합니다'};
+ if(SH.pendT)return {k:'busy',s:'저장 대기',t:'곧 저장합니다'};
  return {k:'ok',s:'저장됨',t:'공유 DB 와 맞습니다 · '+(SH.last||'')}}
 function shDot(){const el=$('#shdot');if(!el)return;const st=shState();el.className='shdot '+st.k;el.title=st.t;const b=el.querySelector('b');if(b)b.textContent=st.s;el.setAttribute('aria-label','저장 · 연결 상태: '+st.s)}
 function shBadNames(){const out=[];for(const p of (SH.bad||new Map()).keys()){const i=p.indexOf('/'),kind=p.slice(0,i),id=p.slice(i+1);let n='';
@@ -3488,7 +3489,7 @@ function shTrack(p,o){const i=p.indexOf('/'),kind=p.slice(0,i),id=p.slice(i+1);
  if(kind==='dbedit'){if(o)SH.ed.set(id,clone(o));else SH.ed.delete(id)}
  else if(kind==='meta'){if(id==='settings')SH.metaL=o?clone(o):null;else if(id.startsWith('set.')){SH.metaG=SH.metaG||{};if(o)SH.metaG[id.slice(4)]=clone(o);else delete SH.metaG[id.slice(4)]}else return;SH.meta=shMetaMerge()}}
 let shTimer=null,shBack=0,shLastFlush=0;
-function shSchedule(ms){clearTimeout(shTimer);shTimer=setTimeout(()=>shFlush(),ms);shDot()}
+function shSchedule(ms){clearTimeout(shTimer);SH.pendT=true;shTimer=setTimeout(()=>{SH.pendT=false;shFlush()},ms);shDot()}
 async function shFlush(){if(!SH.on||!SH.ready)return;if(!SH.canWrite){shStatus('읽기 전용 · 고친 내용은 공유되지 않습니다');return}
  if(SH.flushing){SH.again=true;return}
  const wait=800-(Date.now()-shLastFlush);if(wait>0){shSchedule(wait);return}
