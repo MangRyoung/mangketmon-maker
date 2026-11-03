@@ -279,10 +279,12 @@ ul.impl{margin:4px 0 4px 18px;padding:0;max-height:180px;overflow:auto;font-size
 #mk .tg{display:inline-block;font-family:var(--mono);font-size:.82em;font-weight:500;padding:0 5px;margin:0 1px;border-radius:4px;background:var(--tag-bg);color:var(--tag-ink);white-space:nowrap}
 #mk .kindb{display:inline-block;font-size:10.5px;color:var(--muted);background:var(--sunk2);border-radius:4px;padding:0 5px}
 #mk .copybox{font:12px/1.5 var(--mono);background:var(--sunk);word-break:break-all;white-space:pre-wrap;max-height:200px;overflow:auto;border-radius:8px;padding:8px 10px;border:1px solid var(--line)}
-#mk .layer{position:fixed;inset:0;z-index:50;background:rgba(10,15,22,.45);display:flex;align-items:flex-start;justify-content:center;padding:max(24px,env(safe-area-inset-top,0px)) 12px 24px;overflow:auto}
+#mk .layer{position:fixed;inset:0;z-index:50;background:rgba(10,15,22,.6);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);display:flex;align-items:flex-start;justify-content:center;padding:max(24px,env(safe-area-inset-top,0px)) 12px 24px;overflow:auto}
 #mk .mbox{background:var(--surface);border-radius:14px;width:min(760px,100%);box-shadow:0 20px 60px rgba(0,0,0,.3);display:flex;flex-direction:column;max-height:calc(100vh - 48px)}
 #mk .mbox.wide{width:min(1100px,100%)}
-#mk .mhead{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line)}
+#mk .mhead{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:12px 16px;border-bottom:1px solid var(--line)}
+#mk .mhead h2{flex:0 1 auto;min-width:0}
+@media (max-width:600px){#mk .mhead h2{flex-basis:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#mk .mhead>.sp{display:none}#mk .mhead .btn{flex:0 1 auto}}
 #mk .mhead h2{margin:0;font:21px var(--display);font-weight:400}
 #mk .mbody{padding:12px 16px;overflow:auto;display:flex;flex-direction:column;gap:10px;min-height:0}
 #mk .mfoot{display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;border-top:1px solid var(--line);align-items:center}
@@ -339,9 +341,9 @@ ul.impl{margin:4px 0 4px 18px;padding:0;max-height:180px;overflow:auto;font-size
 #mk .dbt td.ef{white-space:normal}
 #mk html.modal-on,#mk html.modal-on body{overflow:hidden}
 #mk input[type=search]::-webkit-search-cancel-button{cursor:pointer}
-@media (pointer:coarse){#mk .btn{min-height:36px;height:auto}#mk .btn.sm{min-height:32px;height:auto;padding:0 10px}#mk input,#mk select,#mk textarea{font-size:16px}#mk .ptabs button{padding:11px 12px}#mk .tchips button{padding:4px 11px}#mk .tagbar button{padding:5px 8px}#mk .hdl{padding:6px}#mk{-webkit-tap-highlight-color:transparent}}
+@media (pointer:coarse){#mk .btn{min-height:40px;height:auto}#mk .btn.sm{min-height:40px;height:auto;padding:0 10px}#mk .banw .bx{font-size:14px;padding:6px 10px;margin:-4px -2px -4px 0}#mk .fmb{padding:8px 11px;font-size:12px}#mk .pname>.fmbs .fmb{padding:7px 10px;font-size:11.5px}#mk .mva label{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);gap:5px!important}#mk .mva input[type=checkbox]{width:18px;height:18px;margin:0}#mk .popmenu button{min-height:44px}#mk .introtog{min-height:36px;padding:0 12px}#mk .dbth{padding-top:10px;padding-bottom:10px}#mk input,#mk select,#mk textarea{font-size:16px}#mk .ptabs button{padding:11px 12px}#mk .tchips button{padding:4px 11px}#mk .tagbar button{padding:5px 8px}#mk .hdl{padding:6px}#mk{-webkit-tap-highlight-color:transparent}}
 @media (max-width:700px){#mk input,#mk select,#mk textarea{font-size:16px}#mk .wide-only{display:none}#mk .narrow-only{display:initial}#mk .top{position:sticky;flex-wrap:nowrap;gap:8px;padding:6px 10px}#mk .brand .bt{display:none}#mk .tabs{flex:1;min-width:0}#mk .tabs button{flex:1;padding:7px 4px}#mk .toolsbtn{display:inline-flex}#mk .tools{display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow);padding:10px;gap:8px;margin:0}#mk .top.tools-open .tools{display:flex}#mk .tools .btn{flex:1 1 40%;justify-content:center}#mk #saved{flex-basis:100%;text-align:center}#mk main{padding-inline:10px;padding-top:12px}#mk .intro{margin-bottom:10px}#mk .intro h1{font-size:24px}#mk .intro p{flex-basis:100%}#mk .fh{padding:10px;gap:6px 8px}#mk .tname{font-size:19px}#mk .fb{padding:10px;gap:10px}#mk .panel{padding:10px}#mk .panel h3{flex-wrap:wrap;row-gap:4px}#mk .imgbox{height:150px}#mk .imgbox:not(:has(img)){height:72px}#mk .segtog{display:flex}#mk .split[data-seg=pick]>.seg-edit,#mk .split[data-seg=edit]>.seg-pick{display:none!important}#mk .tright td:last-child input{width:100%}#mk .pbody{padding:0 10px 10px}#mk .ptabs{margin:0 -10px 10px;padding:0 4px}#mk .ftog{display:inline-flex}#mk .fwrap:not(.on){display:none}#mk .xfrow select{flex:1 1 140px;max-width:none}#mk .dbbar .btn.pri{order:3}#mk .dbt{max-height:none}#mk .dbt td.ef{min-width:220px}#mk .dbt td.ef .efc{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}#mk .dbt td.b,#mk .dbt th:first-child{position:sticky;left:0;background:var(--surface);z-index:1;box-shadow:1px 0 0 var(--line)}#mk .dbt th:first-child{z-index:2;background:var(--sunk)}#mk .tagbar{flex-wrap:nowrap;overflow-x:auto}#mk .tagbar button{flex:none}#mk .subtabs button{padding:6px 10px}}
-@media (max-width:600px){#mk .layer{padding:0;align-items:stretch}#mk .mbox,#mk .mbox.wide{width:100%;max-height:none;height:100%;height:100dvh;border-radius:0;box-shadow:none}#mk .mhead{padding:calc(8px + env(safe-area-inset-top,0px)) 12px 8px}#mk .mhead h2{font-size:19px}#mk .mbody{padding:10px 12px;flex:1}#mk .mfoot{padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}#mk .pkhead{position:sticky;top:-10px;z-index:3;background:var(--surface);margin:-10px 0 0;padding:10px 0 6px}#mk .pkrows{max-height:none;overflow:visible}#mk .pkr{grid-template-columns:minmax(0,1fr);gap:4px}#mk .pkr .meta{text-align:left;white-space:normal;display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px}#mk .pkr .meta>span:not(.rgrid){display:inline}#mk .split .pkhead{position:static;margin:0;padding:0}#mk .mbody>.segtog{position:sticky;top:-10px;z-index:4;box-shadow:0 0 0 6px var(--surface)}#mk html.modal-on #toast{bottom:calc(76px + env(safe-area-inset-bottom,0px))}#mk .ph{gap:8px;padding:8px}#mk .pact .btn{padding:0 7px}}
+@media (max-width:600px){#mk .layer{padding:0;align-items:stretch}#mk .mbox,#mk .mbox.wide{width:100%;max-height:none;height:100%;height:100dvh;border-radius:0;box-shadow:none}#mk .mhead{padding:calc(8px + env(safe-area-inset-top,0px)) 12px 8px}#mk .mhead h2{font-size:19px}#mk .mbody{padding:10px 12px;flex:1}#mk .mfoot{padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}#mk .pkhead{position:sticky;top:-10px;z-index:3;background:var(--surface);margin:-10px 0 0;padding:10px 0 6px;flex-wrap:wrap;gap:6px}#mk .pkhead [data-pkq]{flex:1 1 100%!important}#mk .pkhead [data-pkcount]{margin-right:auto}#mk .pkrows{max-height:none;overflow:visible}#mk .pkr{grid-template-columns:minmax(0,1fr);gap:4px}#mk .pkr .meta{text-align:left;white-space:normal;display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px}#mk .pkr .meta>span:not(.rgrid){display:inline}#mk .split .pkhead{position:static;margin:0;padding:0}#mk .mbody>.segtog{position:sticky;top:-10px;z-index:4;box-shadow:0 0 0 6px var(--surface)}#mk html.modal-on #toast{bottom:calc(76px + env(safe-area-inset-bottom,0px))}#mk .ph{gap:8px;padding:8px}#mk .pact .btn{padding:0 7px}}
 #mk .folder.flash{outline:3px solid var(--blue);outline-offset:2px;transition:outline-color .3s}
 html.modal-on #mk{overflow:hidden}
 
@@ -488,7 +490,7 @@ html.modal-on #mk{overflow:hidden}
 #mk .radar.big .rn{font:10px var(--mono,monospace);fill:var(--ink)}
 @media (max-width:1180px){#mk .stwrap{grid-template-columns:minmax(0,1fr)}#mk .bigr{grid-column:1;grid-row:1;display:flex;justify-content:center}#mk .stwrap>.stats{grid-row:2}}
 @media (max-width:800px){#mk .ph{grid-template-columns:44px minmax(0,1fr) auto}}
-@media (max-width:600px){#mk .ph{grid-template-columns:44px minmax(0,1fr);row-gap:2px}#mk .ph .pact{grid-column:1/-1;justify-content:flex-end;margin:-2px -4px -4px 0}#mk .ph .pact .btn{min-height:28px;font-size:12.5px}
+@media (max-width:600px){#mk .ph{grid-template-columns:44px minmax(0,1fr);row-gap:2px}#mk .ph .pact{grid-column:1/-1;justify-content:flex-end;margin:-2px -4px -4px 0;flex-wrap:nowrap;gap:4px}#mk .ph .pact .btn{min-height:40px;font-size:12.5px;padding:0 9px}
  #mk .pname{flex-wrap:nowrap;white-space:nowrap}#mk .pname>:first-child{overflow:hidden;text-overflow:ellipsis}
  #mk .psub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 /* 폰: 위쪽 탭을 아래 고정 탭바로 */
@@ -833,7 +835,7 @@ html.modal-on #mk{overflow:hidden}
 @media (max-width:600px){#mk #trs[data-sort="folders"]{grid-template-columns:minmax(0,1fr);gap:8px}#mk .tfold.open>.tfh.ftile{grid-template-columns:auto auto minmax(0,1fr);grid-template-areas:"car ic main" "bot bot bot"}#mk .tfold.open>.tfh.ftile.fnone{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"car main" "bot bot"}#mk .ftile .facts .btn{padding:0 7px}#mk .ftile .facts .fic{width:30px}#mk .tfh.ftile{padding:8px 10px 8px 12px;gap:6px 9px}#mk .ftile .ficon{width:34px;height:34px}#mk .ftile .fname{font-size:17px}}
 /* 10-24 망령: 포켓몬 머리의 삭제를 눈에 띄게 (배경 볼 무늬에 묻혀 안 보였다) */
 #mk .pact .pdel{background:color-mix(in srgb,var(--warn) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 40%,var(--line));position:relative;z-index:1}
-@media (max-width:600px){#mk .ph .pact{margin:-2px 2px -4px 0}#mk .pact .pdel{padding:0 8px}}
+@media (max-width:600px){#mk .ph .pact{margin:-2px 2px -4px 0}#mk .pact .pdel{padding:0 8px}#mk .ph>.pact{flex-wrap:nowrap}}
 /* 10-25 망령: 휴대폰 포켓몬 머리 — 「≤1100px 6칸 격자」 규칙이 휴대폰 규칙보다 뒤에 있어 머리줄이 화면 밖으로 넘쳤다(전용 칸과 「한 장 · 복사 · 복제」 겹침, 삭제 잘림). 휴대폰 격자를 다시 걸고, 전용은 제 줄 전체 · 단추는 그 아래 줄 오른쪽 */
 @media (max-width:800px){#mk .ph{grid-template-columns:44px minmax(0,1fr) auto}}
 @media (max-width:600px){#mk .ph{grid-template-columns:44px minmax(0,1fr)}#mk .ph>.pmain{grid-column:2/-1}#mk .ph>.pexcl{grid-column:1/-1;grid-row:auto;min-width:0}#mk .ph>.pact{grid-column:1/-1;grid-row:auto;justify-content:flex-end;flex-wrap:wrap;margin:0;align-self:auto}}
@@ -865,7 +867,7 @@ html.modal-on #mk{overflow:hidden}
  #mk .tcard .tuqc.more{grid-column:auto}
  #mk .tcard .tacts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;justify-content:stretch}
  #mk .tcard .tacts .tmove{grid-column:1/-1;max-width:none;width:100%;height:32px}
- #mk .tcard .tacts .btn{min-height:32px;padding:0 4px;justify-content:center;white-space:nowrap;font-size:12.5px}
+ #mk .tcard .tacts .btn{min-height:40px;padding:0 4px;justify-content:center;white-space:nowrap;font-size:12.5px}
 }
 /* 10-23 망령: 캐릭터 시트 지시 체계 (명령 ORDER 4식 · 지령 COMMAND 6령) */
 #mk .tord{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line,#ccc)}
@@ -1137,11 +1139,13 @@ html[data-vt="mm"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 #mk .favstar{background:none;border:0;color:var(--muted);font-size:15px;cursor:pointer;padding:0 4px;line-height:1;vertical-align:middle}
 #mk .favstar.on{color:#f0b429}
 #mk .favstar:hover{color:#f0b429}
-#mkFav{position:fixed;left:10px;top:120px;width:210px;max-height:calc(100vh - 160px);overflow:auto;background:var(--surface,#fff);color:var(--ink,#222);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.12);z-index:30;font-size:13px}
+#mkFav{position:fixed;left:max(6px,calc((100vw - 1440px) / 2 - 224px));top:120px;width:210px;max-height:calc(100vh - 160px);overflow:auto;background:var(--surface,#fff);color:var(--ink,#222);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.12);z-index:30;font-size:13px}
 #mkFav .favh{all:unset;display:flex;align-items:center;gap:6px;width:100%;box-sizing:border-box;padding:8px 10px;font-weight:700;color:#d9962a;cursor:pointer;border-bottom:1px solid var(--line)}
 #mkFav .favh small{color:var(--muted);font-weight:500}
-#mkFav.closed{width:auto}
+#mkFav.closed{width:auto;left:max(6px,calc((100vw - 1440px) / 2 - 44px))}
 #mkFav.closed .favh{border-bottom:0;writing-mode:vertical-rl;padding:10px 6px}
+/* 11-03 (20번 검토 편의 7): 1500px 미만에선 main 바깥 여백이 없어 제목을 가리므로 왼쪽 가장자리의 얇은 띠로 — 누르면 떠서 펼쳐진다 */
+@media(max-width:1499px){#mkFav.closed{left:0;top:50vh;transform:translateY(-50%);border-radius:0 10px 10px 0;border-left:0;box-shadow:0 3px 12px rgba(0,0,0,.15)}#mkFav.closed .favh{padding:12px 5px;font-size:12px}#mkFav:not(.closed){left:0;border-radius:0 10px 10px 0;border-left:0;z-index:35;box-shadow:0 8px 26px rgba(0,0,0,.25)}}
 #mkFav .favl{display:flex;flex-direction:column;padding:4px}
 #mkFav .favi{all:unset;display:flex;align-items:center;gap:6px;padding:6px 6px;cursor:pointer;border-radius:6px;color:var(--ink,#222)}
 #mkFav .favi:hover{background:var(--sunk,rgba(0,0,0,.05))}
@@ -1150,7 +1154,7 @@ html[data-vt="mm"] #mk .ftile .flist.ico>.fch:not(.more):not(.none){background:n
 #mkFav .favi em{font-style:normal;color:var(--muted);opacity:0;padding:0 4px}
 #mkFav .favi:hover em{opacity:1}
 #mk .favflash{outline:3px solid #f0b429;outline-offset:2px;border-radius:10px}
-@media(max-width:1900px){#mkFav:not(.closed){width:200px;left:6px}}
+@media(max-width:1900px){#mkFav:not(.closed){width:200px}}
 @media(max-width:1000px){#mkFav{display:none}}
 
 /* 세션 노트 공개 칸 10-26 */
@@ -1301,3 +1305,50 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 #mk .hrow.now{background:var(--sunk);padding:6px 8px;border-radius:6px;border:0;margin-bottom:4px}
 #mk .hrow .btn{flex:none}
 @media (max-width:600px){#mk .hrow{flex-wrap:wrap}#mk .hrow .btn{margin-left:auto}}
+
+/* ===== 11-03 감우: 20번 검토 「제작기」 편의 · 연출 ===== */
+/* 편의 1 · 11: 새 카드 · 되살린 카드 반짝 */
+#mk .newflash{outline:3px solid var(--blue,#1c7ed6);outline-offset:2px;border-radius:10px;transition:outline-color .6s}
+/* 연출 4: 저장 피드백 — 상태 점 한 번 깜빡 · 방금 고친 카드 테두리 0.6초 */
+@keyframes mk-blink{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok,#2f9e44) 70%,transparent)}100%{box-shadow:0 0 0 8px transparent}}
+#mk .shdot.blink i{animation:mk-blink .6s ease-out 1}
+@keyframes mk-savedflash{0%{box-shadow:0 0 0 2px color-mix(in srgb,var(--ok,#2f9e44) 75%,transparent)}100%{box-shadow:0 0 0 2px transparent}}
+#mk .savedflash{animation:mk-savedflash .6s ease-out 1}
+#mk section.folder.savedflash>.fh,#mk article.pk.savedflash{animation:mk-savedflash .6s ease-out 1}
+/* 편의 4: 「⋯」 메뉴 */
+#mk .pophost{position:relative}
+#mk .popmenu{position:absolute;right:0;top:calc(100% + 4px);z-index:40;min-width:140px;display:flex;flex-direction:column;padding:4px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.22)}
+#mk .popmenu button{all:unset;display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:7px;cursor:pointer;font-size:13px;white-space:nowrap;box-sizing:border-box}
+#mk .popmenu button:hover,#mk .popmenu button:focus-visible{background:var(--sunk)}
+#mk .popmenu button.danger{color:var(--warn)}
+#mk .popmenu button.danger:hover{background:color-mix(in srgb,var(--warn) 12%,var(--surface))}
+#mk .mhead .popmenu{right:auto;left:0}
+#mk .tacts .btn.danger{margin-left:8px}
+/* 편의 11: 「실행 취소」 토스트 */
+#mk #toast.act{pointer-events:auto;display:flex;align-items:center;gap:12px;padding-right:8px}
+#mk #toast .tact{all:unset;cursor:pointer;font-weight:700;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.18);color:inherit;text-decoration:underline;text-underline-offset:2px}
+#mk #toast .tact:hover,#mk #toast .tact:focus-visible{background:rgba(255,255,255,.3)}
+/* 편의 5: DB 수정 창 ‹ › */
+#mk .dbnav .btn{min-width:30px;justify-content:center;font-size:16px;line-height:1}
+#mk .dbnav .btn:disabled{opacity:.35;cursor:default}
+/* 편의 6: DB 표 머리 정렬 */
+#mk .dbt th.dbth{cursor:pointer;user-select:none;white-space:nowrap}
+#mk .dbt th.dbth:hover{background:color-mix(in srgb,var(--ink) 8%,var(--sunk))}
+#mk .dbt th.dbth.on{color:var(--blue,#1c7ed6)}
+#mk .dbt th.dbth i{font-style:normal;font-size:10px;margin-left:3px}
+/* 편의 9: 소개 접기 · 단추 한 줄 */
+#mk .intro h1{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#mk .introtog{all:unset;cursor:pointer;font:500 12px var(--body,inherit);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 10px;line-height:1.2}
+#mk .introtog:hover{color:var(--ink);background:var(--sunk)}
+#mk .intro .ibtns{display:inline-flex;gap:10px;align-items:center;flex-wrap:wrap}
+#mk .intro.fold{margin-bottom:10px}
+@media (max-width:700px){#mk .intro .ibtns{flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;gap:8px;padding-bottom:4px;margin-bottom:-4px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}#mk .intro .ibtns .btn{flex:none}#mk .intro h1 .introtog{font-size:11px}}
+/* 연출 3: 꾸미기 없는 트레이너 카드 — 오른쪽에 옅은 볼 마크 (테마 색 --tc, 없으면 글자색). 「무늬 없음」(tdp-none) · 다른 무늬 · 배경 그림이 있으면 안 그린다. 테마(P5 · P3 · P4 · 망각)는 vtheme.css 에서 같은 --pbimg 를 제 배경 뒤에 겹친다 */
+#mk .fh.tcard{--pbc:color-mix(in srgb,var(--tc,var(--ink)) 8%,transparent);--pbimg:radial-gradient(circle,transparent 0 9px,var(--pbc) 9.5px 13px,transparent 13.5px 27px,var(--pbc) 27.5px 32px,transparent 32.5px),linear-gradient(var(--pbc),var(--pbc)),linear-gradient(var(--pbc),var(--pbc));--pbsize:64px 64px,20px 4px,20px 4px;--pbpos:right 14px center,right 58px center,right 14px center}
+#mk .fh.tcard:not([class*="tdp-"]):not(.tdb){background-image:var(--pbimg);background-size:var(--pbsize);background-position:var(--pbpos);background-repeat:no-repeat}
+#mk .fh.tcard.tdc:not([class*="tdp-"]):not(.tdb){background-image:var(--pbimg),linear-gradient(100deg,color-mix(in srgb,var(--tc) 17%,var(--surface)),color-mix(in srgb,var(--tc) 5%,var(--surface)) 55%,var(--surface) 85%);background-size:var(--pbsize),auto;background-position:var(--pbpos),0 0}
+#mk .folder.open>.fh.tcard.tdc:not([class*="tdp-"]):not(.tdb){background-image:var(--pbimg),linear-gradient(100deg,color-mix(in srgb,var(--tc) 22%,var(--sunk)),color-mix(in srgb,var(--tc) 7%,var(--sunk)) 55%,var(--sunk) 85%)}
+@media (max-width:1180px){#mk .fh.tcard{--pbpos:right 14px top 12px,right 58px top 42px,right 14px top 42px}}
+/* 편의 1: 새 카드로 스크롤할 때 붙어 있는 윗줄(.top)에 가려지지 않게 */
+#mk section.folder,#mk article.pk,#mk .tfold{scroll-margin-top:calc(var(--topH,104px) + 10px)}
+@media (max-width:700px){#mk section.folder,#mk article.pk,#mk .tfold{--topH:48px}}

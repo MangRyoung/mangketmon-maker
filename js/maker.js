@@ -1046,7 +1046,20 @@ function rangeGrid(v){v=String(v??'').trim();const m=RANGE_MAP[v]||'';const one=
  return `<span class="rgrid" title="범위: ${esc(v||'-')}${one?' · 이 중 1체를 고름':''}${m?'':' · 그림 없음'}">${c('S','아군','자신')}${c('F','상대','정면의 상대')}${c('A','아군','옆의 아군')}${c('D','상대','대각선의 상대')}</span>`}
 
 /* ---------- 공통 UI ---------- */
-function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),1800)}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');t.classList.remove('act');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),1800)}
+/* 11-03 감우 (20번 검토 편의 11): 단추 달린 토스트 — 「실행 취소」 5초. 누르면 fn, 지나면 사라진다 */
+function toastAct(m,label,fn,ms=5000){const t=$('#toast');t.innerHTML=`<span>${esc(m)}</span><button type="button" class="tact">${esc(label)}</button>`;t.classList.add('on','act');clearTimeout(toast.t);
+ const b=t.querySelector('.tact');b.onclick=()=>{t.classList.remove('on','act');clearTimeout(toast.t);try{fn()}catch(e){console.warn('[toastAct]',e)}};toast.t=setTimeout(()=>t.classList.remove('on','act'),ms)}
+/* 11-03 감우 (20번 검토 편의 4): 「⋯」 작은 메뉴 — 잘 안 쓰는 · 위험한 단추(이력 · 삭제)를 한 겹 안에. attrs 가 있으면 바깥 위임(data-act)으로, run 이 있으면 바로 */
+function popMenu(anchor,items){document.querySelectorAll('.popmenu').forEach(x=>x.remove());const m=document.createElement('div');m.className='popmenu';m.setAttribute('role','menu');
+ m.innerHTML=items.filter(Boolean).map(x=>`<button type="button" role="menuitem" class="${x.danger?'danger':''}" ${x.attrs||''} title="${esc(x.title||'')}">${x.label}</button>`).join('');
+ const host=anchor.parentNode;host.classList.add('pophost');host.appendChild(m);anchor.setAttribute('aria-expanded','true');
+ {const L=Math.max(0,Math.min(anchor.offsetLeft+anchor.offsetWidth-m.offsetWidth,host.clientWidth-m.offsetWidth));m.style.left=L+'px';m.style.right='auto';m.style.top=(anchor.offsetTop+anchor.offsetHeight+4)+'px'}   /* 누른 단추의 오른쪽 끝에 맞춰 바로 아래 */
+ const close=()=>{m.remove();host.classList.remove('pophost');anchor.setAttribute('aria-expanded','false');document.removeEventListener('pointerdown',onDoc,true);document.removeEventListener('keydown',onKey,true)};
+ const onDoc=e=>{if(!m.contains(e.target)&&!anchor.contains(e.target))close()};const onKey=e=>{if(e.key==='Escape'){e.stopPropagation();close();anchor.focus()}};
+ setTimeout(()=>{document.addEventListener('pointerdown',onDoc,true);document.addEventListener('keydown',onKey,true)},0);
+ m.querySelectorAll('button').forEach((b,i)=>{const it=items.filter(Boolean)[i];if(it.run)b.addEventListener('click',e=>{e.stopPropagation();close();it.run()});else b.addEventListener('click',()=>setTimeout(close,0))});
+ const f=m.querySelector('button');if(f&&!matchMedia('(pointer:coarse)').matches)f.focus();return m}
 const layers=[];
 function openModal(html,{wide=false,onClose}={}){const l=document.createElement('div');l.className='layer';l.innerHTML=`<div class="mbox ${wide?'wide':''}" role="dialog" aria-modal="true" tabindex="-1">${html}</div>`;
  const opener=document.activeElement;MKROOT().appendChild(l);document.documentElement.classList.add('modal-on');layers.push({l,onClose,opener});l.addEventListener('mousedown',e=>{if(e.target===l)closeModal()});
@@ -1167,7 +1180,7 @@ function xfHTML(kind,st){st.f=st.f||{};const F=(FILT[kind]||[]).filter(x=>!x.whe
  +(xfActive(kind,st)?`<button type="button" class="btn sm ghost" data-xfreset>필터 초기화</button>`:'')}
 function filterRows(kind,st){const D=DBS[kind];const q=String(st.q||'').trim().toLowerCase();const F=(FILT[kind]||[]).filter(x=>st.f&&st.f[x.id]);
  const pmin=st.pmin!==''&&st.pmin!=null&&!isNaN(+st.pmin)?+st.pmin:null,pmax=st.pmax!==''&&st.pmax!=null&&!isNaN(+st.pmax)?+st.pmax:null;
- return S.db[kind].filter(r=>{if(r[D.key]==='')return false;
+ return rankSort(S.db[kind].filter(r=>{if(r[D.key]==='')return false;
   if(st.hideOrig&&!st.orig&&!st.mine&&S.custom[kind].includes(r[D.key])&&!(st.has&&st.has(r[D.key])))return false;   /* 10-26 망령: 포켓몬 만들 때 특성 목록엔 오리지널을 「오리지널 보기」를 눌러야 보인다 · 10-27 기술도 같게 (이미 든 기술은 보인다) */
   if(kind==='moves'&&st.hideOldOnly&&!st.oldShow&&mvOldOnly(r)&&!(st.has&&st.has(r[2])))return false;   /* 10-27 망령: 올드 타입이 아닌 포켓몬에겐 올드 타입 전용 기술을 숨긴다 */
   if(st.type&&kind==='moves'&&!String(r[5]).startsWith(st.type))return false;
@@ -1180,7 +1193,10 @@ function filterRows(kind,st){const D=DBS[kind];const q=String(st.q||'').trim().t
   if(st.mine&&!S.custom[kind].includes(r[D.key]))return false;
   if(!q)return true;
   if(st.nameOnly)return String(r[D.key]).toLowerCase().includes(q);
-  return r.join(' ').toLowerCase().includes(q)})}
+  return r.join(' ').toLowerCase().includes(q)}),q&&!st.noRank?qRank(kind,q):null)}
+/* 11-03 감우 (20번 검토 편의 2): 검색어가 있으면 이름 완전 일치 → 이름 시작 → 이름 포함 → 효과문만 맞는 것 순 (같은 등급 안에서는 원래 순서) */
+function qRank(kind,q){const D=DBS[kind];return r=>{const n=String(r[D.key]).toLowerCase();return n===q?0:n.startsWith(q)?1:n.includes(q)?2:3}}
+function rankSort(rows,rk){if(!rk)return rows;return rows.map((r,i)=>[rk(r),i,r]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]).map(x=>x[2])}
 function kindSelect(kind,st,attr){const ks=[...new Set(S.db[kind].map(r=>r[0]))].filter(x=>x!=='');
  const g=kind==='pots'&&st.f&&st.f.grp?ks.filter(k=>potGroup(k)===st.f.grp):ks;
  return `<select ${attr} style="max-width:240px"><option value="">${kind==='old'?'모든 지역':kind==='pots'?'세부 종류: 전체':'모든 종류'}</option>${g.map(k=>`<option value="${esc(k)}" ${st.kind===k?'selected':''}>${esc(k)}</option>`).join('')}</select>`}
@@ -1299,10 +1315,10 @@ function abilAssist(l,oldName){const host=$('[data-abassist]',l),ta=$('[data-f="
   if(ro&&!r){if(!dsl)return;ro[0]=key;r=ro;const ci=S.custom.rm.indexOf(ok);if(ci>=0)S.custom.rm[ci]=key}
   if(r){if(String(r[2]||'').trim()===dsl)return;r[2]=dsl;if(!r[1])r[1]=ta.value;return}
   if(!dsl)return;S.db.rm.unshift([key,ta.value,dsl,'','']);if(!S.custom.rm.includes(key))S.custom.rm.push(key)}}}
-function openEdit(kind,i,{preset={},onSaved}={}){const D=DBS[kind];
+function openEdit(kind,i,{preset={},onSaved,nav}={}){const D=DBS[kind];
  const r=i<0?D.cols.map((_,n)=>preset[n]??(kind==='moves'?({0:'1.5',1:'#오리지널',5:'노말',6:'물리',7:'0',8:'100',9:'1체',10:'O',11:'0',12:'-',14:'공격',15:'방어',17:'오리지널',18:'1',19:'1'}[n]??''):kind==='abil'?({0:'1',3:'X',4:'X'}[n]??''):kind==='items'?({0:'기타',3:'-',5:'1',6:'-'}[n]??''):kind==='cards'?({11:'공용'}[n]??''):'')):S.db[kind][i];
  const order=kind==='moves'?[2,5,6,0,7,8,9,10,11,12,14,15,18,19,1,17,3,4,16,13]:D.cols.map((_,n)=>n);
- const l=openModal(`<div class="mhead"><h2>${D.t} ${i<0?'오리지널 만들기':'수정'}</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
+ const l=openModal(`<div class="mhead"><h2>${D.t} ${i<0?'오리지널 만들기':'수정'}</h2>${nav&&i>=0?`<span class="row dbnav" style="gap:2px;align-items:center"><button type="button" class="btn sm ghost" data-nav="-1" title="이전 행 (Ctrl+←)" aria-label="이전 행">‹</button><span class="small muted num" data-navpos></span><button type="button" class="btn sm ghost" data-nav="1" title="다음 행 (Ctrl+→)" aria-label="다음 행">›</button></span>`:''}<span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
  <div class="mbody"><datalist id="L-kinds">${[...new Set(S.db.pots.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist><datalist id="L-ikinds">${[...new Set(S.db.items.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist>
  <div class="fgrid">${order.map(n=>fieldHTML(kind,n,r[n])).join('')}</div><div class="preview" data-prev></div>${kind==='abil'?'<div data-abassist></div>':''}${i>=0&&['abil','items','pots','moves','points','cards'].includes(kind)?`<div data-rowrefs>${rowRefsHtml(kind,r[D.key])}</div>`:''}</div>
  <div class="mfoot">${i>=0?'<button class="btn danger" data-del>삭제</button>':''}<label class="row small" style="gap:4px" title="오리지널로 표시 · 포켓몬 만들 때 특성 · 기술 목록에서는 「오리지널 보기」를 눌러야 보인다"><input type="checkbox" data-origchk ${i<0||S.custom[kind].includes(r[D.key])?'checked':''}>오리지널</label>${kind==='moves'?`<label class="row small" style="gap:4px" title="켜면 『올드 타입』 계열이 아닌 포켓몬의 기술 목록에는 안 뜬다"><input type="checkbox" data-oldchk ${i>=0&&mvOldOnly(r)?'checked':''}>올드 타입 전용</label>`:''}<span class="sp"></span><button class="btn" data-x>취소</button><button class="btn pri" data-save>저장</button></div>`,{wide:true});
@@ -1337,7 +1353,14 @@ function openEdit(kind,i,{preset={},onSaved}={}){const D=DBS[kind];
   const up=()=>{if(!pv)return;pv.classList.add('mkcprev');pv.innerHTML=SKCARD.html({n:g(1).trim()||'(이름)',t:g(2),c:g(3).trim(),x:g(4),col:cardCol(g(5)),img:cardImg(g(6)),ic:cardIcons(g(10)),src:g(11).trim()||'공용',auto:!!g(9).trim(),cls:g(12).trim(),lim:(()=>{const m=cardMax([,,,,,,,,,,,,,g(13)]);return m!==2?`최대 ${m}`:''})()})+'<span class="small faint">웹툴 손패 · 덱 관리에 이렇게 보입니다</span>'};
   l.addEventListener('input',up);l.addEventListener('change',up);l.addEventListener('click',e=>{if(e.target.closest('[data-cardic]'))setTimeout(up,0)});const im=$('[data-cardimg]',l);if(im)im.addEventListener('load',up);up()}
  const okey=i>=0?r[D.key]:null;const cur=()=>okey==null?-1:S.db[kind].findIndex(x=>x[D.key]===okey);
- l.addEventListener('click',async e=>{if(e.target.closest('[data-x]'))return closeModal();
+ /* 11-03 감우 (20번 검토 편의 5): ‹ › 이전 · 다음 행 — DB 표에 보이는 순서(지금 필터 · 정렬) 그대로. Ctrl+← → (입력칸 밖에선 ← → 만으로도) */
+ const snap=()=>D.cols.map((_,n)=>{const el=$(`[data-f="${n}"]`,l);return el?String(el.value):''}).join('\u0001');const snap0=snap();const dirty=()=>snap()!==snap0;
+ const navKeys=()=>{try{return nav()||[]}catch(e){return []}};
+ const navPos=()=>{const ps=$('[data-navpos]',l);if(!ps||okey==null)return;const K=navKeys();const at=K.indexOf(okey);ps.textContent=at>=0?`${at+1} / ${K.length}`:'';l.querySelectorAll('[data-nav]').forEach(b=>{const d=+b.dataset.nav;b.disabled=at<0||at+d<0||at+d>=K.length})};navPos();
+ const goNav=async d=>{if(okey==null)return;const K=navKeys();const at=K.indexOf(okey);const nk=K[at+d];if(at<0||nk==null)return toast(d<0?'첫 행입니다':'마지막 행입니다');
+  if(dirty()&&!await ask('고친 내용을 저장하지 않았습니다. 그대로 두고 다음 행으로 넘어갈까요?','넘어가기'))return;const ii=S.db[kind].findIndex(x=>x[D.key]===nk);if(ii<0)return toast('그 행이 사라졌습니다');closeModal();openEdit(kind,ii,{onSaved,nav})};
+ if(nav&&i>=0)l.addEventListener('keydown',e=>{if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;const inInput=e.target.matches('input,textarea,select');if(inInput&&!e.ctrlKey&&!e.metaKey)return;if(layers[layers.length-1]&&layers[layers.length-1].l!==l)return;e.preventDefault();goNav(e.key==='ArrowLeft'?-1:1)});
+ l.addEventListener('click',async e=>{if(e.target.closest('[data-x]'))return closeModal();{const nb=e.target.closest('[data-nav]');if(nb){goNav(+nb.dataset.nav);return}}
   if(e.target.closest('[data-del]')){const used=rowRefs(kind,r[D.key]);if(await ask(`「${esc(r[D.key])}」을(를) DB에서 삭제할까요?${used.length?`<br><span class="warn">이 행을 쓰는 시트가 ${used.length}곳 있습니다 (${esc([...new Set(used.map(x=>x.t.name||'이름 없음'))].slice(0,5).join(', '))}${used.length>5?' …':''}) — 시트의 이름은 남고 효과 글만 비게 됩니다</span>`:''}`,'삭제')){const ii=cur();if(ii>=0)S.db[kind].splice(ii,1);reindex();save(true);closeModal();refreshAll()}return}
   if(e.target.closest('[data-save]')){if(okey!=null){i=cur();if(i<0)return toast('이 항목은 다른 사람이 지웠습니다')}const nr=D.cols.map((_,n)=>{const el=$(`[data-f="${n}"]`,l);return el?el.value:''});nr[D.key]=nr[D.key].trim();
    if(kind==='moves'){const oc=$('[data-oldchk]',l);nr[MV_OLDONLY]=oc&&oc.checked?'O':''}
@@ -1936,8 +1959,9 @@ const FAV={get(){try{return JSON.parse(localStorage.getItem('mkm_fav')||'[]')||[
  label(f){if(f.k==='f'){const x=fById(f.id);return x?(x.name||'폴더'):null}const t=S.trainers.find(t=>t.id===f.id);return t?(t.name||'트레이너'):null},
  go(f){S.ui.fclosed=S.ui.fclosed||{};const openChain=fid=>{let c=fById(fid),n=0;while(c&&n++<50){delete S.ui.fclosed[c.id];c=c.parent?fById(c.parent):null}};
   if(f.k==='f'){openChain(f.id)}else{const t=S.trainers.find(t=>t.id===f.id);if(!t)return toast('그 트레이너가 없습니다');if(t.folder)openChain(t.folder);else delete S.ui.fclosed._none;t.open=true}
+  if(innerWidth<1500&&localStorage.getItem('mkm_fav_open')==='1')lsSet('mkm_fav_open','0');   /* 11-03: 좁은 화면에선 레일이 본문 위에 떠 있으니 가고 나면 접는다 */
   save();renderChar();requestAnimationFrame(()=>{const el=f.k==='f'?document.querySelector(`.tfold[data-fold="${CSS.escape(f.id)}"]`):document.getElementById('tr-'+f.id);if(el){el.scrollIntoView({behavior:'smooth',block:'start'});el.classList.add('favflash');setTimeout(()=>el.classList.remove('favflash'),1400)}})},
- rail(){const L=this.get().map(f=>({f,lab:this.label(f)})).filter(x=>x.lab!=null);const sv=localStorage.getItem('mkm_fav_open');const vis=sv?sv!=='0':innerWidth>=1700;
+ rail(){const L=this.get().map(f=>({f,lab:this.label(f)})).filter(x=>x.lab!=null);const sv=localStorage.getItem('mkm_fav_open');const vis=sv?sv!=='0':innerWidth>=1900;   /* 11-03: 펼친 레일(210px)이 main 바깥 여백에 들어가는 폭부터 기본 펼침 */
   return `<aside id="mkFav" class="${vis?'':'closed'}"><button type="button" class="favh" data-act="favtog" title="즐겨찾기 접기 · 펴기">★ 즐겨찾기 <small>${L.length}</small></button>${vis?`<div class="favl">${L.map((x,i)=>`<button type="button" class="favi" data-act="favgo" data-i="${i}"><i>${x.f.k==='f'?'📁':'🧑'}</i><span>${esc(x.lab)}</span><em data-act="favdel" data-i="${i}" title="빼기">×</em></button>`).join('')||'<div class="small faint" style="padding:8px 10px;line-height:1.5">폴더 · 트레이너 머리의 ☆ 를 누르면 여기 모입니다. 누르면 바로 갑니다.</div>'}</div>`:''}</aside>`}};
 /* ---------- 10-28 망령: 나와 상관없는 폴더 숨기기 — 이 브라우저(localStorage mkm_fhide)에만. 숨긴 폴더는 그 아래 폴더 · 트레이너까지 캐릭터 시트에서 안 보인다 ---------- */
 const FHIDE={get(){try{return JSON.parse(localStorage.getItem('mkm_fhide')||'[]')||[]}catch(e){return []}},set(v){lsSet('mkm_fhide',JSON.stringify(v))},has(id){return this.get().includes(id||'_none')},
@@ -1967,12 +1991,15 @@ function renderChar(){ensureCampus();ensureMisagNpc();if(misagSync())save();cons
    return `<div class="tfold ${open?'open':''} ${f&&f.priv?'priv':''} ${f&&fPar(f)?'sub':''}" ${fid?`data-si="${S.folders.indexOf(f)}"`:''} data-fold="${esc(key)}">${folderHead(f,name,all,open,0,kids.length)}
    ${open?`${kids.length?`<div class="tsubf" data-sort="folders">${kids.map(k=>grp(k.id,k.name||'이름 없는 폴더')).join('')}</div>`:''}<div class="tfb" data-sort="trainers" data-fid="${esc(fid)}">${n.map(([t,ti])=>trainerHTML(t,ti)).join('')}</div>`:''}</div>`};
   body=`<div id="trs" data-sort="folders">${fKids('').map(f=>grp(f.id,f.name||'이름 없는 폴더')).join('')}${grp('','폴더 없음')}</div>`}}
- root.innerHTML=`${hiddenN?`<p class="small faint" style="margin:0 0 8px">🔒 비공개라서 안 보이는 트레이너 ${hiddenN}명 (내 것이면 「서명」에 같은 비밀구를 적으세요)</p>`:''}<div class="intro"><h1>캐릭터 시트</h1><p>트레이너 폴더마다 자질·포인트·PT 서머리를 관리하고, 그 아래에 포켓몬 시트를 자유롭게 추가합니다. 「+ 폴더」로 세션별 대분류를 만들고 트레이너를 끌어다 넣을 수 있습니다. ${SH.on?'모든 내용은 공유 DB에 자동 저장되어, 링크를 아는 사람 모두가 같이 보고 고칩니다.':'모든 내용은 이 브라우저에 자동 저장됩니다.'}</p>
- <button class="btn pri" data-act="addT">+ 트레이너</button><button class="btn" data-act="addF">+ 폴더</button>${S.folders.length?`<button class="btn ghost" data-act="fhide" title="나와 상관없는 폴더를 이 브라우저에서 숨기기">🙈 보이는 폴더${FHIDE.count()?` <small>(${FHIDE.count()}개 숨김)</small>`:''}</button>`:''}<button class="btn" data-act="impText">복사용 텍스트 붙여넣기</button><span class="csearch"><input type="search" id="cq" value="${esc(CQ)}" placeholder="이름 검색 (트레이너 · 포켓몬)" autocomplete="off" aria-label="트레이너 · 포켓몬 이름 검색">${cq?'<button type="button" class="btn sm ghost" data-act="cqClear" title="검색 지우기">✕</button>':''}</span></div>
+ /* 11-03 감우 (20번 검토 편의 9): 소개 문단은 처음 한 번만 펼쳐 보이고 그 뒤엔 「소개 ▸」 로 접어 둔다 (이 브라우저) · 단추 넷은 좁은 화면에서 한 줄 가로 스크롤 */
+ const introOpen=INTRO.first||localStorage.getItem('mkm_intro_open')==='1';
+ root.innerHTML=`${hiddenN?`<p class="small faint" style="margin:0 0 8px">🔒 비공개라서 안 보이는 트레이너 ${hiddenN}명 (내 것이면 「서명」에 같은 비밀구를 적으세요)</p>`:''}<div class="intro ${introOpen?'':'fold'}"><h1>캐릭터 시트 <button type="button" class="introtog" data-act="introtog" aria-expanded="${introOpen}" title="${introOpen?'소개 접기':'소개 보기'}">소개 ${introOpen?'▾':'▸'}</button></h1>${introOpen?`<p>트레이너 폴더마다 자질·포인트·PT 서머리를 관리하고, 그 아래에 포켓몬 시트를 자유롭게 추가합니다. 「+ 폴더」로 세션별 대분류를 만들고 트레이너를 끌어다 넣을 수 있습니다. ${SH.on?'모든 내용은 공유 DB에 자동 저장되어, 링크를 아는 사람 모두가 같이 보고 고칩니다.':'모든 내용은 이 브라우저에 자동 저장됩니다.'}</p>`:''}
+ <span class="ibtns"><button class="btn pri" data-act="addT">+ 트레이너</button><button class="btn" data-act="addF">+ 폴더</button>${S.folders.length?`<button class="btn ghost" data-act="fhide" title="나와 상관없는 폴더를 이 브라우저에서 숨기기">🙈 보이는 폴더${FHIDE.count()?` <small>(${FHIDE.count()}개 숨김)</small>`:''}</button>`:''}<button class="btn" data-act="impText">복사용 텍스트 붙여넣기</button></span><span class="csearch"><input type="search" id="cq" value="${esc(CQ)}" placeholder="이름 검색 (트레이너 · 포켓몬)" autocomplete="off" aria-label="트레이너 · 포켓몬 이름 검색">${cq?'<button type="button" class="btn sm ghost" data-act="cqClear" title="검색 지우기">✕</button>':''}</span></div>
  ${body}${cq?'':FAV.rail()}`;
  if(cq){for(const el of root.querySelectorAll('article.pk')){const sec=el.closest('section.folder');const tid=sec?sec.id.slice(3):'';if(!hitP.has(el.id.slice(3))&&!hitT.has(tid))el.style.display='none'}}
  fitFlist(root)}
 let CQ='',cqT=null;
+const INTRO={first:localStorage.getItem('mkm_intro_open')==null};if(INTRO.first)lsSet('mkm_intro_open','0');   /* 처음 연 날엔 소개를 펼친 채로, 다음부터는 접힘 */
 document.addEventListener('input',e=>{if(!e.target.matches||!e.target.matches('#cq'))return;CQ=e.target.value;clearTimeout(cqT);cqT=setTimeout(()=>{renderChar();const n=$('#cq');if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length)}catch(_){}}},250)});
 /* 폴더 카드 트레이너 칩: 한 줄에 이름까지 안 들어가면 얼굴만 (10-24 망령) — 글꼴이 늦게 오거나 창 크기가 바뀌면 다시 잰다 */
 function fitFlist(root){const over=l=>l.scrollWidth>l.clientWidth+1;const run=()=>(root||document).querySelectorAll('.ftile .flist').forEach(l=>{l.classList.remove('ico');l.querySelectorAll('.fch.fx').forEach(x=>x.remove());const ch=[...l.querySelectorAll('.fch:not(.more):not(.none)')];ch.forEach(x=>x.style.display='');const mo=l.querySelector('.fch.more');if(mo)mo.style.display='';if(!l.clientWidth||!over(l))return;l.classList.add('ico');if(!over(l))return;const tot=+l.dataset.n||ch.length;const x=document.createElement('span');x.className='fch more fx';l.append(x);if(mo)mo.style.display='none';let vis=ch.length;while(vis>1){ch[--vis].style.display='none';x.textContent='+'+(tot-vis);if(!over(l))break}});run();setTimeout(run,350)}
@@ -1988,7 +2015,9 @@ function askMoveP(T,P){return new Promise(res=>{const L=S.trainers.filter(t=>t!=
  const l=openModal(`<div class="mhead"><h2>「${esc(P.name||'이름 없음')}」 옮기기 / 복사</h2></div><div class="mbody">${L.length?`<label class="lbl">대상 트레이너<select data-mt style="width:100%">${L.map(t=>`<option value="${esc(t.id)}">${esc(t.name||'이름 없음')} — ${esc(fname(t))} · ${t.pokemon.length}체</option>`).join('')}</select></label>
  <div class="row small" style="gap:14px;margin-top:8px"><label class="row" style="gap:4px"><input type="radio" name="mvmode" value="move" checked>옮기기 (${esc(T.name||'이름 없음')}에게서 빠진다)</label><label class="row" style="gap:4px"><input type="radio" name="mvmode" value="copy">복사 (양쪽에 남는다)</label></div>`:'<p class="muted" style="margin:0">옮길 수 있는 다른 트레이너가 없습니다</p>'}</div><div class="mfoot"><span class="sp"></span><button class="btn" data-x="no">취소</button>${L.length?'<button class="btn pri" data-x="ok">확인</button>':''}</div>`,{onClose:()=>res(null)});
  l.addEventListener('click',e=>{const x=e.target.dataset.x;if(!x)return;layers[layers.length-1].onClose=null;const tid=x==='ok'?$('[data-mt]',l).value:'';const copy=x==='ok'&&($('input[name="mvmode"]:checked',l)||{}).value==='copy';closeModal();res(x==='ok'&&tid?{tid,copy}:null)})})}
-const delHint=()=>SH.on&&SH.canWrite?'<br><span class="small muted">지운 것은 「파일 ▾ → 최근 지운 것」에서 되살릴 수 있습니다 (30일)</span>':'';
+const delHint=()=>'<br><span class="small muted">지운 직후 5초 안에는 「실행 취소」로'+(SH.on&&SH.canWrite?', 그 뒤에는 「파일 ▾ → 최근 지운 것」에서 (30일)':'')+' 되살릴 수 있습니다</span>';
+/* 11-03 감우 (20번 검토 편의 11): 지운 것을 메모리에 들고 있다가 5초 안에 되돌린다. 되살리면 save() → shWant 에 다시 들어가 공유 DB 에도 그대로 다시 올라간다 */
+function undoDel(msg,restore){toastAct(msg,'실행 취소',restore)}
 function rkChip(q,r){return `<span class="rk">${q[0]}<b style="background:${gcol(r)}">${esc(r)}</b></span>`}
 /* 알그룹 선택지: 올드 타입 일람(실기 포켓몬)에 나오는 알그룹, 원작 도감 순 */
 const EGG_ORDER=['괴수','수중1','벌레','비행','육상','요정','식물','인간형','수중3','광물','부정형','수중2','메타몽','드래곤','알미발견'];
@@ -2133,8 +2162,11 @@ function pokeCardHTML(t,p,ed){const E=(k,v,tt,x)=>ed?`<button type="button" clas
   </div></div></div>`}
 /* 10-22 망령: 로그 탭(logtool/, 같은 출처 iframe)의 「제작기 그림 잇기」가 읽는 캐릭터 그림 목록 */
 window.MKM_CHARS=()=>S.trainers.flatMap(t=>[{name:t.name,image:safeImg(t.image)||'',kind:'trainer'},...(t.pokemon||[]).map(p=>({name:p.name,image:safeImg(p.image)||'',kind:'poke'}))]).filter(x=>x.name&&x.image);
+/* 11-03 감우 (20번 검토 편의 1): 새 트레이너 · 포켓몬 카드로 스크롤하고 이름 칸에 커서 (터치 화면에선 자판이 튀어 오르지 않게 초점만 안 준다) */
+function goNew(cardId,inputId){requestAnimationFrame(()=>{const el=document.getElementById(cardId);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'start'});el.classList.add('newflash');setTimeout(()=>el.classList.remove('newflash'),1200);
+ const inp=document.getElementById(inputId);if(inp&&!matchMedia('(pointer:coarse)').matches){inp.focus({preventScroll:true});try{inp.select()}catch(e){}}})}
 function goPoke(T,P){T.open=true;P.open=true;save();refreshTrainer(T);requestAnimationFrame(()=>{const el=document.getElementById('pk-'+P.id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'})})}
-function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요약</h2><span class="sp"></span><button class="btn sm" data-pced title="이 요약에서 바로 고치고 더한다 (✎ · ＋ · ×)">✎ 편집</button><button class="btn sm ghost" data-pcgo title="제작기에서 이 포켓몬 시트로 이동">시트로</button><button class="btn sm" data-pcdc title="이 요약을 그림으로 만들어 디스코드의 정해 둔 스레드에 올린다 (웹툴 설정 「디스코드」 탭에서 이어 둔 곳)">디코로</button><button class="btn sm" data-pcpng title="이 요약을 그림 파일로 저장">PNG 저장</button><button class="btn sm ghost danger" data-pcdel title="이 포켓몬 시트를 지운다">삭제</button><button class="btn ghost" data-x>닫기</button></div><div class="mbody pcd-wrap">${pokeCardHTML(t,p)}</div>`,{wide:true});
+function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요약</h2><span class="sp"></span><button class="btn sm" data-pced title="이 요약에서 바로 고치고 더한다 (✎ · ＋ · ×)">✎ 편집</button><button class="btn sm ghost" data-pcgo title="제작기에서 이 포켓몬 시트로 이동">시트로</button><button class="btn sm" data-pcdc title="이 요약을 그림으로 만들어 디스코드의 정해 둔 스레드에 올린다 (웹툴 설정 「디스코드」 탭에서 이어 둔 곳)">디코로</button><button class="btn sm" data-pcpng title="이 요약을 그림 파일로 저장">PNG 저장</button><button class="btn sm ghost" data-pcmore title="더 보기 (삭제)" aria-label="더 보기" aria-haspopup="menu" aria-expanded="false">⋯</button><button class="btn ghost" data-x>닫기</button></div><div class="mbody pcd-wrap">${pokeCardHTML(t,p)}</div>`,{wide:true});
  $('.mbox',l).classList.add('pcdbox');l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>closeModal());
  /* 10-24 망령: 「✎ 편집」 — 요약 위에서 이름 · 특성 · 도구 · 기술 · 포텐셜 · 메모를 고치고 더한다. 고르기 창은 시트와 같은 것을 쓴다 */
  let ED=false;const wrap=$('.pcd-wrap',l);const depth=layers.length;
@@ -2167,15 +2199,16 @@ function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요
   if(k==='exed'){openPotEditor(t,p,v==='excl'?'excl':{ex:+String(v).slice(1)});return back()}});
  $('[data-pcgo]',l).onclick=()=>{closeModal();goPoke(t,p)};
  /* 10-24 망령: 트레이너 카드의 포켓몬 동그라미 → 한 장 요약에서도 바로 지울 수 있게 */
- $('[data-pcdel]',l).onclick=async()=>{const j=t.pokemon.indexOf(p);if(j<0)return;if(!await ask(`포켓몬 시트 「${esc(p.name||'이름 없음')}」을(를) 삭제할까요?<br><span class="small muted">${esc(t.name||'')} 의 ${j+1}번째 포켓몬 · 되돌릴 수 없습니다</span>`,'삭제'))return;t.pokemon.splice(j,1);save();closeModal();renderChar();toast(`「${p.name||'이름 없음'}」 삭제`)};
+ const pcdel=async()=>{const j=t.pokemon.indexOf(p);if(j<0)return;if(!await ask(`포켓몬 시트 「${esc(p.name||'이름 없음')}」을(를) 삭제할까요?<br><span class="small muted">${esc(t.name||'')} 의 ${j+1}번째 포켓몬 · 5초 안에 「실행 취소」로 되돌릴 수 있습니다</span>`,'삭제'))return;t.pokemon.splice(j,1);save();closeModal();renderChar();undoDel(`「${p.name||'이름 없음'}」 삭제`,()=>{const T2=S.trainers.find(x=>x.id===t.id);if(!T2)return toast('트레이너가 사라져 되살리지 못했습니다');T2.pokemon.splice(Math.min(j,T2.pokemon.length),0,p);save();renderChar();goNew('pk-'+p.id)})};
+ $('[data-pcmore]',l).onclick=e=>popMenu(e.currentTarget,[{label:'🗑 삭제',danger:true,title:'이 포켓몬 시트를 지운다',run:pcdel}]);   /* 11-03 (20번 검토 편의 4): 삭제는 닫기 옆이 아니라 ⋯ 안에 */
  $('[data-pcpng]',l).onclick=async()=>{if(ED){ED=false;draw()}const el=$('.pcd',l);try{if(!window.html2canvas)await new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('html2canvas 를 불러오지 못했다'));document.head.appendChild(sc)});
-  const bg=getComputedStyle(MKROOT()).getPropertyValue('--surface')||'#fff';const cv=await window.html2canvas(el,{backgroundColor:bg.trim()||'#fff',scale:2,useCORS:true,onclone:(cd,ce)=>{try{pngFix(cd,ce)}catch(e){}}});const a=document.createElement('a');a.download=(p.name||'포켓몬')+'.png';a.href=cv.toDataURL('image/png');a.click()}catch(err){toast('PNG 로 저장하지 못했습니다 ('+err.message+')')}};
+  const bg=pngBg();const cv=await window.html2canvas(el.parentNode,pngOpts(el,bg,t,p));const a=document.createElement('a');a.download=(p.name||'포켓몬')+'.png';a.href=cv.toDataURL('image/png');a.click()}catch(err){toast('PNG 로 저장하지 못했습니다 ('+err.message+')')}};
  /* 11-02 망령 「한 장 요약 「시트로」 옆에 디코로 — 지정해 둔 스레드에」: 그림(webp) → 저장소 oremas/dc/<방>/ → 웹툴 방의 om_dc_card (서버가 웹후크로 보낸다).
     방 · 신분: 세션 노트 안이면 그 캠페인에 이어 둔 웹툴 방 · 노트의 웹툴 신분, 따로 열었으면 이 브라우저가 들어간 웹툴 방 (supabase/patch_2026-11-02_게시판_디스코드.sql) */
  $('[data-pcdc]',l).onclick=async()=>{const b=$('[data-pcdc]',l);if(b.disabled)return;if(ED){ED=false;draw()}const lab=b.textContent;b.disabled=true;b.textContent='방 찾는 중…';
   try{const tg=await dcTarget();if(!tg)throw new Error('이 브라우저가 들어간 웹툴 방이 없어요 — 웹툴 방에 한 번 들어온 뒤 다시 눌러 주세요');if(!tg.secret)throw new Error('이 브라우저는 그 웹툴 방(「'+tg.room+'」)에 앉은 적이 없어요 — 웹툴에서 GM 이나 자리로 한 번 들어와 주세요');
    b.textContent='그리는 중…';const el=$('.pcd',l);if(!window.html2canvas)await new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('html2canvas 를 불러오지 못했다'));document.head.appendChild(sc)});
-   const bg=getComputedStyle(MKROOT()).getPropertyValue('--surface')||'#fff';const cv=await window.html2canvas(el,{backgroundColor:bg.trim()||'#fff',scale:2,useCORS:true,onclone:(cd,ce)=>{try{pngFix(cd,ce)}catch(e){}}});
+   const bg=pngBg();const cv=await window.html2canvas(el.parentNode,pngOpts(el,bg,t,p));
    const blob=await new Promise(r=>cv.toBlob(r,'image/webp',.9));if(!blob)throw new Error('그림을 만들지 못했어요');
    b.textContent='올리는 중…';const SB=dcSb();const path='dc/'+tg.room+'/'+(p.id||'card')+'_'+Date.now().toString(36)+'.webp';
    const up=await SB.storage.from('oremas').upload(path,blob,{upsert:true,contentType:'image/webp',cacheControl:'31536000'});if(up.error)throw new Error('그림을 올리지 못했어요: '+up.error.message);
@@ -2363,7 +2396,7 @@ function pokeHTML(t,ti,p,pi){const v=formView(p);const P=`T.${ti}.pokemon.${pi}`
   <div class="hide-s ptyab"><div class="pab"><span class="pabk">특성</span><b>${esc(v.ability||'특성 없음')}</b>${v.item?`<span class="faint"> · ${esc(v.item)}</span>`:''}</div>${abE?`<div class="pabe" title="${esc(abE)}">${esc(abE)}</div>`:''}</div>
   <div class="pexcl ${XL.length?'':'none'} ${XL.length>1?'multi':''}">${XL.map(x=>{const e=oneLn(x.eff);return `<div class="pxi"><div class="pxn"><span class="pxk">전용</span><b>${esc(x.name)}</b></div>${e?`<div class="pxe" title="${esc(e)}">${esc(e)}</div>`:''}</div>`}).join('')}</div>
   <div class="hide-s pkstat">${radar(v)}<div style="min-width:0">${miniGrades(v,t)}<div class="psub" style="margin-top:3px">종족치 합 <b class="num">${tot||'-'}</b>${(()=>{const pl=v._form?null:planRange(v);if(!pl||!tot)return '';return `<span class="${pl.ok?'faint':'warn'}" title="계산 종족치 / 계단 기준"> · 계산 ${fmtN(pl.ct)}/${pl.v}</span>`})()} · 기술 <span class="${c.cap!=null&&c.used>c.cap?'warn':''}">${capTxt(c,'-','/')}</span> · 포텐셜 ${npot}</div></div></div>
-  <div class="pact"><button class="btn sm ghost" data-act="pcard" data-i="${ti}" data-j="${pi}" title="이 포켓몬을 한 장으로 요약해서 본다 (PNG 저장)">한 장</button><button class="btn sm ghost" data-act="copy" data-i="${ti}" data-j="${pi}" title="복사용 텍스트 복사">복사</button><button class="btn sm ghost" data-act="dupP" data-i="${ti}" data-j="${pi}">복제</button><button class="btn sm ghost" data-act="moveP" data-i="${ti}" data-j="${pi}" title="다른 트레이너에게 옮기거나 복사">옮기기</button>${SH.on?`<button class="btn sm ghost" data-act="histP" data-i="${ti}" data-j="${pi}" title="공유 DB 에 남은 옛 판 보기 · 되돌리기">이력</button>`:''}<button class="btn sm danger pdel" data-act="delP" data-i="${ti}" data-j="${pi}" title="이 포켓몬 시트 삭제">🗑 삭제</button></div></div>
+  <div class="pact"><button class="btn sm ghost" data-act="pcard" data-i="${ti}" data-j="${pi}" title="이 포켓몬을 한 장으로 요약해서 본다 (PNG 저장)">한 장</button><button class="btn sm ghost" data-act="copy" data-i="${ti}" data-j="${pi}" title="복사용 텍스트 복사">복사</button><button class="btn sm ghost" data-act="dupP" data-i="${ti}" data-j="${pi}">복제</button><button class="btn sm ghost" data-act="moveP" data-i="${ti}" data-j="${pi}" title="다른 트레이너에게 옮기거나 복사">옮기기</button><button class="btn sm ghost pmore" data-act="moreP" data-i="${ti}" data-j="${pi}" title="더 보기 (${SH.on?'이력 · ':''}삭제)" aria-label="더 보기" aria-haspopup="menu" aria-expanded="false">⋯</button></div></div>
  ${p.open?`<div class="pbody"><nav class="ptabs">${[['base','기본<span class="wide-only">·능력치</span>',''],['moves','기술',filled],['pots','포텐셜',npot],['tune','상세<span class="wide-only"> 조정</span>',tuneCount(p)||''],['text','<span class="wide-only">복사용 </span>텍스트','']].map(([k,n,cn])=>`<button data-ptab="${k}" data-i="${ti}" data-j="${pi}" class="${p.tab===k?'on':''}">${n}${cn!==''?`<span class="cnt">${cn}</span>`:''}</button>`).join('')}</nav>
  ${p.tab==='moves'?movesTab(t,ti,p,pi,P,c):p.tab==='pots'?potsTab(t,ti,p,pi):p.tab==='tune'?tuneTab(t,ti,p,pi):p.tab==='text'?textTab(t,ti,p,pi,P):baseTab(t,ti,p,pi,P)}</div>`:''}</article>`}
 function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=itemRow(p),own=ownItem(p)&&!idx.items.get(p.item);const types=S.db.types.map(x=>x[0]);const tot=p.base.reduce((a,b)=>a+(+b||0),0);const id=p.id;
@@ -2507,7 +2540,7 @@ let composing=false;
 $('#v-char').addEventListener('compositionstart',()=>{composing=true;clearTimeout(rT)});
 $('#v-char').addEventListener('compositionend',e=>{composing=false;const t=trOf(e.target);if(t&&e.target.tagName!=='TEXTAREA'){clearTimeout(rT);rT=setTimeout(()=>refreshTrainer(t),550)}});
 $('#v-char').addEventListener('input',e=>{if(e.target.dataset.tuneitem){const t=S.trainers[+e.target.dataset.i];const P=t&&t.pokemon[+e.target.dataset.j];if(!P)return;const T0=tuneOf(P);T0.item=e.target.value;T0.itemName=T0.item.trim()?P.item:'';save();const pv=$('#tunePrev-'+P.id);if(pv&&fxReady())pv.innerHTML=tuneItemPrev(T0.item);return}
- const p=e.target.dataset.p;if(!p)return;if(/^T\.\d+\.rp\./.test(p)){const tt=S.trainers[+p.split('.')[1]];if(tt&&(!tt.rp||typeof tt.rp!=='object'))tt.rp={}}const[o,k]=getRef(p);if(!o)return;o[k]=e.target.type==='checkbox'?e.target.checked:e.target.value;save();
+ const p=e.target.dataset.p;if(!p)return;if(/^T\.\d+\.rp\./.test(p)){const tt=S.trainers[+p.split('.')[1]];if(tt&&(!tt.rp||typeof tt.rp!=='object'))tt.rp={}}const[o,k]=getRef(p);if(!o)return;o[k]=e.target.type==='checkbox'?e.target.checked:e.target.value;{const c=e.target.closest('article.pk,section.folder');SVF.id=c?c.id:null}save();
  const t=trOf(e.target);if(e.target.tagName==='TEXTAREA'||e.isComposing||composing)return;clearTimeout(rT);rT=setTimeout(()=>t&&refreshTrainer(t),550)});
 /* 10-25 망령: 능력치 막대를 좌우로 끌어 종족치 조절 (0~200 눈금 · 놓으면 저장하고 다시 그림) */
 {let dg=null;const valAt=(bar,x)=>{const r=bar.getBoundingClientRect();return Math.max(1,Math.min(200,Math.round((x-r.left)/r.width*200)))};
@@ -2624,22 +2657,25 @@ $('#v-char').addEventListener('click',async e=>{
   case 'fav':FAV.toggle(b.dataset.fk,b.dataset.fid);break;
   case 'fhide':openFHide();break;
   case 'cqClear':CQ='';renderChar();break;
+  case 'introtog':{const open=INTRO.first||localStorage.getItem('mkm_intro_open')==='1';INTRO.first=false;lsSet('mkm_intro_open',open?'0':'1');renderChar();break}
   case 'histT':if(T)openHistory('trainers',T.id,'트레이너 '+(T.name||'이름 없음'));break;
   case 'histP':if(T&&P)openHistory('pokemon',P.id,`${T.name||'이름 없음'} › ${P.name||'이름 없음'}`);break;
   case 'chkF':openFolderCheck(b.dataset.f||'');break;
   case 'favtog':lsSet('mkm_fav_open',localStorage.getItem('mkm_fav_open')==='0'?'1':'0');renderChar();break;
   case 'favgo':{const L=FAV.get().filter(f=>FAV.label(f)!=null);const f=L[+b.dataset.i];if(f)FAV.go(f);break}
   case 'favdel':{e.stopPropagation();const L=FAV.get().filter(f=>FAV.label(f)!=null);L.splice(+b.dataset.i,1);FAV.set(L);renderChar();break}
-  case 'addT':S.trainers.push(newTrainer());S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed._none;save();renderChar();break;
+  case 'addT':{const t=newTrainer();S.trainers.push(t);S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed._none;save();renderChar();goNew('tr-'+t.id,'tn-'+t.id);break}
   case 'addF':{const name=await askText('새 폴더','폴더 이름 (예: 3월 세션, PL 홍길동)');if(name){S.folders.push({id:uid(),name});save();renderChar()}break}
-  case 'addTin':{const t=newTrainer();t.folder=b.dataset.f||'';S.trainers.push(t);S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed[b.dataset.f||'_none'];save();renderChar();break}
+  case 'addTin':{const t=newTrainer();t.folder=b.dataset.f||'';S.trainers.push(t);S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed[b.dataset.f||'_none'];save();renderChar();goNew('tr-'+t.id,'tn-'+t.id);break}
   case 'decoF':{const f=S.folders.find(x=>x.id===b.dataset.f);if(!f)break;openTDeco(f,()=>{save();renderChar()},1);break}
   case 'renF':{const f=S.folders.find(x=>x.id===b.dataset.f);if(!f)break;const name=await askText('폴더 이름 바꾸기','폴더 이름',f.name);if(name){f.name=name;save();renderChar()}break}
   case 'delF':{const f=S.folders.find(x=>x.id===b.dataset.f);if(!f)break;const n=S.trainers.filter(t=>t.folder===f.id).length;const up=fById(fPar(f));const kids=fKids(f.id);
-   if(await ask(`폴더 「${esc(f.name)}」를 삭제할까요?<br><span class="small muted">안에 있던 트레이너 ${n}명${kids.length?`과 하위 폴더 ${kids.length}개`:''}는 지워지지 않고 ${up?`상위 폴더 「${esc(up.name||'')}」`:'「폴더 없음」'}으로 옮겨집니다.</span>`,'폴더 삭제')){S.trainers.forEach(t=>{if(t.folder===f.id)t.folder=up?up.id:''});kids.forEach(k=>{if(up)k.parent=up.id;else delete k.parent});S.folders=S.folders.filter(x=>x!==f);save();renderChar()}break}
+   if(await ask(`폴더 「${esc(f.name)}」를 삭제할까요?<br><span class="small muted">안에 있던 트레이너 ${n}명${kids.length?`과 하위 폴더 ${kids.length}개`:''}는 지워지지 않고 ${up?`상위 폴더 「${esc(up.name||'')}」`:'「폴더 없음」'}으로 옮겨집니다. 5초 안에 「실행 취소」로 되돌릴 수 있습니다.</span>`,'폴더 삭제')){const at=S.folders.indexOf(f);const movedT=S.trainers.filter(t=>t.folder===f.id);S.trainers.forEach(t=>{if(t.folder===f.id)t.folder=up?up.id:''});kids.forEach(k=>{if(up)k.parent=up.id;else delete k.parent});S.folders=S.folders.filter(x=>x!==f);save();renderChar();
+    undoDel(`폴더 「${f.name||''}」 삭제`,()=>{if(S.folders.includes(f))return;S.folders.splice(Math.min(at,S.folders.length),0,f);movedT.forEach(t=>{if(S.trainers.includes(t))t.folder=f.id});kids.forEach(k=>{if(S.folders.includes(k))k.parent=f.id});S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed[f.id];save();renderChar();toast('되살렸습니다')})}break}
   case 'addFin':{const p=fById(b.dataset.f);if(!p)break;const name=await askText('하위 폴더',`「${p.name||''}」 안에 만들 폴더 이름`);if(name){const at=S.folders.indexOf(p)+1+fDesc(p.id).length;S.folders.splice(at,0,{id:uid(),name,parent:p.id});S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed[p.id];save();renderChar()}break}
   case 'moveF':{const f=fById(b.dataset.f);if(!f)break;const v=await askFolder(`「${f.name||''}」 옮기기`,'어느 폴더 안으로 옮길까요?',fPar(f),f.id);if(v==null)break;if(v)f.parent=v;else delete f.parent;S.ui.fclosed=S.ui.fclosed||{};if(v)delete S.ui.fclosed[v];save();renderChar();const p=fById(v);toast(`「${f.name}」 → ${p?fPath(p):'맨 위'}`);break}
-  case 'delT':if(await ask(`트레이너 「${esc(T.name)}」와 소속 포켓몬 ${T.pokemon.length}체를 모두 삭제할까요?${delHint()}`,'삭제')){S.trainers=S.trainers.filter(x=>x!==T);save();renderChar()}break;
+  case 'delT':if(await ask(`트레이너 「${esc(T.name)}」와 소속 포켓몬 ${T.pokemon.length}체를 모두 삭제할까요?${delHint()}`,'삭제')){const at=S.trainers.indexOf(T);S.trainers=S.trainers.filter(x=>x!==T);save();renderChar();
+   undoDel(`「${T.name||'이름 없음'}」 삭제`,()=>{if(S.trainers.includes(T))return;S.trainers.splice(Math.min(at,S.trainers.length),0,T);save();renderChar();goNew('tr-'+T.id);toast('되살렸습니다')})}break;
   case 'dupT':{const c=clone(T);c.id=uid();c.name+=' (복사)';c.pokemon.forEach(p=>p.id=uid());S.trainers.splice(i+1,0,c);save();renderChar();break}
   case 'noimg':T.image='';rf();break;
   case 'ivHatch':if(P)openIvHatch(T,P);break;
@@ -2679,11 +2715,13 @@ $('#v-char').addEventListener('click',async e=>{
   case 'tuneDel':{const T0=tuneOf(P);T0.st=T0.st.filter(x=>x.st!==b.dataset.k);rf();break}
   case 'tuneItemCopy':{const T0=tuneOf(P);const bs=tuneItemBase(P);if(T0.item.trim()&&!await ask('지금 적어 둔 소지품 구문을 DB 구문으로 바꿀까요?','바꾸기'))break;T0.item=bs;T0.itemName=P.item;rf();break}
   case 'tuneItemClr':{const T0=tuneOf(P);T0.item='';T0.itemName='';rf();break}
-  case 'addP':{const p=newPoke();applySheetTpl(T,p);T.pokemon.push(p);rf();break}
+  case 'addP':{const p=newPoke();applySheetTpl(T,p);T.pokemon.push(p);rf();goNew('pk-'+p.id,'nm-'+p.id);break}
   /* 10-29 망령: 미사그 — 각성체를 바로 추가 (대가 쪽이 비었으면 대가, 아니면 보조) */
-  case 'addAw':{const p=newPoke();applySheetTpl(T,p);p.awaken=T.pokemon.some(x=>awOf(T,x)==='free')?'c':'free';T.pokemon.push(p);awClassSync(T,p);rf();break}
+  case 'addAw':{const p=newPoke();applySheetTpl(T,p);p.awaken=T.pokemon.some(x=>awOf(T,x)==='free')?'c':'free';T.pokemon.push(p);awClassSync(T,p);rf();goNew('pk-'+p.id,'nm-'+p.id);break}
   case 'stpl':{const n=applySheetTpl(T,P);rf();toast(n?`템플릿 포텐셜 ${n}개를 넣었습니다`:'더 넣을 템플릿 포텐셜이 없습니다');break}
-  case 'delP':if(await ask(`포켓몬 시트 「${esc(P.name||'이름 없음')}」을(를) 삭제할까요?${delHint()}`,'삭제')){T.pokemon=T.pokemon.filter(x=>x!==P);rf()}break;
+  case 'moreP':{if(!T||!P)break;popMenu(b,[SH.on?{label:'이력',title:'공유 DB 에 남은 옛 판 보기 · 되돌리기',attrs:`data-act="histP" data-i="${i}" data-j="${j}"`}:null,{label:'🗑 삭제',danger:true,title:'이 포켓몬 시트 삭제',attrs:`data-act="delP" data-i="${i}" data-j="${j}"`}]);break}
+  case 'delP':if(await ask(`포켓몬 시트 「${esc(P.name||'이름 없음')}」을(를) 삭제할까요?${delHint()}`,'삭제')){const at=T.pokemon.indexOf(P);T.pokemon=T.pokemon.filter(x=>x!==P);rf();
+   undoDel(`「${P.name||'이름 없음'}」 삭제`,()=>{if(T.pokemon.includes(P))return;T.pokemon.splice(Math.min(at,T.pokemon.length),0,P);save();S.trainers.includes(T)?refreshTrainer(T):renderChar();goNew('pk-'+P.id);toast('되살렸습니다')})}break;
   case 'dupP':{const c=clone(P);c.id=uid();T.pokemon.splice(j+1,0,c);rf();break}
   case 'moveP':{const r=await askMoveP(T,P);if(!r)break;const D=S.trainers.find(x=>x.id===r.tid);if(!D)break;
    if(r.copy){const c=clone(P);c.id=uid();c.open=false;D.pokemon.push(c);toast(`「${P.name||'이름 없음'}」을(를) ${D.name||'이름 없음'}에게 복사했습니다`)}
@@ -2842,9 +2880,15 @@ function cardResults(){const k='cards',D=DBS[k];const all=filterRows(k,dbs);cons
  ${groups.map(g=>{const gr=rows.filter(r=>cardSrc(r)===g);const gk=g||'(없음)';const shut=!!dbs.fold[gk];return `<tr class="csrch" data-cardfold="${esc(gk)}" style="cursor:pointer"><td colspan="${nc}">${shut?'▸':'▾'} 📁 <b>${esc(g||'출처 없음')}</b> <span class="faint">${gr.length}장</span></td></tr>`
   +(shut?'':gr.map(r=>{const i=S.db[k].indexOf(r);return `<tr data-dbedit="${i}" tabindex="0" data-kbd style="cursor:pointer">${D.show.map(c=>cell(r,c)).join('')}</tr>`}).join(''))}).join('')||`<tr><td colspan="${nc}" class="muted">카드가 없습니다</td></tr>`}
  </table></div>`}
-function dbResults(){const k=dbs.k,D=DBS[k];if(k==='cards')return cardResults();const rows=filterRows(k,dbs);
- return `<p class="small muted" style="margin:0 0 6px">${rows.length}건${rows.length>dbs.lim?` · 앞 ${dbs.lim}건 표시`:''} · 행을 누르면 수정 창이 열립니다</p>
- <div class="dbt"><table><tr>${D.show.map(c=>`<th>${esc(D.cols[c])}</th>`).join('')}</tr>
+/* 11-03 감우 (20번 검토 편의 6): DB 표 머리 누르면 그 칸으로 정렬 — 숫자가 많은 칸은 숫자로(빈 칸 · 「-」는 맨 뒤), 아니면 가나다 · 한 번 더 누르면 내림차순 · 세 번째엔 해제. 검색 순위(이름 일치 우선)보다 열 정렬이 우선 */
+function dbSorted(k,rows){const so=dbs.sort;if(!so||so.k!==k)return rows;const c=so.c;const nums=rows.map(r=>{const v=String(r[c]??'').trim();if(v===''||v==='-')return null;const n=numOf(v);return n.length?n[0]:null});const numeric=nums.filter(x=>x!=null).length>=Math.max(1,rows.length*.5);
+ return rows.map((r,i)=>[r,i]).sort((a,b)=>{const va=a[0][c],vb=b[0][c];if(numeric){const na=nums[a[1]],nb=nums[b[1]];if(na==null&&nb==null)return a[1]-b[1];if(na==null)return 1;if(nb==null)return -1;return (na-nb)*so.d||a[1]-b[1]}const sa=String(va??''),sb=String(vb??'');if(!sa&&sb)return 1;if(sa&&!sb)return -1;return KO.compare(sa,sb)*so.d||a[1]-b[1]}).map(x=>x[0])}
+/* 수정 창의 ‹ › 가 따라가는 순서 = 표에 보이는 순서 (카드 DB 는 출처 폴더 순, 접힌 폴더는 건너뜀) */
+function dbNavKeys(){const k=dbs.k,D=DBS[k];if(k==='cards'){const all=filterRows(k,dbs);const pick=dbs.src||'';const rows=pick===''?all:all.filter(r=>cardSrc(r)===(pick==='(없음)'?'':pick));const groups=[...new Set(rows.map(cardSrc))].sort(srcOrder);return groups.flatMap(g=>dbs.fold[g||'(없음)']?[]:rows.filter(r=>cardSrc(r)===g).map(r=>r[D.key]))}
+ return dbSorted(k,filterRows(k,dbs)).map(r=>r[D.key])}
+function dbResults(){const k=dbs.k,D=DBS[k];if(k==='cards')return cardResults();const rows=dbSorted(k,filterRows(k,dbs));const so=dbs.sort&&dbs.sort.k===k?dbs.sort:null;
+ return `<p class="small muted" style="margin:0 0 6px">${rows.length}건${rows.length>dbs.lim?` · 앞 ${dbs.lim}건 표시`:''} · 행을 누르면 수정 창이 열립니다${so?` · 「${esc(D.cols[so.c])}」 ${so.d>0?'오름차순':'내림차순'}`:' · 표 머리를 누르면 정렬'}</p>
+ <div class="dbt"><table><tr>${D.show.map(c=>`<th class="dbth ${so&&so.c===c?'on':''}" data-dbsort="${c}" title="${esc(D.cols[c])} 기준으로 정렬 (다시 누르면 내림차순 · 한 번 더 누르면 해제)" tabindex="0" data-kbd>${esc(D.cols[c])}${so&&so.c===c?`<i>${so.d>0?'▲':'▼'}</i>`:''}</th>`).join('')}</tr>
  ${rows.slice(0,dbs.lim).map(r=>{const i=S.db[k].indexOf(r);return `<tr data-dbedit="${i}" tabindex="0" data-kbd style="cursor:pointer">${D.show.map(c=>c===D.eff?`<td class="ef"><div class="efc">${rich(r[c])}</div></td>`:c===D.key?`<td class="b">${esc(r[c])}${S.custom[k].includes(r[c])?' <span class="kindb">오리지널</span>':''}${k==='moves'&&mvOldOnly(r)?' <span class="kindb">올드 전용</span>':''}</td>`:k==='cards'&&c===6?`<td style="width:44px">${cardImg(r[c])?`<img src="${esc(cardImg(r[c]))}" alt="" loading="lazy" style="width:36px;height:50px;object-fit:cover;border-radius:4px;display:block">`:`<span style="display:block;width:36px;height:50px;border-radius:4px;background:${cardCol(r[5])}"></span>`}</td>`:k==='st'&&c===12?`<td style="width:40px">${r[c]?`<img src="${esc(stIcon(r[c]))}" alt="" loading="lazy" style="width:32px;height:32px;object-fit:contain;display:block">`:''}</td>`:k==='rm'&&c===4?`<td style="white-space:nowrap">${(()=>{const v=String(r[4]==null?'':r[4]).trim();if(v!==''&&+v>0)return `<b>${esc(v)}%</b>`;const F=window.OM_FX;if(!F||!F.rmChance)return '<span class="faint">—</span>';let t=r[1]||'';if(!t&&F.effOf){const mm=String(r[0]||'').match(/^(특성|소지품)\s*:\s*(.+)$/);t=mm?F.effOf(mm[1]==='특성'?'trait':'item',mm[2]):(F.effOf('trait',r[0])||'')}const d=F.rmChance({text:t});return d?`<span class="muted" title="효과 글에서 읽은 확률">글 ${d}%</span>`:'<span class="faint">—</span>'})()}</td>`:k==='items'&&c===7?`<td class="ef"><div class="efc" style="white-space:pre-line;font-size:12px">${r[c]?esc(r[c]):'<span class="faint">—</span>'}</div></td>`:(k==='moves'&&c===5)||(k==='old'&&(c===3||c===4))?`<td>${tchip(r[c])}</td>`:`<td>${esc(r[c])}</td>`).join('')}</tr>`}).join('')}</table>
  ${rows.length>dbs.lim?`<div style="padding:8px"><button class="btn" data-dbmore>더 보기</button></div>`:''}</div>`}
 function renderDB(){const k=dbs.k;
@@ -2877,13 +2921,14 @@ async function orphAct(act,id){const d=SH.orph_ed&&SH.orph_ed.get(id);if(!d)retu
   if(!await ask(`「${esc(n)}」 행을 「${esc(d.key)}」 수정 내용으로 바꿀까요? (이름은 「${esc(n)}」 그대로)`,'옮겨 붙이기',false))return;const nr=clone(d.row);nr[D.key]=n;S.db[k][i]=nr;if(d.custom&&!S.custom[k].includes(n))S.custom[k].push(n)}
  SH.orph_ed.delete(id);SH.ed.delete(id);reindex();save(true);renderDB();toast(act==='drop'?'버렸습니다':'반영했습니다')}
 $('#v-db').addEventListener('click',async e=>{const t=e.target;
- const kb=t.closest('[data-dbk]');if(kb){Object.assign(dbs,{k:kb.dataset.dbk,q:'',type:'',cat:'',kind:'',mine:false,lim:150,f:{},pmin:'',pmax:''});renderDB();return}
+ const kb=t.closest('[data-dbk]');if(kb){Object.assign(dbs,{k:kb.dataset.dbk,q:'',type:'',cat:'',kind:'',mine:false,lim:150,f:{},pmin:'',pmax:'',sort:null});renderDB();return}
  {const cs=t.closest('[data-cardsrc]');if(cs){dbs.src=cs.dataset.cardsrc;const r=$('#dbres');if(r)r.innerHTML=dbResults();return}const cf=t.closest('[data-cardfold]');if(cf){const g=cf.dataset.cardfold;dbs.fold[g]=!dbs.fold[g];const r=$('#dbres');if(r)r.innerHTML=dbResults();return}}   /* 11-01 카드 출처 폴더 */
  if(t.closest('[data-dbmore]')){dbs.lim+=300;const r=$('#dbres');if(r)r.innerHTML=dbResults();return}
+ {const th=t.closest('[data-dbsort]');if(th){const c=+th.dataset.dbsort;const so=dbs.sort&&dbs.sort.k===dbs.k?dbs.sort:null;dbs.sort=!so||so.c!==c?{k:dbs.k,c,d:1}:so.d>0?{k:dbs.k,c,d:-1}:null;const r=$('#dbres');if(r)r.innerHTML=dbResults();return}}
  const ft=t.closest('[data-dbftog]');if(ft){dbs.fopen=!dbs.fopen;$('#v-db .fwrap').classList.toggle('on',dbs.fopen);ft.setAttribute('aria-expanded',dbs.fopen);return}
  if(t.closest('[data-xfreset]')){Object.assign(dbs,{f:{},pmin:'',pmax:'',kind:'',type:'',cat:'',lim:150});renderDB();return}
  const ce=t.closest('[data-copyex]');if(ce){copyStr(dbs.ex[+ce.dataset.copyex][1]);return}
- const ed=t.closest('[data-dbedit]');if(ed){openEdit(dbs.k,+ed.dataset.dbedit);return}
+ const ed=t.closest('[data-dbedit]');if(ed){openEdit(dbs.k,+ed.dataset.dbedit,{nav:dbNavKeys});return}
  const ob=t.closest('[data-orph]');if(ob){orphAct(ob.dataset.orph,ob.dataset.id);return}
  const mb=t.closest('[data-mt]');if(mb){mb.dataset.mt==='build'?mtDownload(mb.dataset.k):mtImport(mb.dataset.k);return}
  const a=t.closest('[data-dbact]');if(!a)return;const k=dbs.k;
@@ -3493,17 +3538,17 @@ function shSchedule(ms){clearTimeout(shTimer);SH.pendT=true;shTimer=setTimeout((
 async function shFlush(){if(!SH.on||!SH.ready)return;if(!SH.canWrite){shStatus('읽기 전용 · 고친 내용은 공유되지 않습니다');return}
  if(SH.flushing){SH.again=true;return}
  const wait=800-(Date.now()-shLastFlush);if(wait>0){shSchedule(wait);return}
- SH.flushing=true;shLastFlush=Date.now();let retry=false,hard=0;SH.bad=SH.bad||new Map();
+ SH.flushing=true;shLastFlush=Date.now();let retry=false,hard=0,did=false;SH.bad=SH.bad||new Map();
  try{if(SH.db&&SH.db.fresh)try{await SH.db.fresh(60000,SH_KINDS)}catch(e){}   /* 11-03: meta · dbedit · folders 도 표 통째 쓰기라 낡은 탭이 덮지 않게 먼저 맞춘다 */
   do{SH.again=false;const want=shWant();const jobs=[];
    for(const [p,b] of want){const j=canon(b);if(SH.synced.get(p)===j||SH.bad.get(p)===j)continue;
     if(j.length>1500000){if(shHostBig(p))continue;if(!SH.bigWarn){SH.bigWarn=true;toast('한 항목이 너무 커서 공유 저장하지 못했습니다 · 메모나 효과 글을 줄여 주세요')}SH.bad.set(p,j);continue}
     jobs.push(async()=>{try{const o=JSON.parse(j);await SH.db.doc(p).set(o);SH.synced.set(p,j);shTrack(p,o);SH.bad.delete(p);if(p.startsWith('trainers/'))rcvNote(p.slice(9),o.data)}catch(e){const c=shErr(e);if(c==='unavailable'||c==='resource_exhausted')retry=true;else{SH.bad.set(p,j);hard++}}})}
    for(const p of [...SH.synced.keys()])if(!want.has(p))jobs.push(async()=>{try{await SH.db.doc(p).delete();SH.synced.delete(p);shTrack(p,null)}catch(e){const c=shErr(e);if(c==='unavailable'||c==='resource_exhausted')retry=true;else hard++}});
-   if(jobs.length){shStatus(`저장 중… (${jobs.length})`);await runPool(jobs,2)}
+   if(jobs.length){shStatus(`저장 중… (${jobs.length})`);await runPool(jobs,2);did=true}
   }while(SH.again&&!retry)}finally{SH.flushing=false}
  if(retry){shBack=Math.min(30000,(shBack||1500)*2);SH.retryAt=Date.now()+shBack;shStatus(`잠시 뒤 다시 저장합니다 (${SH_ERR_KO[SH.lastErr]||SH.lastErr})`);shSchedule(shBack);return}
- SH.retryAt=0;if(SH.net==='off'&&!hard)SH.net='ok';shBack=0;shStatus(hard?`저장 실패 ${hard}건 · ${SH_ERR_KO[SH.lastErr]||SH.lastErr}`:'저장됨 '+nowHM());if(SH.again)shSchedule(300)}
+ SH.retryAt=0;if(SH.net==='off'&&!hard)SH.net='ok';shBack=0;shStatus(hard?`저장 실패 ${hard}건 · ${SH_ERR_KO[SH.lastErr]||SH.lastErr}`:'저장됨 '+nowHM());if(did&&!hard)savedFx();if(SH.again)shSchedule(300)}
 /* 1.5MB 를 넘는 문서: 안에 든 그림(data URL)을 공유 저장소로 옮기고 주소만 남긴 뒤 다시 저장한다 */
 function shHostBig(path){SH.hosting=SH.hosting||new Set();if(SH.hosting.has(path))return true;const [kind,id]=[path.slice(0,path.indexOf('/')),path.slice(path.indexOf('/')+1)];
  let o=null,tag='';if(kind==='trainers'){o=S.trainers.find(t=>t.id===id);tag='t'}else if(kind==='pokemon'){for(const t of S.trainers){o=t.pokemon.find(p=>p.id===id);if(o)break}tag='p'}
