@@ -366,7 +366,10 @@ window.OM_FX=(()=>{
  function parseLine(line){line=String(line||'').trim();if(!line||line.startsWith('#'))return null;let p=0,pl='',hold=0;
   let x=line.match(/^(\d+(?:\.\d+)?)\s*(할|%)(?:\s*확률)?\s*(?:로)?\s*[:：]?\s+(?=\S)/);if(x){p=Math.min(100,x[2]==='할'?+x[1]*10:+x[1]);line=line.slice(x[0].length)}else if((x=line.match(/^(드물게|저확률|중확률|고확률)\s*(?:로)?\s*[:：]?\s+(?=\S)/))){pl=x[1];line=line.slice(x[0].length)}
   if(HOLD_W.test(line)){hold=1;line=line.replace(HOLD_W,' ').trim()}
-  const op=parseLine0(line);if(op&&op.k!=='?'){if(p)op.p=p;if(pl)op.pl=pl;if(hold)op.hold=1}return op}
+  /* 11-03 특수 효과(sp) 구문 뒤의 대상 낱말(아군전체 · 상대전체 …) — 없으면 자신 */
+  let spT=null;{const ws=line.split(/\s+/);if(SP_HEADS.has(ws[0])){const rest=ws.slice(1);const t=tgtOf(rest);if(t){spT=t;line=[ws[0]].concat(rest).join(' ')}}}
+  const op=parseLine0(line);if(op&&op.k!=='?'){if(p)op.p=p;if(pl)op.pl=pl;if(hold)op.hold=1;if(spT&&spT!=='self'&&op.k==='sp')op.tgt=spT}return op}
+ const SP_HEADS=new Set(['추가공격','보호','특성무시','해석차단','기술타입','지속연장','명중확장','회피','추가효과','끌어오기','반사']);
  function parseLine0(line){line=line.trim();if(!line||line.startsWith('#'))return null;const words=line.split(/\s+/);const head=words.shift();
   const n=s=>{const m=String(s).match(/-?\d+(\.\d+)?/);return m?+m[0]:0};const turns=()=>{const i=words.findIndex(w=>/^\d+턴$/.test(w));if(i<0)return null;const v=+words[i].replace('턴','');words.splice(i,1);return v};const has=w=>{const i=words.indexOf(w);if(i<0)return false;words.splice(i,1);return true};
   const tagW=()=>{const i=words.findIndex(w=>/^태그[:：]/.test(w));if(i<0)return [];const v=words.splice(i,1)[0].replace(/^태그[:：]/,'');return v.split(/[,·]/).map(x=>x.trim()).filter(Boolean)};
@@ -487,7 +490,7 @@ window.OM_FX=(()=>{
    case 'sp':{const T=op.types&&op.types.length?' 타입:'+op.types.map(t=>TYPE_KO[t]||t).join(','):'',G=op.tg&&op.tg.length?' 태그:'+op.tg.join(','):'',C=op.cat?' '+op.cat:'';
     L.push(({extra:()=>'추가공격'+T+G+C+(+op.pw!==0.25?' 위력×'+op.pw:'')+(op.sure?'':' 명중판정')+(op.n>1?' '+op.n+'번':''),protect:()=>'보호 '+(op.what||['trait']).map(w=>w==='item'?'소지품':'특성').join(' '),mold:()=>'특성무시',nodex:()=>'해석차단',
      mvtype:()=>'기술타입 '+(op.from?'타입:'+(TYPE_KO[op.from]||op.from):(op.mv||'전부'))+' '+(TYPE_KO[op.to]||op.to),ext:()=>'지속연장 '+((op.what||[]).join(',')||'날씨')+' +'+op.n,scrappy:()=>'명중확장 '+(op.types&&op.types.length?(TYPE_KO[op.types[0]]||op.types[0]):'전부')+((op.vs||[]).length?' '+op.vs.map(t=>TYPE_KO[t]||t).join(','):'')+(op.float?' 하늘위':''),
-     evade:()=>'회피 '+(op.pct%10===0?op.pct/10+'할':op.pct+'%')+T+G+C,secx:()=>'추가효과 ×'+op.v+T+G,redirect:()=>'끌어오기'+T+G+(op.cat?' '+(op.cat==='변화'?'변화기':op.cat):''),bounce:()=>'반사 변화기'}[op.sp]||(()=>'# '+JSON.stringify(op)))());break}
+     evade:()=>'회피 '+(op.pct%10===0?op.pct/10+'할':op.pct+'%')+T+G+C,secx:()=>'추가효과 ×'+op.v+T+G,redirect:()=>'끌어오기'+T+G+(op.cat?' '+(op.cat==='변화'?'변화기':op.cat):''),bounce:()=>'반사 변화기'}[op.sp]||(()=>'# '+JSON.stringify(op)))()+(op.tgt&&op.tgt!=='self'?' '+(TGT_KO[op.tgt]||op.tgt).replace(/\s/g,''):''));break}
    case 'freeswitch':L.push('임의교대');break;
    case 'usemove':L.push('기술사용 '+op.mv);break;
    case 'statadd':L.push('실수치 '+op.stats.join(',')+' '+(op.copy?'='+op.copy:(op.n>0?'+':'')+op.n));break;
