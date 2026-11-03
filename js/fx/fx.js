@@ -171,7 +171,7 @@ window.OM_FX=(()=>{
      case 'dex':{const ts=await targets(b,self,'enemy1',ctx);const tg=ts[0];L.push(`「${name}」 데이터 해석${tg?' → '+tg.name:''}`);if(tg&&window.OM_DEX_UI&&ctx.viewer!==undefined)setTimeout(()=>window.OM_DEX_UI.analyze(ctx.viewer||self.tid,tg.id,{forced:true,free:true}),400);break}
      case 'sp':{const ts=op.tgt&&op.tgt!=='self'?await targets(b,self,op.tgt,ctx):[self];for(const m of ts){const F=fx(m);const key=name+'|'+op.sp+'|'+(op.mv||op.to||(op.types||[]).join('')||'');F.sp=F.sp.filter(e=>e.key!==key);const e=Object.assign({},op,{key,name});delete e.k;delete e.tgt;F.sp.push(e);L.push(`${m.name} 「${name}」 ${spDesc(e)}`)}break}
      case 'freeswitch':{if(ctx.freeSwitch){const r=await ctx.freeSwitch(self,name);if(r)L.push(r)}else L.push(`${self.name} 임의 교대할 수 있다 — 교대 창에서`);break}
-     case 'usemove':{L.push(`${self.name} 기술 「${op.mv}」를 내보낸다`);if(ctx.useMove)ctx.useMove(self,op.mv,name);break}
+     case 'usemove':{L.push(`${self.name} 기술 「${op.mv}」를 내보낸다`+(op.top&&op.top.length?` (이때 「${op.top.map(k=>STAT_KO[k]||k).join('·')}」 가장 높은 종족치와 같은 랭크)`:''));if(ctx.useMove)ctx.useMove(self,op.mv,name,{top:op.top||[]});break}
      case 'statadd':L.push(`${self.name} 실수치 ${op.stats.join('·')} ${op.copy?'= '+op.copy:(op.n>0?'+':'')+op.n} (제작기 시트의 실수치에 이미 들어가 있다)`);break;
      case 'statset':{const SI={공격:1,방어:2,특공:3,특방:4,스피드:5};const ix=op.stats.map(k=>SI[k]).filter(i=>i!=null);const keep=m=>{if(!Array.isArray(m.stats))return false;if(!m.statsOrig)m.statsOrig=m.stats.slice();return true};const nm=i=>['HP','공격','방어','특공','특방','스피드'][i];
       const ts=await targets(b,self,op.tgt||'self',ctx);
@@ -428,7 +428,7 @@ window.OM_FX=(()=>{
    case '끌어오기':return {k:'sp',sp:'redirect',types:types(),tg:tagW(),cat:has('변화기')?'변화':has('물리')?'물리':has('특수')?'특수':''};
    case '반사':{has('변화기');return {k:'sp',sp:'bounce',cat:'변화'}}
    case '임의교대':return {k:'freeswitch'};
-   case '기술사용':{const mv=words.join(' ').replace(/[「」]/g,'').trim();if(!mv)return {k:'?',raw:line};return {k:'usemove',mv}}
+   case '기술사용':{const ti=words.findIndex(w=>/^최고[:：]/.test(w));let top=[];if(ti>=0){top=words.splice(ti,1)[0].replace(/^최고[:：]/,'').split(/[,·\/]/).map(x=>KO_STAT[x.trim()]||'').filter(Boolean)}const mv=words.join(' ').replace(/[「」]/g,'').trim();if(!mv)return {k:'?',raw:line};const op={k:'usemove',mv};if(top.length)op.top=top;return op}   /* 11-03 망령: 「이때, 「공격」을 가장 높은 종족치와 같은 랭크로」 = 그 기술 한 번만 → 최고:공격 */
    case '종족치':{/* 시트 종족치: 종족치 방어,특방 +1 · 종족치 스피드 최대 — 제작기가 시트 종족치 · 실수치에 넣는다 (배틀 중엔 바꾸지 않는다) */const all=words.join(' ');const mx=/최대/.test(all);const tp=/최고/.test(all);const mm=all.match(/(^|\s)([+\-]?\d+)/);const nn=mm?+mm[2]:1;const st=[];for(const w of words)for(const s of w.split(/[,\/·]/)){const t=s.trim().toUpperCase()==='HP'?'HP':s.trim();if(['HP','공격','방어','특공','특방','스피드'].includes(t)&&!st.includes(t))st.push(t)}if(!st.length||(!mx&&!tp&&!nn))return {k:'?',raw:line};if(tp)return {k:'baseup',stats:st,n:0,max:0,top:1};return {k:'baseup',stats:st,n:mx?0:nn,max:mx?1:0}}
    /* 11-02 망령 「실수치 변경 매크로」: 시트형(제작기 시트 실수치에 더함) · 배틀형(배틀 중 실수치 · 교대하면 원래대로) */
    case '실수치':{const st=[];for(const w of words)for(const x of w.split(/[,\/·]/)){const t=x.trim().toUpperCase()==='HP'?'HP':x.trim();if(['HP','공격','방어','특공','특방','스피드'].includes(t)&&!st.includes(t))st.push(t)}const cpm=words.join(' ').match(/=\s*(공격|방어|특공|특방|스피드)/);if(cpm){const st2=st.filter(x=>x!=='HP'&&x!==cpm[1]);if(!st2.length)return {k:'?',raw:line};return {k:'statadd',stats:st2,copy:cpm[1]}}const mm=words.join(' ').match(/(^|\s)([+\-]\d+)/);if(!st.length||!mm)return {k:'?',raw:line};return {k:'statadd',stats:st,n:+mm[2]}}
@@ -492,7 +492,7 @@ window.OM_FX=(()=>{
      mvtype:()=>'기술타입 '+(op.from?'타입:'+(TYPE_KO[op.from]||op.from):(op.mv||'전부'))+' '+(TYPE_KO[op.to]||op.to),ext:()=>'지속연장 '+((op.what||[]).join(',')||'날씨')+' +'+op.n,scrappy:()=>'명중확장 '+(op.types&&op.types.length?(TYPE_KO[op.types[0]]||op.types[0]):'전부')+((op.vs||[]).length?' '+op.vs.map(t=>TYPE_KO[t]||t).join(','):'')+(op.float?' 하늘위':''),
      evade:()=>'회피 '+(op.pct%10===0?op.pct/10+'할':op.pct+'%')+T+G+C,secx:()=>'추가효과 ×'+op.v+T+G,redirect:()=>'끌어오기'+T+G+(op.cat?' '+(op.cat==='변화'?'변화기':op.cat):''),bounce:()=>'반사 변화기'}[op.sp]||(()=>'# '+JSON.stringify(op)))()+(op.tgt&&op.tgt!=='self'?' '+(TGT_KO[op.tgt]||op.tgt).replace(/\s/g,''):''));break}
    case 'freeswitch':L.push('임의교대');break;
-   case 'usemove':L.push('기술사용 '+op.mv);break;
+   case 'usemove':L.push('기술사용 '+op.mv+(op.top&&op.top.length?' 최고:'+op.top.map(k=>STAT_KO[k]||k).join(','):''));break;
    case 'statadd':L.push('실수치 '+op.stats.join(',')+' '+(op.copy?'='+op.copy:(op.n>0?'+':'')+op.n));break;
    case 'statset':L.push('실수치변경 '+op.stats.join(',')+' '+({add:(op.n>0?'+':'')+op.n,set:'='+op.n,mul:'×'+op.n,swap:'교환',avg:'평균',flip:'맞바꿈',copy:'='+(op.from||'')}[op.mode]||'')+tga(op.tgt||'self'));break;
    case 'stmod':L.push('상태수정 '+stKoW(op.st)+' '+op.n+'/'+op.d);break;

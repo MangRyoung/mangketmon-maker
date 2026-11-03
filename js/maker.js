@@ -226,8 +226,8 @@ function baseUp(t,p){const src=[];const ab=p.ability&&idx.abil?idx.abil.get(p.ab
  for(const [kind,name,eff] of src){for(const cl of String(eff).replace(/<br\s*\/?>/g,'\n').split(/\n|(?=[①-⑳])/)){
   for(const m of cl.matchAll(/「([^」]+)」의\s*종족치(?:를|가|도)?\s*(\d+)\s*랭크\s*(상승|감소)/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;const d=(+m[2]||1)*(m[3]==='감소'?-1:1);
    for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;n[i]+=d;by[i].push(`${kind} 『${name}』 ${d>0?'+':''}${d}랭크`)}}
-  /* 11-03 망령: 「「공격」을 가장 높은 종족치와 같은 랭크로 만든다」 (나이트 쉽 계열) */
-  for(const m of cl.matchAll(/「([^」]+)」(?:의\s*종족치)?(?:을|를)\s*가장\s*높은\s*종족치와\s*같은\s*랭크로\s*(?:만든|만들|한다|하고)/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;top[i]=1;by[i].push(`${kind} 『${name}』 가장 높은 종족치와 같은 랭크`)}}
+  /* 11-03 망령: 「「공격」을 가장 높은 종족치와 같은 랭크로 만든다」 (상시 효과일 때만 — 나이트 쉽 계열 「이때」는 기술 한 번만이라 뺀다) */
+  for(const m of cl.matchAll(/「([^」]+)」(?:의\s*종족치)?(?:을|를)\s*가장\s*높은\s*종족치와\s*같은\s*랭크로\s*(?:만든|만들|한다|하고)/g)){if(/이때|내보낸다/.test(cl.slice(0,m.index)))continue;   /* 11-03 망령: 「기술 X 를 내보낸다. 이때, …」는 그 기술 한 번만 → 시트엔 안 넣는다 (웹툴 기술사용 최고:) */if(!buCondOk(t,p,cl.slice(0,m.index)))continue;for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;top[i]=1;by[i].push(`${kind} 『${name}』 가장 높은 종족치와 같은 랭크`)}}
   for(const m of cl.matchAll(/「([^」]+)」의\s*종족치\s*범위를\s*최대화/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;mx[i]=1;by[i].push(`${kind} 『${name}』 범위 최대`)}}
   /* 옛 「「+」 보정을 가한다」 = 범위 최대화 (10-27 룰북). 11-01 망령 「종족치에 + 보정을 가하는 포텐셜 자동화 안 돼?」: 「「공격」 종족치에 「+」 보정」 · 「「공격」의 종족치에 + 보정」 꼴도 읽는다 */
   for(const m of cl.matchAll(/「([^」]+)」\s*(?:의\s*)?(?:종족치\s*)?에\s*「?\s*[+＋]\s*」?\s*보정/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;mx[i]=1;by[i].push(`${kind} 『${name}』 「+」 보정 = 범위 최대`)}}
@@ -788,7 +788,7 @@ const fxReady=()=>!!(window.OM_FX&&window.OM_FX_UI);
 window.OM_APP=window.OM_APP||{openModal:h=>{const l=openModal(h,{wide:true});l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))closeModal()});return l},closeModal:()=>closeModal(),toast:t=>toast(t),ST:{role:'player',state:{}},set:async()=>false};
 let fxLoadP=null,FXST='';/* '' 불러오는 중 · ok · fail */
 function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
- const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611031040';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
+ const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611031105';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
  FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');await one('itemrule.js');FXST='ok';rmInit();stInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
 function fxRetry(){if(fxReady())return;fxLoadP=null;toast('구문 스크립트를 다시 불러옵니다…');loadFx();if(S.ui&&S.ui.tab)refreshAll()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fxretry]');if(!b)return;e.preventDefault();e.stopPropagation();fxRetry()},true);
