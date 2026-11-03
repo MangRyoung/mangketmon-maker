@@ -451,6 +451,8 @@ function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);
  return out}
 /* PT: 공격·특공이 둘 다 기준 미만인 커스텀 포켓몬은 1체까지 (올드 타입은 세지 않음) */
 function ptChecks(t){const th=pnum(PR().weakAtk,60);const L=t.pokemon.filter(p=>!isOld(p)&&baseTot(p)&&(+p.base[1]||0)<th&&(+p.base[3]||0)<th);const out=L.length>1?[`공격·특공이 둘 다 ${th} 미만인 포켓몬이 ${L.length}체입니다 (${L.map(p=>p.name||'이름 없음').join(', ')}) · PT에 1체까지`]:[];
+ /* 11-04 망령 「앞으론 6 고정?」 → 「가」: 「기술 할인점」 보유가 템플릿 값(6체 6 · 1인 2체 2 …)과 다르면 경고만 — 일부러 다르게 준 NPC 는 그대로 둔다 */
+ {const K='「기술 할인점」';if(t.base&&t.base[K]!=null&&t.base[K]!==''){let d=null;try{const c=Object.assign({},t,{base:Object.assign({},t.base),unique:(t.unique||[]).slice()});applyTpl(c);d=+c.base[K]}catch(e){}if(d!=null&&isFinite(d)&&+t.base[K]!==d)out.push(`${K} ${+t.base[K]} — 기본값은 ${d}입니다 (테이블·계산식 템플릿) · 일부러 다르게 준 거면 그대로 두세요`)}}
  /* 10-29 망령: 「통솔 : D」는 『올드 타입』 최대 1체 */
  const O=strip(((t.ranks||{})['통솔'])||'')===DOWN_LEAD?t.pokemon.filter(p=>p.name&&isOld(p)):[];if(O.length>1)out.push(`통솔 D는 『올드 타입』 계열을 PT에 1체까지 넣을 수 있습니다 · 지금 ${O.length}체 (${O.map(p=>p.name).join(', ')})`);
  /* 11-03: 같은 소지품을 둘 이상이 들면(2 · 3번 칸 포함) 경고 · 잠긴(특제 미해금) 소지품 착용 경고 */
