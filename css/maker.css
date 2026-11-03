@@ -1359,3 +1359,7 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 #mk .ph>.pact .btn{justify-content:center}
 @media (max-width:600px){#mk .ph>.pact{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px}}
 #mk .mhead .pcdelb{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}   /* 11-03 한 장 요약 삭제 단추 (⋯ 대신) */
+/* 11-03 DB 기술 · 특성 · 포텐셜 「구문」 칸 (레디메이드 구문, 누르면 레디메이드 행 수정) */
+#mk .dbt td.dbfx{min-width:200px;cursor:pointer;color:var(--ink);font-family:ui-monospace,Consolas,monospace}
+#mk .dbt td.dbfx:hover{background:var(--sunk);box-shadow:inset 0 0 0 1px var(--line)}
+@media (max-width:700px){#mk .dbt td.dbfx{min-width:170px}}
