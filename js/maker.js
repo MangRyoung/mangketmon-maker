@@ -378,7 +378,6 @@ function sockBonus(p){const out={ab:0,mv:0,src:[]};const texts=[];(p.pots||[]).f
  if(nz(p.sockBonAb)){out.ab=+p.sockBonAb;out.manual=1}if(nz(p.sockBonMv)){out.mv=+p.sockBonMv;out.manual=1}return out}
 /* 쌍두: 물리기·특수기를 각각 1개 이상 */
 function dualMoves(p){const cats=new Set((p.moves||[]).filter(m=>m.name).map(m=>(idx.moves.get(m.name)||[])[6]));return cats.has('물리')&&cats.has('특수')}
-function dualType(p){const D=PR().dual;const b=baseNums(p);return dualMoves(p)&&Math.min(b[1],b[3])>pnum(D.lo,90)}
 /* 선공 하한: 선공기(우선도 +1 이상 · 자신/자기 진영 대상 제외) · 특성 · 포텐셜에서 가장 높은 스피드 하한 */
 const PRIO_SELF=/^(자신|아군|자진|아군 전체|필드 전체|자기 필드|아군 필드|자신 · 아군)$/;
 function prioInfo(p){const P=PR().prio||PRIDE_DEF.prio;const rows=P.rows||PRIDE_DEF.prio.rows;const powT=pnum(P.pow,50);let best={floor:0,src:'',kind:''};
@@ -706,7 +705,6 @@ const AUTO_HELP=`대상: 자신(기본) · 아군전체 · 상대전체 · 자�
 선택:  →  - ① 라벨 → 랭크 공격+1  /  - ② 라벨 → 회복 1/4
 효과 글의 표식: 【등장】 등장 때 자동 · 【상시】 처음 한 번 자동 · 【N/시】 횟수 · 드물게/저확률/중확률/고확률 확률 판정`;
 function autoDsl(p,name){return ((p&&p.auto)||{})[String(name||'').replace(/『|』/g,'')]||''}
-function autoBadge(p,name){const K=window.OM_FX;if(!K||!name)return '';const own=autoDsl(p,name);if(own)return ' <span class="kindb" title="자동화 구문 있음">⚙ 구문</span>';const r=K.rm(name);return r&&r.ops&&r.ops.length&&!r.manual?' <span class="kindb" title="레디메이드 자동">⚙ 자동</span>':''}
 function potEffOf(p,i){if(p.potEff[i]!==''&&p.potEff[i]!=null)return p.potEff[i];const r=potRow(p.pots[i]);return r?r[2]:''}
 const nlBr=s=>String(s??'').replace(/\r?\n|\\n/g,'<br>');
 function moveLine(name,r){const g=i=>nlBr(r[i]??'');const en=(typeInfo(g(5))||[])[3]||'Normal';
@@ -2192,8 +2190,6 @@ function tOrdHTML(t,ti){const o=t.orders||{};const p=o.preset||'';const rk=(t.ra
   ${p?`<label class="plrow"><span>기준 횟수</span><input type="number" min="0" max="9" style="width:64px;flex:none" data-tord="${ti}" data-k="base" value="${base}"><span class="small muted" style="font-weight:400">항목마다 이 횟수</span></label>${prev}`:'<p class="small muted" style="margin:6px 0 0">고르면 오레마스로 가져갈 때 명령(4식)·지령(6령) 계열과 횟수가 자동으로 맞춰진다.</p>'}</div>`}
 /* 10-26 망령: 세션 노트와 주고받는 공개 칸(RP). 노트의 「⇪ 제작기로」 · 「⇩ 제작기에서」 와 같은 칸이다 */
 const RP_PC=[['bg','배경 · 설정'],['goal','목표 · 동기'],['bond','인간관계'],['style','말투 · 겉모습'],['note','메모']],RP_NPC=[['bg','정체 · 설정'],['goal','원하는 것 · 동기'],['bond','인간관계'],['style','말투 · 겉모습'],['note','PL 이 아는 것']];
-function rpFold(t,P){const L=t.kind==='npc'?RP_NPC:RP_PC;const rp=t.rp||{};const n=L.filter(([k])=>rp[k]).length;
- return `<details class="rpfold" ${n?'':''}><summary>세션 노트 공개 칸 <span class="small faint">${n?n+'칸 채움':'비어 있음'}${t.rpAt?' · 노트에서 '+new Date(t.rpAt).toLocaleDateString('ko-KR'):''}</span></summary><div class="rpg">${L.map(([k,l])=>`<label class="lbl"><span class="small muted">${l}</span><textarea data-p="${P}.rp.${k}" rows="2">${esc(rp[k]||'')}</textarea></label>`).join('')}</div><p class="small faint" style="margin:4px 0 0">세션 노트의 PC/NPC 시트와 주고받는 칸이에요. 비밀 칸 · GM 메모는 노트에만 있어요.</p></details>`}
 /* 10-28 망령: 미사그 대학 (4+2) 「각성체 대가」 패널 — 등급은 각성 (대가)의 프라이드에서 매번 계산, 고른 것만 t.misagPen 에 */
 function misagOut(t){if(!isMisag(t))return undefined;const P=misagPen(t),e=misagEff(t);const it=[];if(e.통솔){for(const k of e.통솔==='A'?[P.b,P.a]:[P.b]){const r=k&&misagItem(k);if(r)it.push({key:r[0],grade:r[1],desc:r[2],need:r[3]||''})}}
  return {grade:misagGrade(t),pen:e,dist:misagDistPen(t),excl:misagExclPen(t),uq:misagUqPen(t),ordOff:e.지시?{o:misagOrdOff(t,'o'),c:misagOrdOff(t,'c')}:{o:[],c:[]},items:it,type:P.type||'',role:String(P.role||'').trim(),note:String(P.note||'').trim(),two:misagTwoOut(t)}}
@@ -2281,9 +2277,7 @@ function radar(p){const R=25,cx=28,cy=28;const pt=(i,r)=>{const a=-Math.PI/2+i*M
  const poly=vals.map((v,i)=>pt(i,Math.max(1.5,v*R))).join(' ');
  return `<svg class="radar" viewBox="0 0 56 56" aria-hidden="true"><polygon points="${ring(1)}" class="rg"/><polygon points="${ring(.5)}" class="rg"/>${[0,1,2,3,4,5].map(i=>`<line x1="${cx}" y1="${cy}" x2="${pt(i,R).replace(',',' ').split(' ')[0]}" y2="${pt(i,R).split(',')[1]}" class="rg"/>`).join('')}${any?`<polygon points="${poly}" class="rv"/>`:''}</svg>`}
 const genderGlyph=g=>g==='♂'?'<span class="gen m" title="수컷">♂</span>':g==='♀'?'<span class="gen f" title="암컷">♀</span>':g==='무성'?'<span class="gen n" title="무성">⚲</span>':'';
-function ptStripHTML(t){return `<span class="ptstrip">${t.pokemon.map(p=>{const a=tyCol(p.t1),b=tyCol(p.t2)||a;return `<i style="background:linear-gradient(135deg,${a||'var(--sunk2)'} 50%,${b||'var(--sunk2)'} 50%)" title="${esc(p.name||'')} · ${esc([p.t1,p.t2].filter(x=>x&&x!=='-').join('/')||'타입 없음')}"></i>`}).join('')}</span>`}
 function miniGrades(p,t){const eb=t?effB(t,p):p.base;return `<div class="minig">${STATS.map((s,i)=>{const g=grade(eb[i]);const tip=t?buTip(t,p,i):'';return `<span class="mg" title="${s} ${esc(p.base[i]||'-')}${tip?' — '+esc(tip):''}"><small>${s}</small><b style="background:${gcol(g)}">${esc(g)}</b></span>`}).join('')}</div>`}
-function miniBars(p){return `<div class="mini">${STATS.map((s,i)=>{const v=+p.base[i]||0;const g=grade(p.base[i]);return `<div><span>${s.slice(0,2)}</span><i><b style="width:${Math.min(100,v/200*100)}%;background:${gcol(g)}"></b></i></div>`}).join('')}</div>`}
 /* 목록 카드의 폼 보기: 폼 이름 버튼을 누르면 카드 요약(이름·타입·특성·종족치·그림)이 그 폼으로 보인다. 저장은 안 하고 한 번 더 누르거나 「원래」로 돌아온다 */
 const FV={};
 function formView(p){const k=FV[p.id];const f=k!=null&&(p.forms||[])[k];if(!f)return p;const has=v=>v&&v!=='-';
@@ -3304,7 +3298,9 @@ const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)
 function fnv(s){let h=2166136261;for(const c of String(s)){h^=c.codePointAt(0);h=Math.imul(h,16777619)>>>0}return h.toString(16)}
 function keySeg(k){const h=[...new TextEncoder().encode(String(k))].map(b=>b.toString(16).padStart(2,'0')).join('');return h.length<=180?h:'h'+fnv(k)+h.slice(0,40)}
 /* 오레마스가 시트를 가져갈 때 쓰는 효과 글 사본 (10-21 망령): 특성·포텐셜이 오레마스 DB 에 없거나 제작기에서 새로 만든 것이어도 시트에 보이는 글 그대로 */
-function effSnap(p){try{const ab=p.ability?idx.abil&&idx.abil.get(p.ability):null;const it=itemRow(p);return {ab:ab?String(ab[2]||''):'',it:it?String(it[4]||''):'',itAuto:it?String(it[7]||''):'',itCons:it&&it[3]==='O'?1:0,its2:(p.items2||[]).map(x=>{const r=itemRow(x);return r?{it:String(r[4]||''),itAuto:String(r[7]||''),itCons:r[3]==='O'?1:0}:null}),pots:(p.pots||[]).map((n,i)=>n&&n!=='-'?String(potEffOf(p,i)||''):''),kinds:(p.pots||[]).map((n,i)=>n&&n!=='-'?String(potKindOf(p,i)||''):'')}}catch(e){return null}}
+function effSnap(p){try{const ab=p.ability?idx.abil&&idx.abil.get(p.ability):null;const it=itemRow(p);return {ab:ab?String(ab[2]||''):'',it:it?String(it[4]||''):'',itAuto:it?String(it[7]||''):'',itCons:it&&it[3]==='O'?1:0,its2:(p.items2||[]).map(x=>{const r=itemRow(x);return r?{it:String(r[4]||''),itAuto:String(r[7]||''),itCons:r[3]==='O'?1:0}:null}),pots:(p.pots||[]).map((n,i)=>n&&n!=='-'?String(potEffOf(p,i)||''):''),kinds:(p.pots||[]).map((n,i)=>n&&n!=='-'?String(potKindOf(p,i)||''):''),
+   /* 11-03: 폼의 특성 · 포텐셜 글도 (오레마스 formsOf 가 자기 DB 에서만 찾아 제작기 신규 특성이 빈 글이 됐다). p.forms 와 같은 차례 */
+   forms:(p.forms||[]).map(f=>{if(!f)return null;const fa=f.ability?idx.abil&&idx.abil.get(f.ability):null;return {ab:fa?String(fa[2]||''):'',pots:(f.pots||[]).map(x=>{if(!x||!x.name)return '';if(x.eff)return String(x.eff);const r=idx.pots&&idx.pots.get(x.name);return r?String(r[2]||''):''}),kinds:(f.pots||[]).map(x=>{if(!x||!x.name)return '';const r=idx.pots&&idx.pots.get(x.name);return r?String(r[0]||''):''})}})}}catch(e){return null}}
 function stripUI(o){const c={};for(const k in o){if(UIK.has(k)||k[0]==='_'||k==='pokemon')continue;c[k]=clone(o[k])}return c}
 let DEFJ=null,DEFJN=-1;function defJ(){const rn=(DEF.rm||[]).length*100000+(DEF.st||[]).length;if(DEFJ&&DEFJN===rn)return DEFJ;DEFJN=rn;DEFJ={};for(const k in DBS){const m=new Map();for(const r of DEF[k]||[]){const key=r[DBS[k].key];if(key!==''&&!m.has(key))m.set(key,rowJ(r))}DEFJ[k]=m}return DEFJ}
 /* 행 비교: 뒤쪽 빈 칸은 없는 것과 같다 (10-24 레디메이드 「확률」 칸을 더해도 예전 행이 「바뀐 행」으로 잡히지 않게) */

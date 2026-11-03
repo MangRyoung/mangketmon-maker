@@ -13,7 +13,7 @@ GitHub Pages에 올라가는 정적 사이트이고, 데이터는 Supabase 테�
 | `js/store.js` | 공유 DB 어댑터 (Supabase) |
 | `js/fx/` | 배틀 자동화 — `fx.js`(구문 해석·실행) · `fx_ui.js`(구문 편집기·생성기) · `readymade.js`(레디메이드 사전 915) · `states.js`(상태 변화 DB). **여기가 원본**이고 오레마스 웹툴은 이 파일들을 `https://mangryoung.github.io/mangketmon-maker/js/fx/` 에서 불러간다. 오레마스 저장소(26차) 기준 사본 + 제작기 「레디메이드」 DB 행을 기본 대신 쓰는 `MKM_RM` 훅. 수정은 **이 폴더에서만** — 오레마스 쪽 `data/states.js`·`data/readymade.js`·`js/engine/fx.js`·`js/fx_ui.js` 는 더 이상 쓰지 않는다 |
 | `js/config.js` | Supabase URL · anon 키 (**여기만 고치면 됨**) |
-| `data/db.js` | 기본 DB (기술·특성·소지품·포텐셜·테이블) |
+| `data/db.js` | 기본 DB (기술·특성·소지품·포텐셜·테이블). (11-03) 옛 `js/fx.js` · `data/readymade.js` · `data/states_min.js` 는 어디서도 부르지 않아 지웠다 — 레디메이드 · 상태 DB 는 `js/fx/` 가 원본 |
 | `supabase/schema.sql` | DB 테이블·권한·실시간 설정 + 그림 저장소(Storage 버킷 `oremas`) SQL |
 | `supabase/seed.json`, `supabase/import.mjs` | 옛 세션 노트에서 옮겨 온 데이터와 넣는 스크립트 |
 
