@@ -714,7 +714,7 @@ function trainerWarns(t){const out=[];try{
  const use=pointUse(t);for(const k in use){const m=+t.base[k]||0;if(k&&(use[k]||0)>m)out.push({who:'',t:`${k} 초과 (${Math.round((use[k]||0)*100)/100}/${m})`})}
  const pu=ptSockets(t),pm=ptMax(t);if(pu>pm)out.push({who:'',t:`PT 기술점 초과 (${pu}/${pm})`});
  for(const x of ptChecks(t))out.push({who:'',t:x});
- if(typeof deckChecks==='function')for(const x of deckChecks(t))out.push({who:'',t:x});
+ if(typeof deckChecks==='function')for(const x of deckChecks(t))out.push({who:'',t:x});if(typeof sk3Checks==='function')for(const x of sk3Checks(t))out.push({who:'',t:x});
  for(const p of t.pokemon)for(const c of pokeChecks(t,p))if(c.w)out.push({who:p.name||'이름 없음',pid:p.id,t:c.t})}catch(e){out.push({who:'',t:'점검 중 오류: '+(e&&e.message||e)})}
  return out}
 function openFolderCheck(fid){const f=fid?fById(fid):null;const ids=fid?[fid,...fDesc(fid)]:[''];const L=S.trainers.filter(t=>tVis(t)&&ids.includes(tFolder(t)));
@@ -950,11 +950,57 @@ function deckChecks(t){const L=t.deck||[];if(!L.length)return [];const out=[];co
  if(main>8)out.push(`열쇠 · 준비 ${main}장 — 열쇠 2 + 준비 6 = 8장 기준${cnt['']?` (분류 없는 카드 ${cnt['']}장 포함)`:''}`);
  if(main+cnt.증상>10)out.push(`덱 ${main+cnt.증상}장 — 증상까지 10장 상한`);return out}
 const deckFix=a=>(Array.isArray(a)?a:[]).filter(x=>x&&typeof x==='object'&&String(x.n||'').trim()).map(x=>({n:String(x.n).trim().slice(0,60),q:Math.max(0,Math.min(99,Math.round(+x.q)||0))}));
+/* 카드 DB 한 줄 → 은열쇠 카드 그림 (웹툴 손패와 같은 모양) */
+function skcOf(n,o){const r=idx.cards&&idx.cards.get(n);if(!window.SKCARD)return esc(n);
+ return SKCARD.html(r?{n,t:r[2],c:r[3]==null?'':String(r[3]),x:String(r[4]||'').replace(/<br\s*\/?>/g,'\n'),col:cardCol(r[5]),img:cardImg(r[6]),ic:cardIcons(r[10]),src:String(r[11]||''),auto:!!String(r[9]||'').trim(),cls:String(r[12]||''),lim:cardMax(r)!==2?`최대 ${cardMax(r)}`:''}:{n,t:'카드 DB 에 없음',col:'#6b7286'},o||{cls:'skc-mini'})}
+/* 11-04 망령 「시트의 카드칸 = 크게 네 칸, 누르면 그 분류 카드 목록에서 고른다 · 시나리오 · 호감도 보상으로 얻는 개별 특수 카드는 카드 보관소」
+   은열쇠 세 칸 (노트 27): t.sk3 = {c 체크, d 던전, b 배틀, r 예비} = 카드 이름 한 장씩. 예비는 어느 종류든 한 장 · 같은 카드는 한 칸에만.
+   t.vault = [{n 카드 이름, src 얻은 곳, at 받은 날}] — 그 트레이너만의 카드. 「특수 카드라도 슬롯은 같게」: 보관소 카드도 같은 종류 칸에 넣는다.
+   고를 수 있는 카드 = 카드 DB 덱 「은열쇠 · 공통」(분류 「시작」이 붙은 줄이 있으면 그것만) + 보관소. 종류는 카드 DB 「종류」 글로 (체크 · 던전 · 배틀 — 「던전 / 배틀 · 선행」은 둘 다) */
+const SK3=[['c','체크','판정에 문양이 맞으면 +1 · 결과를 보고 붙여도 된다'],['d','던전','탐사 중에 쓴다'],['b','배틀','내 포켓몬에게만 · 억까 막기'],['r','예비','어느 종류든 한 장 · 파티가 모으면 예비 덱']];
+const SK3N={c:'체크',d:'던전',b:'배틀',r:'예비'};
+const SK_COMMON='은열쇠 · 공통';
+const skKinds=r=>{const t=String((r&&r[2])||'');const o=[];if(/체크/.test(t))o.push('c');if(/던전/.test(t))o.push('d');if(/배틀/.test(t))o.push('b');return o};
+function skCommon(){const L=(S.db.cards||[]).filter(r=>r&&r[0]===SK_COMMON&&r[1]&&skKinds(r).length);const st=L.filter(r=>String(r[12]||'').trim()==='시작');return st.length?st:L}
+const sk3Fix=o=>{const r={};if(o&&typeof o==='object'&&!Array.isArray(o))for(const [k] of SK3){const v=String(o[k]||'').trim().slice(0,60);if(v)r[k]=v}return r};
+const vaultFix=a=>{const seen=new Set();return (Array.isArray(a)?a:[]).filter(x=>x&&typeof x==='object'&&String(x.n||'').trim()).map(x=>({n:String(x.n).trim().slice(0,60),src:String(x.src||'').slice(0,80),at:String(x.at||'').slice(0,10)})).filter(x=>!seen.has(x.n)&&seen.add(x.n)).slice(0,40)};
+/* 이 칸에 넣을 수 있는 카드 [{n, v 보관소인지}] */
+function skChoices(t,k){const ok=r=>{const ks=skKinds(r);return k==='r'?ks.length>0:ks.includes(k)};const out=[];
+ for(const r of skCommon())if(ok(r))out.push({n:r[1],v:false});
+ for(const v of t.vault||[]){const r=idx.cards&&idx.cards.get(v.n);if(r&&ok(r)&&!out.some(x=>x.n===v.n))out.push({n:v.n,v:true,src:v.src})}return out}
+function sk3Checks(t){const s=t.sk3||{};const out=[];const seen={};
+ for(const [k,lab] of SK3){const n=s[k];if(!n)continue;const r=idx.cards&&idx.cards.get(n);
+  if(!r){out.push(`${lab} 칸 「${n}」 — 카드 DB 에 없습니다`);continue}
+  if(!skChoices(t,k).some(x=>x.n===n))out.push(`${lab} 칸 「${n}」 — ${k!=='r'&&!skKinds(r).includes(k)?`${lab} 카드가 아닙니다 (종류 ${r[2]||'-'})`:'공통 카드도 보관소 카드도 아닙니다'}`);
+  if(seen[n])out.push(`「${n}」 이(가) ${seen[n]} · ${lab} 두 칸에 있습니다 — 같은 카드는 한 칸에만`);seen[n]=lab}
+ return out}
+function sk3Html(t,ti){const s=t.sk3||{};const V=t.vault||[];const used=new Set(Object.values(s));const ck=sk3Checks(t);
+ const slot=([k,lab,hint])=>{const n=s[k];return `<div class="mksk k-${k}"><div class="mksk-h"><b>${lab}</b><span>${esc(hint)}</span></div><button type="button" class="mksk-c${n?'':' empty'}" data-act="sk3Pick" data-i="${ti}" data-k="${k}" aria-label="${lab} 칸 — ${n?esc(n)+' · 바꾸기':'카드 고르기'}">${n?skcOf(n,{cls:''}):`<span class="mksk-e">＋<br>${lab} 카드</span>`}</button></div>`};
+ return `<div class="mkdeck mksk3"><div class="row" style="margin-top:14px;gap:6px;align-items:baseline"><b class="small">은열쇠 카드</b><span class="small muted">칸을 누르면 그 종류 카드에서 고릅니다 · 체크 · 던전 · 배틀 한 장씩 + 예비 한 장</span></div>
+ ${ck.map(x=>`<p class="small warn" style="margin:4px 0 0">⚠ ${esc(x)}</p>`).join('')}
+ <div class="mksk-grid">${SK3.map(slot).join('')}</div>
+ <div class="row" style="margin-top:14px;gap:6px;align-items:baseline"><b class="small">카드 보관소</b><span class="small muted">시나리오 · 호감도 보상으로 얻은 이 트레이너만의 카드 · <b class="num">${V.length}</b>장 — 같은 종류 칸에 넣어 쓴다</span><span class="sp"></span><button type="button" class="btn sm" data-act="vaultAdd" data-i="${ti}">+ 카드 받기</button></div>
+ ${V.length?`<div class="mkdgrid">${V.map((v,k)=>`<div class="mkdt ${idx.cards&&idx.cards.get(v.n)?'':'miss'}"><button type="button" class="mkdtc2" data-act="vaultCard" data-i="${ti}" data-k="${k}" aria-label="${esc(v.n)} 카드 보기 · 고치기">${skcOf(v.n,{cls:'skc-mini',badge:used.has(v.n)?'칸':''})}</button>
+   <input class="mkv-src" data-p="T.${ti}.vault.${k}.src" value="${esc(v.src||'')}" placeholder="얻은 곳" aria-label="${esc(v.n)} 얻은 곳">${v.at?`<span class="small faint">${esc(v.at)}</span>`:''}<div class="mkdtb"><button type="button" class="danger" data-act="vaultDel" data-i="${ti}" data-k="${k}" aria-label="보관소에서 빼기">✕</button></div></div>`).join('')}</div>`:'<p class="small faint" style="margin:4px 0 0">아직 없습니다 — GM 이 웹툴 시트에서 「카드 건네주기」로 주거나, 여기 「+ 카드 받기」로 넣습니다</p>'}
+ ${(t.deck||[]).length?`<details class="mkold"><summary class="small muted">예전 덱 관리 (덱 · 드로우 방식 — ${(t.deck||[]).length}종)</summary>${deckHtml(t,ti)}</details>`:''}</div>`}
+/* 칸 고르기 창: 그 종류 공통 카드 + 보관소 카드를 카드 그림으로 */
+function openSk3Pick(T,k,rf){const L=skChoices(T,k);const s=T.sk3||{};const lab=SK3N[k];
+ const other=n=>Object.entries(s).find(([kk,v])=>kk!==k&&v===n);
+ const tile=x=>{const o=other(x.n);return `<button type="button" class="mksk-p${s[k]===x.n?' on':''}${o?' dim':''}" data-pk="${esc(x.n)}" ${o?'disabled':''} title="${esc(x.n)}${o?` — ${SK3N[o[0]]} 칸에 있음`:''}">${skcOf(x.n,{cls:'skc-mini',badge:x.v?'보관소':'',sel:s[k]===x.n})}${o?`<span class="small faint">${SK3N[o[0]]} 칸</span>`:''}</button>`};
+ const com=L.filter(x=>!x.v),va=L.filter(x=>x.v);
+ const l=openModal(`<div class="mhead"><h2>${esc(T.name||'트레이너')} · ${lab} 칸</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
+  <div class="mbody"><p class="small muted" style="margin:0 0 8px">${esc((SK3.find(x=>x[0]===k)||[])[2]||'')}</p>
+  <b class="small">공통 카드 ${com.length}</b><div class="mksk-pg">${com.map(tile).join('')||'<p class="small faint">카드 DB 에 「은열쇠 · 공통」 '+lab+' 카드가 없습니다</p>'}</div>
+  <b class="small" style="display:block;margin-top:12px">보관소 ${va.length}</b><div class="mksk-pg">${va.map(tile).join('')||'<p class="small faint">이 종류의 보관소 카드가 없습니다</p>'}</div></div>
+  <div class="mfoot">${s[k]?'<button class="btn danger" data-clr>칸 비우기</button>':''}<span class="sp"></span><button class="btn pri" data-x>닫기</button></div>`,{wide:true});
+ l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))return closeModal();
+  if(e.target.closest('[data-clr]')){T.sk3=Object.assign({},T.sk3||{});delete T.sk3[k];closeModal();return rf()}
+  const b=e.target.closest('[data-pk]');if(!b||b.disabled)return;T.sk3=Object.assign({},T.sk3||{},{[k]:b.dataset.pk});closeModal();rf()})}
 function deckHtml(t,ti){const L=t.deck||[];const P=`T.${ti}`;const tot=L.reduce((a,x)=>a+(+x.q||0),0);
  /* 카드 한 종류 = 세로 5:7 타일 하나 (그림 · 비용 · 이름 · 종류 · ×장수). 10~20장 덱이 한눈에 들어오게 (10-26 망령) */
  const tile=(x,k)=>{const r=idx.cards&&idx.cards.get(x.n);const q=+x.q||0;
   /* 11-02 감우: 타일 = 은열쇠 카드 (웹툴 손패와 같은 모양) · 누르면 카드 DB 에서 고친다 */
-  const card=window.SKCARD?SKCARD.html(r?{n:x.n,t:r[2],c:r[3]==null?'':String(r[3]),x:String(r[4]||'').replace(/<br\s*\/?>/g,'\n'),col:cardCol(r[5]),img:cardImg(r[6]),ic:cardIcons(r[10]),src:String(r[11]||''),auto:!!String(r[9]||'').trim(),cls:String(r[12]||''),lim:cardMax(r)!==2?`최대 ${cardMax(r)}`:''}:{n:x.n,t:'카드 DB 에 없음',col:'#6b7286'},{cls:'skc-mini',badge:'×'+q}):'';
+  const card=skcOf(x.n,{cls:'skc-mini',badge:'×'+q});
   return `<div class="mkdt ${r?'':'miss'}" title="${esc(x.n)}${r&&r[4]?' — '+esc(String(r[4]).replace(/<br\s*\/?>/g,' ')):''}"><button type="button" class="mkdtc2" data-act="deckCard" data-i="${ti}" data-k="${k}" aria-label="${esc(x.n)} 카드 보기 · 고치기">${card}</button>
    <div class="mkdtb"><button type="button" data-act="deckQ" data-i="${ti}" data-k="${k}" data-d="-1" aria-label="한 장 빼기">−</button><button type="button" data-act="deckQ" data-i="${ti}" data-k="${k}" data-d="1" aria-label="한 장 더">+</button><button type="button" class="danger" data-act="deckDel" data-i="${ti}" data-k="${k}" aria-label="덱에서 빼기">✕</button></div></div>`};
  return `<div class="mkdeck"><div class="row" style="margin-top:12px;gap:6px;align-items:baseline"><b class="small">덱 관리</b><span class="small muted">카드 DB 에서 골라 넣는다 · <b class="num">${L.length}</b>종 <b class="num">${tot}</b>장</span><span class="sp"></span><button type="button" class="btn sm" data-act="deckAdd" data-i="${ti}">+ 카드</button></div>
@@ -1040,7 +1086,7 @@ function newTrainer(){const t={id:uid(),open:true,name:'새 트레이너',kind:'
  pts:[],extra:{},base:Object.fromEntries(ptItems().map(([n,d])=>[n,+d||0])),unique:[{name:'',eff:''}],ptMax:'',fields:[],sps:[],ext:[],dexFw:'',pokemon:[]};applyTpl(t);return t}
 function fixT(t){if(t.base)delete t.base['소지품 소켓'];if(t.base&&!t.mainV){const rn=(ptItems().find(r=>r[2]==='rank')||[])[0];if(rn&&+t.base[rn]===4)t.base[rn]=2;t.mainV=1}   /* 10-30 메인 4 → 2 (예전 기본값일 때만) */
  const n=newTrainer();for(const k in n)if(t[k]==null)t[k]=n[k];for(const k in n.base)if(t.base[k]==null)t.base[k]=n.base[k];
- if(t.extra){for(const k in t.extra)if(!+t.extra[k])delete t.extra[k]}t.image=safeImg(t.image);if(!t.id)t.id=uid();t.stands=standsFix(t.stands);t.fields=fieldsFix(t.fields);t.sps=spFix(t.sps);t.ext=extFix(t.ext);t.deck=deckFix(t.deck);if(!(+t.standActive>=0))t.standActive=0;t.pokemon.forEach(fixP);return t}
+ if(t.extra){for(const k in t.extra)if(!+t.extra[k])delete t.extra[k]}t.image=safeImg(t.image);if(!t.id)t.id=uid();t.stands=standsFix(t.stands);t.fields=fieldsFix(t.fields);t.sps=spFix(t.sps);t.ext=extFix(t.ext);t.deck=deckFix(t.deck);t.sk3=sk3Fix(t.sk3);t.vault=vaultFix(t.vault);if(!(+t.standActive>=0))t.standActive=0;t.pokemon.forEach(fixP);return t}
 /* 같은 id가 두 번 나오면(예전 백업을 「추가」로 불러온 경우 등) 뒤의 것에 새 id를 준다 */
 function dedupeIds(){const seen=new Set();for(const t of S.trainers){if(seen.has('t'+t.id))t.id=uid();seen.add('t'+t.id);for(const p of t.pokemon){if(seen.has('p'+p.id))p.id=uid();seen.add('p'+p.id)}}}
 function applyTpl(t,only){const rows=S.db.tpl;const n=soloN(t);for(const r of rows){const [q,rk,item,v6,,v1,v3]=r;let val=n===3?(v3!=null&&v3!==''?v3:s3val(v6,v1)):n===2&&v1!=null&&v1!==''?v1:v6;if(!item)continue;if(isMisag(t)&&misagCmd(item))val=mRound((+v6||0)*fracNum(MR().cmdRatio,4/6));
@@ -2373,7 +2419,7 @@ function trainerHTML(t,ti){if(EMB.one&&t.id===EMB.t&&t.pokemon.some(x=>x.id===EM
    ${ptItems().map(([k,d,a])=>{if(t.base[k]==null)t.base[k]=+d||0;const dm=a==='rank'?rankDump(t):0;const r=(+t.base[k]||0)+dm-(use[k]||0);return `<tr><td>${esc(k)}</td><td class="n">${inp(`${P}.base.${seg(k)}`,t.base[k],{w:'52px',num:1})}</td><td class="n">${use[k]||0}</td><td class="n ${r<0?'warn':''}">${r}</td></tr>`}).join('')}</table>
    <div class="row" style="margin-top:8px"><b class="small">포인트 사용 항목</b><span class="sp"></span><button class="btn sm" data-act="addPt" data-i="${ti}">+ 항목</button></div>
    <p class="small muted" style="margin:6px 0 0">자동 소모 · ${ptItems().filter(x=>x[2]).map(([n,,a])=>`${esc(n)} ${autoUse(t,a)} (${esc(PTI_AUTO[a]||a)})`).join(' · ')||'없음'}</p>
-   ${t.pts.map((n,i)=>{const r=idx.points.get(n);return `<div class="row small" style="margin-top:4px"><span style="flex:1;min-width:0"><b>${esc(n)}</b> <span class="muted">${r?esc(r[3]+' −'+r[6]):''}</span></span><button class="btn sm ghost" data-act="delPt" data-i="${ti}" data-j="${i}" aria-label="삭제">✕</button></div>`}).join('')||'<p class="small faint" style="margin:4px 0 0">사용한 항목이 없습니다.</p>'}${deckHtml(t,ti)}</div>
+   ${t.pts.map((n,i)=>{const r=idx.points.get(n);return `<div class="row small" style="margin-top:4px"><span style="flex:1;min-width:0"><b>${esc(n)}</b> <span class="muted">${r?esc(r[3]+' −'+r[6]):''}</span></span><button class="btn sm ghost" data-act="delPt" data-i="${ti}" data-j="${i}" aria-label="삭제">✕</button></div>`}).join('')||'<p class="small faint" style="margin:4px 0 0">사용한 항목이 없습니다.</p>'}${sk3Html(t,ti)}</div>
  </div></div>
  <div class="panel uqpanel"><h3>『고유 포텐셜』<span class="small muted" style="font-weight:400">능력 ${esc(t.ranks['능력'])} · 최대 ${esc(abilLimits(t.ranks['능력']).u)}개${isMisag(t)?(()=>{const sc=uqScore(t),cp=uqScoreCap(t.ranks['능력'])-misagUqPen(t);return ` · 점수 <b class="num ${sc>cp?'warn':''}">${sc}</b> / ${cp}${misagUqPen(t)?` <span class="warn">(각성체 대가 −${misagUqPen(t)})</span>`:''}`})():''}</span><span class="sp"></span><button class="btn sm" data-act="addU" data-i="${ti}">+ 고유 포텐셜</button></h3><div class="uql">
   ${t.unique.map((u,i)=>uqCard(u,i,ti)).join('')||'<p class="small faint" style="margin:4px 0 0">아직 없습니다 — 「+ 고유 포텐셜」</p>'}</div></div>
@@ -2709,6 +2755,11 @@ $('#v-char').addEventListener('click',async e=>{
   case 'deckAdd':{if(!T)break;T.deck=T.deck||[];openPicker('cards',{title:'덱에 넣을 카드',multi:true,chosen:()=>new Set((T.deck||[]).map(x=>x.n)),onPick:n=>{const r=idx.cards&&idx.cards.get(n);T.deck.push({n,q:Math.max(1,Math.round(+(r&&r[7]))||1)});rf()},onRemove:n=>{T.deck=T.deck.filter(x=>x.n!==n);rf()}});break}
   case 'deckQ':{if(!T||!T.deck)break;const x=T.deck[+b.dataset.k];if(!x)break;x.q=Math.max(0,Math.min(99,(+x.q||0)+(+b.dataset.d||0)));rf();break}
   case 'deckCard':{if(!T||!T.deck)break;const x=T.deck[+b.dataset.k];if(!x)break;const i=S.db.cards.findIndex(r=>r[1]===x.n);if(i>=0)openEdit('cards',i,{onSaved:rf});else openEdit('cards',-1,{preset:{1:x.n},onSaved:rf});break}
+  case 'sk3Pick':{if(!T)break;openSk3Pick(T,b.dataset.k,rf);break}
+  case 'vaultAdd':{if(!T)break;T.vault=T.vault||[];openPicker('cards',{title:'보관소에 넣을 카드',chosen:()=>new Set((T.vault||[]).map(x=>x.n)),onPick:n=>{if((T.vault||[]).some(x=>x.n===n))return toast('이미 보관소에 있습니다');if(T.vault.length>=40)return toast('보관소는 40장까지');T.vault.push({n,src:'',at:new Date().toISOString().slice(0,10)});rf();toast(`「${n}」 — 얻은 곳을 적어 두세요`)}});break}
+  case 'vaultCard':{const x=T&&(T.vault||[])[+b.dataset.k];if(!x)break;const i=S.db.cards.findIndex(r=>r[1]===x.n);if(i>=0)openEdit('cards',i,{onSaved:rf});else openEdit('cards',-1,{preset:{1:x.n},onSaved:rf});break}
+  case 'vaultDel':{const x=T&&(T.vault||[])[+b.dataset.k];if(!x)break;const inS=Object.entries(T.sk3||{}).filter(([,v])=>v===x.n).map(([k])=>k);const com=skCommon().some(r=>r[1]===x.n);
+   if(!await ask(`「${x.n}」 을(를) 보관소에서 뺄까요?${inS.length&&!com?` (${inS.map(k=>SK3N[k]).join(' · ')} 칸에서도 빠집니다)`:''}`,'빼기'))break;T.vault=T.vault.filter(y=>y!==x);if(!com){T.sk3=Object.assign({},T.sk3);for(const k of inS)delete T.sk3[k]}rf();break}
   case 'deckDel':{if(!T||!T.deck)break;T.deck.splice(+b.dataset.k,1);rf();break}
   case 'tordOff':{const t=T;if(!t)break;const kind=b.dataset.kind,k=b.dataset.key,n=misagOrdNeed(t)[kind]||0;const P0=misagPen(t);let L=misagOrdOff(t,kind).slice();if(L.includes(k))L=L.filter(x=>x!==k);else{L.push(k);while(L.length>n)L.shift()}P0.ordOff=Object.assign({},P0.ordOff,{[kind]:L});rf();break}
   case 'tordPick':{const t=T;if(!t||!t.orders)break;const kind=b.dataset.kind,k=b.dataset.key,n=soloOrdN(kind,t);const o=Object.assign({},t.orders);const pk=Object.assign({},o.pick||{});let L=(Array.isArray(pk[kind])?pk[kind]:[]).slice();if(L.includes(k))L=L.filter(x=>x!==k);else{L.push(k);const need=kind==='c'&&soloA(t);while(L.length>n){let i=0;if(need&&L.filter(x=>SOLO_A_MUST.includes(x)).length===1){const j=L.findIndex(x=>!SOLO_A_MUST.includes(x)&&x!==k);if(j>=0)i=j}L.splice(i,1)}}   /* 지시 A: 넘쳐서 하나 뺄 때 하나뿐인 회피 · 명중은 남긴다 */pk[kind]=L;o.pick=pk;t.orders=o;rf();break}

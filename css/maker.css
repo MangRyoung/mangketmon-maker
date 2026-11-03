@@ -1363,3 +1363,21 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 #mk .dbt td.dbfx{min-width:200px;cursor:pointer;color:var(--ink);font-family:ui-monospace,Consolas,monospace}
 #mk .dbt td.dbfx:hover{background:var(--sunk);box-shadow:inset 0 0 0 1px var(--line)}
 @media (max-width:700px){#mk .dbt td.dbfx{min-width:170px}}
+/* 11-04 은열쇠 세 칸 — 체크 · 던전 · 배틀 · 예비 네 칸 + 카드 보관소 */
+#mk .mksk-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:8px}
+@media(max-width:760px){#mk .mksk-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+#mk .mksk{--kc:#8a93a6;display:flex;flex-direction:column;gap:6px;min-width:0;padding:8px;border-radius:12px;border:1px solid color-mix(in srgb,var(--kc) 45%,transparent);background:color-mix(in srgb,var(--kc) 9%,transparent)}
+#mk .mksk.k-c{--kc:#4573c4}#mk .mksk.k-d{--kc:#4f9a5a}#mk .mksk.k-b{--kc:#c8504a}#mk .mksk.k-r{--kc:#b8932a}
+#mk .mksk-h{display:flex;flex-direction:column;gap:1px;min-height:34px}#mk .mksk-h b{font-size:14px;color:var(--kc)}#mk .mksk-h span{font-size:11px;line-height:1.35;opacity:.75}
+#mk .mksk-c{all:unset;box-sizing:border-box;display:block;cursor:pointer;border-radius:10px;aspect-ratio:5/7;width:100%;transition:transform .15s ease}
+#mk .mksk-c .skc{width:100%}
+#mk .mksk-c:hover{transform:translateY(-3px)}#mk .mksk-c:focus-visible{outline:2px solid var(--kc);outline-offset:3px}
+#mk .mksk-c.empty{display:flex;align-items:center;justify-content:center;border:2px dashed color-mix(in srgb,var(--kc) 55%,transparent);color:var(--kc);text-align:center}
+#mk .mksk-e{font-size:14px;line-height:1.6;font-weight:600}
+#mk .mkv-src{width:100%;box-sizing:border-box;margin-top:4px;font-size:12px;padding:3px 6px}
+#mk .mkold{margin-top:14px}#mk .mkold>summary{cursor:pointer}
+.mksk-pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px 10px;margin-top:6px}
+@media(max-width:640px){.mksk-pg{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}}
+.mksk-p{all:unset;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px;border-radius:10px;border:2px solid transparent}
+.mksk-p .skc{width:100%}.mksk-p:hover .skc{transform:translateY(-3px)}.mksk-p .skc{transition:transform .15s ease}
+.mksk-p.on{border-color:var(--acc,#ffd12e)}.mksk-p.dim{opacity:.4;cursor:not-allowed}.mksk-p:focus-visible{outline:2px solid var(--acc,#ffd12e)}
