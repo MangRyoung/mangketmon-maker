@@ -1510,7 +1510,7 @@ function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전�
   <label class="lbl" for="pe-name">이름<input id="pe-name" value="${esc(cur.name)}"></label></div>
   ${isEx||isU?(()=>{/* 11-04 망령 「고유랑 전용은 횟수제인지 무제한인지 따로 지정」: 효과 글 맨 앞 【N/시】 태그를 고르는 칸 — 상시 = 태그 없음 (심도 검사 · 【1/시】 셈 · 웹툴이 같은 태그를 읽는다) */
    const m=String(cur.eff||'').match(/【\s*(\d+|N)\s*\/\s*시\s*】/);const v=m?m[1]:'';
-   return `<label class="lbl" for="pe-uses">횟수 <span class="small muted" style="font-weight:400">효과 글 맨 앞 【N/시】 태그로 들어간다</span><select id="pe-uses">${[['','상시 (무제한 · 태그 없음)'],['1','1/시'],['2','2/시'],['3','3/시']].concat(v&&!['1','2','3'].includes(v)?[[v,v+'/시']]:[]).map(([k,n])=>`<option value="${k}" ${k===v?'selected':''}>${n}</option>`).join('')}</select></label>`})():''}
+   return `<label class="lbl" for="pe-uses">횟수 <span class="small muted" style="font-weight:400">효과 글 맨 앞 【N/시】 태그로 들어간다</span><select id="pe-uses">${[['','상시 (무제한 · 태그 없음)'],...['1','2','3','4','5','6'].map(k=>[k,k+'/시'])].concat(v&&!['1','2','3','4','5','6'].includes(v)?[[v,v+'/시']]:[]).map(([k,n])=>`<option value="${k}" ${k===v?'selected':''}>${n}</option>`).join('')}</select></label>`})():''}
   <label class="lbl" for="pe-line">컷인 대사 <span class="small muted" style="font-weight:400">오레마스에서 이 포텐셜 컷인이 뜰 때 큰 글씨 아래에 나오는 한 줄 · 비우면 없음</span><input id="pe-line" maxlength="80" value="${esc(isU?String((t.unique[slot.unique]||{}).line||''):String(((p&&p.cutLine)||{})[String(cur.name||'').replace(/『|』/g,'').trim()]||''))}" placeholder="예: 하늘 끝까지 태워 주마!"></label>
   <label class="lbl" for="pe-eff">효과${tagbarHTML()}<textarea id="pe-eff" rows="6">${esc(brN(cur.eff))}</textarea></label>
   <div class="preview" data-prev></div><div class="small" data-ban></div>
