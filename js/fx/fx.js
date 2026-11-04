@@ -120,7 +120,7 @@ window.OM_FX=(()=>{
     /* 11-02 망령 「고유나 포텐셜로 미래예지를 걸면?」: 「상태 미래예지 …」처럼 상태로만 적어도 예고 공격으로 — 상태만 걸면 다음 턴 끝에 「해제」만 뜨고 대미지가 없었다 */
     if(op.k==='state'&&!op.remove&&FUTURE.includes(stEn(op.state)||op.state))op=Object.assign({},op,{k:'future',state:stEn(op.state)||op.state,tgt:op.tgt||'enemy1'});
     switch(op.k){
-     case 'none':break;
+     case 'none':break;case 'sk':break;
      case 'confirm':{const ok=ctx.confirm?await ctx.confirm(op.q):true;if(!ok){L.push(`「${name}」 조건을 만족하지 않아 발동하지 않았다 (${op.q})`);stop=true}break}
      case 'cond':{let ok=true;if(op.c==='ally_fainted')ok=Object.values(b.mons||{}).some(m=>teamOf(b,m)===teamOf(b,self)&&m.id!==self.id&&m.hp.cur<=0);
        else if(op.c==='self_state'){ok=!!((self.states||{})[op.st]);if(!ok){L.push(`「${name}」 ${self.name}이(가) 「${stKo(op.st)}」 상태가 아니라 발동하지 않았다`);stop=true;break}}
@@ -423,6 +423,7 @@ window.OM_FX=(()=>{
    case '확률':case '확률보정':{const tgt=tgtOf(words)||'self';const tl=turns();const ui=words.findIndex(w=>/^\d+회$/.test(w));const uses=ui>=0?+words.splice(ui,1)[0].replace('회',''):-1;if(has('해제'))return {k:'chance',tgt,mode:'off'};if(has('반드시')||has('확정'))return {k:'chance',tgt,sure:1,v:0,uses,turns:tl!=null?tl:-1};const vi=words.findIndex(w=>/^[+\-]?\d+(\.\d+)?(%|%p|할)?$/.test(w));let v=0;if(vi>=0){const w=words.splice(vi,1)[0];v=/할$/.test(w)?n(w)*10:n(w)}return {k:'chance',tgt,v,uses,turns:tl!=null?tl:-1}}
    case '다음기술':case '다음':{has('기술');const tgt=tgtOf(words)||'self';const op={k:'next',tgt};if(has('필중'))op.sure=1;if(has('유턴'))op.uturn=1;if(has('추격'))op.pursuit=1;if(has('확정급소'))op.cx='sure';for(const w of words){let m;if((m=w.match(/^우선도([+\-]\d+)$/)))op.prio=+m[1];else if((m=w.match(/^급소\+(\d+)$/)))op.cr=+m[1];else if((m=w.match(/^위력[×x*](\d+(?:\.\d+)?)$/)))op.pw=+m[1]}return op}
    case '상태초기화':return {k:'resetstates',tgt:tgtOf(words)||'self',group:has('전부')?'negative':'condition_abnormal'};
+   case '은열쇠':return {k:'sk',fx:words.join(' ')};   /* 11-05 망령 「카드 DB 에 자동화 구문 넣어서 웹툴에서 다 자동화」: 은열쇠 카드 효과 — 오레마스 js/sk3_fx.js 가 읽는다 (체크 · 던전 · 배틀 자리마다). fx.run 에서는 아무것도 안 함 */
    case '없음':return {k:'none'};   /* 11-03 22:40 망령 「공용 포텐셜 다 자동화」: 배틀 효과가 없는 포텐셜(바닐라 · 베테랑 · 풍작술 …) — 「자동화 확인」에 「배틀 효과 없음」으로 */
    case '확인':return {k:'confirm',q:words.join(' ').replace(/^["“]|["”]$/g,'')};
    case '상태턴':{const tgt=tgtOf(words)||'self';const vi=words.findIndex(w=>/^[+\-=]\d+$/.test(w));let v=0,mode='add';if(vi>=0){const w=words.splice(vi,1)[0];if(w[0]==='=')mode='set';v=n(w)}const rest=words.join('');const st=rest==='전부'||rest==='모두'?'all':rest==='부정'||rest==='이상'?'neg':stEn(rest)||rest;return {k:'stcount',tgt,st,v,mode}}
@@ -494,7 +495,7 @@ window.OM_FX=(()=>{
    case 'pursuit':L.push('추격'+(op.immune?' 무시'+tg(op.tgt):'')+(op.on?'':' 해제')+(op.hide?' 숨김':''));break;
    case 'resetstates':L.push('상태초기화'+tg(op.tgt)+(op.group==='negative'?' 전부':''));break;
    case 'confirm':L.push('확인 "'+op.q+'"');break;
-   case 'none':L.push('없음');break;
+   case 'none':L.push('없음');break;case 'sk':L.push('은열쇠 '+(op.fx||''));break;
    case 'cond':L.push('조건 '+(op.c==='ally_fainted'?'아군빈사':op.c==='self_state'?'상태:'+stKoW(op.st):op.c==='foe_type'?'적진타입 '+(op.types||[]).map(t=>TYPE_KO[t]||t).join(','):'HP≤'+op.frac));break;
    case 'stcount':L.push('상태턴'+tg(op.tgt)+' '+(op.st==='all'?'전부':op.st==='neg'?'부정':stKoW(op.st))+' '+(op.mode==='set'?'=':(op.v>=0?'+':''))+op.v);break;
    case 'choice':L.push((op.multi?'선택 여럿:':'선택:')+'\n'+op.opts.map(o=>'- '+o.label+' → '+unparse(o.ops).join('; ')).join('\n'));break;
