@@ -589,7 +589,7 @@ function s3val(v6,v1,unitKey){const R=RULES().solo3||SOLO3_DEF;if(R.keep==='1'&&
    숫자는 전부 테이블·계산식 「미사그 대학」(공유 설정 meta/set.rules.misag). 트레이너 t.misag · t.misagPen, 포켓몬 p.awaken('free' | 'c').
    items 행: [이름, 등급(B·A), 설명, 대상(type 타입 · role 역할 · 빈칸)] — 통솔 대가에서 GM이 등급마다 하나씩 고른다 */
 const MISAG_CATS=['지시','육성','통솔','능력'];
-const MISAG_ITEMS_DEF=[['B-1','B','PT에 특정 타입을 3체 이상 필수.','type'],['B-2','B','PT의 역할 중 1개(GM 지정)가 발동하지 않는다.','role'],['A-1','A','자신 이외의 아군 중 특정 타입이 한 체도 없으면 자신은 행동 불능이 된다.','type'],['A-2','A','이 각성체가 필드 위에 나와 있는 동안 아군의 역할을 무효화한다.','']];
+const MISAG_ITEMS_DEF=[['B-1','B','PT에 특정 타입을 3체 이상 필수.','type'],['B-2','B','PT의 역할 중 1개(GM 지정)가 발동하지 않는다.','role'],['A-1','A','자신 이외의 아군 중 특정 타입이 한 체도 없으면 자신은 행동 불능이 된다.','type'],['A-2','A','이 각성체가 필드 위에 나와 있지 않으면 아군의 역할이 전부 무효가 된다.','']];
 const MISAG_DEF={free:'1',fixC:'1',cmdItems:'통솔점',cmdRatio:'4/6',cmdUnit:'0.5',cmdRound:'floor',distCap:'10',grade:'C:-, C+:-, B:B, B+:B, A:A, EX:EX',ordB:'2',ordA:'1',distB:'15',distA:'15',typeN:'3',exclB:'1',uqA:'0.5',uqOn:'1',uqOnce:'0.5',awExcl:'2',plCut:'B-:1, B:2, A:2',g3:'D:2:0, C:3:0, B:3:2, A:3:4',twoB1:'1',twoRole:'1',subPr:'D:D, C:C, B:B, A:B+, AA:B+',items:MISAG_ITEMS_DEF};   /* 10-30 망령: g3 = 3계제권 「육성:각성체 1체당 계제·속별 개수:PL 4체 중 3개 습득 개체 수」, twoB1 · twoRole = 각성체 2체 몫 검사 켜기 */
 const isMisag=t=>!!(t&&t.misag);
 /* 10-28 망령: 「미사그 캠퍼스」 폴더(rule:'misag') — 그 안(하위 폴더 포함)에 넣은 트레이너는 미사그 대학 (4+2) 규칙이 저절로 켜진다.
