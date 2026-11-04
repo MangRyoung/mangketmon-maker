@@ -3624,7 +3624,11 @@ function builtOk(k){if(!(k==='rm'||k==='st'))return true;let on=false;try{on=!!(
 function dbEditDocs(out=new Map()){const dj=defJ();
  for(const k in DBS){if(!lazyOk(k)||!builtOk(k))continue;/* 레디메이드 기본 행이 아직 없으면 비교하지 않는다 (915행이 전부 「바뀐 행」으로 잡히는 것 방지) */const seen=new Set(),cust=new Set(S.custom[k]||[]);
   S.db[k].forEach((r,ix)=>{const key=r[DBS[k].key];if(key===''||key==null||seen.has(key))return;seen.add(key);const d=dj[k].get(key);
-   if(d===rowJ(r)&&!cust.has(key))return;out.set('dbedit/'+k+'.'+keySeg(key),{kind:k,key,row:r,custom:cust.has(key),pos:d?-1:ix})});
+   if(d===rowJ(r)&&!cust.has(key))return;const ks=k+'.'+keySeg(key);const pv=SH&&SH.ed&&SH.ed.get(ks);
+   /* 11-04 21:38 망령 「갑자기 웹툴 렉이 심하다」: 직접 추가한 행(custom)의 pos 를 창마다 자기 줄 번호(ix)로 올려서, 줄 순서가 다른 창끼리 카드 행 수십 개를 1초마다 서로 덮는 줄다리기가 됐다(공유 DB 과부하).
+      받은 문서와 행이 같으면 받은 pos 를 그대로 쓴다 — 모든 창이 같은 값으로 멈춘다 */
+   const pos=d?-1:(pv&&!pv.deleted&&Array.isArray(pv.row)&&rowJ(pv.row)===rowJ(r)&&pv.pos!=null&&+pv.pos>=0?+pv.pos:ix);
+   out.set('dbedit/'+ks,{kind:k,key,row:r,custom:cust.has(key),pos})});
   {const miss=[...dj[k].keys()].filter(key=>!seen.has(key));if((k==='rm'||k==='st')&&miss.length>=MASS_DEL){console.warn('[DB] '+k+' 기본 행 '+miss.length+'개가 비어 있음 — 한꺼번에 지운 것으로 보지 않는다');continue}for(const key of miss)out.set('dbedit/'+k+'.'+keySeg(key),{kind:k,key,deleted:true})}}
  return out}
 function shDbDocs(){if(SH.dbDocs&&!SH.dbDirty)return SH.dbDocs;const out=dbEditDocs();
