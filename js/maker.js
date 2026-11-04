@@ -968,10 +968,10 @@ function skcOf(n,o){const r=idx.cards&&idx.cards.get(n);if(!window.SKCARD)return
    은열쇠 세 칸 (노트 27): t.sk3 = {c 체크, d 던전, b 배틀, r 예비} = 카드 이름 한 장씩. 예비는 어느 종류든 한 장 · 같은 카드는 한 칸에만.
    t.vault = [{n 카드 이름, src 얻은 곳, at 받은 날}] — 그 트레이너만의 카드. 「특수 카드라도 슬롯은 같게」: 보관소 카드도 같은 종류 칸에 넣는다.
    고를 수 있는 카드 = 카드 DB 덱 「은열쇠 · 공통」(분류 「시작」이 붙은 줄이 있으면 그것만) + 보관소. 종류는 카드 DB 「종류」 글로 (체크 · 던전 · 배틀 — 「던전 / 배틀 · 선행」은 둘 다) */
-const SK3=[['c','체크','판정에 문양이 맞으면 +1 · 결과를 보고 붙여도 된다'],['d','던전','탐사 중에 쓴다'],['b','배틀','내 포켓몬에게만 · 억까 막기'],['r','예비','어느 종류든 한 장 · 파티가 모으면 예비 덱']];
-const SK3N={c:'체크',d:'던전',b:'배틀',r:'예비'};
+const SK3=[['c','스킬','판정에 문양이 맞으면 +1 · 결과를 보고 붙여도 된다'],['d','던전','탐사 중에 쓴다'],['b','배틀','내 포켓몬에게만 · 억까 막기'],['r','예비','어느 종류든 한 장 · 파티가 모으면 예비 덱']];
+const SK3N={c:'스킬',d:'던전',b:'배틀',r:'예비'};
 const SK_COMMON='은열쇠 · 공통';
-const skKinds=r=>{const t=String((r&&r[2])||'');const o=[];if(/체크/.test(t))o.push('c');if(/던전/.test(t))o.push('d');if(/배틀/.test(t))o.push('b');return o};
+const skKinds=r=>{const t=String((r&&r[2])||'');const o=[];if(/체크|스킬/.test(t))o.push('c');if(/던전/.test(t))o.push('d');if(/배틀/.test(t))o.push('b');return o};
 function skCommon(){const L=(S.db.cards||[]).filter(r=>r&&r[0]===SK_COMMON&&r[1]&&skKinds(r).length);const st=L.filter(r=>String(r[12]||'').trim()==='시작');return st.length?st:L}
 const sk3Fix=o=>{const r={};if(o&&typeof o==='object'&&!Array.isArray(o))for(const [k] of SK3){const v=String(o[k]||'').trim().slice(0,60);if(v)r[k]=v}return r};
 const vaultFix=a=>{const seen=new Set();return (Array.isArray(a)?a:[]).filter(x=>x&&typeof x==='object'&&String(x.n||'').trim()).map(x=>({n:String(x.n).trim().slice(0,60),src:String(x.src||'').slice(0,80),at:String(x.at||'').slice(0,10)})).filter(x=>!seen.has(x.n)&&seen.add(x.n)).slice(0,40)};
@@ -1021,7 +1021,7 @@ function openVaultPick(T,rf){T.vault=T.vault||[];let q='';
   $('[data-vl]',l).innerHTML=L.map(r=>`<button type="button" class="mksk-p${have.has(r[1])?' dim':''}" data-vn="${esc(r[1])}" ${have.has(r[1])?'disabled':''} title="${esc(r[1])}">${skcOf(r[1],{cls:'',badge:have.has(r[1])?'있음':''})}<span class="small faint">${esc(r[0]||'덱 없음')}</span></button>`).join('')||`<p class="small faint mksk-none">${s?'맞는 카드가 없어요':'아직 특수 카드가 없어요 — 「＋ 새 특수 카드 만들기」로 카드 DB 에 「'+SK_SPECIAL+'」 카드를 만들어요'}</p>`};
  draw();$('[data-vq]',l).oninput=e=>{q=e.target.value;draw()};
  l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))return closeModal();
-  if(e.target.closest('[data-vnew]'))return openEdit('cards',-1,{preset:{0:SK_SPECIAL,1:q.trim(),2:'체크',5:'gold'},onSaved:n=>{if(n)add(n);draw()}});
+  if(e.target.closest('[data-vnew]'))return openEdit('cards',-1,{preset:{0:SK_SPECIAL,1:q.trim(),2:'스킬',5:'gold'},onSaved:n=>{if(n)add(n);draw()}});
   const b=e.target.closest('[data-vn]');if(b&&!b.disabled){add(b.dataset.vn);draw()}})}
 function deckHtml(t,ti){const L=t.deck||[];const P=`T.${ti}`;const tot=L.reduce((a,x)=>a+(+x.q||0),0);
  /* 카드 한 종류 = 세로 5:7 타일 하나 (그림 · 비용 · 이름 · 종류 · ×장수). 10~20장 덱이 한눈에 들어오게 (10-26 망령) */
