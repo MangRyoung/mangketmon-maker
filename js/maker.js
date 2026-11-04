@@ -550,10 +550,12 @@ function ptiMigrate(db){if((db.ptiV||0)<1){for(const r of db.ptItems||[])if(r[0]
  if((db.ptiV||0)<2){db.ptItems=db.ptItems||clone(PTI_DEF);if(!db.ptItems.some(r=>r[2]==='pride')){const r=db.ptItems.find(r=>/통솔/.test(r[0]||''));if(r)r[2]='pride';else db.ptItems.splice(1,0,['통솔점','6','pride'])}db.ptiV=2}
  /* 10-30 망령 「메인 2점 + 덤프 1점」: 메인 기본 4 → 2 (예전 기본값일 때만) */
  if((db.ptiV||0)<3){for(const r of db.ptItems||[])if(r[2]==='rank'&&String(r[1])==='4')r[1]='2';db.ptiV=3}}
-const PTI_AUTO={'':'없음',rank:'자질 투자 (C에서 한 단계당 1 · 덤프 1개당 보유 +1)',pride:'포켓몬 프라이드 (계단별 통솔점, 파트너 −1)',disc:'기술 「할인」 체크 수',dist:'포켓몬 분배 레벨 합',once:'포켓몬 【1/시】 포텐셜 수 (전용 제외)'};
+const PTI_AUTO={'':'없음',rank:'자질 투자 (C에서 한 단계당 1 · 덤프 1개당 보유 +1)',pride:'포켓몬 프라이드 (계단별 통솔점, 파트너 −1)',disc:'기술 「할인」 체크 수',dist:'포켓몬 분배 레벨 합',once:'포켓몬 【1/시】 포텐셜 수 (종족 · 속별만 — 범용 · 전술 · 전용 등 제외)'};
 const ptItems=()=>(S.db&&S.db.ptItems)||PTI_DEF;
 function autoUse(t,a){if(a==='rank')return rankSteps(t);if(a==='pride')return t.pokemon.reduce((x,p)=>x+prideCost(t,p),0);if(a==='disc')return discUsed(t);if(a==='dist')return isMisag(t)?t.pokemon.reduce((x,p)=>x+(Math.round(+p.dist)||0),0)+misagDistPen(t):t.pokemon.reduce((x,p)=>x+Math.max(0,+p.dist||0),0);if(a==='once')return t.pokemon.reduce((x,p)=>x+onceCount(p),0);return 0}
-const onceCount=p=>p.pots.reduce((n,name,i)=>n+(name&&/【1\s*\/\s*시】/.test(potEffOf(p,i)||'')?1:0),0);
+/* 11-04 22:15 망령 「1/시 갯수를 세는건 종족/속별만. 범용 포텐이나 뭐 이런건 제외」: 【1/시】 셈은 종류가 「종족」 · 「속별」인 포텐셜만 (종류가 비면 칸 자리 — 종족①~④ · 속별) */
+const onceSlot=(p,i)=>{const k=potKindOf(p,i);if(k){const g=potGroup(k);return g==='종족'||g==='속별'}return i>=4&&i<=8};
+const onceCount=p=>p.pots.reduce((n,name,i)=>n+(name&&onceSlot(p,i)&&/【1\s*\/\s*시】/.test(potEffOf(p,i)||'')?1:0),0);
 function pointUse(t){const u={};for(const [n] of ptItems())u[n]=0;
  for(const n of t.pts){const r=idx.points.get(n);if(r){const k=r[3]==='-'||!(r[3] in u)?(ptItems()[0]||['메인'])[0]:r[3];u[k]=(u[k]||0)+(+r[6]||0)}}
  for(const k in t.extra)if(k in u)u[k]+=(+t.extra[k]||0);
