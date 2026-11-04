@@ -1492,6 +1492,9 @@ function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전�
   <datalist id="L-kinds2">${[...new Set(S.db.pots.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist>
   <div class="fgrid" style="grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)">${isEx||isU?`<span class="lbl">종류<b style="color:var(--ink);font-size:13px">${isEx?'전용':'고유'}</b></span>`:`<label class="lbl" for="pe-kind">종류(순서)<input id="pe-kind" list="L-kinds2" value="${esc(cur.kind)}" placeholder="예: 04.1. 종족"></label>`}
   <label class="lbl" for="pe-name">이름<input id="pe-name" value="${esc(cur.name)}"></label></div>
+  ${isEx||isU?(()=>{/* 11-04 망령 「고유랑 전용은 횟수제인지 무제한인지 따로 지정」: 효과 글 맨 앞 【N/시】 태그를 고르는 칸 — 상시 = 태그 없음 (심도 검사 · 【1/시】 셈 · 웹툴이 같은 태그를 읽는다) */
+   const m=String(cur.eff||'').match(/【\s*(\d+|N)\s*\/\s*시\s*】/);const v=m?m[1]:'';
+   return `<label class="lbl" for="pe-uses">횟수 <span class="small muted" style="font-weight:400">효과 글 맨 앞 【N/시】 태그로 들어간다</span><select id="pe-uses">${[['','상시 (무제한 · 태그 없음)'],['1','1/시'],['2','2/시'],['3','3/시']].concat(v&&!['1','2','3'].includes(v)?[[v,v+'/시']]:[]).map(([k,n])=>`<option value="${k}" ${k===v?'selected':''}>${n}</option>`).join('')}</select></label>`})():''}
   <label class="lbl" for="pe-line">컷인 대사 <span class="small muted" style="font-weight:400">오레마스에서 이 포텐셜 컷인이 뜰 때 큰 글씨 아래에 나오는 한 줄 · 비우면 없음</span><input id="pe-line" maxlength="80" value="${esc(isU?String((t.unique[slot.unique]||{}).line||''):String(((p&&p.cutLine)||{})[String(cur.name||'').replace(/『|』/g,'').trim()]||''))}" placeholder="예: 하늘 끝까지 태워 주마!"></label>
   <label class="lbl" for="pe-eff">효과${tagbarHTML()}<textarea id="pe-eff" rows="6">${esc(brN(cur.eff))}</textarea></label>
   <div class="preview" data-prev></div><div class="small" data-ban></div>
@@ -1506,6 +1509,10 @@ function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전�
    <details><summary class="small">구문 도움말</summary><pre class="small" style="white-space:pre-wrap">${esc(AUTO_HELP)}</pre></details></details>`:''}</div></div></div>
  <div class="mfoot"><button class="btn danger" data-clear>슬롯 비우기</button>${isU||PR_HIDDEN?'':'<button class="btn" data-rec title="이 포켓몬의 타입·기술·종족치·역할에서 계통별 포텐셜 안을 짜고 수지 검사">✨ 추천</button>'}${isU?'':'<button class="btn" data-build title="트리거·조건·효과를 골라 새 포텐셜 문장 만들기">🛠 제작</button>'}<span class="sp"></span><button class="btn" data-x>취소</button><button class="btn pri" data-apply>적용</button></div>`,{wide:true});
  const ta=$('#pe-eff',l);bindTagbar(l,()=>ta);
+ {const us=$('#pe-uses',l);if(us){const setUses=k=>{let t=String(ta.value||'').replace(/【\s*(\d+|N)\s*\/\s*시\s*】/g,'');t=t.replace(/^\s+/,'');
+   if(k){t=/^【/.test(t)?`【${k}/시】`+t:`【${k}/시】/ `+t.replace(/^\/\s*/,'')}else t=t.replace(/^\/\s*/,'');ta.value=t;ta.dispatchEvent(new Event('input',{bubbles:true}))};
+  us.onchange=()=>setUses(us.value);
+  ta.addEventListener('input',()=>{const m=String(ta.value||'').match(/【\s*(\d+|N)\s*\/\s*시\s*】/);const v=m?m[1]:'';if(us.value!==v){if(![...us.options].some(o=>o.value===v))us.add(new Option(v+'/시',v));us.value=v}})}}
  const autoUpd=()=>{const K=window.OM_FX;if(!K)return;const nm=$('#pe-name',l).value.trim().replace(/『|』/g,'');const base=nm?K.rm(nm):null;const rmEl=$('[data-autorm]',l),hint=$('[data-autohint]',l),pv=$('[data-autoprev]',l),ta2=$('#pe-auto',l);if(!ta2)return;
   rmEl.textContent=base&&base.ops&&base.ops.length?'레디메이드 자동: '+K.unparse(base.ops).join(' / ')+(base.manual?' (자동화 미지원 — 손으로)':''):'같은 이름의 레디메이드 없음';
   const r=K.parse(ta2.value);pv.innerHTML=(r.ops.length?'미리보기: '+esc(K.unparse(r.ops).join(' / ')):'')+(r.errs.length?` <span class="warn">모르는 줄: ${esc(r.errs.join(' / '))}</span>`:'');hint.textContent=r.ops.length?'구문 있음':(base&&base.ops&&base.ops.length&&!base.manual?'레디메이드 자동':'없음')};

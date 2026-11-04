@@ -1387,3 +1387,9 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 @media(max-width:760px){#mk .mksk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 #mk .mksk3{container-type:inline-size}#mk .mksk-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
 @container (max-width:620px){#mk .mksk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* 11-04 망령 「카드칸이 너무 커서 시트 길이를 늘린다」: 칸마다 최대 150px · 좁아도 네 줄(아주 좁으면 두 줄) */
+#mk .mksk-grid{grid-template-columns:repeat(4,minmax(0,150px));justify-content:start;gap:8px}
+@container (max-width:620px){#mk .mksk-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@container (max-width:340px){#mk .mksk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#mk .mksk{padding:6px;gap:4px}#mk .mksk-h{min-height:0}#mk .mksk-h span{display:none}
+#mk .mksk-c.empty{aspect-ratio:auto;height:90px}#mk .mksk-e{font-size:12px;line-height:1.4}
