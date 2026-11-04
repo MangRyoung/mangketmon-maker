@@ -982,9 +982,9 @@ function sk3Html(t,ti){const s=t.sk3||{};const V=t.vault||[];const used=new Set(
  return `<div class="mkdeck mksk3"><div class="row" style="margin-top:14px;gap:6px;align-items:baseline"><b class="small">은열쇠 카드</b><span class="small muted">칸을 누르면 그 종류 카드에서 고릅니다 · 체크 · 던전 · 배틀 한 장씩 + 예비 한 장</span></div>
  ${ck.map(x=>`<p class="small warn" style="margin:4px 0 0">⚠ ${esc(x)}</p>`).join('')}
  <div class="mksk-grid">${SK3.map(slot).join('')}</div>
- <div class="row" style="margin-top:14px;gap:6px;align-items:baseline"><b class="small">카드 보관소</b><span class="small muted">시나리오 · 호감도 보상으로 얻은 이 트레이너만의 카드 · <b class="num">${V.length}</b>장 — 같은 종류 칸에 넣어 쓴다</span><span class="sp"></span><button type="button" class="btn sm" data-act="vaultAdd" data-i="${ti}">+ 카드 받기</button></div>
+ <div class="row" style="margin-top:14px;gap:6px;align-items:baseline"><b class="small">카드 보관소</b><span class="small muted">시나리오 · 호감도 보상으로 얻은 이 트레이너만의 카드 · <b class="num">${V.length}</b>장 — 같은 종류 칸에 넣어 쓴다</span><span class="sp"></span><button type="button" class="btn sm" data-act="vaultAdd" data-i="${ti}">+ 특수 카드</button></div>
  ${V.length?`<div class="mkdgrid">${V.map((v,k)=>`<div class="mkdt ${idx.cards&&idx.cards.get(v.n)?'':'miss'}"><button type="button" class="mkdtc2" data-act="vaultCard" data-i="${ti}" data-k="${k}" aria-label="${esc(v.n)} 카드 보기 · 고치기">${skcOf(v.n,{cls:'skc-mini',badge:used.has(v.n)?'칸':''})}</button>
-   <input class="mkv-src" data-p="T.${ti}.vault.${k}.src" value="${esc(v.src||'')}" placeholder="얻은 곳" aria-label="${esc(v.n)} 얻은 곳">${v.at?`<span class="small faint">${esc(v.at)}</span>`:''}<div class="mkdtb"><button type="button" class="danger" data-act="vaultDel" data-i="${ti}" data-k="${k}" aria-label="보관소에서 빼기">✕</button></div></div>`).join('')}</div>`:'<p class="small faint" style="margin:4px 0 0">아직 없습니다 — GM 이 웹툴 시트에서 「카드 건네주기」로 주거나, 여기 「+ 카드 받기」로 넣습니다</p>'}
+   <input class="mkv-src" data-p="T.${ti}.vault.${k}.src" value="${esc(v.src||'')}" placeholder="얻은 곳" aria-label="${esc(v.n)} 얻은 곳">${v.at?`<span class="small faint">${esc(v.at)}</span>`:''}<div class="mkdtb"><button type="button" class="danger" data-act="vaultDel" data-i="${ti}" data-k="${k}" aria-label="보관소에서 빼기">✕</button></div></div>`).join('')}</div>`:'<p class="small faint" style="margin:4px 0 0">아직 없습니다 — GM 이 웹툴 시트에서 「카드 건네주기」로 주거나, 여기 「+ 특수 카드」로 넣습니다</p>'}
  ${(t.deck||[]).length?`<details class="mkold"><summary class="small muted">예전 덱 관리 (덱 · 드로우 방식 — ${(t.deck||[]).length}종)</summary>${deckHtml(t,ti)}</details>`:''}</div>`}
 /* 칸 고르기 창: 그 종류 공통 카드 + 보관소 카드를 카드 그림으로 */
 function openSk3Pick(T,k,rf){const L=skChoices(T,k);const s=T.sk3||{};const lab=SK3N[k];
@@ -999,6 +999,22 @@ function openSk3Pick(T,k,rf){const L=skChoices(T,k);const s=T.sk3||{};const lab=
  l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))return closeModal();
   if(e.target.closest('[data-clr]')){T.sk3=Object.assign({},T.sk3||{});delete T.sk3[k];closeModal();return rf()}
   const b=e.target.closest('[data-pk]');if(!b||b.disabled)return;T.sk3=Object.assign({},T.sk3||{},{[k]:b.dataset.pk});closeModal();rf()})}
+/* 11-04 망령 「카드 받기에 공용 카드풀이 필요해? · 카드 받기 의의가 뭐지」: 보관소 = 그 트레이너만의 특수 카드(시나리오 · 호감도 보상). 공통 카드는 칸에서 바로 고르니 여기엔 안 보인다.
+   고를 수 있는 것 = 카드 DB 중 「은열쇠 · 공통」 · 광기(증상)가 아니고 종류가 체크 · 던전 · 배틀인 카드. 새 특수 카드는 덱 「은열쇠 · 특수」로 만든다 */
+const SK_SPECIAL='은열쇠 · 특수';
+const skSpecial=()=>(S.db.cards||[]).filter(r=>r&&r[1]&&r[0]!==SK_COMMON&&!/광기/.test(String(r[0]||''))&&skKinds(r).length);
+function openVaultPick(T,rf){T.vault=T.vault||[];let q='';
+ const add=n=>{if((T.vault||[]).some(x=>x.n===n))return toast('이미 보관소에 있습니다');if(T.vault.length>=40)return toast('보관소는 40장까지');T.vault.push({n,src:'',at:new Date().toISOString().slice(0,10)});rf();toast(`「${n}」 — 얻은 곳을 적어 두세요`)};
+ const l=openModal(`<div class="mhead"><h2>${esc(T.name||'트레이너')} · 특수 카드 받기</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
+  <div class="mbody"><p class="small muted" style="margin:0 0 8px">시나리오 · 호감도 보상으로 얻은 <b>이 트레이너만의 카드</b>를 보관소에 넣어요. 공통 카드는 칸에서 바로 고르니 여기엔 없어요. 보관소 카드도 같은 종류 칸에 넣어 써요. (웹툴에서는 GM 이 시트 탭 「카드 건네주기」로 줘요)</p>
+  <input type="search" data-vq placeholder="이름 · 효과 찾기" style="width:100%"><div class="mksk-pg" data-vl style="margin-top:8px"></div></div>
+  <div class="mfoot"><button class="btn" data-vnew>＋ 새 특수 카드 만들기</button><span class="sp"></span><button class="btn pri" data-x>닫기</button></div>`,{wide:true});
+ const draw=()=>{const s=q.trim().toLowerCase();const have=new Set((T.vault||[]).map(x=>x.n));const L=skSpecial().filter(r=>!s||[r[1],r[4],r[2]].some(v=>String(v||'').toLowerCase().includes(s)));
+  $('[data-vl]',l).innerHTML=L.map(r=>`<button type="button" class="mksk-p${have.has(r[1])?' dim':''}" data-vn="${esc(r[1])}" ${have.has(r[1])?'disabled':''} title="${esc(r[1])}">${skcOf(r[1],{cls:'',badge:have.has(r[1])?'있음':''})}<span class="small faint">${esc(r[0]||'덱 없음')}</span></button>`).join('')||`<p class="small faint mksk-none">${s?'맞는 카드가 없어요':'아직 특수 카드가 없어요 — 「＋ 새 특수 카드 만들기」로 카드 DB 에 「'+SK_SPECIAL+'」 카드를 만들어요'}</p>`};
+ draw();$('[data-vq]',l).oninput=e=>{q=e.target.value;draw()};
+ l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))return closeModal();
+  if(e.target.closest('[data-vnew]'))return openEdit('cards',-1,{preset:{0:SK_SPECIAL,1:q.trim(),2:'체크',5:'gold'},onSaved:n=>{if(n)add(n);draw()}});
+  const b=e.target.closest('[data-vn]');if(b&&!b.disabled){add(b.dataset.vn);draw()}})}
 function deckHtml(t,ti){const L=t.deck||[];const P=`T.${ti}`;const tot=L.reduce((a,x)=>a+(+x.q||0),0);
  /* 카드 한 종류 = 세로 5:7 타일 하나 (그림 · 비용 · 이름 · 종류 · ×장수). 10~20장 덱이 한눈에 들어오게 (10-26 망령) */
  const tile=(x,k)=>{const r=idx.cards&&idx.cards.get(x.n);const q=+x.q||0;
@@ -2766,7 +2782,7 @@ $('#v-char').addEventListener('click',async e=>{
   case 'deckQ':{if(!T||!T.deck)break;const x=T.deck[+b.dataset.k];if(!x)break;x.q=Math.max(0,Math.min(99,(+x.q||0)+(+b.dataset.d||0)));rf();break}
   case 'deckCard':{if(!T||!T.deck)break;const x=T.deck[+b.dataset.k];if(!x)break;const i=S.db.cards.findIndex(r=>r[1]===x.n);if(i>=0)openEdit('cards',i,{onSaved:rf});else openEdit('cards',-1,{preset:{1:x.n},onSaved:rf});break}
   case 'sk3Pick':{if(!T)break;openSk3Pick(T,b.dataset.k,rf);break}
-  case 'vaultAdd':{if(!T)break;T.vault=T.vault||[];openPicker('cards',{title:'보관소에 넣을 카드',chosen:()=>new Set((T.vault||[]).map(x=>x.n)),onPick:n=>{if((T.vault||[]).some(x=>x.n===n))return toast('이미 보관소에 있습니다');if(T.vault.length>=40)return toast('보관소는 40장까지');T.vault.push({n,src:'',at:new Date().toISOString().slice(0,10)});rf();toast(`「${n}」 — 얻은 곳을 적어 두세요`)}});break}
+  case 'vaultAdd':{if(!T)break;openVaultPick(T,rf);break}
   case 'vaultCard':{const x=T&&(T.vault||[])[+b.dataset.k];if(!x)break;const i=S.db.cards.findIndex(r=>r[1]===x.n);if(i>=0)openEdit('cards',i,{onSaved:rf});else openEdit('cards',-1,{preset:{1:x.n},onSaved:rf});break}
   case 'vaultDel':{const x=T&&(T.vault||[])[+b.dataset.k];if(!x)break;const inS=Object.entries(T.sk3||{}).filter(([,v])=>v===x.n).map(([k])=>k);const com=skCommon().some(r=>r[1]===x.n);
    if(!await ask(`「${x.n}」 을(를) 보관소에서 뺄까요?${inS.length&&!com?` (${inS.map(k=>SK3N[k]).join(' · ')} 칸에서도 빠집니다)`:''}`,'빼기'))break;T.vault=T.vault.filter(y=>y!==x);if(!com){T.sk3=Object.assign({},T.sk3);for(const k of inS)delete T.sk3[k]}rf();break}
