@@ -78,7 +78,7 @@ window.MKM_POTLINT=(()=>{
  function tgtOf(c){if(/아군 전체/.test(c))return '아군전체';if(/상대 전체|적진 전체/.test(c))return '상대전체';if(/(?:^|[\s/】])아군에게/.test(c)||(/(?:^|[\s/】])아군의/.test(c)&&/턴 종료 시까지/.test(c)))return '지정에리어';if(/(?:^|[\s/】])아군(?:의|을|를)/.test(c))return '아군1체';if(/(?:^|[\s/】])(?:상대|정면|대상)(?:에게|의|을|를)/.test(c))return '상대1체';return ''}
  function clauses(text){const t=String(text||'').replace(/<br\s*\/?>/g,'\n');return t.split(/(?=[①②③④⑤⑥⑦⑧⑨])|\n/).map(s=>s.trim()).filter(Boolean)}
  function suggest(text){const lines=[],why=[];let DEFER=null;const F=window.OM_FX;const all=String(text||'');
-  for(const c0 of clauses(all)){const tags=(c0.match(/【[^】]+】/g)||[]).join('');const c=c0.replace(/^[①-⑨]/,'').replace(/^(?:【[^】]+】)+\s*\/?/,'');const tg=tgtOf(c);const temp=/턴 종료 시까지|턴 종료시 까지/.test(c);const turns=(c.match(/(\d)턴 동안/)||[])[1];
+  for(const c0 of clauses(all)){const tags=(c0.match(/【[^】]+】/g)||[]).join('');const c=c0.replace(/^[①-⑨]/,'').replace(/^(?:【[^】]+】)+\s*\/?/,'');const tg=(()=>{const t0=tgtOf(c);/* 11-05 망령 「동조」: 【동조 (상대)】 = 동조된 상대에게 · 【동조】 = 동조된 아군에게 */if(/【동조\s*\(상대\)】/.test(tags)&&(!t0||t0==='상대1체'||t0==='상대전체'))return '동조상대';if(/【동조】/.test(tags)&&(!t0||t0==='아군1체'||t0==='아군전체'||t0==='지정에리어'))return '동조아군';return t0})();const temp=/턴 종료 시까지|턴 종료시 까지/.test(c);const turns=(c.match(/(\d)턴 동안/)||[])[1];
    const L=[];let m;
    /* 11-04 감우: 「적진에 「타입 : 풀, 페어리」가 있을 때」 → 조건 줄을 먼저 (이 조건이 거짓이면 뒤 줄은 안 건다) */
    if((m=c.match(/적진에\s*「타입\s*:\s*([^」]+)」\s*(?:이|가)?\s*있을 때/)))L.push('조건 적진타입 '+m[1].split(/[,·/]/).map(x=>x.trim()).filter(Boolean).join(','));
