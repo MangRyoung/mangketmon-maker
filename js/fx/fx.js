@@ -82,12 +82,13 @@ window.OM_FX=(()=>{
   for(const k of HL)for(const e of (m.fx[k]||[])){const kk=String(e&&e.key||'');if(kk.startsWith(nm+' ← ')&&!kk.startsWith(own))return true}return false}
  /* 11-05 망령 「동조」: 필드 위 아군 · 상대 중 같은 『역할』끼리 맞선 것 (대치 성립). a = 동조된 아군 id, e = 동조된 상대 id, pairs = [아군 id, 상대 id, 역할]. rolesOf 를 안 주면 m.role + 역할 추가(fx.roles) */
  /* 11-05 망령 「역할은 분류로」: 역할 분류(계열). 동조 대치 · 각성체 대가 B-2(역할 막기) 는 이름이 아니라 분류로 맞춘다 (러너를 막으면 닌자 · 하이 러너도) */
- const ROLE_FAM={러너:['러너','닌자','하이 러너'],어태커:['어태커','하이 어태커'],블로커:['블로커','하이 블로커'],에이스:['에이스','서브 에이스','링크 에이스','킬링 에이스'],서포터:['서포터','어시스트','옵저버','바운서','커맨더'],킬러:['킬러','퀄러','스프린터','디스럽터']};
- const RF_IDX={};for(const k in ROLE_FAM)for(const n of ROLE_FAM[k])RF_IDX[n.replace(/\s/g,'')]=k;
- function roleFam(r){const n=String(r||'').replace(/『|』/g,'').trim();const k=n.replace(/\s/g,'');if(RF_IDX[k])return RF_IDX[k];if(ROLE_FAM[k])return k;for(const f in ROLE_FAM)if(k.endsWith(f))return f;return n}
+ const ROLE_FAM={러너:['러너','닌자','하이 러너'],어태커:['어태커','하이 어태커','어쌔신','타이트엔드'],블로커:['블로커','하이 블로커','타이트엔드'],와일드:['와일드','와일드 보스','디멘션 보스'],에이스:['에이스','서브 에이스','링크 에이스','킬링 에이스'],서포터:['서포터','어시스트','옵저버','바운서','커맨더'],킬러:['킬러','퀄러','스프린터','디스럽터']};
+ const RF_IDX={};for(const k in ROLE_FAM)for(const n of ROLE_FAM[k]){const q=n.replace(/\s/g,'');(RF_IDX[q]=RF_IDX[q]||[]).push(k)}   /* 11-05 22:12 망령: 어쌔신 = 어태커 · 타이트엔드 = 어태커 · 블로커 양쪽 · 와일드 · 와일드 보스 · 디멘션 보스 = 와일드(야생) · 베테랑 = 베테랑 */
+ function roleFams(r){const n=String(r||'').replace(/『|』/g,'').trim();const k=n.replace(/\s/g,'');if(RF_IDX[k])return RF_IDX[k].slice();if(ROLE_FAM[k])return [k];for(const f in ROLE_FAM)if(k.endsWith(f))return [f];return n?[n]:[]}
+ const roleFam=r=>roleFams(r)[0]||'';
  const rolesDef=m=>{const o=new Set(((m&&m.fx)||{}).roles||[]);const r=String((m&&m.role)||'').replace(/『|』/g,'').trim();if(r)o.add(r);return [...o]};
  function syncPairs(b,self,rolesOf){const R=rolesOf||rolesDef;const out={a:new Set(),e:new Set(),pairs:[]};if(!b||!self)return out;const tm=teamOf(b,self);const live=Object.values(b.mons||{}).filter(m=>m.entry&&alive(m));
-  const al=live.filter(m=>teamOf(b,m)===tm),en=live.filter(m=>teamOf(b,m)!==tm);for(const a of al){const ra=[...new Set(R(a).map(roleFam))].filter(r=>r&&r!=='바닐라');if(!ra.length)continue;for(const e of en){const hit=[...new Set(R(e).map(roleFam))].find(r=>ra.includes(r));if(hit){out.a.add(a.id);out.e.add(e.id);out.pairs.push([a.id,e.id,hit])}}}return out}
+  const al=live.filter(m=>teamOf(b,m)===tm),en=live.filter(m=>teamOf(b,m)!==tm);for(const a of al){const ra=[...new Set(R(a).flatMap(roleFams))].filter(r=>r&&r!=='바닐라');if(!ra.length)continue;for(const e of en){const hit=[...new Set(R(e).flatMap(roleFams))].find(r=>ra.includes(r));if(hit){out.a.add(a.id);out.e.add(e.id);out.pairs.push([a.id,e.id,hit])}}}return out}
  async function targets(b,self,tgt,ctx){if(ctx&&ctx.uniq){const r=await targets(b,self,tgt,Object.assign({},ctx,{uniq:0}));return r.filter(m=>m===self||!uqHas(m,ctx.name,self))}const tm=teamOf(b,self);const live=Object.values(b.mons||{}).filter(m=>m.entry&&alive(m));const allies=live.filter(m=>teamOf(b,m)===tm),enemies=live.filter(m=>teamOf(b,m)!==tm);
   const pick=async(list,label)=>{if(!list.length)return [];if(list.length===1)return [list[0]];if(ctx.pick)return [await ctx.pick(list,label)].filter(Boolean);return [list[0]]};
   const rnd=list=>list.length?[list[Math.floor(Math.random()*list.length)]]:[];
@@ -556,5 +557,5 @@ window.OM_FX=(()=>{
   return L}
  /* 사람이 읽는 설명 (미리보기·로그) */
  function describe(ops){return unparse(ops)}
- return {syncPairs,roleFam,ROLE_FAM,spOf,spDesc,SP_KO,reAura,effOf,rmChance,rollP,lineChance,release,nextOf,scopeKo,chanceOf,setAb,resetAb,stMod,untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,evaMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,weatherBlock,magicRoom,itemOff,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
+ return {syncPairs,roleFam,roleFams,ROLE_FAM,spOf,spDesc,SP_KO,reAura,effOf,rmChance,rollP,lineChance,release,nextOf,scopeKo,chanceOf,setAb,resetAb,stMod,untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,evaMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,weatherBlock,magicRoom,itemOff,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
 })();
