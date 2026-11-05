@@ -85,6 +85,10 @@ window.MKM_POTLINT=(()=>{
    /* 랭크 */
    const rk=[...c.matchAll(/「((?:공격|방어|특공|특방|스피드|명중|회피)(?:\/(?:공격|방어|특공|특방|스피드|명중|회피))*) : ([+-]\d)」/g)];
    if(rk.length&&/한다|된다/.test(c)&&!/종족치/.test(c)){const parts=[];for(const x of rk)for(const s of x[1].split('/'))parts.push(ST_EN[s]+x[2]);L.push(`랭크${tg?' '+tg:''} ${parts.join(' ')}${temp?' 임시':''}`)}
+   /* 11-05 망령 「가장 높은 · 낮은 능력치 (상승 · 저하)」: 「가장 높은 능력치 : +1」 → 랭크 최고+1 · 가장 높은 능력을 강화(1.3배) → 배율 최고×1.3 (스피드면 ×1.5) · 「정면」의 가장 높은 능력과 같은 능력을 상승 → 기준:정면 */
+   {const hl=[...c.matchAll(/「가장 (높은|낮은) 능력치? : ([+-]\d)」/g)];if(hl.length&&/한다|된다/.test(c))L.push(`랭크${tg?' '+tg:''} ${hl.map(x=>(x[1]==='높은'?'최고':'최저')+x[2]).join(' ')}${temp?' 임시':''}`);
+    const hm=[...c.matchAll(/「?가장 (높은|낮은) 능력치?」?(?:을|를|이)? (강화|저하)\((\d+(?:\.\d+)?)배\)/g)];if(hm.length){const sp=c.match(/스피드[^\n]*?(\d+(?:\.\d+)?)배\s*→\s*(\d+(?:\.\d+)?)배/)||all.match(/스피드[^\n]*?(\d+(?:\.\d+)?)배\s*→\s*(\d+(?:\.\d+)?)배/);L.push(`배율${tg&&tg!=='상대1체'?' '+tg:''} ${hm.map(x=>(x[1]==='높은'?'최고':'최저')+'×'+x[3]).join(' ')}${sp?' 스피드면×'+sp[2]:''}${temp?' 임시':''}`)}
+    if(/「정면」의 가장 (높은|낮은) 능력과 같은 능력을 (상승|저하)/.test(c)){const mm=c.match(/「정면」의 가장 (높은|낮은) 능력과 같은 능력을 (상승|저하)/);L.push(`랭크 ${mm[1]==='높은'?'최고':'최저'}${mm[2]==='상승'?'+1':'-1'} 기준:정면`)}}
    /* 배율 */
    const mul=[];for(const x of c.matchAll(/(모든 능력치|「([^」]+)」)(?:을|를|이|가)? 강화\((\d+(?:\.\d+)?)배\)/g)){const ss=x[1]==='모든 능력치'?['공격','방어','특공','특방','스피드']:x[2].split('/');if(ss.every(s=>ST_EN[s]))for(const s of ss)mul.push(`${s}×${x[3]}`)}
    for(const x of c.matchAll(/「([^」]+)」(?:을|를) (\d+(?:\.\d+)?)배로 만든다/g)){const ss=x[1].split('/');if(ss.every(s=>ST_EN[s]))for(const s of ss)mul.push(`${s}×${x[2]}`)}
