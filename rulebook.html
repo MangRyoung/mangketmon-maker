@@ -466,6 +466,32 @@ mark{background:var(--mark);color:inherit;padding:0 1px}
 :root[data-vt="p4"] .g-say .pt{color:#b33a00}
 :root[data-vt="p3"] .tabs button.on em{color:#e6f3ff}
 :root[data-vt="p3"] .g-say .tm{color:#e6f3ff}
+/* 11-05 망령: 칼데아(cd) — P3 자리를 따라 색만 바꿈 (제작기 css/chaldea.css 와 같은 결: 남흑 · 시안 · 하얀 테) */
+:root[data-vt="cd"]{
+  --bg:#050b16; --bg2:rgba(4,10,22,.65); --surface:#0c1a2e; --sunk:rgba(4,10,22,.65); --sunk2:rgba(14,36,66,.5); --ink:#e4efff; --muted:#a9c4dc; --faint:#8aa3bf; --line:rgba(235,244,255,0.3); --line2:rgba(235,244,255,.8);
+  --plate:#5fd2ff; --plate-ink:#06121f; --frame:#ffffff;
+  --accent:#5fd2ff; --accent2:#7fe0ff; --accent-ink:#06121f; --accent-soft:rgba(95,210,255,.14);
+  --tag-bg:rgba(95,210,255,.14); --tag-ink:#f2f8ff; --note-bg:rgba(4,10,22,.65);
+  --rk-a:#ff6a8a; --mark:#1c4f7a;
+  --display:"Rajdhani","Do Hyeon",sans-serif; --lab:"Do Hyeon","IBM Plex Sans KR",sans-serif; --en:"Rajdhani",ui-monospace,monospace;
+  --skew:0deg; --radius:6px;
+  --sh-lg:0 0 0 1px rgba(235,244,255,0.35),0 0 28px rgba(95,210,255,.22); --sh-md:0 0 16px rgba(95,210,255,.35); --sh-sm:0 0 10px rgba(95,210,255,.4); --sh-pri:0 0 13px 1px rgba(95,210,255,.42); --tsh:0 0 12px rgba(127,224,255,.75);
+  --bgimg:radial-gradient(1200px 700px at 70% -10%,#0c2340 0,transparent 70%);
+  --headimg:linear-gradient(#040915,#0a1a31);
+}
+:root[data-vt="cd"] .p-num,:root[data-vt="cd"] .c-hero h1,:root[data-vt="cd"] .logo b{letter-spacing:.06em;font-weight:700}
+:root[data-vt="cd"] .logo{background:linear-gradient(#0c2340,#0a1a31);color:#f2f8ff;border:1px solid #ffffff}
+:root[data-vt="cd"] .logo b{text-shadow:var(--tsh)}
+:root[data-vt="cd"] .p-num{color:#e4efff}
+:root[data-vt="cd"] .tabs button.on{background:linear-gradient(transparent,rgba(95,210,255,.25));color:#fff;border-color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent);text-shadow:0 0 8px rgba(127,224,255,.9)}
+:root[data-vt="cd"] .ch-link.on{background:linear-gradient(90deg,rgba(95,210,255,.28),rgba(95,210,255,.05));color:#fff;box-shadow:inset 3px 0 0 var(--accent)}
+:root[data-vt="cd"] .ch-link.on em,:root[data-vt="cd"] .ch-link.on small{color:var(--accent2)}
+:root[data-vt="cd"] .panel{backdrop-filter:blur(2px)}
+:root[data-vt="cd"] .g-say{background:rgba(9,19,36,0.95);color:#e4efff;border:1px solid #ffffff}
+:root[data-vt="cd"] .g-say b{color:#06121f}
+:root[data-vt="cd"] th{background:rgba(95,210,255,.18);color:#f2f8ff}
+:root[data-vt="cd"] .tabs button.on em{color:#e4efff}
+:root[data-vt="cd"] .g-say .tm{color:#e4efff}
 </style>
 <template id="rb-shell"><header class="topbar">
 <button class="icon-btn" id="menuBtn" aria-label="목차 열기"><svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 5h14M3 10h14M3 15h14"></path></svg></button>
@@ -478,7 +504,7 @@ mark{background:var(--mark);color:inherit;padding:0 1px}
 <button class="logo" id="logo" type="button"><small id="logoSub">MANGKETMON</small><b>RULEBOOK</b></button>
 <label class="search" id="searchBox"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="5"></circle><path d="M11 11l3.5 3.5" stroke-linecap="round"></path></svg><input id="q" type="search" placeholder="찾기 — 통솔점, 『전술』, 날따름…" autocomplete="off"><kbd>/</kbd></label>
 <div class="toc" id="toc"></div>
-<div class="nav-foot"><span class="vtsw" id="vtsw"><button type="button" data-vt="p5">P5</button><button type="button" data-vt="p3">P3</button><button type="button" data-vt="p4">P4</button><button type="button" data-vt="mm">망각</button></span><button id="guideBtn" type="button">감우 안내</button><span class="sp"></span><span class="status" id="status"></span><button id="editBtn" type="button" hidden>편집</button></div>
+<div class="nav-foot"><span class="vtsw" id="vtsw"><button type="button" data-vt="p5">P5</button><button type="button" data-vt="p3">P3</button><button type="button" data-vt="p4">P4</button><button type="button" data-vt="mm">망각</button><button type="button" data-vt="cd">칼데아</button></span><button id="guideBtn" type="button">감우 안내</button><span class="sp"></span><span class="status" id="status"></span><button id="editBtn" type="button" hidden>편집</button></div>
 </nav>
 <div class="mainwrap"><div class="ed-bar" id="edBar"><b>룰북 편집</b><span class="sp"></span><button class="btn ghost" id="cancelBtn" type="button" hidden>취소</button><button class="btn primary" id="saveBtn" type="button" hidden>저장</button></div><main id="main"></main></div>
 </div>
@@ -1090,7 +1116,7 @@ $("menuBtn").addEventListener("click",function(){document.body.classList.toggle(
 $("scrim").addEventListener("click",function(){document.body.classList.remove("nav-open")});
 $("guideBtn").addEventListener("click",function(){ls("rb-guide",ls("rb-guide")==="0"?null:"0");show()});
 /* 테마: 제작기와 같은 VELVET P5 · P3 · P4 (localStorage mk_vt, 같은 출처라 제작기와 공유). 제작기 안이면 제작기 html[data-vt] 를 따라간다 */
-var VTS={p5:1,p3:1,p4:1,mm:1};
+var VTS={p5:1,p3:1,p4:1,mm:1,cd:1};
 function parentDoc(){try{if(window.parent!==window&&window.parent.document)return window.parent.document}catch(e){}return null}
 function curVt(){var pd=parentDoc(),v=pd&&pd.documentElement.getAttribute("data-vt");if(!VTS[v])v=ls("mk_vt");return VTS[v]?v:"p4"}
 function applyTheme(){var v=curVt();document.documentElement.setAttribute("data-vt",v);$("vtsw").querySelectorAll("button").forEach(function(b){b.classList.toggle("on",b.dataset.vt===v)})}
