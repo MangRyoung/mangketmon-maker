@@ -162,6 +162,7 @@ function load(){
  if(tr){S.trainers=tr.trainers||[];if(tr.ui)S.ui=Object.assign(S.ui,tr.ui)}
  S.folders=tr&&Array.isArray(tr.folders)?tr.folders.filter(f=>f&&f.id):[];
  for(const k in DEF)if(S.db[k]==null)S.db[k]=clone(DEF[k]);
+ /* 11-05 망령 「종족치는 200 부터 그냥 S · 여긴 −+ 없음」: 예전 등급 표(S- 200 · S 220 · S+ 241)를 저장해 둔 브라우저도 새 표로 (읽기 전용 표라 손댄 값 없음) */if(Array.isArray(S.db.grade)&&S.db.grade.some(r=>r&&(r[1]==='S-'||r[1]==='S+')))S.db.grade=clone(DEF.grade);
  if(!S.db.tags||(S.db.tagsV||0)<TAGS_V){S.db.tags=verMerge(S.db.tags,TAGS_DEF,tagKey);S.db.tagsV=TAGS_V}
  S.custom.old=S.custom.old||[];for(const k in DBS)if(!S.custom[k])S.custom[k]=[];
  if(S.db.oldSock==null)S.db.oldSock=5.5;
@@ -838,7 +839,7 @@ const fxReady=()=>!!(window.OM_FX&&window.OM_FX_UI);
 window.OM_APP=window.OM_APP||{openModal:h=>{const l=openModal(h,{wide:true});l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))closeModal()});return l},closeModal:()=>closeModal(),toast:t=>toast(t),ST:{role:'player',state:{}},set:async()=>false};
 let fxLoadP=null,FXST='';/* '' 불러오는 중 · ok · fail */
 function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
- const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611052235';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
+ const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611052250';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
  FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');await one('itemrule.js');try{await one('moveauto.js')}catch(e){}FXST='ok';rmInit();stInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
 function fxRetry(){if(fxReady())return;fxLoadP=null;toast('구문 스크립트를 다시 불러옵니다…');loadFx();if(S.ui&&S.ui.tab)refreshAll()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fxretry]');if(!b)return;e.preventDefault();e.stopPropagation();fxRetry()},true);
