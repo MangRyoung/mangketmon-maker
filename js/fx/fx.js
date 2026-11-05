@@ -181,6 +181,7 @@ window.OM_FX=(()=>{
      case 'raid':{self.raid=Object.assign({},self.raid||{},{segments:+op.x||(self.raid||{}).segments||0,floor:op.floor,cure:op.cure,cstat:op.cstat,rup:op.rup});L.push(`${self.name} 레이드 배틀 설정 (구간 ${self.raid.segments||'?'})`);break}
      case 'dex':{const ts=await targets(b,self,'enemy1',ctx);const tg=ts[0];L.push(`「${name}」 데이터 해석${tg?' → '+tg.name:''}`);if(tg&&window.OM_DEX_UI&&ctx.viewer!==undefined)setTimeout(()=>window.OM_DEX_UI.analyze(ctx.viewer||self.tid,tg.id,{forced:true,free:true}),400);break}
      case 'sp':{const ts=op.tgt&&op.tgt!=='self'?await targets(b,self,op.tgt,ctx):[self];for(const m of ts){const F=fx(m);const key=name+'|'+op.sp+'|'+(op.mv||op.to||(op.types||[]).join('')||'');F.sp=F.sp.filter(e=>e.key!==key);const e=Object.assign({},op,{key,name});delete e.k;delete e.tgt;F.sp.push(e);L.push(`${m.name} 「${name}」 ${spDesc(e)}`)}break}
+     case 'countdown':{L.push(...countdown(b,Math.max(1,+op.n||1),self,name));break}
      case 'freeswitch':{if(ctx.freeSwitch){const r=await ctx.freeSwitch(self,name);if(r)L.push(r)}else L.push(`${self.name} 임의 교대할 수 있다 — 교대 창에서`);break}
      case 'usemove':{L.push(`${self.name} 기술 「${op.mv}」를 내보낸다`+(op.top&&op.top.length?` (이때 「${op.top.map(k=>STAT_KO[k]||k).join('·')}」 가장 높은 종족치와 같은 랭크)`:''));if(ctx.useMove)ctx.useMove(self,op.mv,name,{top:op.top||[]});break}
      case 'statadd':if(!SHEET_ONLY)break;L.push(`${self.name} 실수치 ${op.stats.join('·')} ${op.copy?'= '+op.copy:(op.n>0?'+':'')+op.n} (제작기 시트의 실수치에 이미 들어가 있다)`);break;
@@ -265,6 +266,31 @@ window.OM_FX=(()=>{
     m.mod=m.mod||{};m.mod[k]=Math.round(((+m.mod[k]||1)*v)*1000)/1000;if(op.temp){m.tempMod=m.tempMod||{};m.tempMod[k]=Math.round(((+m.tempMod[k]||1)*v)*1000)/1000}parts.push(`${STAT_KO[k]} ×${v}`);
     /* 배율 출처를 남겨서 나중에 해제할 수 있게 */ const F=fx(m);const key=name+' ← '+self.name;let e=F.mults.find(x=>x.key===key);if(!e){e={key,name,stats:{},temp:!!op.temp};F.mults.push(e)}e.stats[k]=Math.round(((+e.stats[k]||1)*v)*1000)/1000}}
   if(parts.length)L.push(`${m.name} 「${name}」 ${parts.join(' · ')}${op.temp?' (턴 종료까지)':''}`);return L}
+ /* 11-05 망령 「기술 초읽기류 — 미래예지 같은 건 안 건드리고, T 카운트를 +1 하면서 필드의 상태 T 를 줄이는 느낌」:
+    필드 위 포켓몬 · 필드의 「남은 턴」을 n 만큼 당긴다 (턴 번호는 그대로).
+    · 포켓몬 상태: 턴으로 줄어드는 것(상태 DB prog turn · once, 기술로 주는 것 · 얼음 제외)을 −n, 0 이 되면 풀림. 예고 공격(미래예지 계 futRsv)은 그대로.
+      죽음의카운트 0 → 빈사 · 하품 · 동면 0 → 잠듦 · 얼음.
+    · 【지연】 · 나온 지 몇 턴(inT)을 n 만큼 앞당김 (= T 카운트 +n) · 지속 턴이 있는 효과(until) · 타입 · 특성 변경 지속도 −n (이미 지났으면 바로 끝).
+    · 필드: 날씨 · 필드 · 룸 · 그 밖(중력 …) · 진영 효과(리플렉터 · 순풍 …)를 −n. 설치기(겹 수)는 그대로 */
+ function countdown(b,n,self,name){const L=[];const t=+b.turn||0;const SD=((window.OM_DB||{}).states||{}).st||{};const live=Object.values(b.mons||{}).filter(m=>m&&m.entry&&alive(m));
+  L.push(`${self?self.name+' ':''}「${name||'초읽기'}」 — 모든 턴 카운트 −${n}`);
+  for(const m of live){const st=m.states||(m.states={});const rel=[];
+   for(const k of Object.keys(st)){const v=+st[k];if(!(v>0&&v<1000))continue;if(m.futRsv&&m.futRsv.st===k)continue;
+    if(k==='DeathCount'){if(v<=n){st[k]=0;delete st[k];m.hp.cur=0;L.push(`${m.name} 「죽음의카운트」 0 — 쓰러졌다!`)}else{st[k]=v-n;L.push(`${m.name} 「죽음의카운트」 ${v} → ${v-n}`)}continue}
+    if(k==='Yawn'||k==='Hibernation'){if(v<=n){delete st[k];const to=k==='Yawn'?'Sleep':'Freeze';L.push(`${m.name} 「${stKo(k)}」 → `+setState(m,to,0,false,self,name))}else st[k]=v-n;continue}
+    const d=SD[k]||{};if(!(d.prog==='turn'||d.prog==='once')||d.prog==='move'||k==='Freeze')continue;
+    if(v-n<=0){delete st[k];rel.push(stKo(k))}else st[k]=v-n}
+   if(rel.length)L.push(`${m.name} 「${rel.join('」「')}」 풀림`);
+   if(m.inT!=null)m.inT=(+m.inT||t)-n;
+   if(m.typeUntil!=null)m.typeUntil=+m.typeUntil-n;if(m.abUntil!=null)m.abUntil=+m.abUntil-n;
+   const F=m.fx;if(F){const gone=[];const dn=arr=>(arr||[]).filter(e=>{if(e&&e.until>=0){e.until-=n;if(e.until<t){if(e.name)gone.push(e.name);return false}}return true});
+    F.mods=dn(F.mods);F.noind=dn(F.noind);F.nodrop=dn(F.nodrop);if(F.chance)F.chance=dn(F.chance);if(F.sp)F.sp=dn(F.sp);if(F.float&&F.float.until>=0){F.float.until-=n;if(F.float.until<t)F.float=null}
+    if(gone.length)L.push(`${m.name} 「${[...new Set(gone)].join('」「')}」 끝`)}}
+  const f=field(b);const HZ=new Set(((window.OM_FIELD||{}).HAZ||[]).map(h=>h.k));
+  for(const [key,ko] of [['weather','날씨'],['terrain','필드']]){const w=f[key]||{};if(w.type&&w.count>0&&w.count<1000){w.count-=n;if(w.count<=0){L.push(`${ko} 「${w.type}」 끝`);f[key]={type:'',count:0}}}}
+  const dec=(o,lab)=>{for(const k of Object.keys(o||{})){const v=+o[k];if(!(v>0&&v<1000))continue;if(v-n<=0){delete o[k];L.push(`${lab}「${k}」 끝`)}else o[k]=v-n}};
+  dec(f.rooms,'');dec(f.etc,'');for(const sd of ['left','right']){const o=(f.objects||{})[sd]||{};for(const k of Object.keys(o)){if(HZ.has(k))continue;const v=+o[k];if(!(v>0&&v<1000))continue;if(v-n<=0){delete o[k];L.push(`${sd==='left'?'좌측':'우측'} 「${k}」 끝`)}else o[k]=v-n}}
+  return L}
  function setState(m,en,count,forced,self,name){if(!en)return `${m.name} 모르는 상태`;m.states=m.states||{};if(m.states[en])return `${m.name} 이미 「${stKo(en)}」`;
   if(!forced){const im=immuneHit(m,en);if(im)return `${m.name} 「${stKo(en)}」 면역 (${im})`;const tb=terrainBlock(m,en);if(tb)return `${m.name} 땅 위에 있어서 「${tb}」가 「${stKo(en)}」을(를) 막았다`;const wb=weatherBlock(m,en);if(wb)return `${m.name} 「날씨 : ${wb}」라 「${stKo(en)}」 상태가 되지 않는다`;
    if(m.states.Comatose&&ABN.includes(en))return `${m.name} 「몽유」라 「${stKo(en)}」이 되지 않음`;
@@ -447,6 +473,7 @@ window.OM_FX=(()=>{
    case '끌어오기':return {k:'sp',sp:'redirect',types:types(),tg:tagW(),cat:has('변화기')?'변화':has('물리')?'물리':has('특수')?'특수':''};
    case '반사':{has('변화기');return {k:'sp',sp:'bounce',cat:'변화'}}
    case '임의교대':return {k:'freeswitch'};
+   case '초읽기':{const n=+((words.join(' ').match(/\d+/)||[])[0]||1);return {k:'countdown',n:Math.max(1,n)}}   /* 11-05 망령 「초읽기」 */
    case '기술사용':{const ti=words.findIndex(w=>/^최고[:：]/.test(w));let top=[];if(ti>=0){top=words.splice(ti,1)[0].replace(/^최고[:：]/,'').split(/[,·\/]/).map(x=>KO_STAT[x.trim()]||'').filter(Boolean)}const mv=words.join(' ').replace(/[「」]/g,'').trim();if(!mv)return {k:'?',raw:line};const op={k:'usemove',mv};if(top.length)op.top=top;return op}   /* 11-03 망령: 「이때, 「공격」을 가장 높은 종족치와 같은 랭크로」 = 그 기술 한 번만 → 최고:공격 */
    case '종족치':{/* 시트 종족치: 종족치 방어,특방 +1 · 종족치 스피드 최대 — 제작기가 시트 종족치 · 실수치에 넣는다 (배틀 중엔 바꾸지 않는다) */const all=words.join(' ');const mx=/최대/.test(all);const tp=/최고/.test(all);const mm=all.match(/(^|\s)([+\-]?\d+)/);const nn=mm?+mm[2]:1;const st=[];for(const w of words)for(const s of w.split(/[,\/·]/)){const t=s.trim().toUpperCase()==='HP'?'HP':s.trim();if(['HP','공격','방어','특공','특방','스피드'].includes(t)&&!st.includes(t))st.push(t)}if(!st.length||(!mx&&!tp&&!nn))return {k:'?',raw:line};if(tp)return {k:'baseup',stats:st,n:0,max:0,top:1};return {k:'baseup',stats:st,n:mx?0:nn,max:mx?1:0}}
    /* 11-02 망령 「실수치 변경 매크로」: 시트형(제작기 시트 실수치에 더함) · 배틀형(배틀 중 실수치 · 교대하면 원래대로) */
@@ -512,6 +539,7 @@ window.OM_FX=(()=>{
      mvtype:()=>'기술타입 '+(op.from?'타입:'+(TYPE_KO[op.from]||op.from):(op.mv||'전부'))+' '+(TYPE_KO[op.to]||op.to),ext:()=>'지속연장 '+((op.what||[]).join(',')||'날씨')+' +'+op.n,scrappy:()=>'명중확장 '+(op.types&&op.types.length?(TYPE_KO[op.types[0]]||op.types[0]):'전부')+((op.vs||[]).length?' '+op.vs.map(t=>TYPE_KO[t]||t).join(','):'')+(op.float?' 하늘위':''),
      evade:()=>'회피 '+(op.pct%10===0?op.pct/10+'할':op.pct+'%')+T+G+C,secx:()=>'추가효과 ×'+op.v+T+G,redirect:()=>'끌어오기'+T+G+(op.cat?' '+(op.cat==='변화'?'변화기':op.cat):''),bounce:()=>'반사 변화기'}[op.sp]||(()=>'# '+JSON.stringify(op)))()+(op.tgt&&op.tgt!=='self'?' '+(TGT_KO[op.tgt]||op.tgt).replace(/\s/g,''):''));break}
    case 'freeswitch':L.push('임의교대');break;
+   case 'countdown':L.push('초읽기'+(+op.n>1?' '+op.n:''));break;
    case 'usemove':L.push('기술사용 '+op.mv+(op.top&&op.top.length?' 최고:'+op.top.map(k=>STAT_KO[k]||k).join(','):''));break;
    case 'statadd':L.push('실수치 '+op.stats.join(',')+' '+(op.copy?'='+op.copy:(op.n>0?'+':'')+op.n));break;
    case 'statset':L.push('실수치변경 '+op.stats.join(',')+' '+({add:(op.n>0?'+':'')+op.n,set:'='+op.n,mul:'×'+op.n,swap:'교환',avg:'평균',flip:'맞바꿈',copy:'='+(op.from||'')}[op.mode]||'')+tga(op.tgt||'self'));break;
