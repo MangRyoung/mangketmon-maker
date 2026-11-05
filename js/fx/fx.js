@@ -287,7 +287,7 @@ window.OM_FX=(()=>{
     F.mods=dn(F.mods);F.noind=dn(F.noind);F.nodrop=dn(F.nodrop);if(F.chance)F.chance=dn(F.chance);if(F.sp)F.sp=dn(F.sp);if(F.float&&F.float.until>=0){F.float.until-=n;if(F.float.until<t)F.float=null}
     if(gone.length)L.push(`${m.name} 「${[...new Set(gone)].join('」「')}」 끝`)}}
   const f=field(b);const HZ=new Set(((window.OM_FIELD||{}).HAZ||[]).map(h=>h.k));
-  for(const [key,ko] of [['weather','날씨'],['terrain','필드']]){const w=f[key]||{};if(w.type&&w.count>0&&w.count<1000){w.count-=n;if(w.count<=0){L.push(`${ko} 「${w.type}」 끝`);f[key]={type:'',count:0}}}}
+  for(const [key,ko] of [['weather','날씨'],['terrain','필드']]){const w=f[key]||{};if(w.type&&w.count>0&&w.count<1000){w.count-=n;if(w.count<=0){L.push(`${ko} 「${w.type}」 끝`);w.type='';w.count=0}}}
   const dec=(o,lab)=>{for(const k of Object.keys(o||{})){const v=+o[k];if(!(v>0&&v<1000))continue;if(v-n<=0){delete o[k];L.push(`${lab}「${k}」 끝`)}else o[k]=v-n}};
   dec(f.rooms,'');dec(f.etc,'');for(const sd of ['left','right']){const o=(f.objects||{})[sd]||{};for(const k of Object.keys(o)){if(HZ.has(k))continue;const v=+o[k];if(!(v>0&&v<1000))continue;if(v-n<=0){delete o[k];L.push(`${sd==='left'?'좌측':'우측'} 「${k}」 끝`)}else o[k]=v-n}}
   return L}
