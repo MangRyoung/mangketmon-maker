@@ -23,6 +23,7 @@ window.OM_FX_UI=(()=>{
 줄 앞 확률: 5할 상태 혼란 상대1체 · 30% 랭크 공격+1 · 저확률 상태 풀죽음 상대1체        줄 끝 「있는한」: 그 효과는 쓴 포켓몬이 필드를 떠나면 풀린다 (효과 글에 「필드 위에 있는 한」이 있으면 저절로)
 종족치 방어,특방 +1 · 종족치 스피드 최대 (시트 종족치에 반영)        상태수정 아쿠아링 1/6 (이 포켓몬의 상태 변화 비율)
 예고 미래예지 [위력 120] [기술 미래예지] [대상]        변신 [대상] [그림유지] · 변신 해제        철거 [상대|양쪽] [장벽|전부]        반드시교대 [대상] [N턴]
+수세유지 [기술:우드혼,…] [타입:풀] [물리|특수] [HP≤1/2]  (그 기술로 공격해도 자신의 【수세】 효과가 켜진 채)
 확인 "조건 문장"  (발동 때 물어본다)        조건 아군빈사 · 조건 HP≤1/2 · 조건 상태:날따름        레이드 구간:4
 선택   (여러 효과 중 하나 고르기 · 「선택 여럿」 이면 여러 개를 고른다) — 다음 줄부터 빈 줄까지가 선택지
 랭크 아군1체 특공+1
@@ -36,7 +37,7 @@ window.OM_FX_UI=(()=>{
   ['HP',[['heal','회복'],['dmg','대미지 (비례 · 타입)'],['future','예고 공격']]],
   ['필드',[['weather','날씨'],['terrain','필드 · 룸'],['etc','필드의 상태'],['object','설치기 · 벽'],['clearobj','철거']]],
   ['행동',[['prio','우선도'],['pursuit','추격'],['freesw','반드시 교대'],['freeswitch','임의 교대'],['usemove','기술 내보내기']]],
-  ['특수',[['extra','추가 공격'],['mvtype','기술 타입'],['scrappy','무효 관통'],['evade','N할 회피'],['secx','추가 효과 배율'],['redirect','끌어오기'],['bounce','반사'],['mold','특성 무시'],['protect','변경 보호'],['ext','지속 연장'],['nodex','해석 차단']]],
+  ['특수',[['extra','추가 공격'],['mvtype','기술 타입'],['scrappy','무효 관통'],['evade','N할 회피'],['secx','추가 효과 배율'],['redirect','끌어오기'],['bounce','반사'],['mold','특성 무시'],['protect','변경 보호'],['ext','지속 연장'],['nodex','해석 차단'],['keepdef','수세 유지']]],
   ['무시',[['ignoreup','상대 상승·강화 / 감소·저하 무시 (계산에서 뺌)'],['nodrop','감소 무시 (내 능력이 안 깎임)'],['noind','비례 · 설치기 무시'],['float','하늘 위']]],
   ['모습',[['type','타입'],['trait','특성'],['transform','변신'],['role','역할']]],
   ['발동 조건',[['choice','선택지'],['chance','확률 보정'],['confirm','확인 질문'],['cond','자동 조건']]],
@@ -51,7 +52,7 @@ window.OM_FX_UI=(()=>{
   ignoreup:'상대의 랭크 상승 · 감소를 무시한다 (천진 · 성스러운칼)',nodrop:'자신의 능력이 내려가지 않는다',noind:'비례 대미지 · 설치기 · 강제 교대를 무시한다',float:'땅 위 효과를 받지 않는다',
   type:'타입을 더하거나 바꾼다',trait:'특성을 바꾼다',transform:'상대로 변신한다',role:'역할(에이스 · 블로커 …) 취급',
   choice:'여러 효과 중 고르게 한다 — 이 다음에 넣는 줄이 하나씩 선택지가 된다',chance:'이 포켓몬의 확률 효과가 더 잘 (또는 반드시) 발동한다',confirm:'발동할 때 조건을 물어본다',cond:'조건이 맞을 때만 자동으로 이어 간다',
-  baseup:'시트 종족치를 올린다 (제작기 시트에 반영)',freeswitch:'그 자리에서 임의 교대 창을 연다 (맞았을 때 · 턴 종료 뒤 같은 계기에)',usemove:'그 기술을 내보낸다 — 공격 창을 그 기술로 연다 (기술 목록에 없어도 기술 DB 에서)',extra:'맞는 기술이 포켓몬 하나에게 명중하면 1번 더 공격 (난무 · 흡혈귀)',mvtype:'기술의 타입을 바꾼다 (카세트 · 메모리 · 스킨)',scrappy:'무효 타입에도 맞는다 (배짱 · 코어드릴)',evade:'N할로 공격을 피한다',secx:'추가 효과(N할) 발생률을 곱한다',redirect:'상대의 단일 대상 기술을 자신에게 끌어온다 (피뢰침 · 마중물 · 음절초)',bounce:'상대의 변화기를 되받아친다 (매직미러)',mold:'자신의 기술이 상대의 특성(완화)을 무시한다 (틀깨기)',protect:'특성 · 소지품이 바뀌거나 없어지지 않는다',ext:'날씨 · 필드 · 벽의 지속 턴을 늘린다',nodex:'자신에 대한 데이터 해석을 막는다',statadd:'시트 실수치에 수를 더하거나 뺀다 (제작기 시트에 반영)',statset:'배틀 중 실수치를 더하기 · 정하기 · 곱하기 · 상대와 교환 · 평균 · 내 두 능력 맞바꿈 (교대하면 원래대로)'};
+  baseup:'시트 종족치를 올린다 (제작기 시트에 반영)',freeswitch:'그 자리에서 임의 교대 창을 연다 (맞았을 때 · 턴 종료 뒤 같은 계기에)',usemove:'그 기술을 내보낸다 — 공격 창을 그 기술로 연다 (기술 목록에 없어도 기술 DB 에서)',extra:'맞는 기술이 포켓몬 하나에게 명중하면 1번 더 공격 (난무 · 흡혈귀)',mvtype:'기술의 타입을 바꾼다 (카세트 · 메모리 · 스킨)',scrappy:'무효 타입에도 맞는다 (배짱 · 코어드릴)',evade:'N할로 공격을 피한다',secx:'추가 효과(N할) 발생률을 곱한다',redirect:'상대의 단일 대상 기술을 자신에게 끌어온다 (피뢰침 · 마중물 · 음절초)',bounce:'상대의 변화기를 되받아친다 (매직미러)',keepdef:'그 기술로 공격해도 자신의 【수세】 효과가 켜진 채 (「HP : 1/2 이하」일 때 「우드혼」을 내보낼 때 【수세】가 적용된다)',mold:'자신의 기술이 상대의 특성(완화)을 무시한다 (틀깨기)',protect:'특성 · 소지품이 바뀌거나 없어지지 않는다',ext:'날씨 · 필드 · 벽의 지속 턴을 늘린다',nodex:'자신에 대한 데이터 해석을 막는다',statadd:'시트 실수치에 수를 더하거나 뺀다 (제작기 시트에 반영)',statset:'배틀 중 실수치를 더하기 · 정하기 · 곱하기 · 상대와 교환 · 평균 · 내 두 능력 맞바꿈 (교대하면 원래대로)'};
  const BU_STS=['HP','공격','방어','특공','특방','스피드'];
  const STMOD_STS=[['아쿠아링','1/8'],['뿌리박기','1/16'],['환희의노래','1/16'],['희망사항','1/2'],['씨뿌리기','1/8'],['독','1/8'],['화상','1/16'],['악몽','1/4'],['저주','1/4'],['조이기','1/8']];
  const TG=['self','ally','enemy','others','all','ally1','adj','enemy1','randother','randenemy','randall','area'];
@@ -104,6 +105,7 @@ window.OM_FX_UI=(()=>{
    case 'secx':return `<div class="row"><label>배율 × <input type="number" step="0.5" class="n xs" data-g="v" value="2"></label> <label>타입 (쉼표) <input type="text" data-g="types" placeholder="독"></label> <label>태그 <input type="text" data-g="tg"></label></div>`;
    case 'redirect':return `<div class="row"><label>타입 (쉼표) <input type="text" data-g="types" placeholder="전기"></label> <label>태그 <input type="text" data-g="tg" placeholder="소리"></label> 분류 ${sel('g_rcat',[['','모두'],['물리','물리'],['특수','특수'],['변화기','변화기']],'')}</div><div class="small dim">상대의 「1체」 기술만 끌어온다</div>`;
    case 'bounce':case 'mold':case 'nodex':return `<div class="small dim">${esc(DESC[kind]||'')}</div>`;
+   case 'keepdef':return `<div class="row"><label>기술 이름 (쉼표) <input type="text" data-g="mv" placeholder="우드혼 — 비우면 모든 공격 기술"></label> <label>타입 (쉼표) <input type="text" data-g="types" placeholder="풀"></label> 분류 ${sel('g_kcat',[['','모두'],['물리','물리'],['특수','특수']],'')} <label>HP 이하 <input type="text" data-g="hp" placeholder="1/2 — 비우면 늘" style="width:70px"></label></div><div class="small dim">${esc(DESC.keepdef)}</div>`;
    case 'protect':return `<div class="row"><label><input type="checkbox" data-g="pt" checked> 특성</label> <label><input type="checkbox" data-g="pi"> 소지품</label></div>`;
    case 'ext':return `<div class="row"><label>무엇 (쉼표) <input type="text" data-g="what" placeholder="눈 · 날씨 · 필드 · 리플렉터 · 벽"></label> <label>+ <input type="number" class="n xs" data-g="n" value="3">턴</label></div>`;
    case 'baseup':return `<div class="row">${BU_STS.map(s=>`<label><input type="checkbox" data-g="bu_${s}"> ${s}</label>`).join(' ')}</div><div class="row">${sel('g_bm',[['up','랭크 상승'],['down','랭크 감소'],['max','범위 최대화'],['top','가장 높은 종족치와 같은 랭크']],'up')} <label>랭크 <input type="number" class="n xs" data-g="n" value="1" min="1"></label></div><div class="small dim">제작기 시트의 종족치 · 실수치 · 합계에 바로 들어간다 (1랭크 = 한 등급, C→B). 배틀 중엔 바뀌지 않는다</div>`;
@@ -158,6 +160,7 @@ window.OM_FX_UI=(()=>{
    case 'secx':return '추가효과 ×'+(+g('v')||2)+(g('types').trim()?' 타입:'+tyK(g('types')).replace(/ /g,''):'')+(g('tg').trim()?' 태그:'+g('tg').trim().replace(/\s+/g,''):'');
    case 'redirect':return '끌어오기'+(g('types').trim()?' 타입:'+tyK(g('types')).replace(/ /g,''):'')+(g('tg').trim()?' 태그:'+g('tg').trim().replace(/\s+/g,''):'')+(s('g_rcat')?' '+s('g_rcat'):'');
    case 'bounce':return '반사 변화기';case 'mold':return '특성무시';case 'nodex':return '해석차단';
+   case 'keepdef':{const mv=String(g('mv')||'').split(/[,·\s]+/).filter(Boolean).join(',');const hp=String(g('hp')||'').replace(/\s+/g,'');return '수세유지'+(mv?' 기술:'+mv:'')+(g('types').trim()?' 타입:'+tyK(g('types')).replace(/ /g,''):'')+(s('g_kcat')?' '+s('g_kcat'):'')+(/^\d+\/\d+$/.test(hp)?' HP≤'+hp:'')}
    case 'protect':{const w=[g('pt')?'특성':'',g('pi')?'소지품':''].filter(Boolean);return w.length?'보호 '+w.join(' '):''}
    case 'ext':{const w=String(g('what')||'').split(/[,·\s]+/).filter(Boolean).join(',');return '지속연장 '+(w||'날씨')+' +'+(Math.max(1,+g('n')||3))}
    case 'baseup':{const st=BU_STS.filter(x=>g('bu_'+x));if(!st.length)return '';const m=s('g_bm');return '종족치 '+st.join(',')+' '+(m==='top'?'최고':m==='max'?'최대':(m==='down'?'-':'+')+Math.max(1,+g('n')||1))}

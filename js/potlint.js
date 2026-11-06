@@ -126,6 +126,7 @@ window.MKM_POTLINT=(()=>{
   for(const re of G){const x=c.match(re);if(x&&!TRIG.test(x[0])&&!/「HP\s*:\s*\d\/\d\s*(?:이하)?」/.test(x[0])){R.push('확인 "'+x[0].trim()+(/에 대한$/.test(x[0])?' 기술':'')+'"');break}}
   return R}
  function clauses(text){const t=String(text||'').replace(/<br\s*\/?>/g,'\n');return t.split(/(?=[①②③④⑤⑥⑦⑧⑨])|\n/).map(s=>s.trim()).filter(Boolean)}
+ const KEEPDEF_RE=/(?:「HP\s*:\s*(\d+\s*\/\s*\d+)\s*이하」\s*일\s*때\s*,?\s*)?((?:「[^」]+」\s*(?:[,·]|과|와)?\s*)+)(?:기술)?\s*(?:을|를)?\s*(?:내보낼|사용할|쓸)\s*때(?:에도|도)?\s*,?\s*【수세】\s*(?:가|이|를|도)?\s*(?:적용|발동|유지)/;   /* 11-06 수세유지 — 오레마스 battle_ui KEEPDEF_RE 와 같은 꼴 */
  function suggest(text){const lines=[],why=[];let DEFER=null;const F=window.OM_FX;const all=String(text||'');
   const noFaint=/①로\s*「빈사」\s*상태가 되지(?:는)? 않는다/.test(all);
   for(const c0 of clauses(all)){const tags=(c0.match(/【[^】]+】/g)||[]).join('');const c=c0.replace(/^[①-⑨]/,'').replace(/^(?:【[^】]+】)+\s*\/?/,'');
@@ -134,6 +135,9 @@ window.MKM_POTLINT=(()=>{
    const syncT=t0=>{if(/【동조\s*\(상대\)】/.test(tags)&&(!t0||t0==='상대1체'||t0==='상대전체'))return '동조상대';if(/【동조】/.test(tags)&&(!t0||t0==='아군1체'||t0==='아군전체'||t0==='지정에리어'))return '동조아군';return t0};
    const tgAt=i=>{let t=tgtIn(segB(c,i),temp);if(hold&&(t==='아군1체'||t==='지정에리어')&&!/아군 1체|같은 에리어/.test(segB(c,i)))t='아군전체';return syncT(t)};const tgW=t=>t?' '+t:'';const hW=t=>hold&&t&&t!=='자신'?' 있는한':'';
    const L=[];let m;const cond=condOf(c);
+   /* 11-06 망령 「『HP : 1/2 이하』일 때 『우드혼』을 내보낼 때 【수세】가 적용된다」 → 수세유지 (늘 켜 두는 줄 — HP 조건은 줄 안에, 조건 줄로 앞에 세우지 않는다) */
+   {const kd=c.match(KEEPDEF_RE);if(kd){const ks=[...kd[2].matchAll(/「([^」]+)」/g)].map(x=>x[1].trim());const TY=(window.OM_FX&&OM_FX.TYPE_KO)||{};const tys=ks.filter(k=>Object.values(TY).includes(k)),cat=ks.find(k=>/^(물리|특수)기?$/.test(k));const mvs=ks.filter(k=>!tys.includes(k)&&k!==cat&&!/^HP\s*:/.test(k));
+     const s='수세유지'+(mvs.length?' 기술:'+mvs.join(','):'')+(tys.length?' 타입:'+tys.join(','):'')+(cat?' '+cat.replace(/기$/,''):'')+(kd[1]?' HP≤'+kd[1].replace(/\s+/g,''):'');if(!lines.includes(s)){lines.push(s);why.push(c0.length>60?c0.slice(0,60)+'…':c0)}continue}}
    /* 랭크 (「공격 : +1」 · 「공격 : +12」 · 무작위 능력 · 가장 높은/낮은 능력) */
    const rk=[...c.matchAll(/「((?:공격|방어|특공|특방|스피드|명중|회피)(?:\/(?:공격|방어|특공|특방|스피드|명중|회피))*) : ([+-]\d+)」/g)];
    const branch=/(?:이|하)?라면|비교하여/.test(c)&&rk.length>1;   /* 업로드 · 다운로드: 「A라면 X, B라면 Y」는 어느 쪽인지 몰라 추천하지 않는다 */

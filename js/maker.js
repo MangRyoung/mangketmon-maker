@@ -770,6 +770,7 @@ const AUTO_HELP=`대상: 자신(기본) · 아군전체 · 상대전체 · 자�
 타입 [대상] 추가|변경|원래 불꽃,비행 · 특성 [대상] 변경 X · 역할 추가 에이스 · 추격 · 하늘위 [N턴]
 비례무시 [빈사|설치기|설치기피해|반동] · 우선도 +1 [타입:X] [물리|특수|변화] [이번턴] · 면역 잠듦,마비 · 감소무시 [공격] · 강화무시 [공격시|받음] [방어|회피]
 확인 "조건 문장" · 조건 아군빈사 · 조건 HP≤1/2
+수세유지 [기술:우드혼,…] [타입:풀] [물리|특수] [HP≤1/2] — 그 기술로 공격해도 자신의 【수세】 효과가 켜진 채
 선택:  →  - ① 라벨 → 랭크 공격+1  /  - ② 라벨 → 회복 1/4
 효과 글의 표식: 【등장】 등장 때 자동 · 【상시】 처음 한 번 자동 · 【N/시】 횟수 · 드물게/저확률/중확률/고확률 확률 판정`;
 function autoDsl(p,name){return ((p&&p.auto)||{})[String(name||'').replace(/『|』/g,'')]||''}
@@ -854,7 +855,7 @@ const fxReady=()=>!!(window.OM_FX&&window.OM_FX_UI);
 window.OM_APP=window.OM_APP||{openModal:h=>{const l=openModal(h,{wide:true});l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))closeModal()});return l},closeModal:()=>closeModal(),toast:t=>toast(t),ST:{role:'player',state:{}},set:async()=>false};
 let fxLoadP=null,FXST='';/* '' 불러오는 중 · ok · fail */
 function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
- const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611061640';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
+ const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611062355';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
  FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');await one('itemrule.js');try{await one('moveauto.js')}catch(e){}FXST='ok';rmInit();stInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
 function fxRetry(){if(fxReady())return;fxLoadP=null;toast('구문 스크립트를 다시 불러옵니다…');loadFx();if(S.ui&&S.ui.tab)refreshAll()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fxretry]');if(!b)return;e.preventDefault();e.stopPropagation();fxRetry()},true);

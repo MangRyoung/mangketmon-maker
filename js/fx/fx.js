@@ -42,7 +42,7 @@ window.OM_FX=(()=>{
  const fx=m=>{m.fx=m.fx||{mods:[],noind:[],prio:[],immune:[],nodrop:[],roles:[]};for(const k of ['mods','noind','prio','immune','nodrop','roles','mults','chance','sp'])m.fx[k]=m.fx[k]||[];return m.fx};
  /* 11-03 망령 「다 해 보자」: 특수 효과(sp) — 추가 공격 · 변경 보호 · 특성 무시 · 기술 타입 · 지속 연장 · 해석 차단 · 무효 관통 · N할 회피 · 추가 효과 배율 · 끌어오기 · 반사.
     m.fx.sp = [{key, name, sp:종류, …}] — 웹툴 공격 창 · 상성 · 해석이 spOf(m, 종류) 로 읽는다 */
- const SP_KO={extra:'추가 공격',protect:'변경 보호',mold:'특성 무시',mvtype:'기술 타입',ext:'지속 연장',nodex:'해석 차단',scrappy:'무효 관통',evade:'회피',secx:'추가 효과',redirect:'끌어오기',bounce:'반사'};
+ const SP_KO={extra:'추가 공격',protect:'변경 보호',mold:'특성 무시',mvtype:'기술 타입',ext:'지속 연장',nodex:'해석 차단',scrappy:'무효 관통',evade:'회피',secx:'추가 효과',redirect:'끌어오기',bounce:'반사',keepdef:'수세 유지'};
  /* 11-05 망령 「가장 높은 · 낮은 능력치 — 종족치 랭크로 따지자 (실수치는 복잡)」: HP 를 뺀 다섯 능력치의 종족치(= 종족치 랭크 순서)로 고른다.
     같으면 공격 · 방어 · 특공 · 특방 · 스피드 순(원작 비스트부스트와 같은 순서). 종족치가 없으면 공격 */
  const PICK5=['attack','defense','specialattack','specialdefense','speed'];
@@ -53,7 +53,8 @@ window.OM_FX=(()=>{
   switch(e.sp){case 'extra':return `${f||'기술'}이 명중하면 ${e.n>1?e.n+'번':'1번'} 더 공격 (위력 ×${e.pw}${e.sure?' · 필중':''})`;case 'protect':return (e.what||['trait']).map(w=>w==='item'?'소지품':'특성').join(' · ')+'이(가) 바뀌거나 없어지지 않는다';case 'mold':return '자신의 기술이 상대의 특성을 무시한다';
    case 'mvtype':return `${e.mv?'「'+e.mv+'」':e.from?tyK([e.from])+' 기술':'모든 기술'} → ${tyK([e.to])} 기술`;case 'ext':return `${(e.what||[]).join('·')||'날씨 · 필드 · 벽'} 지속 +${e.n}턴`;case 'nodex':return '자신에 대한 데이터 해석을 막는다';
    case 'scrappy':return `${e.types&&e.types.length?tyK(e.types):'모든'} 기술이 ${[...(e.vs||[]).map(t=>'타입 : '+(TYPE_KO[t]||t)),...(e.float?['하늘 위']:[])].join(' · ')}에게도 명중`;case 'evade':return `${f||'공격'}을 ${e.pct}% 로 회피`;
-   case 'secx':return `${f||'기술'}의 추가 효과 발생률 ×${e.v}`;case 'redirect':return `${f||'단일 대상 기술'}의 대상을 자신으로`;case 'bounce':return `${e.cat||'변화기'}를 되받아친다`;default:return e.sp}}
+   case 'secx':return `${f||'기술'}의 추가 효과 발생률 ×${e.v}`;case 'redirect':return `${f||'단일 대상 기술'}의 대상을 자신으로`;case 'bounce':return `${e.cat||'변화기'}를 되받아친다`;
+   case 'keepdef':return `${e.hp?'「HP : '+e.hp+' 이하」일 때 ':''}${(e.mv||[]).length?'「'+e.mv.join('」「')+'」':(f||'공격 기술')}을 내보내도 【수세】가 적용된다`;default:return e.sp}}
  const WEATHERS=['맑음','비','모래바람','눈','싸라기눈','짙은안개','밤','별하늘','설경'];
  /* 11-04 감우 (망령 「높음 두 개 개선」): 빛의점토 · 바위 · 그라운드코트 같은 연장 소지품은 itemExt 가 +3 을 이미 준다 — 같은 소지품이 【소지품】 구문(지속연장)으로 또 건 ext 는 세지 않는다 (리플렉터 5+3+3=11 이던 것) */
  function spExt(self,what){let n=0;const by=[];const it0=itemExt(self,what);const nm=x=>String(x||'').replace(/[『』「」]/g,'').trim();for(const e of spOf(self,'ext')){if(it0&&nm(e.name)===nm(it0))continue;const W=e.what||[];if(!W.length||W.some(x=>x===what||(x==='날씨'&&WEATHERS.includes(what))||(x==='필드'&&/필드$/.test(what))||(x==='벽'&&['리플렉터','빛의장막','오로라베일'].includes(what)))){n+=+e.n||0;by.push(e.name)}}return {n,by}}
@@ -353,7 +354,7 @@ window.OM_FX=(()=>{
   if(e.eg&&!(q.egg||[]).some(g=>e.eg.split(',').includes(g)))return false;
   /* 10-26 망령: 【수세】 = 효과를 가진 쪽이 공격을 지시받지 않았을 때, 【공세】 = 그 상대(대상)가 공격을 지시받지 않았을 때.
      q.atkAtk · q.defAtk = 공격하는 쪽 · 맞는 쪽이 이번 턴 공격을 지시받았나 (오레마스가 공개된 지시로 채운다). 없으면 예전처럼 따지지 않는다 */
-  if(e.st&&(q.atkAtk!==undefined||q.defAtk!==undefined)){const hold=e.kind!=='boost'?!!q.defAtk:!!q.atkAtk,other=e.kind!=='boost'?!!q.atkAtk:!!q.defAtk;if(e.st==='def'&&hold)return false;if(e.st==='off'&&other)return false}
+  if(e.st&&(q.atkAtk!==undefined||q.defAtk!==undefined)){const hold=e.kind!=='boost'?(!!q.defAtk&&!q.defKeep):(!!q.atkAtk&&!q.atkKeep),   /* 11-06 수세유지: q.atkKeep · q.defKeep = 그 쪽이 【수세】를 지킨 채 공격 (자신의 【수세】만 — 상대의 【공세】 판정은 그대로) */other=e.kind!=='boost'?!!q.atkAtk:!!q.defAtk;if(e.st==='def'&&hold)return false;if(e.st==='off'&&other)return false}
   else if(e.st&&q.stance&&e.st!==q.stance)return false;return true}
  function attackMods(atk,def,q){const out={boost:1,guard:1,cg:0,cr:0,cx:'',names:[]};
   for(const e of liveMods(atk)){if(e.kind!=='boost')continue;const qq=Object.assign({},q,{roles:(def.fx&&def.fx.roles)||[],egg:def.egg||[]});if(!matchMod(e,qq))continue;out.boost*=e.v;out.cr+=e.cr||0;if(e.cx)out.cx=e.cx;if(e.sure)out.sure=1;if(e.uturn)out.uturn=1;out.names.push({key:e.key,who:atk.id,txt:e.next?`${atk.name} 「${e.name}」 다음 기술: ${nextTxt(e)}`:`${atk.name} 「${e.name}」 ×${e.v}`})}
@@ -485,6 +486,9 @@ window.OM_FX=(()=>{
    case '추가효과':{const vi=words.findIndex(w=>/^[×x*]?\d+(\.\d+)?$/.test(w));const v=vi>=0?+words.splice(vi,1)[0].replace(/[×x*]/,''):2;return {k:'sp',sp:'secx',v,types:types(),tg:tagW()}}
    case '끌어오기':return {k:'sp',sp:'redirect',types:types(),tg:tagW(),cat:has('변화기')?'변화':has('물리')?'물리':has('특수')?'특수':''};
    case '반사':{has('변화기');return {k:'sp',sp:'bounce',cat:'변화'}}
+   /* 11-06 망령 「『HP : 1/2 이하』일 때 『우드혼』을 내보낼 때 【수세】가 적용된다」: 공격을 지시받아도 그 기술이면 자신의 【수세】 효과가 켜진 채.
+      수세유지 [기술:우드혼,…] [타입:풀] [물리|특수] [HP≤1/2] — 기술 · 타입 · 분류를 안 쓰면 모든 공격 기술 */
+   case '수세유지':{const hi=words.findIndex(w=>/^HP\s*[≤<=]+\s*\d+\/\d+$/.test(w));const hp=hi>=0?words.splice(hi,1)[0].replace(/^HP\s*[≤<=]+\s*/,''):'';const mi=words.findIndex(w=>/^기술[:：]/.test(w));const mv=mi>=0?words.splice(mi,1)[0].replace(/^기술[:：]/,'').split(/[,·]/).map(x=>x.trim()).filter(Boolean):[];const ty=types();const cat=has('물리')?'물리':has('특수')?'특수':'';const rest=words.join(' ').trim();if(rest&&!mv.length)mv.push(...rest.split(/[,·]/).map(x=>x.trim()).filter(Boolean));return {k:'sp',sp:'keepdef',mv,types:ty,cat,hp}}
    case '임의교대':return {k:'freeswitch'};
    case '초읽기':{const n=+((words.join(' ').match(/\d+/)||[])[0]||1);return {k:'countdown',n:Math.max(1,n)}}   /* 11-05 망령 「초읽기」 */
    case '기술사용':{const ti=words.findIndex(w=>/^최고[:：]/.test(w));let top=[];if(ti>=0){top=words.splice(ti,1)[0].replace(/^최고[:：]/,'').split(/[,·\/]/).map(x=>KO_STAT[x.trim()]||'').filter(Boolean)}const mv=words.join(' ').replace(/[「」]/g,'').trim();if(!mv)return {k:'?',raw:line};const op={k:'usemove',mv};if(top.length)op.top=top;return op}   /* 11-03 망령: 「이때, 「공격」을 가장 높은 종족치와 같은 랭크로」 = 그 기술 한 번만 → 최고:공격 */
@@ -550,7 +554,7 @@ window.OM_FX=(()=>{
    case 'sp':{const T=op.types&&op.types.length?' 타입:'+op.types.map(t=>TYPE_KO[t]||t).join(','):'',G=op.tg&&op.tg.length?' 태그:'+op.tg.join(','):'',C=op.cat?' '+op.cat:'';
     L.push(({extra:()=>'추가공격'+T+G+C+(+op.pw!==0.25?' 위력×'+op.pw:'')+(op.sure?'':' 명중판정')+(op.n>1?' '+op.n+'번':''),protect:()=>'보호 '+(op.what||['trait']).map(w=>w==='item'?'소지품':'특성').join(' '),mold:()=>'특성무시',nodex:()=>'해석차단',
      mvtype:()=>'기술타입 '+(op.from?'타입:'+(TYPE_KO[op.from]||op.from):(op.mv||'전부'))+' '+(TYPE_KO[op.to]||op.to),ext:()=>'지속연장 '+((op.what||[]).join(',')||'날씨')+' +'+op.n,scrappy:()=>'명중확장 '+(op.types&&op.types.length?(TYPE_KO[op.types[0]]||op.types[0]):'전부')+((op.vs||[]).length?' '+op.vs.map(t=>TYPE_KO[t]||t).join(','):'')+(op.float?' 하늘위':''),
-     evade:()=>'회피 '+(op.pct%10===0?op.pct/10+'할':op.pct+'%')+T+G+C,secx:()=>'추가효과 ×'+op.v+T+G,redirect:()=>'끌어오기'+T+G+(op.cat?' '+(op.cat==='변화'?'변화기':op.cat):''),bounce:()=>'반사 변화기'}[op.sp]||(()=>'# '+JSON.stringify(op)))()+(op.tgt&&op.tgt!=='self'?' '+(TGT_KO[op.tgt]||op.tgt).replace(/\s/g,''):''));break}
+     evade:()=>'회피 '+(op.pct%10===0?op.pct/10+'할':op.pct+'%')+T+G+C,secx:()=>'추가효과 ×'+op.v+T+G,redirect:()=>'끌어오기'+T+G+(op.cat?' '+(op.cat==='변화'?'변화기':op.cat):''),bounce:()=>'반사 변화기',keepdef:()=>'수세유지'+((op.mv||[]).length?' 기술:'+op.mv.join(','):'')+T+C+(op.hp?' HP≤'+op.hp:'')}[op.sp]||(()=>'# '+JSON.stringify(op)))()+(op.tgt&&op.tgt!=='self'?' '+(TGT_KO[op.tgt]||op.tgt).replace(/\s/g,''):''));break}
    case 'freeswitch':L.push('임의교대');break;
    case 'countdown':L.push('초읽기'+(+op.n>1?' '+op.n:''));break;
    case 'usemove':L.push('기술사용 '+op.mv+(op.top&&op.top.length?' 최고:'+op.top.map(k=>STAT_KO[k]||k).join(','):''));break;
