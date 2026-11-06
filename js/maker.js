@@ -2653,6 +2653,9 @@ function textTab(t,ti,p,pi,P){const s=copyText(t,p);return `<div class="row" sty
 function getRef(path){const a=path.split('.').map(unseg);let o=S;if(a[0]==='T'){o=S.trainers;a.shift()}for(let i=0;i<a.length-1;i++){o=o==null?o:o[a[i]]}return[o,a[a.length-1]]}
 function trOf(el){const s=el.closest('[data-ti]');return s?S.trainers[+s.dataset.ti]:null}
 let rfBusy=false;
+/* 11-06 망령 「대가 코멘트 칸 입력하다가 커서가 자꾸 꺼진다」: 다른 창 · 다른 사람의 저장이 들어올 때마다(shRender) 지금 글을 쓰는 트레이너 카드를 통째로 다시 그려서 한글 조합 · 커서가 끊겼다 → 쓰는 동안은 미뤘다가 그 카드에서 손을 떼면 다시 그린다 */
+const RF_PEND=new Set();
+document.addEventListener('focusout',e=>{if(!RF_PEND.size)return;setTimeout(()=>{const a=document.activeElement;const typing=a&&a.matches&&a.matches('input,textarea,select');for(const t of [...RF_PEND]){const el=$('#tr-'+t.id);if(typing&&el&&el.contains(a))continue;RF_PEND.delete(t);if(el&&S.trainers.includes(t))refreshTrainer(t)}},0)});
 function focusKey(f){if(!f||f===document.body||!f.closest||!f.closest('#v-char'))return null;
  if(f.dataset&&f.dataset.p)return `[data-p="${CSS.escape(f.dataset.p)}"]`;if(f.id)return '#'+CSS.escape(f.id);
  const a=f.closest('[data-act],[data-ptab],[data-tog]');if(!a)return null;const at=['data-act','data-ptab','data-tog','data-i','data-j','data-k'].filter(x=>a.hasAttribute(x)).map(x=>`[${x}="${CSS.escape(a.getAttribute(x))}"]`).join('');return at||null}
@@ -3788,7 +3791,7 @@ let shRT=null,shRW={};
 function shRender(what){shRW.t=shRW.t||what.t;shRW.d=shRW.d||what.d;clearTimeout(shRT);shRT=setTimeout(()=>{const w=shRW;shRW={};
  if(drag)return shRender(w);
  if(S.ui.tab==='char'){if(w.t||w.d){const a=document.activeElement;const typing=a&&a.matches&&a.matches('input,textarea,select')&&$('#v-char').contains(a);
-   if(typing){const t=trOf(a);for(const tr of S.trainers)if(tr!==t){const el=$('#tr-'+tr.id);if(el)refreshTrainer(tr)}if(t)refreshTrainer(t);if($$('#trs section.folder').length!==S.trainers.filter(trVisible).length)renderChar()}else renderChar()}}
+   if(typing){const t=trOf(a);for(const tr of S.trainers)if(tr!==t){const el=$('#tr-'+tr.id);if(el)refreshTrainer(tr)}if(t)RF_PEND.add(t);if($$('#trs section.folder').length!==S.trainers.filter(trVisible).length)renderChar()}else renderChar()}}
  else if(S.ui.tab==='type'){if((w.t||w.d)&&!layers.length)renderType()}
  else if(w.d&&!layers.length){if(S.ui.tab==='db'){const q=$('#dbq');const f=q&&document.activeElement===q;renderDB();if(f){const n=$('#dbq');n.focus();n.setSelectionRange(n.value.length,n.value.length)}}else if(!$('#v-tbl').contains(document.activeElement))renderTbl()}},120)}
 async function shInit(){let db=null;try{db=window.MKM_STORE?await MKM_STORE.connect():null}catch(e){console.warn('[공유 DB]',e);toast('공유 DB에 연결하지 못했습니다: '+(e&&e.message||e))}
