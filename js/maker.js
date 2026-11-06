@@ -344,7 +344,7 @@ const PRIDE_DEF={v:PRIDE_V,
  hp:{lo:'95',hi:'120',k1:'0.5',k2:'0.75'},
  fs:{lo:'105',hi:'120',k1:'0.5',k2:'1',slo:'90',shi:'140'},
  dual:{lo:'90',hi:'120',k:'1'},
- prio:{pow:'50',rows:[['상시','60','70','85'],['조건부','55','60','70']],abil:'짓궂은마음:60, 질풍날개:60',moves:'구멍함정:C+, 용의분노:C+'}};   /* 11-06 망령 「구멍함정, 용의분노는 스피드 할증 C+로」: 기술 이름:하한 — 하한에 계단 이름을 적으면 그 계단의 최소종족치 */
+ prio:{pow:'50',rows:[['상시','60','70','85'],['조건부','55','60','70']],abil:'짓궂은마음:60, 질풍날개:60',moves:'구멍함정:초, 용의분노:초'}};   /* 11-06 망령 「구멍함정, 용의분노는 신속이랑 같은 85」: 기술 이름:칸(약 · 강 · 초) 또는 숫자 — 위력 · 우선도와 상관없이 그 칸 */
 const PR=()=>(S.db&&S.db.pride&&S.db.pride.v>=PRIDE_V)?S.db.pride:PRIDE_DEF;
 /* 옛 프라이드 표(C/B/A/EX · 화력균형 · 최소종족치 1개)는 개편 규칙으로 바꾼다 */
 function prideMigrate(db){const pr=db&&db.pride;if(!pr||!pr.v||pr.v<PRIDE_V){db.pride=clone(PRIDE_DEF);db.prideExV=1;return}
@@ -392,9 +392,9 @@ function dualMoves(p){const cats=new Set((p.moves||[]).filter(m=>m.name).map(m=>
 /* 선공 하한: 선공기(우선도 +1 이상 · 자신/자기 진영 대상 제외) · 특성 · 포텐셜에서 가장 높은 스피드 하한 */
 const PRIO_SELF=/^(자신|아군|자진|아군 전체|필드 전체|자기 필드|아군 필드|자신 · 아군)$/;
 function prioInfo(p){const P=PR().prio||PRIDE_DEF.prio;const rows=P.rows||PRIDE_DEF.prio.rows;const powT=pnum(P.pow,50);let best={floor:0,src:'',kind:''};
- const take=(f,src,kind)=>{if(f>best.floor)best={floor:f,src,kind}};const MV=new Map();for(const pair of listOf(P.moves??PRIDE_DEF.prio.moves)){const [n,v]=pair.split(/[:：=]/).map(x=>x&&x.trim());if(n&&v)MV.set(n,v)}const mvF=v=>{const st=prStep(v);return st?st.floor:pnum(v,0)};const cell=(cond,col)=>pnum((rows[cond?1:0]||[])[col],0);const KN=['','약','강','초'];
- for(const m of p.moves||[]){if(!m.name)continue;if(MV.has(m.name)){const v=MV.get(m.name);take(mvF(v),m.name,'지정·'+v);continue}const r=idx.moves.get(m.name);if(!r)continue;const pr=String(r[11]??'');const ns=(pr.match(/-?\d+(\.\d+)?/g)||[]).map(Number);if(!ns.length)continue;const pv=Math.max(...ns);if(pv<1)continue;if(PRIO_SELF.test(String(r[9]||'').trim()))continue;
-  const cond=/~/.test(pr)||/실패/.test(String(r[13]||''));const pow=+r[7]||0;const col=pv>=2&&pow>=powT?3:pow>=powT?2:1;take(cell(cond,col),m.name,(cond?'조건부':'상시')+'·'+KN[col])}
+ const take=(f,src,kind)=>{if(f>best.floor)best={floor:f,src,kind}};const MV=new Map();for(const pair of listOf(P.moves??PRIDE_DEF.prio.moves)){const [n,v]=pair.split(/[:：=]/).map(x=>x&&x.trim());if(n&&v)MV.set(n,v)}const cell=(cond,col)=>pnum((rows[cond?1:0]||[])[col],0);const KN=['','약','강','초'];
+ for(const m of p.moves||[]){if(!m.name)continue;const r=idx.moves.get(m.name);if(!r)continue;const pr=String(r[11]??'');const ns=(pr.match(/-?\d+(\.\d+)?/g)||[]).map(Number);if(!ns.length)continue;const pv=Math.max(...ns);if(pv<1)continue;if(PRIO_SELF.test(String(r[9]||'').trim()))continue;
+  const cond=/~/.test(pr)||/실패/.test(String(r[13]||''));const pow=+r[7]||0;const col=pv>=2&&pow>=powT?3:pow>=powT?2:1;const mv=MV.get(m.name),mc=mv?KN.indexOf(mv):-1;if(mv&&mc>0){take(cell(cond,mc),m.name,(cond?'조건부':'상시')+'·'+mv+' (따로)');continue}if(mv&&!isNaN(parseFloat(mv))){take(pnum(mv,0),m.name,'직접 '+mv+' (따로)');continue}take(cell(cond,col),m.name,(cond?'조건부':'상시')+'·'+KN[col])}
  for(const pair of listOf(P.abil)){const [n,v]=pair.split(/[:：=]/).map(x=>x&&x.trim());if(n&&p.ability===n)take(pnum(v,0),'특성 '+n,'특성')}
  (p.pots||[]).forEach((n,i)=>{if(!n)return;const eff=String(potEffOf(p,i)||'');if(!/우선도\s*[:：]?\s*\+\s*\d/.test(eff))return;const cond=/【\s*\d+\s*\/\s*시\s*】|【\s*1\/시\s*】/.test(eff);take(cell(cond,2),'『'+n+'』',(cond?'조건부':'상시')+'·강 (포텐셜)')});
  return best}
@@ -548,7 +548,7 @@ function prideRulePanel(){const R=PR();const f=(path,v,w,ph)=>`<input data-p="db
   </div>
   <div class="prg" style="margin-top:10px"><b>선공 하한 · 선공기가 있으면 스피드 하한을 이 값으로</b>
    <div class="tw" style="margin:6px 0"><table><tr><th>사용 조건</th><th class="n">약 (위력 미만)</th><th class="n">강 (위력 이상 · +1)</th><th class="n">초 (위력 이상 · +2 이상)</th></tr>${(R.prio.rows||[]).map((r,i)=>`<tr><td><input data-p="db.pride.prio.rows.${i}.0" value="${esc(r[0])}" style="width:80px"></td>${[1,2,3].map(j=>`<td class="n"><input data-p="db.pride.prio.rows.${i}.${j}" value="${esc(r[j]??'')}" style="width:56px" inputmode="decimal"></td>`).join('')}</tr>`).join('')}</table></div>
-   <div class="row" style="gap:14px;flex-wrap:wrap">${L('강·초 기준 위력','prio.pow',R.prio.pow)}<label class="row small" style="gap:4px;flex:1;min-width:260px">선공 특성 (이름:하한, 쉼표)<input data-p="db.pride.prio.abil" value="${esc(R.prio.abil||'')}" style="flex:1"></label><label class="row small" style="gap:4px;flex:1;min-width:260px" title="표 대신 이 하한을 쓴다. 하한에 C+ 같은 계단 이름을 적으면 그 계단의 최소종족치">선공 기술 따로 (이름:하한 또는 계단, 쉼표)<input data-p="db.pride.prio.moves" value="${esc(R.prio.moves??PRIDE_DEF.prio.moves)}" style="flex:1"></label></div>
+   <div class="row" style="gap:14px;flex-wrap:wrap">${L('강·초 기준 위력','prio.pow',R.prio.pow)}<label class="row small" style="gap:4px;flex:1;min-width:260px">선공 특성 (이름:하한, 쉼표)<input data-p="db.pride.prio.abil" value="${esc(R.prio.abil||'')}" style="flex:1"></label><label class="row small" style="gap:4px;flex:1;min-width:260px" title="위력 · 우선도로 고르는 칸 대신 적은 칸(약 · 강 · 초)이나 숫자를 쓴다">선공 기술 따로 (이름:약·강·초 또는 숫자, 쉼표)<input data-p="db.pride.prio.moves" value="${esc(R.prio.moves??PRIDE_DEF.prio.moves)}" style="flex:1"></label></div>
    <p class="small muted" style="margin:6px 0 0">기술 DB의 우선도가 1 이상인 기술(자신·자기 진영 대상 제외)을 자동으로 읽습니다. 우선도에 「~」가 있거나 설명에 「실패」가 있으면 조건부로 봅니다. 포텐셜 효과에 「우선도 : +N」이 있으면 강 칸(【N/시】면 조건부). 맞지 않는 포켓몬은 시트의 「계산 종족치」 칸에서 예외로 바꿉니다.</p></div></div>`}
 /* 메인: 자질을 C에서 한 단계 올릴 때마다 1점 */
 const rankSteps=t=>QUAL.reduce((a,q)=>a+Math.max(0,RV[strip(t.ranks[q])]??0),0);
