@@ -137,7 +137,7 @@ const QUAL=['지시','육성','통솔','능력'];
 const SLOTS=['역할','분류','주인','이명','종족①','종족②','종족③','종족④','속별','정/유대','선','회피','내성','격','범용','전술①','전술②','부수','특권','PT'];
 const DBS={
  moves:{t:'기술',key:2,cols:['소켓','기술 태그','기술명','일명','영명','타입','분류','위력','명중','범위','접촉','우선도','분류(태그)','추가 효과','공격 스탯','방어 스탯','비고','등장 시기','최소 공격 횟수','최대 공격 횟수'],show:[2,5,6,7,8,9,10,11,0,13],eff:13},
- abil:{t:'특성',key:1,cols:['소켓','특성','효과','틀깨기','방호 특성'],show:[1,0,3,4,2],eff:2},
+ abil:{t:'특성',key:1,cols:['소켓','특성','효과','틀깨기','방호 특성','올타 전용','비고'],show:[1,0,3,4,5,2,6],eff:2},   /* 11-06 망령 「올타 전용 특성 표기 · 비고란(조건부 소켓 등)」: 5 올타 전용(O/X) · 6 비고 */
  items:{t:'소지품',key:1,cols:['종류','도구','별칭','소모(O)','효과','소켓','비고','구문'],show:[1,0,2,3,5,4,7,6],eff:4},   /* 구문 = 오레마스 소지품 자동화 (js/fx/itemrule.js, 10-24 망령) */
  pots:{t:'포텐셜',key:1,cols:['종류(순서)','이름','효과','비고'],show:[1,0,2,3],eff:2},
  old:{t:'올드 타입',key:1,cols:['지역','포켓몬','Name','타입1','타입2','특성1','특성2','숨겨진 특성','알그룹1','알그룹2','메가','HP','공격','방어','특공','특방','스피드','프라이드'],show:[1,0,3,4,5,6,7,8,9,11,12,13,14,15,16,17],eff:-1},
@@ -1236,7 +1236,7 @@ function lintHTML(s){const l=tagLint(s);return l.length?`<div class="taglint">${
 /* ---------- DB 검색 피커 ---------- */
 function rowHTML(kind,r,sel){const D=DBS[kind];
  if(kind==='moves')return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[2])}"><div><div class="t1">${tchip(r[5])}<b>${esc(r[2])}</b><span class="kindb">${esc(r[6])}</span>${S.custom.moves.includes(r[2])?'<span class="kindb">오리지널</span>':''}${mvOldOnly(r)?'<span class="kindb">올드 전용</span>':''}</div><div class="t2">${rich(r[13])}</div></div><div class="meta">${rangeGrid(r[9])}<span>위력 ${esc(r[7])} · 명중 ${esc(r[8])}</span><span>${esc(r[9])} · 우선도 ${esc(r[11])} · 소켓 <b>${esc(r[0])}</b></span></div></div>`;
- if(kind==='abil')return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1"><b>${esc(r[1])}</b>${r[3]==='O'?'<span class="kindb">틀깨기 대상</span>':''}${r[4]==='O'?'<span class="kindb">방호</span>':''}${fxRmChip('trait',r[1])}</div><div class="t2">${rich(r[2])}</div></div><div class="meta">소켓 <b>${esc(r[0])}</b></div></div>`;
+ if(kind==='abil')return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1"><b>${esc(r[1])}</b>${r[3]==='O'?'<span class="kindb">틀깨기 대상</span>':''}${r[4]==='O'?'<span class="kindb">방호</span>':''}${r[5]==='O'?'<span class="kindb">올타 전용</span>':''}${fxRmChip('trait',r[1])}</div><div class="t2">${rich(r[2])}</div>${r[6]?`<div class="t2 muted small">비고 · ${esc(r[6])}</div>`:''}</div><div class="meta">소켓 <b>${esc(r[0])}</b></div></div>`;
  if(kind==='items')return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1"><b>${esc(r[1])}</b><span class="kindb">${esc(r[0])}</span>${r[3]==='O'?'<span class="kindb">소모</span>':''}${ilockChip(r[1])}${fxRmChip('item',r[1])}</div><div class="t2">${rich(r[4])}${r[6]&&r[6]!=='-'?` <span class="faint">· ${esc(r[6])}</span>`:''}</div></div><div class="meta">소켓 <b>${esc(r[5])}</b></div></div>`;
  if(kind==='old'){const tot=r.slice(11,17).reduce((a,b)=>a+(+b||0),0);return `<div tabindex="0" role="button" data-kbd class="pkr ${sel?'sel':''}" data-pick="${esc(r[1])}"><div><div class="t1">${tchip(r[3])}${tchip(r[4])}<b>${esc(r[1])}</b>${r[10]==='O'?'<span class="kindb">메가</span>':''}<span class="kindb">${esc(r[0])}</span></div><div class="t2">${[r[5],r[6],r[7]].filter(a=>a&&a!=='-').map(esc).join(' / ')} · 알그룹 ${esc(r[8])}${r[9]&&r[9]!=='-'?' / '+esc(r[9]):''} <span class="faint">${esc(r[2])}</span></div></div><div class="meta num"><span>${r.slice(11,17).map(esc).join('-')}</span><span>합 <b>${tot}</b>${String(r[17]??'').trim()?` · 프라이드 <b>${esc(r[17])}</b>`:''}</span></div></div>`}
  if(kind==='points')return `<div tabindex="0" role="button" data-kbd class="pkr" data-pick="${esc(r[4])}"><div><div class="t1"><b>${esc(r[4])}</b><span class="kindb">${esc(r[1])}</span></div><div class="t2">${esc(r[5])}</div></div><div class="meta">${esc(r[3])} −${esc(r[6])}</div></div>`;
@@ -1274,7 +1274,8 @@ function filterRows(kind,st){const D=DBS[kind];const q=String(st.q||'').trim().t
  const pmin=st.pmin!==''&&st.pmin!=null&&!isNaN(+st.pmin)?+st.pmin:null,pmax=st.pmax!==''&&st.pmax!=null&&!isNaN(+st.pmax)?+st.pmax:null;
  return rankSort(S.db[kind].filter(r=>{if(r[D.key]==='')return false;
   if(st.hideOrig&&!st.orig&&!st.mine&&S.custom[kind].includes(r[D.key])&&!(st.has&&st.has(r[D.key])))return false;   /* 10-26 망령: 포켓몬 만들 때 특성 목록엔 오리지널을 「오리지널 보기」를 눌러야 보인다 · 10-27 기술도 같게 (이미 든 기술은 보인다) */
-  if(kind==='moves'&&st.hideOldOnly&&!st.oldShow&&mvOldOnly(r)&&!(st.has&&st.has(r[2])))return false;   /* 10-27 망령: 올드 타입이 아닌 포켓몬에겐 올드 타입 전용 기술을 숨긴다 */
+  if(kind==='moves'&&st.hideOldOnly&&!st.oldShow&&mvOldOnly(r)&&!(st.has&&st.has(r[2])))return false;
+  if(kind==='abil'&&st.hideOldOnly&&!st.oldShow&&r[5]==='O'&&!(st.has&&st.has(r[1])))return false;   /* 11-06: 올드 타입이 아닌 포켓몬에겐 올타 전용 특성도 숨긴다 */   /* 10-27 망령: 올드 타입이 아닌 포켓몬에겐 올드 타입 전용 기술을 숨긴다 */
   if(st.type&&kind==='moves'&&!String(r[5]).startsWith(st.type))return false;
   if(st.cat&&kind==='moves'&&r[6]!==st.cat)return false;
   if(st.kind&&(kind==='pots'||kind==='items'||kind==='old')&&r[0]!==st.kind)return false;
@@ -1312,7 +1313,7 @@ function mountPicker(root,kind,st,{chosen,onPick}){
   if(e.target.closest('[data-xfreset]')){st.f={};st.pmin='';st.pmax='';st.kind='';st.cat='';st.type='';draw();return}
   const r=e.target.closest('[data-pick]');if(r){onPick(r.dataset.pick);draw()}});
  draw();return draw}
-function pickerShell(kind,st){return `<div class="row pkhead"><input data-pkq type="search" enterkeyhint="search" placeholder="${DBS[kind].t} 이름·효과 검색" value="${esc(st.q)}" style="flex:1" autofocus><span class="small muted" data-pkcount></span>${st.hideOrig?`<button type="button" class="btn sm ftog${st.orig?' on':''}" data-pkorig aria-pressed="${st.orig?'true':'false'}" title="오리지널 ${DBS[kind].t}도 목록에 보이기">오리지널 보기</button>`:''}${st.hideOldOnly?`<button type="button" class="btn sm ftog${st.oldShow?' on':''}" data-pkold aria-pressed="${st.oldShow?'true':'false'}" title="『올드 타입』 전용 기술도 목록에 보이기 (이 포켓몬은 올드 타입 계열이 아님)">올드 전용 보기</button>`:''}<button type="button" class="btn sm ftog" data-pkftog aria-expanded="false">필터<b class="fn" data-pkfn></b></button></div><div class="fwrap" data-pkfwrap><div data-pkfilters></div></div><div class="pkrows" data-pkrows></div>`}
+function pickerShell(kind,st){return `<div class="row pkhead"><input data-pkq type="search" enterkeyhint="search" placeholder="${DBS[kind].t} 이름·효과 검색" value="${esc(st.q)}" style="flex:1" autofocus><span class="small muted" data-pkcount></span>${st.hideOrig?`<button type="button" class="btn sm ftog${st.orig?' on':''}" data-pkorig aria-pressed="${st.orig?'true':'false'}" title="오리지널 ${DBS[kind].t}도 목록에 보이기">오리지널 보기</button>`:''}${st.hideOldOnly?`<button type="button" class="btn sm ftog${st.oldShow?' on':''}" data-pkold aria-pressed="${st.oldShow?'true':'false'}" title="『올드 타입』 전용 ${kind==='abil'?'특성':'기술'}도 목록에 보이기 (이 포켓몬은 올드 타입 계열이 아님)">올드 전용 보기</button>`:''}<button type="button" class="btn sm ftog" data-pkftog aria-expanded="false">필터<b class="fn" data-pkfn></b></button></div><div class="fwrap" data-pkfwrap><div data-pkfilters></div></div><div class="pkrows" data-pkrows></div>`}
 /* 필터를 다시 그려도 쓰던 칸에 초점과 커서를 돌려놓는다 */
 function keepFocus(root,fn){const a=document.activeElement;let key=null,ss=null,se=null;
  if(a&&root.contains(a)){for(const at of ['data-xf','data-pr','data-fc','data-fk','data-fn','data-fm','data-ft','data-pkq'])if(a.hasAttribute(at)){key=`[${at}${a.getAttribute(at)?`="${CSS.escape(a.getAttribute(at))}"`:''}]`;break}
@@ -1371,7 +1372,7 @@ function fieldHTML(kind,n,v){const c=DBS[kind].cols[n];const id=`f-${kind}-${n}`
  if(kind==='moves'&&n===6)return `<label class="lbl" for="${id}">${c}<select id="${id}" data-f="${n}">${['물리','특수','변화'].map(t=>`<option ${t===v?'selected':''}>${t}</option>`).join('')}</select></label>`;
  if(kind==='moves'&&n===9)return `<label class="lbl" for="${id}">${c}<span class="row" style="gap:6px;flex-wrap:nowrap"><input id="${id}" data-f="${n}" value="${esc(v??'')}" list="L-range" style="flex:1;min-width:0"><span data-rg>${rangeGrid(v)}</span></span><datalist id="L-range">${Object.keys(RANGE_MAP).map(k=>`<option value="${k}">`).join('')}</datalist></label>`;
  if(kind==='moves'&&n===10)return `<label class="lbl" for="${id}">${c}<select id="${id}" data-f="${n}">${['O','X','-'].map(t=>`<option ${t===v?'selected':''}>${t}</option>`).join('')}</select></label>`;
- if((kind==='abil'&&(n===3||n===4))||(kind==='items'&&n===3))return `<label class="lbl" for="${id}">${c}<select id="${id}" data-f="${n}">${['X','O','-',''].map(t=>`<option value="${t}" ${t===v?'selected':''}>${t||'(빈칸)'}</option>`).join('')}</select></label>`;
+ if((kind==='abil'&&(n===3||n===4||n===5))||(kind==='items'&&n===3))return `<label class="lbl" for="${id}">${c}<select id="${id}" data-f="${n}">${['X','O','-',''].map(t=>`<option value="${t}" ${t===v?'selected':''}>${t||'(빈칸)'}</option>`).join('')}</select></label>`;
  const list=kind==='pots'&&n===0?'L-kinds':kind==='items'&&n===0?'L-ikinds':'';
  return `<label class="lbl" for="${id}" ${n===1&&kind==='moves'?'style="grid-column:span 2"':''}>${c}<input id="${id}" data-f="${n}" value="${esc(v??'')}" ${list?`list="${list}"`:''}></label>`}
 /* 11-01 망령 「특성 쪽엔 구문 도우미가 없더라고」: 특성 DB 수정 창에도 포텐셜 창처럼
@@ -1408,7 +1409,7 @@ function abilAssist(l,oldName){const host=$('[data-abassist]',l),ta=$('[data-f="
   if(r){if(String(r[2]||'').trim()===dsl)return;r[2]=dsl;if(!r[1])r[1]=ta.value;return}
   if(!dsl)return;S.db.rm.unshift([key,ta.value,dsl,'','']);if(!S.custom.rm.includes(key))S.custom.rm.push(key)}}}
 function openEdit(kind,i,{preset={},onSaved,nav}={}){const D=DBS[kind];
- const r=i<0?D.cols.map((_,n)=>preset[n]??(kind==='moves'?({0:'1.5',1:'#오리지널',5:'노말',6:'물리',7:'0',8:'100',9:'1체',10:'O',11:'0',12:'-',14:'공격',15:'방어',17:'오리지널',18:'1',19:'1'}[n]??''):kind==='abil'?({0:'1',3:'X',4:'X'}[n]??''):kind==='items'?({0:'기타',3:'-',5:'1',6:'-'}[n]??''):kind==='cards'?({11:'공용'}[n]??''):'')):S.db[kind][i];
+ const r=i<0?D.cols.map((_,n)=>preset[n]??(kind==='moves'?({0:'1.5',1:'#오리지널',5:'노말',6:'물리',7:'0',8:'100',9:'1체',10:'O',11:'0',12:'-',14:'공격',15:'방어',17:'오리지널',18:'1',19:'1'}[n]??''):kind==='abil'?({0:'1',3:'X',4:'X',5:'X'}[n]??''):kind==='items'?({0:'기타',3:'-',5:'1',6:'-'}[n]??''):kind==='cards'?({11:'공용'}[n]??''):'')):S.db[kind][i];
  const order=kind==='moves'?[2,5,6,0,7,8,9,10,11,12,14,15,18,19,1,17,3,4,16,13]:D.cols.map((_,n)=>n);
  const l=openModal(`<div class="mhead"><h2>${D.t} ${i<0?'오리지널 만들기':'수정'}</h2>${nav&&i>=0?`<span class="row dbnav" style="gap:2px;align-items:center"><button type="button" class="btn sm ghost" data-nav="-1" title="이전 행 (Ctrl+←)" aria-label="이전 행">‹</button><span class="small muted num" data-navpos></span><button type="button" class="btn sm ghost" data-nav="1" title="다음 행 (Ctrl+→)" aria-label="다음 행">›</button></span>`:''}<span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
  <div class="mbody"><datalist id="L-kinds">${[...new Set(S.db.pots.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist><datalist id="L-ikinds">${[...new Set(S.db.items.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist>
@@ -2287,7 +2288,7 @@ function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요
  wrap.addEventListener('click',async e=>{const b=e.target.closest('[data-pce]');if(!b||!ED)return;e.preventDefault();const k=b.dataset.pce,v=b.dataset.v;
   if(k==='name'){const n=await askStr('이름',p.name);if(n!=null){p.name=n.trim();done()}return}
   if(k==='memo'){const n=await askStr('메모',p.memo,true);if(n!=null){p.memo=n;done()}return}
-  if(k==='abil'){openPicker('abil',{onPick:n=>{p.ability=n}});return back()}
+  if(k==='abil'){openPicker('abil',{hideOldOnly:!isOld(p),chosen:()=>new Set([p.ability]),onPick:n=>{p.ability=n}});return back()}
   if(k==='item'){openPicker('items',{onPick:n=>{p.item=n}});return back()}
   if(k==='itemx'){p.item='';return done()}
   if(k==='mvadd'){openPicker('moves',{title:'기술 검색·추가',multi:true,hideOldOnly:!isOld(p),chosen:()=>new Set(p.moves.map(m=>m.name)),onPick:n=>{const m={name:n,half:false};p.moves.push(m);if(isBigMv(t,p,m))toast(`「${n}」 소켓 ${moveSock(p,m)} · ${bigMvRule(t)} · 경고만 띄우고 넣었습니다`);else if(followWide(p))toast(followWideTxt(followWide(p)))},onRemove:n=>{p.moves=p.moves.filter(m=>m.name!==n)}});return back()}
@@ -2874,7 +2875,7 @@ $('#v-char').addEventListener('click',async e=>{
   case 'addFormPot':{const f=(P.forms||[])[+b.dataset.k];if(!f)break;f.pots=f.pots||[];const used=f.pots.map(x=>+x.slot);let sl=[4,5,6,7,8].find(i=>!used.includes(i));if(sl==null)sl=0;f.pots.push({slot:sl,name:'',eff:''});rf();break}
   case 'delFormPot':{const f=(P.forms||[])[+b.dataset.k];if(!f)break;f.pots.splice(+b.dataset.x,1);rf();break}
   case 'pickFormPot':{const f=(P.forms||[])[+b.dataset.k];const x=f&&f.pots[+b.dataset.x];if(!x)break;openPicker('pots',{onPick:n=>{x.name=n;x.eff='';rf()}});break}
-  case 'pickFormAbil':{const f=(P.forms||[])[+b.dataset.k];if(!f)break;openPicker('abil',{onPick:n=>{f.ability=n;rf()}});break}
+  case 'pickFormAbil':{const f=(P.forms||[])[+b.dataset.k];if(!f)break;openPicker('abil',{hideOldOnly:!isOld(P),onPick:n=>{f.ability=n;rf()}});break}
   case 'addOld':openOldFill(T,null);break;
   case 'copy':copyStr(copyText(T,P));break;
   case 'pcard':e.stopPropagation();openPokeCard(T,P);break;
@@ -2882,7 +2883,7 @@ $('#v-char').addEventListener('click',async e=>{
   case 'sessT':copySession([T]);break;
   case 'impP':openImport(T);break;
   case 'impText':openImport(null);break;
-  case 'pickAbil':openPicker('abil',{onPick:n=>{P.ability=n;rf()}});break;
+  case 'pickAbil':openPicker('abil',{hideOldOnly:!isOld(P),chosen:()=>new Set([P.ability]),onPick:n=>{P.ability=n;rf()}});break;
   case 'newAbil':openEdit('abil',-1,{preset:{1:P.ability},onSaved:n=>{P.ability=n;rf()}});break;
   case 'pickItem':openPicker('items',{onPick:n=>{P.item=n;rf()},onOrig:q=>openOwnItem(P,q,()=>{closeModal();rf()})});break;
   case 'ownItem':openOwnItem(P,P.item,rf);break;
