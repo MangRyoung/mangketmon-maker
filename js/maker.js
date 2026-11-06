@@ -1261,7 +1261,7 @@ const potGroupCode=k=>{const m=String(k||'').match(/^(\d+)/);return m?+m[1]:9999
 const FILT={
  moves:[{id:'sock',label:'소켓',get:r=>[r[0]],sort:'num'},{id:'acc',label:'명중',get:r=>[r[8]],sort:'numd'},{id:'prio',label:'우선도',get:r=>[r[11]],sort:'num',extra:[['>0','＋ 선공 (1 이상)'],['<0','－ 후공 (-1 이하)']]},
   {id:'tagc',label:'분류 태그',get:r=>splitTags(r[12]),sort:'cnt'},{id:'htag',label:'# 태그',get:r=>hashTags(r[1]),sort:'cnt'},{id:'rng',label:'범위',get:r=>[String(r[9]).trim()],sort:'cnt'},{id:'con',label:'접촉',get:r=>[r[10]],sort:'cnt'}],
- abil:[{id:'sock',label:'소켓',get:r=>[r[0]],sort:'num'},{id:'tag',label:'태그',get:r=>abTags(r[2]),sort:'cnt',none:'태그 없음'},{id:'brk',label:'틀깨기 대상',get:r=>[r[3]],sort:'cnt'},{id:'prot',label:'방호 특성',get:r=>[r[4]],sort:'cnt'}],
+ abil:[{id:'sock',label:'소켓',get:r=>[r[0]],sort:'num'},{id:'tag',label:'태그',get:r=>abTags(r[2]),sort:'cnt',none:'태그 없음'},{id:'brk',label:'틀깨기 대상',get:r=>[r[3]],sort:'cnt'},{id:'prot',label:'방호 특성',get:r=>[r[4]],sort:'cnt'},{id:'kind',label:'구분',get:r=>[({gm:'GM 전용',old:'올타 전용'})[abKind(r)]||'범용'],sort:'cnt'}],   /* 11-06 12:34 망령 「구분도 소켓 · 태그처럼 항목 필터로 · 체크 말고」 */
  pots:[{id:'grp',label:'큰 종류',get:r=>[potGroup(r[0])],sort:'code'}],
  items:[{id:'sock',label:'소켓',get:r=>[r[5]],sort:'num'},{id:'cons',label:'소모',get:r=>[r[3]],sort:'cnt'},{id:'lock',label:'해금',get:r=>{const l=ilockOf(r[1]);return [l?(l.open?'특제 · 열림':'특제 · 잠김'):'기본']},sort:'cnt',when:()=>(S.db.ilock||[]).length>0},{id:'place',label:'장소',get:r=>{const l=ilockOf(r[1]);return l?[l.place]:[]},sort:'cnt',none:'기본 (장소 없음)',when:()=>(S.db.ilock||[]).length>0}],
  old:[{id:'mega',label:'메가',get:r=>[r[10]==='O'?'메가진화':'일반'],sort:'cnt'},{id:'t',label:'타입',get:r=>[r[3],r[4]].filter(x=>x&&x!=='-'),sort:'cnt'},{id:'egg',label:'알그룹',get:r=>[r[8],r[9]].filter(x=>x&&x!=='-'),sort:'cnt'}]};
@@ -1280,9 +1280,9 @@ function filterRows(kind,st){const D=DBS[kind];const q=String(st.q||'').trim().t
  const pmin=st.pmin!==''&&st.pmin!=null&&!isNaN(+st.pmin)?+st.pmin:null,pmax=st.pmax!==''&&st.pmax!=null&&!isNaN(+st.pmax)?+st.pmax:null;
  return rankSort(S.db[kind].filter(r=>{if(r[D.key]==='')return false;
   if(kind!=='abil'&&st.hideOrig&&!st.orig&&!st.mine&&S.custom[kind].includes(r[D.key])&&!(st.has&&st.has(r[D.key])))return false;
-  if(kind==='abil'&&st.hideOrig&&!st.orig&&abKind(r)==='gm'&&!(st.has&&st.has(r[1])))return false;   /* 11-06 망령: 특성은 오리지널 대신 「GM 전용」을 숨긴다 (예전 시즌 오리지널은 구분이 없어서) */   /* 10-26 망령: 포켓몬 만들 때 특성 목록엔 오리지널을 「오리지널 보기」를 눌러야 보인다 · 10-27 기술도 같게 (이미 든 기술은 보인다) */
+  if(kind==='abil'&&st.hideOrig&&!st.orig&&abKind(r)==='gm'&&!(st.f&&st.f.kind==='GM 전용')&&!(st.has&&st.has(r[1])))return false;   /* 11-06 망령: 특성은 오리지널 대신 「GM 전용」을 숨긴다 (예전 시즌 오리지널은 구분이 없어서) */   /* 10-26 망령: 포켓몬 만들 때 특성 목록엔 오리지널을 「오리지널 보기」를 눌러야 보인다 · 10-27 기술도 같게 (이미 든 기술은 보인다) */
   if(kind==='moves'&&st.hideOldOnly&&!st.oldShow&&mvOldOnly(r)&&!(st.has&&st.has(r[2])))return false;
-  if(kind==='abil'&&st.hideOldOnly&&!st.oldShow&&abKind(r)==='old'&&!(st.has&&st.has(r[1])))return false;   /* 11-06: 올드 타입이 아닌 포켓몬에겐 올타 전용 특성도 숨긴다 */   /* 10-27 망령: 올드 타입이 아닌 포켓몬에겐 올드 타입 전용 기술을 숨긴다 */
+  if(kind==='abil'&&st.hideOldOnly&&!st.oldShow&&abKind(r)==='old'&&!(st.f&&st.f.kind==='올타 전용')&&!(st.has&&st.has(r[1])))return false;   /* 11-06: 올드 타입이 아닌 포켓몬에겐 올타 전용 특성도 숨긴다 */   /* 10-27 망령: 올드 타입이 아닌 포켓몬에겐 올드 타입 전용 기술을 숨긴다 */
   if(st.type&&kind==='moves'&&!String(r[5]).startsWith(st.type))return false;
   if(st.cat&&kind==='moves'&&r[6]!==st.cat)return false;
   if(st.kind&&(kind==='pots'||kind==='items'||kind==='old')&&r[0]!==st.kind)return false;
@@ -1290,7 +1290,7 @@ function filterRows(kind,st){const D=DBS[kind];const q=String(st.q||'').trim().t
    if(x.id==='prio'&&(v==='>0'||v==='<0')){const ns=numOf(r[11]);if(!ns.some(n=>v==='>0'?n>0:n<0))return false;continue}
    const vs=x.get(r);if(v==='∅'){if(vs.length)return false;continue}if(!vs.includes(v))return false}
   if(kind==='moves'&&(pmin!=null||pmax!=null)){const ns=numOf(r[7]);if(!ns.length)return false;const lo=Math.min(...ns),hi=Math.max(...ns);if(pmin!=null&&hi<pmin)return false;if(pmax!=null&&lo>pmax)return false}
-  if(st.mine&&!S.custom[kind].includes(r[D.key]))return false;
+  if(st.mine&&kind!=='abil'&&!S.custom[kind].includes(r[D.key]))return false;   /* 특성은 「오리지널만」 대신 「구분」 필터 */
   if(!q)return true;
   if(st.nameOnly)return String(r[D.key]).toLowerCase().includes(q);
   return r.join(' ').toLowerCase().includes(q)}),q&&!st.noRank?qRank(kind,q):null)}
@@ -1300,7 +1300,7 @@ function rankSort(rows,rk){if(!rk)return rows;return rows.map((r,i)=>[rk(r),i,r]
 function kindSelect(kind,st,attr){const ks=[...new Set(S.db[kind].map(r=>r[0]))].filter(x=>x!=='');
  const g=kind==='pots'&&st.f&&st.f.grp?ks.filter(k=>potGroup(k)===st.f.grp):ks;
  return `<select ${attr} style="max-width:240px"><option value="">${kind==='old'?'모든 지역':kind==='pots'?'세부 종류: 전체':'모든 종류'}</option>${g.map(k=>`<option value="${esc(k)}" ${st.kind===k?'selected':''}>${esc(k)}</option>`).join('')}</select>`}
-function pickerFilters(kind,st){const chk=`<label class="row small"><input type="checkbox" data-fn ${st.nameOnly?'checked':''}>이름만 검색</label><label class="row small"><input type="checkbox" data-fm ${st.mine?'checked':''}>오리지널만</label>`;
+function pickerFilters(kind,st){const chk=`<label class="row small"><input type="checkbox" data-fn ${st.nameOnly?'checked':''}>이름만 검색</label>${kind==='abil'?'':`<label class="row small"><input type="checkbox" data-fm ${st.mine?'checked':''}>오리지널만</label>`}`;
  if(kind==='moves')return `<div class="tchips">${S.db.types.filter(t=>!['-','와일드','다크'].includes(t[0])).map(t=>`<button type="button" data-ft="${esc(t[0])}" class="${st.type===t[0]?'on':''}" style="background:${safeCss(t[1])};color:${safeCss(t[2])}">${esc(t[0])}</button>`).join('')}</div>
   <div class="row xfrow"><select data-fc><option value="">분류: 전체</option>${['물리','특수','변화'].map(c=>`<option ${st.cat===c?'selected':''}>${c}</option>`).join('')}</select>${xfHTML(kind,st)}</div><div class="row">${chk}</div>`;
  if(kind==='pots'||kind==='items'||kind==='old')return `<div class="row xfrow">${kind==='pots'?xfHTML(kind,st)+kindSelect(kind,st,'data-fk'):kindSelect(kind,st,'data-fk')+xfHTML(kind,st)}${chk}</div>`;
@@ -1326,7 +1326,7 @@ function keepFocus(root,fn){const a=document.activeElement;let key=null,ss=null,
  if(a&&root.contains(a)){for(const at of ['data-xf','data-pr','data-fc','data-fk','data-fn','data-fm','data-ft','data-pkq'])if(a.hasAttribute(at)){key=`[${at}${a.getAttribute(at)?`="${CSS.escape(a.getAttribute(at))}"`:''}]`;break}
   if(!key&&a.id)key='#'+CSS.escape(a.id);try{ss=a.selectionStart;se=a.selectionEnd}catch(e){}}
  fn();if(!key)return;const n=root.querySelector(key);if(n&&n!==document.activeElement){n.focus({preventScroll:true});try{if(ss!=null)n.setSelectionRange(ss,se)}catch(e){}}}
-function fCount(kind,st){let n=Object.values(st.f||{}).filter(Boolean).length;for(const k of ['type','cat','kind'])if(st[k])n++;if(st.pmin!==''&&st.pmin!=null)n++;if(st.pmax!==''&&st.pmax!=null)n++;if(st.mine)n++;return n}
+function fCount(kind,st){let n=Object.values(st.f||{}).filter(Boolean).length;for(const k of ['type','cat','kind'])if(st[k])n++;if(st.pmin!==''&&st.pmin!=null)n++;if(st.pmax!==''&&st.pmax!=null)n++;if(st.mine&&kind!=='abil')n++;return n}
 function openPicker(kind,{title,multi,chosen,onPick,onRemove,onOrig,hideOrig=kind==='abil'||kind==='moves',hideOldOnly=false}={}){
  const st={q:'',lim:120,type:'',cat:'',kind:'',mine:false,nameOnly:false,f:{},pmin:'',pmax:'',hideOrig,orig:false,hideOldOnly,oldShow:false,has:chosen?n=>chosen().has(n):null};
  const l=openModal(`<div class="mhead"><h2>${esc(title||DBS[kind].t+' 선택')}</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
@@ -3042,7 +3042,7 @@ function renderDB(){const k=dbs.k;
  <div class="row xfrow fwrap ${dbs.fopen?'on':''}" style="margin-bottom:8px">
   ${k==='moves'?`<select id="dbtype"><option value="">모든 타입</option>${S.db.types.map(t=>`<option ${dbs.type===t[0]?'selected':''}>${esc(t[0])}</option>`).join('')}</select><select id="dbcat"><option value="">모든 분류</option>${['물리','특수','변화'].map(c=>`<option ${dbs.cat===c?'selected':''}>${c}</option>`).join('')}</select>`:''}
   ${k==='pots'?xfHTML(k,dbs)+kindSelect(k,dbs,'id="dbkind"'):k==='items'||k==='old'?kindSelect(k,dbs,'id="dbkind"')+xfHTML(k,dbs):xfHTML(k,dbs)}
-  <label class="row small"><input type="checkbox" id="dbmine" ${dbs.mine?'checked':''}>오리지널만 (${S.custom[k].length})</label>
+  ${k==='abil'?'':`<label class="row small"><input type="checkbox" id="dbmine" ${dbs.mine?'checked':''}>오리지널만 (${S.custom[k].length})</label>`}
   <span class="sp"></span><button class="btn" data-dbact="reset">원본으로 되돌리기</button></div>
  <div id="dbres">${dbResults()}</div>`}
 function renderDBkeep(){keepFocus($('#v-db'),renderDB)}
