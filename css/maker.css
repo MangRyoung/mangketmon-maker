@@ -1396,3 +1396,18 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 /* 11-06 특성 구분 칩 — 올타 전용(시트의 빨간 표시처럼) · GM 전용 */
 #mk .kindb.abk-old{background:var(--warn-soft);color:var(--warn);font-weight:600}
 #mk .kindb.abk-gm{background:color-mix(in srgb,var(--g-d) 18%,transparent);color:var(--g-d);font-weight:600}
+/* 11-06 망령 「칸끼리 겹치고 고유는 안 보이고 오른쪽 단추 줄 여백」: 넓은 화면 트레이너 카드 — 이름 칸은 줄지 않고, 각성체 대가 줄은 폭을 묶고, 고유 칩은 자리를 먼저 받고, 폴더 · 단추는 두 줄로 */
+@media (min-width:1181px){
+ #mk .fh.tcard>.tmain{flex:none;max-width:240px}
+ #mk .fh.tcard .tparty{flex:none}
+ #mk .fh.tcard .tpg.aw{min-width:0}
+ #mk .fh.tcard .mpen.tc{max-width:230px}
+ #mk .fh.tcard .mpen.tc .mpen-i{min-width:0;max-width:100%}
+ #mk .fh.tcard .mpen.tc .mpen-q{-webkit-line-clamp:1}
+ #mk .fh.tcard .tuql{flex:1 1 180px;min-width:120px;max-width:280px}
+ #mk .fh.tcard>.sp{flex:0 1 0;min-width:0}
+ #mk .fh.tcard .tacts{display:grid;grid-template-columns:repeat(3,auto);gap:3px;align-content:center;justify-content:end;flex:none}
+ #mk .fh.tcard .tacts .tmove{grid-column:1/-1;width:100%;height:26px;font-size:12px}
+ #mk .fh.tcard .tacts .btn{padding:0 7px;min-height:26px;height:26px;font-size:12px;margin-left:0;justify-content:center}
+ #mk .fh.tcard .tacts .btn.danger{margin-left:0}
+}
