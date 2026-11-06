@@ -430,11 +430,17 @@ function planRange(p){if(isOld(p)||!baseTot(p))return null;const c=customCalc(p)
 /* 룰북: 계단의 통솔점, 통솔 C 이상이면 파트너는 1점 할인 */
 function prideCost(t,p){if(awOf(t,p))return 0;const r=prRow(prideOf(p));const c=r?pnum(r[1],0):0;return Math.max(0,c-((p.partner||soloN(t)===2)&&(RV[strip(t.ranks['통솔'])]??-9)>=0?1:0))}   /* 2체는 모두 파트너 · 3체는 파트너만 */
 const fmtN=x=>String(Math.round(x*100)/100);
+/* 11-06 룰북 「소지품 제약」: 공통 금지 · 역할별 금지 소지품 (역할 포텐셜 이름 그대로 — 룰북 표에 적힌 역할만) */
+const ITEM_BAN_ALL=['생명의구슬','구애머리띠','구애안경','구애스카프','돌격조끼'];
+const ITEM_BAN_ROLE={에이스:['생명의구슬','구애머리띠','구애안경','진화의휘석','마제망토'],블로커:['무화열매','마제망토','진화의휘석'],서포터:['돌격조끼']};
 function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);const w=(x,k)=>out.push({w:1,t:x,k}),i=(x,k)=>out.push({w:0,t:x,k});
  {const L=bigMvs(t,p);if(L.length)w(bigMvTxt(t,L),'mv')}
  {const F=followWide(p);if(F)w(followWideTxt(F),'mv')}
  {const L=[];for(let k=0;k<(p.pots||[]).length;k++){const n=p.pots[k];if(!n||n==='-')continue;const e=String(potEffOf(p,k)||'');if(/전체기/.test(e)&&WIDE_C4.test(e))L.push(n)}if(L.length)w(`「전체기」를 「C : +4」 이상으로 만드는 포텐셜 (대원칙 7) · ${L.join(', ')}`,'pot')}   /* 11-03 */
  if(!isOld(p)){const L=(p.moves||[]).filter(m=>m.name&&mvOldOnly(idx.moves.get(m.name)));if(L.length)w(`『올드 타입』 전용 기술입니다 (이 포켓몬은 올드 타입 계열이 아님) · ${L.map(m=>m.name).join(', ')}`,'mv')}
+ {const its=[p.item,...(p.items2||[]).map(x=>x&&x.item)].filter(Boolean).map(x=>String(x).trim());const r=String(roleOf(p)||'').replace(/『|』/g,'').trim();
+  const gb=its.filter(n=>ITEM_BAN_ALL.includes(n));if(gb.length)w(`금지 소지품 (공통 1) · ${gb.map(n=>'「'+n+'」').join('')} — 포텐셜 등으로 풀린 경우만 예외`,'item');
+  const rb=r&&ITEM_BAN_ROLE[r]?its.filter(n=>ITEM_BAN_ROLE[r].includes(n)):[];if(rb.length)w(`『${r}』 금지 소지품 (역할별 제한) · ${rb.map(n=>'「'+n+'」').join('')}`,'item')}   /* 11-06 망령 「블로커 무화열매 · 마제망토, 에이스 마제망토 안 된다 — 낄 때 경고」 */
  if(!tot)return out;const b=baseNums(p);
  if(t)for(const x of baseUp(t,p).miss||[])w(x,'bu');   /* 10-27: 「X : R」로 만들기 조건이 안 맞음 */
  /* 10-26 망령: 『올드 타입』은 절대 하한도 따지지 않는다 (본가 종족치 그대로) */
