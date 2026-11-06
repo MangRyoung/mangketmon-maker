@@ -28,6 +28,9 @@ window.OM_FX=(()=>{
  const NEG=['Poison','Toxic','Burn','Paralysis','Freeze','Sleep','SyrupBomb','Confusion','Flinch','Embrago','Silence','Seal','Powder','Oblivion','TraitBroken','Taunt','Encore','Attract','HealBlock','Disable','Torrment','MeanLook','Bind','OctoLock','Block','Curse','LeechSeed','SaltCure','Nightmare','Yawn','DeathCount','LockOn','Telekinesis'];
  const FUTURE=['FutureSight','SpontaneousCombustion','ThunderClouds','Rockfallism','StormWarning','TsunamiWarning','InsectInvasion','DoomDesire','SwarmAttack','DarknessOfTheEnd'];
  const ABN=['Poison','Toxic','Burn','Paralysis','Freeze','Sleep'];
+ /* 11-06 망령: 「독」을 조건·치유·면역으로 쓰면 「맹독」도 포함 (「맹독」 지정은 맹독만) */
+ const hasSt=(m,k)=>{const s=(m&&m.states)||{};return !!s[k]||(k==='Poison'&&!!s.Toxic)};
+ const stWide=l=>Array.isArray(l)&&l.includes('Poison')&&!l.includes('Toxic')?l.concat(['Toxic']):l;
  const stDB=()=>((DB().states||{}).st)||{};
  const stKo=k=>(stDB()[k]||{}).ko||k;
  const stKoW=k=>String(stKo(k)).replace(/\s+/g,'');/* 구문에 쓸 때는 띄어쓰기를 뺀다 */
@@ -136,7 +139,7 @@ window.OM_FX=(()=>{
      case 'none':break;case 'sk':break;
      case 'confirm':{const ok=ctx.confirm?await ctx.confirm(op.q):true;if(!ok){L.push(`「${name}」 조건을 만족하지 않아 발동하지 않았다 (${op.q})`);stop=true}break}
      case 'cond':{let ok=true;if(op.c==='ally_fainted')ok=Object.values(b.mons||{}).some(m=>teamOf(b,m)===teamOf(b,self)&&m.id!==self.id&&m.hp.cur<=0);
-       else if(op.c==='self_state'){ok=!!((self.states||{})[op.st]);if(!ok){L.push(`「${name}」 ${self.name}이(가) 「${stKo(op.st)}」 상태가 아니라 발동하지 않았다`);stop=true;break}}
+       else if(op.c==='self_state'){ok=hasSt(self,op.st);if(!ok){L.push(`「${name}」 ${self.name}이(가) 「${stKo(op.st)}」 상태가 아니라 발동하지 않았다`);stop=true;break}}
        else if(op.c==='foe_type'){/* 11-04 감우 (망령 「높음 두 개 개선」 — 에리식톤 『폭식죄의 요살』 「적진에 「타입 : 풀, 페어리」가 있을 때」): 필드에 나와 있는 상대 중 그 타입이 하나라도 */const want=(op.types||[]).map(String);ok=Object.values(b.mons||{}).some(m=>m&&m.entry&&m.hp&&m.hp.cur>0&&teamOf(b,m)!==teamOf(b,self)&&(m.types||[]).some(t=>want.includes(t)));if(!ok){L.push(`「${name}」 적진에 「${want.map(t=>TYPE_KO[t]||t).join(' · ')}」 타입이 없어 발동하지 않았다`);stop=true}break}
        else if(op.c==='hp_le')ok=self.hp.cur<=frac(self.hp.max,op.frac);if(!ok){L.push(`「${name}」 조건(${op.c==='ally_fainted'?'빈사 상태인 아군':'HP '+op.frac+' 이하'})을 만족하지 않아 발동하지 않았다`);stop=true}break}
      case 'choice':{let idx=[0];if(ctx.choose)idx=await ctx.choose(op.opts.map(o=>o.label),!!(op.multi||op.opts.some(o=>o.multi)));if(!idx||!idx.length){stop=true;break}
@@ -150,12 +153,12 @@ window.OM_FX=(()=>{
      case 'state':{const en=stEn(op.state)||op.state;const ts=await targets(b,self,op.tgt,ctx);for(const m of ts)L.push(setState(m,en,op.count,op.forced,self,name));break}
      case 'statefx':{const en=stEn(op.state)||op.state;let ts=await targets(b,self,op.tgt,ctx);if(op.self)ts=[self];if(op.pick==='one'&&ts.length>1)ts=[ts[Math.floor(Math.random()*ts.length)]];
        for(const m of ts){const rr=rollP(self,+op.chance||100,ctx);if(rr.ok)L.push(setState(m,en,-1,0,self,name)+` (${rr.r}/${rr.p})${rr.adj}`);else L.push(`${m.name} 「${stKo(en)}」 실패 (${rr.r}/${rr.p})${rr.adj}`)}break}
-     case 'cure':{let ts=await targets(b,self,op.tgt,ctx);if(op.self)ts=[self];const list=op.states==='negative'||!op.states?NEG:op.states;
+     case 'cure':{let ts=await targets(b,self,op.tgt,ctx);if(op.self)ts=[self];const list=op.states==='negative'||!op.states?NEG:stWide(op.states);
        for(const m of ts){if(op.chance&&+op.chance<100){const rr=rollP(self,+op.chance,ctx);if(!rr.ok){L.push(`${m.name} 치유 실패 (${rr.r}/${rr.p})${rr.adj}`);continue}}
         const cured=[];for(const k of list)if((m.states||{})[k]){delete m.states[k];cured.push(stKo(k))}/* 10-24 망령: 부가 치유(열탕 · 화염방사의 「얼음」 치유 …)는 걸린 게 없으면 줄을 남기지 않는다 */if(cured.length)L.push(`${m.name} 「${cured.join('」「')}」 해제`);else if(list===NEG)L.push(`${m.name} 해제할 상태가 없다`)}break}
      case 'heal':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){if((m.states||{}).HealBlock){L.push(`${m.name} 「회복봉인」이라 회복하지 못함`);continue}if(op.ytype&&!typesOf(m).includes(op.ytype)){L.push(`${m.name} ${TYPE_KO[op.ytype]||op.ytype} 타입이 아니라 회복 없음`);continue}
        const v=op.value==='full'?m.hp.max-m.hp.cur:frac(m.hp.max,op.value);const h=Math.min(v,m.hp.max-m.hp.cur);m.hp.latest=m.hp.cur;m.hp.cur+=h;L.push(`${m.name} 「${name}」 회복 +${h} (HP ${m.hp.cur}/${m.hp.max})`)}break}
-     case 'dmg':{const ts=await targets(b,self,op.tgt||'enemy1',ctx);for(const m of ts){if(op.st&&!(m.states||{})[op.st]){L.push(`${m.name} 「${stKo(op.st)}」 상태가 아니라 대미지 없음`);continue}if(op.xtype&&typesOf(m).includes(op.xtype)){L.push(`${m.name} ${TYPE_KO[op.xtype]||op.xtype} 타입이라 대미지 없음`);continue}
+     case 'dmg':{const ts=await targets(b,self,op.tgt||'enemy1',ctx);for(const m of ts){if(op.st&&!hasSt(m,op.st)){L.push(`${m.name} 「${stKo(op.st)}」 상태가 아니라 대미지 없음`);continue}if(op.xtype&&typesOf(m).includes(op.xtype)){L.push(`${m.name} ${TYPE_KO[op.xtype]||op.xtype} 타입이라 대미지 없음`);continue}
        let v=0;if(op.basis==='cur')v=frac(m.hp.cur,op.value);else if(op.basis==='type'){const ats=(op.atypes&&op.atypes.length?op.atypes:[op.atype]).filter(Boolean);/* 복합 타입 (10-23 망령): 타입마다 상성을 곱한다 */const mul=ats.reduce((a,t)=>a*B().effectiveness([t],m,{}).value,1);if(mul<=0){L.push(`${m.name} ${ats.map(t=>TYPE_KO[t]||t).join('·')} 타입 효과 없음`);continue}v=Math.max(1,Math.floor(frac(m.hp.max,op.value)*mul))}else if(op.basis==='last')v=frac((self.lastDealt||{}).total||0,op.value);else v=frac(m.hp.max,op.value);
        if(noind(m,'')){L.push(`${m.name} 비례 대미지를 받지 않는다 (${noindName(m,'')})`);continue}const floor=(op.nofaint||noind(m,'noko'))?1:0;const d=Math.max(0,Math.min(v,m.hp.cur-floor));m.hp.latest=m.hp.cur;m.hp.cur-=d;L.push(`${m.name} 「${name}」 대미지 −${d} (HP ${m.hp.cur}/${m.hp.max})${m.hp.cur<=0?' 빈사!':''}`);if(m.hp.cur<=0)m.entry=''}break}
      case 'weather':{const f=field(b);/* 10-26: 「특성 : X」로 전개하는 「날씨」가 「날씨 : Y」가 된다 (폭풍요의 조작 등) */{const ov=[...((self&&self.pots)||[]),...(self&&self.excl?[self.excl]:[]),...((self&&self.exclX)||[])].map(p=>String((p&&p.eff)||'').match(/「특성\s*:\s*([^」]+)」(?:로|으로)\s*전개하는\s*「날씨」가\s*「날씨\s*:\s*([^」]+)」가\s*된다/)).find(r=>r&&self&&r[1].trim()===String(self.ability||'').trim());if(ov&&op.w)op=Object.assign({},op,{w:ov[2].trim()})}if(op.w==='random'){const W=['맑음','비','모래바람','눈','짙은안개','밤','별하늘'];op=Object.assign({},op,{w:W[Math.floor(Math.random()*W.length)]})}if(op.w&&(f.weather||{}).type===op.w){L.push(`날씨 「${op.w}」 — 이미 같은 날씨라 불발`);break}/* 11-05 망령: 같은 날씨 · 필드 · 룸 · 필드상태가 이미 전개되어 있으면 덮어써 턴을 새로 세지 않고 불발 */const ext=op.w&&+op.count<1000?itemExt(self,op.w):'';const sx=op.w&&+op.count<1000?spExt(self,op.w):{n:0,by:[]};f.weather={type:op.w||'',count:op.w?(+op.count||5)+(ext?3:0)+sx.n:0};if(sx.n)L.push(`「${sx.by.join('」「')}」 날씨 지속 +${sx.n}턴`);L.push(op.w?`날씨 「${op.w}」 ${op.count>=1000?'계속':((+op.count||5)+(ext?3:0)+sx.n)+'턴'}${ext?' (「'+ext+'」 +3)':''}`:'날씨 초기화');break}
@@ -202,7 +205,7 @@ window.OM_FX=(()=>{
        const ch=[];for(const i of ix){const a=+m.stats[i]||0;const v=op.mode==='set'?+op.n:op.mode==='mul'?Math.floor(a*(+op.n||1)):a+(+op.n||0);m.stats[i]=Math.max(1,Math.round(v));ch.push(`${nm(i)} ${a}→${m.stats[i]}`)}L.push(`${m.name} 실수치 ${ch.join(' · ')} (교대하면 원래대로)`)}break}
      case 'baseup':if(!SHEET_ONLY)break;L.push(`${self.name} 종족치 ${op.stats.join('·')} ${op.top?'가장 높은 종족치와 같은 랭크':op.max?'범위 최대':(op.n>0?'+':'')+op.n+'랭크'} (제작기 시트의 종족치 · 실수치에 이미 들어가 있다)`);break;
      case 'stmod':L.push(`${self.name} 「${stKo(op.st)}」 사양 ${op.n}/${op.d} (시트에 적힌 값 — 턴 종료 때 자동으로 읽는다)`);break;
-     case 'stcount':{/* 상태 턴 조정 (10-23 망령): 걸려 있는 상태의 남은 턴을 늘리거나 줄인다 (계속되는 상태 · 0 이하가 되면 풀린다) */const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){const st=m.states||{};const keys=op.st==='all'?Object.keys(st).filter(k=>st[k]):op.st==='neg'?Object.keys(st).filter(k=>st[k]&&NEG.includes(k)):[op.st].filter(k=>st[k]);const out=[];
+     case 'stcount':{/* 상태 턴 조정 (10-23 망령): 걸려 있는 상태의 남은 턴을 늘리거나 줄인다 (계속되는 상태 · 0 이하가 되면 풀린다) */const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){const st=m.states||{};const keys=op.st==='all'?Object.keys(st).filter(k=>st[k]):op.st==='neg'?Object.keys(st).filter(k=>st[k]&&NEG.includes(k)):stWide([op.st]).filter(k=>st[k]);const out=[];
        for(const k of keys){const v=+st[k];if(!(v>0&&v<1000))continue;const nv=op.mode==='set'?+op.v:v+(+op.v||0);if(nv<=0){delete st[k];out.push(`「${stKo(k)}」 해제`)}else{st[k]=Math.min(999,nv);out.push(`「${stKo(k)}」 ${v}→${st[k]}턴`)}}L.push(`${m.name} ${out.join(' · ')||'조정할 상태가 없다'}`)}break}
      case 'chance':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){const F=fx(m);const key=name+' ← '+self.name;F.chance=F.chance.filter(e=>e.key!==key);if(op.mode==='off'){L.push(`${m.name} 「${name}」 확률 보정 해제`);continue}
        F.chance.push({key,name,v:+op.v||0,sure:op.sure?1:0,uses:op.uses>0?+op.uses:-1,until:op.turns>0?(+b.turn||0)+op.turns-1:-1});L.push(`${m.name} 「${name}」 ${op.sure?'확률 효과가 반드시 발동':'발동 확률 '+(op.v>0?'+':'')+op.v+'%p'}${op.uses>0?' · '+op.uses+'회':''}${op.turns>0?' · '+op.turns+'턴':''}`)}break}
@@ -311,7 +314,7 @@ window.OM_FX=(()=>{
   /* 씨뿌리기: 드레인은 씨를 뿌린 에리어로 (맵툴 seed_src_set) */
   if(en==='LeechSeed'){if(self&&self.id!==m.id&&self.entry)m.seedFrom=self.side+'_'+self.entry;else delete m.seedFrom}
   return `${m.name} 「${stKo(en)}」${c<1000?' '+c+'턴':''}${(d.desc||[]).length?' — '+d.desc.join(' '):''}`}
- function immuneHit(m,en){for(const e of (m.fx&&m.fx.immune)||[]){if(itemOff(m,e))continue;if(e.states.includes(en)||(e.states.includes('abnormal')&&ABN.includes(en)))return e.name}return ''}
+ function immuneHit(m,en){for(const e of (m.fx&&m.fx.immune)||[]){if(itemOff(m,e))continue;if(e.states.includes(en)||(en==='Toxic'&&e.states.includes('Poison'))||(e.states.includes('abnormal')&&ABN.includes(en)))return e.name}return ''}
  function nodropHit(m,stat){const t=+(((window.OM_APP||{}).ST||{}).state||{}).battle?.turn||0;for(const e of (m.fx&&m.fx.nodrop)||[]){if(e.until>=0&&t>e.until)continue;if(!e.st||e.st===stat)return e.name}
   /* 10-25 망령: 소지품 「클리어참」 — 자신 이외로 인해 능력이 떨어지지 않는다 (레디메이드 없이도, 매직룸이면 무효) */
   if(m&&[m.item,...((m.items2||[]).map(x=>x&&x.item))].some(n=>String(n||'').replace(/『|』/g,'').trim()==='클리어참')&&!magicRoom())return '클리어참';return ''}
