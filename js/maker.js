@@ -2293,19 +2293,22 @@ window.MKM_CHARS=()=>S.trainers.flatMap(t=>[{name:t.name,image:safeImg(t.image)|
 function goNew(cardId,inputId){requestAnimationFrame(()=>{const el=document.getElementById(cardId);if(!el)return;el.scrollIntoView({behavior:'smooth',block:'start'});el.classList.add('newflash');setTimeout(()=>el.classList.remove('newflash'),1200);
  const inp=document.getElementById(inputId);if(inp&&!matchMedia('(pointer:coarse)').matches){inp.focus({preventScroll:true});try{inp.select()}catch(e){}}})}
 function goPoke(T,P){T.open=true;P.open=true;save();refreshTrainer(T);requestAnimationFrame(()=>{const el=document.getElementById('pk-'+P.id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'})})}
-function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요약</h2><span class="sp"></span><button class="btn sm" data-pced title="이 요약에서 바로 고치고 더한다 (✎ · ＋ · ×)">✎ 편집</button><button class="btn sm ghost" data-pcgo title="제작기에서 이 포켓몬 시트로 이동">시트로</button><button class="btn sm" data-pcdc title="이 요약을 그림으로 만들어 디스코드의 정해 둔 스레드에 올린다 (웹툴 설정 「디스코드」 탭에서 이어 둔 곳)">디코로</button><button class="btn sm" data-pcpng title="이 요약을 그림 파일로 저장">PNG 저장</button><button class="btn sm ghost pcdelb" data-pcmore title="이 포켓몬 시트를 지운다 (5초 안 실행 취소)">삭제</button><button class="btn ghost" data-x>닫기</button></div><div class="mbody pcd-wrap">${pokeCardHTML(t,p)}</div>`,{wide:true});
+function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요약</h2><span class="sp"></span><button class="btn sm" data-pced title="이 요약에서 바로 고치고 더한다 (✎ · ＋ · ×)">✎ 편집</button><button class="btn sm ghost" data-pcgo title="제작기에서 이 포켓몬 시트로 이동">시트로</button><button class="btn sm" data-pcdc title="이 요약을 그림으로 만들어 디스코드의 정해 둔 스레드에 올린다 (웹툴 설정 「디스코드」 탭에서 이어 둔 곳)">디코로</button><button class="btn sm" data-pcpng title="이 요약을 그림 파일로 저장">PNG 저장</button><button class="btn sm ghost pcdelb" data-pcmore title="이 포켓몬 시트를 지운다 (5초 안 실행 취소)">삭제</button><button class="btn ghost" data-x>닫기</button></div>${pcdTabs(p,null)}<div class="mbody pcd-wrap">${pokeCardHTML(t,p)}</div>`,{wide:true});
  $('.mbox',l).classList.add('pcdbox');l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>closeModal());
  /* 10-24 망령: 「✎ 편집」 — 요약 위에서 이름 · 특성 · 도구 · 기술 · 포텐셜 · 메모를 고치고 더한다. 고르기 창은 시트와 같은 것을 쓴다 */
  let ED=false;const wrap=$('.pcd-wrap',l);const depth=layers.length;
  /* 11-06 망령 「한 장 요약 편집이 저장이 안 되고 날아간다」: 연 뒤에 공유 DB 가 시트를 새 객체로 다시 만들면(처음 연결 · 노트 안 제작기) 붙잡고 있던 t · p 가 떨어져 나가 고친 것이 어디에도 안 남았다 → 매번 id 로 지금 것을 다시 찾는다 */
  const PID=p.id;const fresh=()=>{for(const T of S.trainers){const P=(T.pokemon||[]).find(x=>x.id===PID);if(P){t=T;p=P;return true}}return false};
- const draw=()=>{if(!fresh())return;const sc=wrap.scrollTop;wrap.innerHTML=pokeCardHTML(t,p,ED);wrap.classList.toggle('pcd-ed',ED);wrap.scrollTop=sc;$('[data-pced]',l).classList.toggle('pri',ED);$('[data-pced]',l).textContent=ED?'✓ 편집 끝':'✎ 편집'};
+ /* 11-07 망령 「한 장 요약에서 폼 체인지가 있으면 탭을 하나 더 — 그 기준으로도 보게」: FK = 보고 있는 폼 번호 (null 은 원래 모습). 폼 탭에서는 편집을 끈다(고치는 것은 원래 모습 기준) */
+ let FK=null;const cur=()=>FK==null?p:formCardView(p,FK);
+ const draw=()=>{if(!fresh())return;if(FK!=null&&!(p.forms||[])[FK])FK=null;if(FK!=null)ED=false;const tb=$('.pcd-tabs',l);if(tb)tb.outerHTML=pcdTabs(p,FK);else if((p.forms||[]).some(f=>f))$('.pcd-wrap',l).insertAdjacentHTML('beforebegin',pcdTabs(p,FK));const sc=wrap.scrollTop;wrap.innerHTML=pokeCardHTML(t,cur(),ED);wrap.classList.toggle('pcd-ed',ED);wrap.scrollTop=sc;$('[data-pced]',l).classList.toggle('pri',ED);$('[data-pced]',l).textContent=ED?'✓ 편집 끝':'✎ 편집'};
  const done=()=>{const old=p;if(fresh()&&old!==p){const keep=JSON.parse(JSON.stringify(old));delete keep.open;delete keep.tab;Object.assign(p,keep)}save();try{refreshTrainer(t)}catch(e){}draw()};
  const back=()=>{const iv=setInterval(()=>{if(!l.isConnected){clearInterval(iv);return}if(layers.length<=depth){clearInterval(iv);done()}},200)};
  const askStr=(title,v,multi)=>new Promise(res=>{const m=openModal(`<div class="mhead"><h2>${esc(title)}</h2></div><div class="mbody">${multi?`<textarea data-as rows="6" style="width:100%">${esc(v||'')}</textarea>`:`<input data-as value="${esc(v||'')}" style="width:100%">`}</div><div class="mfoot"><span class="sp"></span><button class="btn" data-x="no">취소</button><button class="btn pri" data-x="ok">확인</button></div>`);const inp=$('[data-as]',m);setTimeout(()=>{inp.focus();inp.select&&inp.select()},30);
   if(!multi)inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();const v2=inp.value;closeModal();res(v2)}});
   m.addEventListener('click',e=>{const x=e.target.closest('[data-x]');if(!x)return;const v2=x.dataset.x==='ok'?inp.value:null;closeModal();res(v2)})});
- $('[data-pced]',l).onclick=()=>{ED=!ED;draw()};
+ $('[data-pced]',l).onclick=()=>{ED=!ED;if(ED)FK=null;draw()};
+ l.addEventListener('click',e=>{const b=e.target.closest('[data-pcfk]');if(!b)return;const k=b.dataset.pcfk;FK=k===''?null:+k;draw()});
  wrap.addEventListener('click',async e=>{const b=e.target.closest('[data-pce]');if(!b||!ED)return;e.preventDefault();fresh();const k=b.dataset.pce,v=b.dataset.v;
   if(k==='name'){const n=await askStr('이름',p.name);if(n!=null){p.name=n.trim();done()}return}
   if(k==='memo'){const n=await askStr('메모',p.memo,true);if(n!=null){p.memo=n;done()}return}
@@ -2331,13 +2334,13 @@ function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요
  const pcdel=async()=>{const j=t.pokemon.indexOf(p);if(j<0)return;if(!await ask(`포켓몬 시트 「${esc(p.name||'이름 없음')}」을(를) 삭제할까요?<br><span class="small muted">${esc(t.name||'')} 의 ${j+1}번째 포켓몬 · 5초 안에 「실행 취소」로 되돌릴 수 있습니다</span>`,'삭제'))return;t.pokemon.splice(j,1);save();closeModal();renderChar();undoDel(`「${p.name||'이름 없음'}」 삭제`,()=>{const T2=S.trainers.find(x=>x.id===t.id);if(!T2)return toast('트레이너가 사라져 되살리지 못했습니다');T2.pokemon.splice(Math.min(j,T2.pokemon.length),0,p);save();renderChar();goNew('pk-'+p.id)})};
  $('[data-pcmore]',l).onclick=()=>pcdel();   /* 11-03 20:13 망령 「한 장 요약은 왜 ⋯ 로 둬」: ⋯ 메뉴 없이 삭제 단추를 바로 (확인 창 · 5초 실행 취소는 그대로) */
  $('[data-pcpng]',l).onclick=async()=>{if(ED){ED=false;draw()}const el=$('.pcd',l);try{if(!window.html2canvas)await new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('html2canvas 를 불러오지 못했다'));document.head.appendChild(sc)});
-  const bg=pngBg();const cv=await window.html2canvas(el.parentNode,pngOpts(el,bg,t,p));const a=document.createElement('a');a.download=(p.name||'포켓몬')+'.png';a.href=cv.toDataURL('image/png');a.click()}catch(err){toast('PNG 로 저장하지 못했습니다 ('+err.message+')')}};
+  const bg=pngBg();const cv=await window.html2canvas(el.parentNode,pngOpts(el,bg,t,cur()));const a=document.createElement('a');a.download=(cur().name||'포켓몬')+'.png';a.href=cv.toDataURL('image/png');a.click()}catch(err){toast('PNG 로 저장하지 못했습니다 ('+err.message+')')}};
  /* 11-02 망령 「한 장 요약 「시트로」 옆에 디코로 — 지정해 둔 스레드에」: 그림(webp) → 저장소 oremas/dc/<방>/ → 웹툴 방의 om_dc_card (서버가 웹후크로 보낸다).
     방 · 신분: 세션 노트 안이면 그 캠페인에 이어 둔 웹툴 방 · 노트의 웹툴 신분, 따로 열었으면 이 브라우저가 들어간 웹툴 방 (supabase/patch_2026-11-02_게시판_디스코드.sql) */
  $('[data-pcdc]',l).onclick=async()=>{const b=$('[data-pcdc]',l);if(b.disabled)return;if(ED){ED=false;draw()}const lab=b.textContent;b.disabled=true;b.textContent='방 찾는 중…';
   try{const tg=await dcTarget();if(!tg)throw new Error('이 브라우저가 들어간 웹툴 방이 없어요 — 웹툴 방에 한 번 들어온 뒤 다시 눌러 주세요');if(!tg.secret)throw new Error('이 브라우저는 그 웹툴 방(「'+tg.room+'」)에 앉은 적이 없어요 — 웹툴에서 GM 이나 자리로 한 번 들어와 주세요');
    b.textContent='그리는 중…';const el=$('.pcd',l);if(!window.html2canvas)await new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('html2canvas 를 불러오지 못했다'));document.head.appendChild(sc)});
-   const bg=pngBg();const cv=await window.html2canvas(el.parentNode,pngOpts(el,bg,t,p));
+   const bg=pngBg();const cv=await window.html2canvas(el.parentNode,pngOpts(el,bg,t,cur()));
    const blob=await new Promise(r=>cv.toBlob(r,'image/webp',.9));if(!blob)throw new Error('그림을 만들지 못했어요');
    b.textContent='올리는 중…';const SB=dcSb();const path='dc/'+tg.room+'/'+(p.id||'card')+'_'+Date.now().toString(36)+'.webp';
    const up=await SB.storage.from('oremas').upload(path,blob,{upsert:false,contentType:'image/webp',cacheControl:'31536000'});if(up.error)throw new Error('그림을 올리지 못했어요: '+up.error.message);
@@ -2518,6 +2521,11 @@ function miniGrades(p,t){const eb=t?effB(t,p):p.base;return `<div class="minig">
 const FV={};
 function formView(p){const k=FV[p.id];const f=k!=null&&(p.forms||[])[k];if(!f)return p;const has=v=>v&&v!=='-';
  return Object.assign({},p,{name:f.name||p.name,t1:has(f.t1)?f.t1:p.t1,t2:has(f.t1)?(f.t2||'-'):p.t2,t3:has(f.t1)?'-':p.t3,ability:f.ability||p.ability,base:(f.base||[]).some(x=>String(x)!=='')?f.base:p.base,image:f.image||p.image,_form:f})}
+/* 11-07 망령: 한 장 요약의 폼 탭 — formView 와 같게 이름 · 타입 · 특성 · 종족치 · 그림을 바꾸고, 폼 포텐셜은 그 칸에 덮어쓴다 */
+function formCardView(p,k){const f=(p.forms||[])[k];if(!f)return p;const prev=FV[p.id];FV[p.id]=k;const v=formView(p);if(prev==null)delete FV[p.id];else FV[p.id]=prev;
+ v.pots=(p.pots||[]).slice();v.potEff=(p.potEff||[]).slice();v.potKind=(p.potKind||[]).slice();for(const x of f.pots||[])if(x&&x.name){const i=+x.slot||0;v.pots[i]=x.name;v.potEff[i]=x.eff||'';v.potKind[i]=''}return v}
+function pcdTabs(p,k){const fs=p.forms||[];if(!fs.some(f=>f))return '';const b=(v,lab,tt,on)=>`<button type="button" class="pcd-tab${on?' on':''}" data-pcfk="${v}" title="${esc(tt)}">${esc(lab)}</button>`;
+ return `<div class="pcd-tabs">${b('','원래 모습','원래 모습 기준으로 보기 (편집은 여기서)',k==null)}${fs.map((f,i)=>f?b(i,f.name||'폼 '+(i+1),(f.kind||'폼체인지')+' 기준으로 보기'+(f.cond?' — '+f.cond:''),k===i):'').join('')}</div>`}
 function formBtns(p,ti,pi){const fs=(p.forms||[]).filter(f=>f);if(!fs.length)return '';const k=FV[p.id];
  return `<div class="fmbs">${(p.forms||[]).map((f,i)=>f?`<button type="button" class="fmb ${k===i?'on':''}" data-act="fview" data-i="${ti}" data-j="${pi}" data-k="${i}" title="${esc((f.kind||'폼체인지')+(k===i?' — 눌러서 원래 모습으로':' — 눌러서 이 폼으로 보기'))}">${esc(f.name||'폼 '+(i+1))}</button>`:'').join('')}${k!=null&&(p.forms||[])[k]?`<button type="button" class="fmb back" data-act="fview" data-i="${ti}" data-j="${pi}" data-k="-1" title="원래 모습으로">↩ 원래</button>`:''}</div>`}
 function pokeHTML(t,ti,p,pi){const v=formView(p);const P=`T.${ti}.pokemon.${pi}`;const c=moveCap(t,p);const filled=p.moves.filter(m=>m.name).length;const npot=p.pots.filter(x=>x).length+exclAll(p).length;
