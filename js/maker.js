@@ -433,6 +433,9 @@ const fmtN=x=>String(Math.round(x*100)/100);
 /* 11-06 룰북 「소지품 제약」: 공통 금지 · 역할별 금지 소지품 (역할 포텐셜 이름 그대로 — 룰북 표에 적힌 역할만) */
 const ITEM_BAN_ALL=['생명의구슬','구애머리띠','구애안경','구애스카프','돌격조끼'];
 const ITEM_BAN_ROLE={에이스:['생명의구슬','구애머리띠','구애안경','진화의휘석','마제망토'],블로커:['무화열매','마제망토','진화의휘석'],서포터:['돌격조끼']};
+/* 같은 계열도 (망령 11-06 「같은 계열도 걸려」) — fx.js ROLE_FAM 과 같은 표. fx 를 아직 안 불렀으면 이 표로 */
+const ITEM_BAN_FAM={에이스:['에이스','서브 에이스','링크 에이스','킬링 에이스'],블로커:['블로커','하이 블로커','타이트엔드'],서포터:['서포터','어시스트','옵저버','바운서','커맨더']};
+function itemBanFams(r){if(!r)return [];const k=r.replace(/\s/g,'');const F=window.OM_FX&&window.OM_FX.roleFams?window.OM_FX.roleFams(r):[];const out=new Set([r,...F]);for(const f in ITEM_BAN_FAM)if(ITEM_BAN_FAM[f].some(n=>n.replace(/\s/g,'')===k)||k.endsWith(f))out.add(f);return [...out].filter(f=>ITEM_BAN_ROLE[f])}
 function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);const w=(x,k)=>out.push({w:1,t:x,k}),i=(x,k)=>out.push({w:0,t:x,k});
  {const L=bigMvs(t,p);if(L.length)w(bigMvTxt(t,L),'mv')}
  {const F=followWide(p);if(F)w(followWideTxt(F),'mv')}
@@ -440,7 +443,7 @@ function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);
  if(!isOld(p)){const L=(p.moves||[]).filter(m=>m.name&&mvOldOnly(idx.moves.get(m.name)));if(L.length)w(`『올드 타입』 전용 기술입니다 (이 포켓몬은 올드 타입 계열이 아님) · ${L.map(m=>m.name).join(', ')}`,'mv')}
  {const its=[p.item,...(p.items2||[]).map(x=>x&&x.item)].filter(Boolean).map(x=>String(x).trim());const r=String(roleOf(p)||'').replace(/『|』/g,'').trim();
   const gb=its.filter(n=>ITEM_BAN_ALL.includes(n));if(gb.length)w(`금지 소지품 (공통 1) · ${gb.map(n=>'「'+n+'」').join('')} — 포텐셜 등으로 풀린 경우만 예외`,'item');
-  const rb=r&&ITEM_BAN_ROLE[r]?its.filter(n=>ITEM_BAN_ROLE[r].includes(n)):[];if(rb.length)w(`『${r}』 금지 소지품 (역할별 제한) · ${rb.map(n=>'「'+n+'」').join('')}`,'item')}   /* 11-06 망령 「블로커 무화열매 · 마제망토, 에이스 마제망토 안 된다 — 낄 때 경고」 */
+  for(const f of itemBanFams(r)){const rb=its.filter(n=>(ITEM_BAN_ROLE[f]||[]).includes(n));if(rb.length)w(`『${f}』 금지 소지품 (역할별 제한${f!==r?` · 『${r}』 = ${f} 계열`:''}) · ${rb.map(n=>'「'+n+'」').join('')}`,'item')}}   /* 11-06 망령 「블로커 무화열매 · 마제망토, 에이스 마제망토 안 된다 — 낄 때 경고」 */
  if(!tot)return out;const b=baseNums(p);
  if(t)for(const x of baseUp(t,p).miss||[])w(x,'bu');   /* 10-27: 「X : R」로 만들기 조건이 안 맞음 */
  /* 10-26 망령: 『올드 타입』은 절대 하한도 따지지 않는다 (본가 종족치 그대로) */
