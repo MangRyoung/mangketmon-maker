@@ -3430,11 +3430,13 @@ function customDB(){const o={};for(const k in DBS)o[k]=S.db[k].filter(r=>S.custo
 function backupObj(){return {app:'mangketmon-maker',v:3,saved:new Date().toISOString(),trainers:S.trainers,folders:S.folders.map(folderOut),custom:S.custom,customRows:customDB(),dbEdits:[...dbEditDocs().values()],ban:S.db.ban??'',tpl:S.db.tpl,tplV:S.db.tplV||0,tags:S.db.tags,tagsV:S.db.tagsV||0,stpl:S.db.stpl,stplV:S.db.stplV||0,oldSock:S.db.oldSock,ptItems:S.db.ptItems,ptiV:S.db.ptiV||0,pride:S.db.pride,prideExV:S.db.prideExV||0,ilock:S.db.ilock||[],soloSock:S.db.soloSock||clone(SOLO_SOCK_DEF),tplSoloV:S.db.tplSoloV||0,rules:RULES()}}
 const folderOut=f=>{const o={id:f.id,name:f.name||''};if(f.parent)o.parent=f.parent;if(f.deco&&typeof f.deco==='object'&&Object.keys(f.deco).length)o.deco=clone(f.deco);if(f.priv)o.priv=true;if(f.rule)o.rule=f.rule;if(f.owner){o.owner=f.owner;o.ownerName=f.ownerName||''}return o};
 /* dbEdits: 원본 DB와 다른 행(수정·추가·삭제). 덮어쓰기는 원본에서 다시 짓고, 추가는 지금 DB 위에 얹는다 */
+/* 11-06 감우: 기본 DB 에 칸이 새로 생겼을 때(특성 「구분」 · 「비고」) 예전에 고친 행(칸이 모자람)이 그 칸을 빈칸으로 덮지 않게 — 모자란 끝 칸만 기본 행에서 채운다 */
+const padRow=(row,base)=>{const r=clone(row);if(Array.isArray(base))for(let j=r.length;j<base.length;j++)r[j]=base[j];return r};
 function applyDbEdits(edits,fromDefault){for(const k in DBS){const eds=edits.filter(d=>d&&d.kind===k);if(!eds.length&&!fromDefault)continue;const K=DBS[k].key;
   let rows=fromDefault?clone(DEF[k]||[]):S.db[k];const cust=new Set(fromDefault?[]:S.custom[k]||[]);
   for(const d of eds){const i=rows.findIndex(r=>r[K]===d.key);
    if(d.deleted){if(i>=0)rows.splice(i,1);cust.delete(d.key);continue}
-   if(!Array.isArray(d.row))continue;if(i>=0)rows[i]=clone(d.row);else rows.splice(d.pos>=0?Math.min(d.pos,rows.length):0,0,clone(d.row));if(d.custom)cust.add(d.key)}
+   if(!Array.isArray(d.row))continue;if(i>=0)rows[i]=padRow(d.row,rows[i]);else rows.splice(d.pos>=0?Math.min(d.pos,rows.length):0,0,clone(d.row));if(d.custom)cust.add(d.key)}
   S.db[k]=rows;S.custom[k]=[...cust]}}
 const freshIds=list=>list.map(t=>{t.id=uid();(t.pokemon||[]).forEach(p=>{p.id=uid()});return t});
 function restore(o,mode){if(!o||o.app!=='mangketmon-maker'){if(o&&o.db&&o.trainers){const tr=(o.trainers||[]).map(fixT);if(mode==='add'){S.trainers=S.trainers.concat(freshIds(tr))}else{S.db=o.db;for(const k in DEF)if(!S.db[k])S.db[k]=clone(DEF[k]);if(!S.db.tags)S.db.tags=clone(TAGS_DEF);if(!S.db.tpl)S.db.tpl=clone(TPL_DEF);S.trainers=tr}}else throw new Error('형식')}
@@ -3741,7 +3743,7 @@ function shRebuildDB(){/* 아직 올리지 않은 내 설정 묶음은 받은 �
  SH.orph_ed=new Map();
  for(const k in DBS){const eds=byKind[k]||[];const mods=new Map(),del=new Set(),adds=[],cust=[];const key=r=>r[DBS[k].key];const has=new Set((DEF[k]||[]).map(key));
   for(const [id,d] of eds){if(d.deleted)del.add(d.key);else if(Array.isArray(d.row)){if(d.pos>=0&&!has.has(d.key))adds.push(d);else if(has.has(d.key))mods.set(d.key,d.row);else if(lazyOk(k))SH.orph_ed.set(id,d)}if(d.custom&&!d.deleted&&(has.has(d.key)||d.pos>=0))cust.push(d.key)}
-  const used=new Set();let rows=(DEF[k]||[]).filter(r=>!del.has(key(r))).map(r=>{const kk=key(r);if(mods.has(kk)&&!used.has(kk)){used.add(kk);return clone(mods.get(kk))}return clone(r)});
+  const used=new Set();let rows=(DEF[k]||[]).filter(r=>!del.has(key(r))).map(r=>{const kk=key(r);if(mods.has(kk)&&!used.has(kk)){used.add(kk);return padRow(mods.get(kk),r)}return clone(r)});
   adds.sort((a,b)=>a.pos-b.pos);for(const a of adds)rows.splice(Math.min(a.pos,rows.length),0,clone(a.row));
   S.db[k]=rows;S.custom[k]=cust}
  Object.assign(S.db,keepNonDb);const m=SH.meta;
