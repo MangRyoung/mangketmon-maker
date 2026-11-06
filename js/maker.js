@@ -2297,14 +2297,16 @@ function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요
  $('.mbox',l).classList.add('pcdbox');l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>closeModal());
  /* 10-24 망령: 「✎ 편집」 — 요약 위에서 이름 · 특성 · 도구 · 기술 · 포텐셜 · 메모를 고치고 더한다. 고르기 창은 시트와 같은 것을 쓴다 */
  let ED=false;const wrap=$('.pcd-wrap',l);const depth=layers.length;
- const draw=()=>{if(!t.pokemon.includes(p))return;const sc=wrap.scrollTop;wrap.innerHTML=pokeCardHTML(t,p,ED);wrap.classList.toggle('pcd-ed',ED);wrap.scrollTop=sc;$('[data-pced]',l).classList.toggle('pri',ED);$('[data-pced]',l).textContent=ED?'✓ 편집 끝':'✎ 편집'};
- const done=()=>{save();try{refreshTrainer(t)}catch(e){}draw()};
+ /* 11-06 망령 「한 장 요약 편집이 저장이 안 되고 날아간다」: 연 뒤에 공유 DB 가 시트를 새 객체로 다시 만들면(처음 연결 · 노트 안 제작기) 붙잡고 있던 t · p 가 떨어져 나가 고친 것이 어디에도 안 남았다 → 매번 id 로 지금 것을 다시 찾는다 */
+ const PID=p.id;const fresh=()=>{for(const T of S.trainers){const P=(T.pokemon||[]).find(x=>x.id===PID);if(P){t=T;p=P;return true}}return false};
+ const draw=()=>{if(!fresh())return;const sc=wrap.scrollTop;wrap.innerHTML=pokeCardHTML(t,p,ED);wrap.classList.toggle('pcd-ed',ED);wrap.scrollTop=sc;$('[data-pced]',l).classList.toggle('pri',ED);$('[data-pced]',l).textContent=ED?'✓ 편집 끝':'✎ 편집'};
+ const done=()=>{const old=p;if(fresh()&&old!==p){const keep=JSON.parse(JSON.stringify(old));delete keep.open;delete keep.tab;Object.assign(p,keep)}save();try{refreshTrainer(t)}catch(e){}draw()};
  const back=()=>{const iv=setInterval(()=>{if(!l.isConnected){clearInterval(iv);return}if(layers.length<=depth){clearInterval(iv);done()}},200)};
  const askStr=(title,v,multi)=>new Promise(res=>{const m=openModal(`<div class="mhead"><h2>${esc(title)}</h2></div><div class="mbody">${multi?`<textarea data-as rows="6" style="width:100%">${esc(v||'')}</textarea>`:`<input data-as value="${esc(v||'')}" style="width:100%">`}</div><div class="mfoot"><span class="sp"></span><button class="btn" data-x="no">취소</button><button class="btn pri" data-x="ok">확인</button></div>`);const inp=$('[data-as]',m);setTimeout(()=>{inp.focus();inp.select&&inp.select()},30);
   if(!multi)inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();const v2=inp.value;closeModal();res(v2)}});
   m.addEventListener('click',e=>{const x=e.target.closest('[data-x]');if(!x)return;const v2=x.dataset.x==='ok'?inp.value:null;closeModal();res(v2)})});
  $('[data-pced]',l).onclick=()=>{ED=!ED;draw()};
- wrap.addEventListener('click',async e=>{const b=e.target.closest('[data-pce]');if(!b||!ED)return;e.preventDefault();const k=b.dataset.pce,v=b.dataset.v;
+ wrap.addEventListener('click',async e=>{const b=e.target.closest('[data-pce]');if(!b||!ED)return;e.preventDefault();fresh();const k=b.dataset.pce,v=b.dataset.v;
   if(k==='name'){const n=await askStr('이름',p.name);if(n!=null){p.name=n.trim();done()}return}
   if(k==='memo'){const n=await askStr('메모',p.memo,true);if(n!=null){p.memo=n;done()}return}
   if(k==='abil'){openPicker('abil',{hideOldOnly:!isOld(p),chosen:()=>new Set([p.ability]),onPick:n=>{p.ability=n}});return back()}
@@ -3858,7 +3860,7 @@ function embRender(root){const wait=embMake();if(wait){root.innerHTML=`<div clas
  if(ti<0){root.innerHTML=`<div class="empty">${SH.on&&!SH.ready?'공유 DB 에서 트레이너를 불러오는 중…':'이 트레이너를 찾지 못했습니다 (비공개라면 「서명」을 확인하세요)'}</div>`;return true}
  const t=S.trainers[ti];if(!EMB.done){t.open=true;const p=EMB.p&&t.pokemon.find(x=>x.id===EMB.p);if(p){p.open=true;if(!p.tab)p.tab='base'}}
  root.innerHTML=`<div id="trs" class="embtrs">${trainerHTML(t,ti)}</div>`;fitFlist(root);
- if(!EMB.done){EMB.done=true;if(EMB.sec==='pcard'){const pp=EMB.p&&t.pokemon.find(x=>x.id===EMB.p);if(pp)setTimeout(()=>openPokeCard(t,pp),150)}else if(!EMB.one)setTimeout(()=>{const el=(EMB.sec&&document.querySelector('#tr-'+t.id+' .'+EMB.sec.replace(/[^a-z]/g,'')))||document.getElementById(EMB.p?'pk-'+EMB.p:'tr-'+t.id);if(el&&EMB.sec){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600)}if(el){const hd=document.querySelector('header.top');const off=EMB.embed||!hd?0:hd.offsetHeight;window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-off-8)})}},120)}
+ if(!EMB.done&&!(EMB.sec==='pcard'&&SH.on&&!SH.ready)){EMB.done=true;if(EMB.sec==='pcard'){const pp=EMB.p&&t.pokemon.find(x=>x.id===EMB.p);if(pp)setTimeout(()=>openPokeCard(t,pp),150)}else if(!EMB.one)setTimeout(()=>{const el=(EMB.sec&&document.querySelector('#tr-'+t.id+' .'+EMB.sec.replace(/[^a-z]/g,'')))||document.getElementById(EMB.p?'pk-'+EMB.p:'tr-'+t.id);if(el&&EMB.sec){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600)}if(el){const hd=document.querySelector('header.top');const off=EMB.embed||!hd?0:hd.offsetHeight;window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-off-8)})}},120)}
  return true}
 /* 10-30 망령 「포켓몬 고치기를 누르면 제작기가 이상하게 떠 — 그 포켓몬 고치는 칸만 나오면 될 거 아니야」:
    ?p= 가 있으면 그 포켓몬 시트 한 장만 (위에 트레이너 이름 · 통솔점 · PT 기술점 한 줄). 「트레이너 전체 보기」로 예전처럼 */
