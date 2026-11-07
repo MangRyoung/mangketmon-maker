@@ -1417,3 +1417,8 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
  #mk .fh.tcard .tacts .btn{padding:0 7px;min-height:26px;height:26px;font-size:12px;margin-left:0;justify-content:center}
  #mk .fh.tcard .tacts .btn.danger{margin-left:0}
 }
+/* 11-07 대기(벤치) — 통솔점 · 할인점 · 【1/시】 셈에서 빠진 포켓몬 */
+#mk .pk.bench>.ph{opacity:.62}
+#mk .pk.bench>.ph .pav{filter:grayscale(.7)}
+#mk .pbench{display:inline-block;margin-left:6px;padding:0 6px;border-radius:999px;border:1px dashed var(--line,#999);font-size:11px;font-weight:500;color:var(--faint,#888);vertical-align:1px;white-space:nowrap}
+#mk .tpm.bench{opacity:.55;border-style:dashed}
