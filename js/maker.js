@@ -773,6 +773,7 @@ const AUTO_HELP=`대상: 자신(기본) · 아군전체 · 상대전체 · 자�
 비례무시 [빈사|설치기|설치기피해|반동] · 우선도 +1 [타입:X] [물리|특수|변화] [이번턴] · 면역 잠듦,마비 · 감소무시 [공격] · 강화무시 [공격시|받음] [방어|회피]
 확인 "조건 문장" · 조건 아군빈사 · 조건 HP≤1/2
 수세유지 [기술:우드혼,…] [타입:풀] [물리|특수] [HP≤1/2] — 그 기술로 공격해도 자신의 【수세】 효과가 켜진 채
+소지품파괴 [대상] · 소지품모두파괴 [대상] · 소지품강탈 [대상] (자신이 받음 · 빈손일 때) · 소지품주기 [대상] (자신의 것을 빈손인 대상에게) · 소지품교환 [대상] · 소지품지정 [대상] 느림보꼬리 — 배틀 한정 · 점착 · 「보호 소지품」 · 못 빼는 소지품(메가스톤 등) · 대역인형이 막는다
 선택:  →  - ① 라벨 → 랭크 공격+1  /  - ② 라벨 → 회복 1/4
 효과 글의 표식: 【등장】 등장 때 자동 · 【상시】 처음 한 번 자동 · 【N/시】 횟수 · 드물게/저확률/중확률/고확률 확률 판정`;
 function autoDsl(p,name){return ((p&&p.auto)||{})[String(name||'').replace(/『|』/g,'')]||''}
@@ -857,7 +858,7 @@ const fxReady=()=>!!(window.OM_FX&&window.OM_FX_UI);
 window.OM_APP=window.OM_APP||{openModal:h=>{const l=openModal(h,{wide:true});l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))closeModal()});return l},closeModal:()=>closeModal(),toast:t=>toast(t),ST:{role:'player',state:{}},set:async()=>false};
 let fxLoadP=null,FXST='';/* '' 불러오는 중 · ok · fail */
 function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
- const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611080115tw';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
+ const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611080130it';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
  FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');await one('itemrule.js');try{await one('moveauto.js')}catch(e){}FXST='ok';rmInit();stInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
 function fxRetry(){if(fxReady())return;fxLoadP=null;toast('구문 스크립트를 다시 불러옵니다…');loadFx();if(S.ui&&S.ui.tab)refreshAll()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fxretry]');if(!b)return;e.preventDefault();e.stopPropagation();fxRetry()},true);
@@ -1041,12 +1042,12 @@ function openVaultPick(T,rf){T.vault=T.vault||[];let q='';
  const l=openModal(`<div class="mhead"><h2>${esc(T.name||'트레이너')} · 특수 카드 받기</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
   <div class="mbody"><p class="small muted" style="margin:0 0 8px">시나리오 · 호감도 보상으로 얻은 <b>이 트레이너만의 카드</b>를 보관소에 넣어요. 공통 카드는 칸에서 바로 고르니 여기엔 없어요. 보관소 카드도 같은 종류 칸에 넣어 써요. (웹툴에서는 GM 이 시트 탭 「카드 건네주기」로 줘요)</p>
   <input type="search" data-vq placeholder="이름 · 효과 찾기" style="width:100%"><div class="mksk-pg" data-vl style="margin-top:8px"></div></div>
-  <div class="mfoot"><button class="btn" data-vnew>＋ 새 특수 카드 만들기</button><span class="sp"></span><button class="btn pri" data-x>닫기</button></div>`,{wide:true});
+  <div class="mfoot"><span class="small muted">새 카드는 「DB」 탭에서 만든다</span><span class="sp"></span><button class="btn pri" data-x>닫기</button></div>`,{wide:true});
  const draw=()=>{const s=q.trim().toLowerCase();const have=new Set((T.vault||[]).map(x=>x.n));const L=skSpecial().filter(r=>!s||[r[1],r[4],r[2]].some(v=>String(v||'').toLowerCase().includes(s)));
   $('[data-vl]',l).innerHTML=L.map(r=>`<button type="button" class="mksk-p${have.has(r[1])?' dim':''}" data-vn="${esc(r[1])}" ${have.has(r[1])?'disabled':''} title="${esc(r[1])}">${skcOf(r[1],{cls:'',badge:have.has(r[1])?'있음':''})}<span class="small faint">${esc(r[0]||'덱 없음')}</span></button>`).join('')||`<p class="small faint mksk-none">${s?'맞는 카드가 없어요':'아직 특수 카드가 없어요 — 「＋ 새 특수 카드 만들기」로 카드 DB 에 「'+SK_SPECIAL+'」 카드를 만들어요'}</p>`};
  draw();$('[data-vq]',l).oninput=e=>{q=e.target.value;draw()};
  l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))return closeModal();
-  if(e.target.closest('[data-vnew]'))return openEdit('cards',-1,{preset:{0:SK_SPECIAL,1:q.trim(),2:'스킬',5:'gold'},onSaved:n=>{if(n)add(n);draw()}});
+  if(false&&e.target.closest('[data-vnew]'))return openEdit('cards',-1,{preset:{0:SK_SPECIAL,1:q.trim(),2:'스킬',5:'gold'},onSaved:n=>{if(n)add(n);draw()}});
   const b=e.target.closest('[data-vn]');if(b&&!b.disabled){add(b.dataset.vn);draw()}})}
 function deckHtml(t,ti){const L=t.deck||[];const P=`T.${ti}`;const tot=L.reduce((a,x)=>a+(+x.q||0),0);
  /* 카드 한 종류 = 세로 5:7 타일 하나 (그림 · 비용 · 이름 · 종류 · ×장수). 10~20장 덱이 한눈에 들어오게 (10-26 망령) */
@@ -1343,11 +1344,11 @@ function openPicker(kind,{title,multi,chosen,onPick,onRemove,onOrig,hideOrig=kin
  const st={q:'',lim:120,type:'',cat:'',kind:'',mine:false,nameOnly:false,f:{},pmin:'',pmax:'',hideOrig,orig:false,hideOldOnly,oldShow:false,has:chosen?n=>chosen().has(n):null};
  const l=openModal(`<div class="mhead"><h2>${esc(title||DBS[kind].t+' 선택')}</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
   <div class="mbody">${pickerShell(kind,st)}${multi?'<p class="small muted" style="margin:0">클릭하면 추가되고, 이미 추가된 항목(파란색)을 다시 누르면 빠집니다. 창은 닫기 전까지 열려 있습니다.</p>':''}</div>
-  <div class="mfoot"><button class="btn" data-orig>+ 오리지널 ${DBS[kind].t} 만들기</button><span class="sp"></span><button class="btn pri" data-x>${multi?'완료':'닫기'}</button></div>`,{wide:true});
+  <div class="mfoot">${onOrig?`<button class="btn" data-orig>+ 오리지널 ${DBS[kind].t} (이 포켓몬만)</button>`:'<span class="small muted">새 항목은 「DB」 탭에서 만든다</span>'}<span class="sp"></span><button class="btn pri" data-x>${multi?'완료':'닫기'}</button></div>`,{wide:true});
  const redraw=mountPicker(l,kind,st,{chosen,onPick:n=>{if(multi&&chosen&&chosen().has(n)&&onRemove)onRemove(n);else onPick(n);if(!multi)closeModal()}});
  l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))closeModal();
   if(e.target.closest('[data-orig]')&&onOrig)return onOrig(st.q);
-  if(e.target.closest('[data-orig]'))openEdit(kind,-1,{preset:{[DBS[kind].key]:st.q},onSaved:n=>{onPick(n);if(multi)redraw();else closeModal()}})})}
+  /* 11-08 망령 「DB는 DB 직접 간 거 아니면 못 건드리게. 그게 DB야」: 고르기 창에서 DB 줄을 만들지 않는다 */})}
 
 /* ---------- DB 항목 편집 ---------- */
 const IR_HELP=`전용 피카츄/라이츄 · 소모품
@@ -1428,12 +1429,90 @@ function abilAssist(l,oldName){const host=$('[data-abassist]',l),ta=$('[data-f="
   if(ro&&!r){if(!dsl)return;ro[0]=key;r=ro;const ci=S.custom.rm.indexOf(ok);if(ci>=0)S.custom.rm[ci]=key}
   if(r){if(String(r[2]||'').trim()===dsl)return;r[2]=dsl;if(!r[1])r[1]=ta.value;return}
   if(!dsl)return;S.db.rm.unshift([key,ta.value,dsl,'','']);if(!S.custom.rm.includes(key))S.custom.rm.push(key)}}}
+/* 11-08 망령 「기술 쪽에도 구문 · 구문 추천기 · 지금 들어간 구문 확인」: 기술 구문 칸 상자 (DB 기술 수정 창 · 포켓몬별 「이 포켓몬만」 창 공용)
+   host 안에 그린다. getMv() = 지금 창의 기술 {name,type,cat,range,tag,eff}. base = 이 칸이 비었을 때 도는 구문 {dsl,lab} (포켓몬별 창에서는 DB 레디메이드) */
+const RMMV=n=>'기술 : '+String(n||'').replace(/『|』/g,'').trim();
+const MV_ITEM_RE=[['떨구기 (위력 ×1.5)',/「소지품」을\s*전부\s*파괴/],['모두 파괴',/「소지품」을\s*모두\s*파괴/],['한 칸 파괴',/대상의\s*「소지품」을\s*파괴/],['강탈',/「소지품」을\s*강탈/],['맞바꾸기',/서로의\s*「소지품」을\s*뒤바꾼다/],['나무열매 먹기',/「나무열매」를\s*먹는다/],['내던지기',/자신의\s*「소지품」을\s*소비하여\s*공격/],['건네주기',/자신의\s*「소지품」을\s*대상에게\s*건네/]];
+const mvItemKind=e=>{e=String(e||'');for(const [k,re] of MV_ITEM_RE)if(re.test(e))return k;return ''};
+/* 효과 글에서 읽지 못한(손으로) 문장 중 소지품 문장 → 구문 줄 */
+function mvItemRec(s){s=String(s||'');const tg=/상대 전체/.test(s)?'상대전체':/자신의\s*「소지품」을\s*(아군|대상)/.test(s)&&/아군/.test(s)?'아군1체':'상대1체';
+ let m;if(/「소지품」을\s*(모두|전부)\s*(파괴|잃)/.test(s))return '소지품모두파괴 '+tg;if(/「소지품」을\s*(파괴|잃게)/.test(s))return '소지품파괴 '+tg;if(/「소지품」을\s*(강탈|약탈|빼앗)/.test(s))return '소지품강탈 '+tg;
+ if(/서로의\s*「소지품」을\s*(뒤바꾼|맞바꾼|교환)/.test(s))return '소지품교환 '+tg;if(/자신의\s*「소지품」을\s*[^.]*?(건네|준다)/.test(s))return '소지품주기 '+tg;if((m=s.match(/「소지품\s*:\s*([^」]+)」(?:으로|로)\s*(?:만든다|바꾼다|변경한다)/)))return '소지품지정 '+tg+' '+m[1].trim();return ''}
+function mvAutoBox(host,getMv,init,base,onUp){const K=()=>window.OM_FX,MA=()=>window.OM_MOVEAUTO;
+ host.innerHTML=`<details class="autobox" ${String(init||'').trim()?'open':''}><summary>⚙ 자동화 구문 <span class="small muted" data-mvhint></span></summary>
+  <div class="small muted" style="margin:4px 0">오레마스(배틀 웹툴)가 이 기술을 쓸 때 돌리는 명령 — 비우면 ${base&&base.dsl?esc(base.lab)+'(아래 「지금 상태」)':'효과 글을 읽어 자동으로'} 처리한다. 구문을 넣으면 효과 글 자동 대신 구문만 돈다. 「상대1체」 줄은 맞은 대상마다 걸린다.</div>
+  <textarea data-mvauto rows="4" style="width:100%;font-family:var(--mono,monospace);font-size:12.5px" placeholder="예) 소지품파괴 상대1체 · 3할 상태 화상 상대1체 · 랭크 공격+1">${esc(init||'')}</textarea>
+  <div class="small" data-mvprev style="white-space:pre-wrap;margin-top:4px"></div>
+  <div class="mksp" style="margin-top:6px"><b class="small">지금 상태</b><div class="small" data-mvnow style="white-space:pre-wrap"></div></div>
+  <div class="mksp" style="margin-top:6px"><div class="row" style="gap:6px;align-items:baseline"><b class="small">추천 구문</b><span class="small muted">효과 글에서 읽은 것을 구문으로 옮긴 것</span><span class="sp"></span><button type="button" class="btn sm" data-mvrecadd>구문 칸에 덧붙이기</button></div><div class="wdsl" data-mvrec></div></div>
+  <div data-autogen></div>
+  <details><summary class="small">구문 도움말</summary><pre class="small" style="white-space:pre-wrap">${esc(AUTO_HELP)}</pre></details></details>`;
+ const at=$('[data-mvauto]',host),pv=$('[data-mvprev]',host),now=$('[data-mvnow]',host),rec=$('[data-mvrec]',host),hint=$('[data-mvhint]',host);let REC=[];
+ const lines=(ops,n)=>{const F=K();return F.unparse((ops||[]).map(o=>o&&o.tgt==='target'?Object.assign({},o,{tgt:'enemy1'}):o)).map(x=>(n&&n<10?n+'할 ':'')+x)};
+ const up=()=>{const F=K(),A=MA();const v=at.value.trim();
+  if(!F||!A){pv.innerHTML=FXST==='fail'?'<span class="warn">구문 스크립트를 불러오지 못했다</span> '+fxRetryBtn():'<span class="muted">구문 스크립트를 불러오는 중…</span>';now.textContent='';rec.innerHTML='';hint.textContent=v?'구문 있음':'';return}
+  const r=v?F.parse(v):{ops:[],errs:[]};pv.innerHTML=v?((r.ops.length?'미리보기: '+esc(F.unparse(r.ops).join(' / ')):'')+(r.errs&&r.errs.length?` <span class="warn">모르는 줄: ${esc(r.errs.join(' / '))}</span>`:'')):'';
+  const mv=getMv();const T=A.parse(mv,{text:1});const N=[];const ik=mvItemKind(mv.eff);
+  const lost=[T.recoil?'반동':'',T.drain?'드레인':'',T.selfFaint?'사용 후 빈사':'',T.critSure?'확정 급소':'',T.forceSwitch?'강제 교대':'',T.selfSwitch?'교대':''].filter(Boolean);
+  if(r.ops.length){N.push(`● 이 칸의 구문 ${r.ops.length}줄이 돈다 — ${F.unparse(r.ops).join(' / ')}`);if(lost.length)N.push(`  ⚠ 효과 글에서 읽던 ${lost.join(' · ')}은(는) 구문을 넣으면 돌지 않는다`);{const have=new Set(F.unparse(r.ops));const miss=[];for(const g of T.groups||[]){if(g.oneOf)continue;for(const x of lines(g.ops))if(!have.has(x))miss.push((g.n<10?g.n+'할 ':'')+x)}if(miss.length)N.push(`  ⚠ 효과 글에서 읽던 ${miss.join(' / ')} 은(는) 구문에 없어서 돌지 않는다 — 「추천 구문」을 덧붙이면 같이 돈다`)}if(ik&&r.ops.some(o=>o.k==='item'))N.push(`  · 「소지품」 줄이 있어 효과 글 소지품 자동(${ik})은 꺼진다`);else if(ik)N.push(`  · 소지품 「${ik}」 는 효과 글로 따로 자동 처리 (구문과 함께)`)}
+  else if(base&&base.dsl){const br=F.parse(base.dsl);N.push(`● ${base.lab} ${br.ops.length}줄이 돈다 — ${F.unparse(br.ops).join(' / ')}`)}
+  else{const d=A.auto(T)?A.describe(T):'';N.push(d?`● 효과 글에서 읽어 자동: ${d}`:'● 효과 글에서 자동으로 읽은 것 없음');if(ik)N.push(`● 소지품 「${ik}」 — 효과 글로 자동 (적용 때)`)}
+  const man=(T.notes||[]).filter(x=>!mvItemRec(x));if(!r.ops.length&&!(base&&base.dsl)&&man.length)N.push(`○ 손으로 처리: ${man.join(' / ')}`);
+  now.textContent=N.join('\n');
+  REC=[];for(const g of T.groups||[]){if(g.oneOf){REC.push('# 「'+g.label+'」 — 여러 개 중 하나 (선택지 구문으로)');continue}REC.push(...lines(g.ops,g.n))}
+  if(!ik)for(const x of T.notes||[]){const q=mvItemRec(x);if(q)REC.push(q)}   /* 효과 글로 이미 자동인 소지품 기술(ik)은 추천하지 않는다 — 구문에 넣으면 탁쳐서떨구기 ×1.5 같은 글 자동이 꺼진다 */
+  REC=[...new Set(REC)];rec.innerHTML=REC.length?REC.map(x=>`<code>${esc(x)}</code>`).join(''):'<span class="small muted">옮길 만한 효과를 못 찾았다 — 아래 생성기로 만든다</span>';
+  hint.textContent=r.ops.length?`구문 ${r.ops.length}줄`:base&&base.dsl?'비움 — DB 구문':'비움 — 효과 글';if(onUp)onUp()};
+ host.addEventListener('click',e=>{if(!e.target.closest('[data-mvrecadd]'))return;const add0=REC.filter(x=>!x.startsWith('#'));const have=at.value.split('\n').map(x=>x.trim()).filter(Boolean);const add=add0.filter(x=>!have.includes(x));if(!add.length)return toast(REC.length?'추천 줄은 이미 구문 칸에 있습니다':'추천할 줄이 없습니다');at.value=[...have,...add].join('\n');up();toast(`${add.length}줄을 덧붙였습니다`)});
+ at.addEventListener('input',up);up();
+ loadFx().then(()=>{up();const gh=$('[data-autogen]',host);if(gh&&window.OM_FX_UI&&OM_FX_UI.mountGen&&!gh.childElementCount)OM_FX_UI.mountGen(gh,at,{toast})});
+ return {up,val:()=>at.value.trim()}}
+/* DB 기술 수정 창: 레디메이드 「기술 : 이름」 줄에 저장 (abilAssist 와 같은 규칙) */
+function mvAssist(l,oldName){const host=$('[data-mvassist]',l);if(!host)return null;const f=n=>{const el=$(`[data-f="${n}"]`,l);return el?el.value:''};
+ const row=n=>(S.db.rm||[]).find(x=>x[0]===RMMV(n));const r0=oldName?row(oldName):null;
+ const box=mvAutoBox(host,()=>({name:f(2),type:f(5),cat:f(6),range:f(9),tag:f(12)||f(1),eff:f(13)}),r0?r0[2]||'':'',null);
+ l.addEventListener('input',e=>{if(e.target.matches('[data-f="13"],[data-f="6"],[data-f="9"],[data-f="2"]'))box.up()});
+ return {save(name){const dsl=box.val();const key=RMMV(name),ok=oldName?RMMV(oldName):'';if(!Array.isArray(S.db.rm))S.db.rm=[];S.custom.rm=S.custom.rm||[];
+  let r=S.db.rm.find(x=>x[0]===key);const ro=ok&&ok!==key?S.db.rm.find(x=>x[0]===ok):null;
+  if(ro&&!r){if(!dsl)return;ro[0]=key;r=ro;const ci=S.custom.rm.indexOf(ok);if(ci>=0)S.custom.rm[ci]=key}
+  if(r){if(String(r[2]||'').trim()===dsl)return;r[2]=dsl;if(!r[1])r[1]=f(13);return}
+  if(!dsl)return;S.db.rm.unshift([key,f(13),dsl,'','']);if(!S.custom.rm.includes(key))S.custom.rm.push(key)}}}
+/* 11-08 망령 「포켓몬마다 기술을 따로 · 웹툴에서도 그대로」: 이 포켓몬의 기술 칸 덮어쓰기 p.moves[k].ov = {type,cat,pow,acc,prio,range,contact,eff,auto}
+   빈 칸은 DB 값을 따른다 (DB 가 바뀌면 따라감). 오레마스 가져오기(import.js withOv)가 DB 기술 위에 덮는다 */
+const MV_OV_KEYS=['type','cat','pow','acc','prio','range','contact','eff','auto'];
+const mvOvOn=m=>!!(m&&m.ov&&MV_OV_KEYS.some(k=>m.ov[k]!=null&&String(m.ov[k]).trim()!==''));
+function mvView(m,r){const o=m&&m.ov||{};const v=(k,i)=>o[k]!=null&&String(o[k]).trim()!==''?String(o[k]):r?r[i]:'';return {type:v('type',5),cat:v('cat',6),pow:v('pow',7),acc:v('acc',8),prio:v('prio',11),range:v('range',9),contact:v('contact',10),eff:v('eff',13)}}
+function openMvOv(T,P,k,done){const m=P.moves[+k];if(!m)return;const r=idx.moves.get(m.name);const o=Object.assign({},m.ov||{});const dv=(i)=>r?String(r[i]??''):'';
+ const ph=(i)=>esc(dv(i)||'-');const val=k2=>esc(o[k2]==null?'':String(o[k2]));
+ const rm0=(S.db.rm||[]).find(x=>x[0]===RMMV(m.name));const base=rm0&&String(rm0[2]||'').trim()?{dsl:String(rm0[2]),lab:'DB 구문(레디메이드 「기술 : '+m.name+'」)'}:null;
+ const l=openModal(`<div class="mhead"><h2>「${esc(m.name)}」 · 이 포켓몬만</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
+ <div class="mbody"><p class="small muted" style="margin:0">기술 DB 는 그대로 두고 <b>${esc(P.name||'이 포켓몬')}</b> 의 이 기술만 바꾼다. 빈 칸은 DB 값(흐린 글씨)을 따른다 — DB 가 나중에 바뀌면 빈 칸은 따라가고, 적은 칸은 그대로. 오레마스로 가져가면 배틀에서도 이 값으로 돈다.</p>
+ <div class="fgrid">
+  <label class="lbl">타입<select data-ov="type"><option value="">(DB: ${ph(5)})</option>${S.db.types.map(t=>`<option value="${esc(t[0])}" ${o.type===t[0]?'selected':''}>${esc(t[0])}</option>`).join('')}<option value="무작위" ${o.type==='무작위'?'selected':''}>무작위</option></select></label>
+  <label class="lbl">분류<select data-ov="cat"><option value="">(DB: ${ph(6)})</option>${['물리','특수','변화'].map(t=>`<option ${o.cat===t?'selected':''}>${t}</option>`).join('')}</select></label>
+  <label class="lbl">위력<input data-ov="pow" inputmode="numeric" value="${val('pow')}" placeholder="${ph(7)}"></label>
+  <label class="lbl">명중<input data-ov="acc" inputmode="numeric" value="${val('acc')}" placeholder="${ph(8)}"></label>
+  <label class="lbl">우선도<input data-ov="prio" inputmode="numeric" value="${val('prio')}" placeholder="${ph(11)}"></label>
+  <label class="lbl">범위<input data-ov="range" value="${val('range')}" placeholder="${ph(9)}"></label>
+  <label class="lbl">접촉<input data-ov="contact" value="${val('contact')}" placeholder="${ph(10)}"></label>
+  <label class="lbl" style="grid-column:1/-1">효과 <span class="small muted">비우면 DB 글</span>${tagbarHTML()}<textarea data-ov="eff" rows="3" placeholder="${esc(brN(dv(13)))}">${esc(brN(o.eff||''))}</textarea></label></div>
+  <div data-ovauto></div><div class="preview" data-prev></div></div>
+ <div class="mfoot">${mvOvOn(m)?'<button class="btn danger" data-ovclr>덮어쓰기 지우기 (DB 그대로)</button>':''}<span class="sp"></span><button class="btn" data-x>취소</button><button class="btn pri" data-ovsave>저장</button></div>`,{wide:true});
+ const g=k2=>{const el=$(`[data-ov="${k2}"]`,l);return el?el.value:''};const ta=$('[data-ov="eff"]',l);bindTagbar(l,()=>ta);
+ const getMv=()=>({name:m.name,type:g('type')||dv(5),cat:g('cat')||dv(6),range:g('range')||dv(9),tag:dv(12)||dv(1),eff:g('eff').trim()||dv(13)});
+ const prev=()=>{$('[data-prev]',l).innerHTML='<span class="small faint">미리보기 (이 포켓몬)</span><br>'+rich(getMv().eff)};
+ const box=mvAutoBox($('[data-ovauto]',l),getMv,o.auto||'',base);
+ l.addEventListener('input',e=>{if(e.target.matches('[data-ov]')){box.up();prev()}});prev();
+ l.addEventListener('click',e=>{
+  if(e.target.closest('[data-ovclr]')){delete m.ov;closeModal();toast('덮어쓰기를 지웠습니다 — DB 그대로');done&&done();return}
+  if(!e.target.closest('[data-ovsave]'))return;const nv={};for(const k2 of MV_OV_KEYS){const v=k2==='auto'?box.val():String(g(k2)).trim();if(v==='')continue;if(['pow','acc','prio'].includes(k2)&&isNaN(+v))return toast(`${({pow:'위력',acc:'명중',prio:'우선도'})[k2]}은 숫자로 적어 주세요`);if(k2!=='auto'&&k2!=='eff'&&String(v)===dv({type:5,cat:6,pow:7,acc:8,prio:11,range:9,contact:10}[k2]))continue;if(k2==='eff'&&v===brN(dv(13)).trim())continue;if((k2==='eff'||k2==='auto')&&v.length>1500)return toast(`${k2==='eff'?'효과':'구문'}은 1500자까지 — 트레이너 문서가 커지면 제작기 · 웹툴 불러오기가 느려진다`);nv[k2]=['pow','acc','prio'].includes(k2)?+v:v}
+  if(Object.keys(nv).length)m.ov=nv;else delete m.ov;closeModal();toast(Object.keys(nv).length?`「${m.name}」 이 포켓몬만 ${Object.keys(nv).length}칸 덮어썼습니다`:'바뀐 칸이 없어 DB 그대로 둡니다');done&&done()})}
 function openEdit(kind,i,{preset={},onSaved,nav}={}){const D=DBS[kind];
  const r=i<0?D.cols.map((_,n)=>preset[n]??(kind==='moves'?({0:'1.5',1:'#오리지널',5:'노말',6:'물리',7:'0',8:'100',9:'1체',10:'O',11:'0',12:'-',14:'공격',15:'방어',17:'오리지널',18:'1',19:'1'}[n]??''):kind==='abil'?({0:'1',3:'X',4:'X',5:''}[n]??''):kind==='items'?({0:'기타',3:'-',5:'1',6:'-'}[n]??''):kind==='cards'?({11:'공용'}[n]??''):'')):S.db[kind][i];
  const order=kind==='moves'?[2,5,6,0,7,8,9,10,11,12,14,15,18,19,1,17,3,4,16,13]:D.cols.map((_,n)=>n);
  const l=openModal(`<div class="mhead"><h2>${D.t} ${i<0?'오리지널 만들기':'수정'}</h2>${nav&&i>=0?`<span class="row dbnav" style="gap:2px;align-items:center"><button type="button" class="btn sm ghost" data-nav="-1" title="이전 행 (Ctrl+←)" aria-label="이전 행">‹</button><span class="small muted num" data-navpos></span><button type="button" class="btn sm ghost" data-nav="1" title="다음 행 (Ctrl+→)" aria-label="다음 행">›</button></span>`:''}<span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
  <div class="mbody"><datalist id="L-kinds">${[...new Set(S.db.pots.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist><datalist id="L-ikinds">${[...new Set(S.db.items.map(r=>r[0]))].map(k=>`<option value="${esc(k)}">`).join('')}</datalist>
- <div class="fgrid">${order.map(n=>fieldHTML(kind,n,r[n],r,i<0)).join('')}</div><div class="preview" data-prev></div>${kind==='abil'?'<div data-abassist></div>':''}${i>=0&&['abil','items','pots','moves','points','cards'].includes(kind)?`<div data-rowrefs>${rowRefsHtml(kind,r[D.key])}</div>`:''}</div>
+ <div class="fgrid">${order.map(n=>fieldHTML(kind,n,r[n],r,i<0)).join('')}</div><div class="preview" data-prev></div>${kind==='abil'?'<div data-abassist></div>':''}${kind==='moves'?'<div data-mvassist></div>':''}${i>=0&&['abil','items','pots','moves','points','cards'].includes(kind)?`<div data-rowrefs>${rowRefsHtml(kind,r[D.key])}</div>`:''}</div>
  <div class="mfoot">${i>=0?'<button class="btn danger" data-del>삭제</button>':''}<label class="row small" style="gap:4px" title="오리지널로 표시 · 포켓몬 만들 때 특성 · 기술 목록에서는 「오리지널 보기」를 눌러야 보인다"><input type="checkbox" data-origchk ${i<0||S.custom[kind].includes(r[D.key])?'checked':''}>오리지널</label>${kind==='moves'?`<label class="row small" style="gap:4px" title="켜면 『올드 타입』 계열이 아닌 포켓몬의 기술 목록에는 안 뜬다"><input type="checkbox" data-oldchk ${i>=0&&mvOldOnly(r)?'checked':''}>올드 타입 전용</label>`:''}<span class="sp"></span><button class="btn" data-x>취소</button><button class="btn pri" data-save>저장</button></div>`,{wide:true});
  const rgi=kind==='moves'?$('[data-f="9"]',l):null;if(rgi)rgi.addEventListener('input',()=>{$('[data-rg]',l).innerHTML=rangeGrid(rgi.value)});
  if(kind==='st'){const inp=$('[data-f="12"]',l),im=$('[data-sticon]',l),fi=$('[data-sticonf]',l);const show=()=>{im.src=stIcon(inp.value.trim());im.style.visibility=inp.value.trim()?'visible':'hidden'};inp.addEventListener('input',show);
@@ -1446,7 +1525,8 @@ function openEdit(kind,i,{preset={},onSaved,nav}={}){const D=DBS[kind];
    const shrink=async(maxH,q)=>{const bmp=await createImageBitmap(f);const sc=Math.min(1,maxH/bmp.height);const cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(bmp.width*sc));cv.height=Math.max(1,Math.round(bmp.height*sc));cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);return cv};
    try{const cv=await shrink(720);const blob=await new Promise(r=>cv.toBlob(r,'image/webp',0.88));const u=await putImg(`cards/${Date.now().toString(36)}${Math.random().toString(36).slice(2,6)}`,blob||f);inp.value=u;show();toast('올렸습니다 — 「저장」을 누르세요')}
    catch(err){toast('그림을 올리지 못했습니다: '+(err&&err.message||err)+' — 주소를 직접 넣어 주세요')}})}   /* 10-26: 글자 주소(data:) 로 넣지 않는다 — 카드 DB 줄은 공유 DB(docs)에 들어가 모든 제작기 · 오레마스가 처음에 통째로 받으니 용량이 커진다 */
- const abA=kind==='abil'?abilAssist(l,i>=0?r[1]:''):null;   /* 11-01 망령 「특성 쪽엔 구문 도우미가 없더라고」 */
+ const abA=kind==='abil'?abilAssist(l,i>=0?r[1]:''):null;
+ const mvA=kind==='moves'?mvAssist(l,i>=0?r[2]:''):null;   /* 11-08 망령 「기술 쪽에도 구문 · 추천 · 지금 상태」 */   /* 11-01 망령 「특성 쪽엔 구문 도우미가 없더라고」 */
  if(kind==='rm'&&window.OM_FX){const ds=$('[data-f="2"]',l),pv=$('[data-rmprev]',l);const up=()=>{const r=window.OM_FX.parse(ds.value);pv.innerHTML=(r.ops.length?'미리보기: '+esc(window.OM_FX.unparse(r.ops).join(' / ')):'<span class="muted">구문 없음</span>')+(r.errs&&r.errs.length?` <span class="warn">모르는 줄: ${esc(r.errs.join(' / '))}</span>`:'')};ds.addEventListener('input',up);up()}
  if(kind==='rm'&&window.OM_FX&&window.OM_FX.rmChance){const pi=$('[data-f="4"]',l),tx=$('[data-f="1"]',l),nm=$('[data-f="0"]',l),ph=$('[data-rmpct]',l);const up2=()=>{if(!pi||!ph)return;const F=window.OM_FX;const v=pi.value.trim();let t=tx?tx.value:'';if(!t&&F.effOf&&nm){const mm=nm.value.match(/^(특성|소지품)\s*:\s*(.+)$/);t=mm?F.effOf(mm[1]==='특성'?'trait':'item',mm[2]):''}const d=F.rmChance({text:t});ph.textContent=v!==''&&+v>0?(+v>=100?' 늘 발동 (굴리지 않음)':` ${+v}% 로 굴린다`):(d?` 지금은 글에서 읽은 ${d}% 로 굴린다`:' 확률 없음 — 늘 발동')};[pi,tx,nm].forEach(x=>x&&x.addEventListener('input',up2));up2()}   /* 10-24 망령: 레디메이드 확률 칸 */
  if(kind==='cards'){const ic=$('[data-f="10"]',l);l.querySelectorAll('[data-cardic]').forEach(b=>b.onclick=()=>{if(!ic)return;const x=b.dataset.cardic;if(!x){ic.value='';return}const L=cardIcons(ic.value);const i=L.indexOf(x);if(i>=0)L.splice(i,1);else{if(x==='★')L.length=0;else{const j=L.indexOf('★');if(j>=0)L.splice(j,1)}L.push(x)}ic.value=L.slice(-2).join(' ')})}
@@ -1485,7 +1565,7 @@ function openEdit(kind,i,{preset={},onSaved,nav}={}){const D=DBS[kind];
     if(old!==nr[D.key]){const n=renameRefs(kind,old,nr[D.key]);if(n){save();setTimeout(()=>toast(`캐릭터 시트 ${n}곳의 이름도 바꿨습니다`),1900)}}}
    {const oc=$('[data-origchk]',l);if(oc){const ci=S.custom[kind].indexOf(nr[D.key]);if(oc.checked&&ci<0)S.custom[kind].push(nr[D.key]);else if(!oc.checked&&ci>=0)S.custom[kind].splice(ci,1)}}   /* 10-26 망령: 오리지널 구분을 직접 */
    if(kind==='abil'&&String(nr[5]||'')==='범용'&&!S.custom.abil.includes(nr[1]))nr[5]='';   /* 11-06: 「범용」은 오리지널일 때만 적어 둔다 (보통 특성은 빈칸 = 범용) */
-   if(abA)abA.save(nr[1]);reindex();save(true);closeModal();toast('DB에 저장했습니다');onSaved?onSaved(nr[D.key]):refreshAll()}})}
+   if(abA)abA.save(nr[1]);if(mvA)mvA.save(nr[2]);reindex();save(true);closeModal();toast('DB에 저장했습니다');onSaved?onSaved(nr[D.key]):refreshAll()}})}
 /* 오리지널 소지품 (시트에만) — DB 는 건드리지 않고 p.item · p.itemOwn 만 바꾼다. 오레마스로는 시트 그대로 넘어간다 */
 function openOwnItem(P,name,done){const o0=ownItem(P)&&(!name||name===P.item)?ownItem(P):null;const o=Object.assign({name:name||'',kind:'오리지널',cons:false,sock:'-',eff:'',auto:''},o0?clone(o0):{name:name||''});
  const l=openModal(`<div class="mhead"><h2>오리지널 소지품 · 이 포켓몬만</h2><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div>
@@ -1552,7 +1632,7 @@ function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전�
   <label class="lbl" for="pe-eff">효과${tagbarHTML()}<textarea id="pe-eff" rows="6">${esc(brN(cur.eff))}</textarea></label>
   <div class="preview" data-prev></div><div class="small" data-ban></div>
   ${window.MKM_POTLINT?`<details class="wordbox" data-wordbox><summary>✍ 워딩 도우미 <span class="small muted" data-wcount></span></summary><div data-wbody></div></details>`:''}
-  ${isEx||isU?'':`<label class="row small"><input type="checkbox" id="pe-db">포텐셜 DB에도 저장 (같은 이름이 있으면 덮어씀)</label>`}
+  
   ${window.OM_FX?`<details class="autobox" ${(isU?String((t.unique[slot.unique]||{}).auto||''):autoDsl(p,cur.name))?'open':''}><summary>⚙ 자동화 구문 <span class="small muted" data-autohint></span></summary>
    <div class="small muted" style="margin:4px 0">오레마스(배틀 웹툴)에서 이 포텐셜을 쓸 때 자동으로 처리할 내용. 같은 이름의 레디메이드가 있으면 비워 둬도 그것이 돈다. 한 줄에 명령 하나 — 예: <code>랭크 공격+1 임시</code> · <code>위력 ×1.3 타입:불꽃 물리</code> · <code>상태확률 화상 30% 상대1체</code></div>
    <pre class="small" data-autorm style="white-space:pre-wrap;background:var(--bg2,#f4f4f6);padding:6px;border-radius:6px;margin:0 0 6px"></pre>
@@ -2564,7 +2644,7 @@ function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=itemRow(p),own
    <div class="lbl">특성<div class="abrow"><button class="pickbtn" data-act="pickAbil" data-i="${ti}" data-j="${pi}">${p.ability?`<b>${esc(p.ability)}</b><span class="sp"></span><span class="faint small">${nz(p.abSockOv)?`소켓 ${esc(p.abSockOv)} <span title="직접 지정 — DB ${ab?esc(ab[0]):'없음'}">(직접)</span>`:ab?'소켓 '+esc(ab[0]):'DB에 없음'}</span>`:'<span class="ph0">특성 검색…</span>'}</button><label class="absock small muted" title="이 포켓몬만 특성 소켓을 직접 정해요 (비우면 특성 DB 값). 계산 종족치의 특성 TO 에 들어가요">소켓${inp(P+'.abSockOv',p.abSockOv,{w:'48px',num:1,ph:ab?String(ab[0]):'-'})}</label></div></div>
    <div class="lbl">소지품<button class="pickbtn" data-act="pickItem" data-i="${ti}" data-j="${pi}">${p.item?`<b>${esc(p.item)}</b>${ilockChip(p.item)}<span class="sp"></span><span class="faint small">${own?'오리지널 · 시트에만':it?'소켓 '+esc(it[5]):'DB에 없음'}</span>`:'<span class="ph0">소지품 검색…</span>'}</button></div>
   </div>
-  ${ab?`<div class="effbox"><b>${esc(p.ability)}</b> ${rich(ab[2])}<span class="fxrow">${fxAutoBtn(p,'trait',p.ability,ti,pi)}</span></div>`:p.ability?`<div class="effbox">DB에 없는 특성입니다. <button class="btn sm" data-act="newAbil" data-i="${ti}" data-j="${pi}">이 이름으로 오리지널 특성 만들기</button><span class="fxrow">${fxAutoBtn(p,'trait',p.ability,ti,pi)}</span></div>`:''}
+  ${ab?`<div class="effbox"><b>${esc(p.ability)}</b> ${rich(ab[2])}<span class="fxrow">${fxAutoBtn(p,'trait',p.ability,ti,pi)}</span></div>`:p.ability?`<div class="effbox">DB에 없는 특성입니다. 「DB」 탭의 특성 DB 에서 만든다.<span class="fxrow">${fxAutoBtn(p,'trait',p.ability,ti,pi)}</span></div>`:''}
   ${it?`<div class="effbox"><b>${esc(p.item)}</b> ${rich(it[4])} ${own?`<span class="faint">· 오리지널 (이 포켓몬만 · DB 에 없음)${it[3]==='O'?' · 소모품':''}</span> <button class="btn sm" data-act="ownItem" data-i="${ti}" data-j="${pi}">수정</button>`:it[6]&&it[6]!=='-'?`<span class="faint">· ${esc(it[6])}</span>`:''}<span class="fxrow">${fxAutoBtn(p,'item',p.item,ti,pi)}</span></div>`:p.item?`<div class="effbox"><b>${esc(p.item)}</b> DB에 없는 소지품입니다. <button class="btn sm" data-act="ownItem" data-i="${ti}" data-j="${pi}">이 포켓몬만 쓰는 오리지널로 효과 적기</button><span class="fxrow">${fxAutoBtn(p,'item',p.item,ti,pi)}</span></div>`:''}
   ${itemSlotsHtml(p,ti,pi)}
   ${formsHtml(t,ti,p,pi,P)}
@@ -2578,10 +2658,10 @@ function movesTab(t,ti,p,pi,P,c){const ms=p.moves;const over=c.cap!=null&&c.used
  return `<div class="capline"><b>${c.mode==='count'?'기술 개수':'기술 소켓'}</b><span class="num ${over?'warn':''}">${capTxt(c,'종족치 입력 필요')}</span>${c.mode==='count'?`<span class="small muted">『${esc(classOf(p))}』 · PT 기술점 ${c.pt} 고정</span>`:''}${c.cap?`<div class="meter ${over?'over':''}"><i style="width:${Math.min(100,c.used/c.cap*100)}%"></i></div>`:''}
   <span class="small muted">상한 직접 지정</span>${inp(P+'.sockMax',p.sockMax,{w:'56px',num:1,ph:String(c.auto??'')})}${(()=>{const b=sockBonus(p);return `<span class="small muted" title="전용 · 포텐셜 · 특성 글의 「특성/기술 소켓 +0.5」를 자동으로 읽어요. 직접 적으면 그 값이 우선이에요${b.src.length?'\n'+b.src.join('\n'):''}">보너스 특성${inp(P+'.sockBonAb',p.sockBonAb,{w:'44px',num:1,ph:String(b.manual?'':b.ab||0)})} 기술${inp(P+'.sockBonMv',p.sockBonMv,{w:'44px',num:1,ph:String(b.manual?'':b.mv||0)})}${b.src.length?` <span class="faint">${esc(b.src.join(' · '))}</span>`:''}</span>`})()}<span class="sp"></span><button class="btn pri sm" data-act="pickMove" data-i="${ti}" data-j="${pi}">+ 기술 검색·추가</button></div>
  ${(()=>{const W=pokeChecks(t,p).filter(c=>c.k==='mv');return W.length?`<div class="checks">${W.map(c=>`<div class="warn">⚠ ${esc(c.t)}</div>`).join('')}</div>`:''})()}
- <div class="mlist" data-sort="moves" data-i="${ti}" data-j="${pi}">${ms.map((m,i)=>{const r=idx.moves.get(m.name);return `<div class="mv" data-si="${i}" data-grab style="border-left-color:${r&&tyCol(r[5])||'var(--line)'}"><div class="row mvt" style="gap:3px;flex-wrap:nowrap">${r?tchip(r[5])+`<span class="mcat ${r[6]==='물리'?'phy':r[6]==='특수'?'spe':'sta'}">${esc(r[6]||'')}</span>`:'<span class="kindb">DB 없음</span>'}</div><div class="mvn"><div class="nm"><span class="mvchip">${r?tchip(r[5]):'<span class="kindb">DB 없음</span>'}</span>${esc(m.name)}</div><div class="small muted rgwrap">${r?rangeGrid(r[9])+esc(r[6]+' · '+r[9]+(r[10]&&r[10]!=='-'?' · 접촉 '+r[10]:'')):''}</div></div>
-  <div class="st2">${r?esc(r[7]):'-'}<small>위력</small></div><div class="st2">${r?esc(r[8]):'-'}<small>명중</small></div><div class="st2">${r?esc(r[11]):'-'}<small>우선도</small></div><div class="st2${isBigMv(t,p,m)?' warn':''}"${isBigMv(t,p,m)?` title="${esc(bigMvRule(t))}"`:''}>${isBigMv(t,p,m)?'⚠ ':''}${moveSock(p,m)}<small>소켓</small></div>
-  <div class="ef">${r?rich(r[13]):''}</div><div class="row mva" style="gap:2px;flex-wrap:nowrap"><label class="small row" title="「기술 할인점」 1점을 써서 이 기술의 소켓을 0.5 할인합니다 (올드 타입 계열은 교배기·유전기 습득용)" style="gap:2px"><input type="checkbox" data-p="${P}.moves.${i}.half" ${m.half?'checked':''}>할인</label><label class="small row" title="켜면 이 기술은 한 장 요약 · 오레마스 한 장 요약 · 남의 도감에 안 나온다 (시트 · 배틀에는 그대로)" style="gap:2px"><input type="checkbox" data-p="${P}.moves.${i}.hide" ${m.hide?'checked':''}>숨김</label>
-  ${r?`<button class="btn sm ghost" data-act="mvEdit" data-name="${esc(m.name)}">수정</button>`:''}<button class="btn sm ghost danger" data-act="mvDel" data-i="${ti}" data-j="${pi}" data-k="${i}" aria-label="삭제">✕</button></div></div>`}).join('')||'<div class="empty">기술이 없습니다. 「기술 검색·추가」로 DB에서 찾거나 오리지널 기술을 만드세요.</div>'}</div>${mvExtHtml(t,ti,p,pi)}`}
+ <div class="mlist" data-sort="moves" data-i="${ti}" data-j="${pi}">${ms.map((m,i)=>{const r=idx.moves.get(m.name);const V=mvView(m,r);const OV=mvOvOn(m);const ovc=k=>OV&&m.ov[k]!=null&&String(m.ov[k]).trim()!==''?' style="color:var(--acc,#c58b00)" title="이 포켓몬만 (DB: '+esc(r?String(r[{type:5,cat:6,pow:7,acc:8,prio:11,range:9}[k]]??''):'-')+')"':'';return `<div class="mv" data-si="${i}" data-grab style="border-left-color:${r&&tyCol(V.type)||'var(--line)'}"><div class="row mvt" style="gap:3px;flex-wrap:nowrap">${r?tchip(V.type)+`<span class="mcat ${V.cat==='물리'?'phy':V.cat==='특수'?'spe':'sta'}">${esc(V.cat||'')}</span>`:'<span class="kindb">DB 없음</span>'}</div><div class="mvn"><div class="nm"><span class="mvchip">${r?tchip(V.type):'<span class="kindb">DB 없음</span>'}</span>${esc(m.name)}${OV?` <span class="kindb" title="이 포켓몬만 덮어쓴 칸: ${esc(MV_OV_KEYS.filter(k=>m.ov[k]!=null&&String(m.ov[k]).trim()!=='').map(k=>({type:'타입',cat:'분류',pow:'위력',acc:'명중',prio:'우선도',range:'범위',contact:'접촉',eff:'효과',auto:'구문'})[k]).join(' · '))}">개별</span>`:''}</div><div class="small muted rgwrap">${r?rangeGrid(V.range)+esc(V.cat+' · '+V.range+(V.contact&&V.contact!=='-'?' · 접촉 '+V.contact:'')):''}</div></div>
+  <div class="st2"${ovc('pow')}>${r?esc(V.pow):'-'}<small>위력</small></div><div class="st2"${ovc('acc')}>${r?esc(V.acc):'-'}<small>명중</small></div><div class="st2"${ovc('prio')}>${r?esc(V.prio):'-'}<small>우선도</small></div><div class="st2${isBigMv(t,p,m)?' warn':''}"${isBigMv(t,p,m)?` title="${esc(bigMvRule(t))}"`:''}>${isBigMv(t,p,m)?'⚠ ':''}${moveSock(p,m)}<small>소켓</small></div>
+  <div class="ef">${r?rich(V.eff):''}</div><div class="row mva" style="gap:2px;flex-wrap:nowrap"><label class="small row" title="「기술 할인점」 1점을 써서 이 기술의 소켓을 0.5 할인합니다 (올드 타입 계열은 교배기·유전기 습득용)" style="gap:2px"><input type="checkbox" data-p="${P}.moves.${i}.half" ${m.half?'checked':''}>할인</label><label class="small row" title="켜면 이 기술은 한 장 요약 · 오레마스 한 장 요약 · 남의 도감에 안 나온다 (시트 · 배틀에는 그대로)" style="gap:2px"><input type="checkbox" data-p="${P}.moves.${i}.hide" ${m.hide?'checked':''}>숨김</label>
+  ${r?`<button class="btn sm ghost" data-act="mvOv" data-i="${ti}" data-j="${pi}" data-k="${i}" title="DB 는 그대로 두고 이 포켓몬의 이 기술만 바꾼다 (위력 · 효과 · 구문 …)">이 포켓몬만</button>`:''}<button class="btn sm ghost danger" data-act="mvDel" data-i="${ti}" data-j="${pi}" data-k="${i}" aria-label="삭제">✕</button></div></div>`}).join('')||'<div class="empty">기술이 없습니다. 「기술 검색·추가」로 DB에서 찾거나 오리지널 기술을 만드세요.</div>'}</div>${mvExtHtml(t,ti,p,pi)}`}
 /* 11-01 망령 「제작기에서 기술 추가할 때 기능 확장 설정이 없는 듯」: 포켓몬 기술 탭에도 「기능 확장」 — 이 포켓몬이 쓰는 것(who = 이 포켓몬)과 PT 전원 것을 같이 보이고, 여기서 더하면 who 가 이 포켓몬.
    값은 트레이너 t.ext 그대로(트레이너 「기능 확장」 칸과 같은 목록) — 기술 소켓에는 안 센다 */
 function mvExtHtml(t,ti,p,pi){const L=(t.ext||[]).map((e,k)=>[e,k]).filter(([e])=>!e.who||e.who===p.id);
@@ -2849,10 +2929,10 @@ $('#v-char').addEventListener('click',async e=>{
   case 'spAdd':case 'spEdit':{if(e.target.closest('[data-act="spDel"]'))break;if(!T)break;openSpEditor(T,b.dataset.act==='spEdit'?+b.dataset.k:null,rf);break}
   case 'deckAdd':{if(!T)break;T.deck=T.deck||[];openPicker('cards',{title:'덱에 넣을 카드',multi:true,chosen:()=>new Set((T.deck||[]).map(x=>x.n)),onPick:n=>{const r=idx.cards&&idx.cards.get(n);T.deck.push({n,q:Math.max(1,Math.round(+(r&&r[7]))||1)});rf()},onRemove:n=>{T.deck=T.deck.filter(x=>x.n!==n);rf()}});break}
   case 'deckQ':{if(!T||!T.deck)break;const x=T.deck[+b.dataset.k];if(!x)break;x.q=Math.max(0,Math.min(99,(+x.q||0)+(+b.dataset.d||0)));rf();break}
-  case 'deckCard':{if(!T||!T.deck)break;const x=T.deck[+b.dataset.k];if(!x)break;const i=S.db.cards.findIndex(r=>r[1]===x.n);if(i>=0)openEdit('cards',i,{onSaved:rf});else openEdit('cards',-1,{preset:{1:x.n},onSaved:rf});break}
+  case 'deckCard':{if(!T||!T.deck)break;const x=T.deck[+b.dataset.k];if(!x)break;toast('카드는 「DB」 탭의 카드 DB 에서 고친다');break}
   case 'sk3Pick':{if(!T)break;openSk3Pick(T,b.dataset.k,rf);break}
   case 'vaultAdd':{if(!T)break;openVaultPick(T,rf);break}
-  case 'vaultCard':{const x=T&&(T.vault||[])[+b.dataset.k];if(!x)break;const i=S.db.cards.findIndex(r=>r[1]===x.n);if(i>=0)openEdit('cards',i,{onSaved:rf});else openEdit('cards',-1,{preset:{1:x.n},onSaved:rf});break}
+  case 'vaultCard':{const x=T&&(T.vault||[])[+b.dataset.k];if(!x)break;toast('카드는 「DB」 탭의 카드 DB 에서 고친다');break}
   case 'vaultDel':{const x=T&&(T.vault||[])[+b.dataset.k];if(!x)break;const inS=Object.entries(T.sk3||{}).filter(([,v])=>v===x.n).map(([k])=>k);const com=skCommon().some(r=>r[1]===x.n);
    if(!await ask(`「${x.n}」 을(를) 보관소에서 뺄까요?${inS.length&&!com?` (${inS.map(k=>SK3N[k]).join(' · ')} 칸에서도 빠집니다)`:''}`,'빼기'))break;T.vault=T.vault.filter(y=>y!==x);if(!com){T.sk3=Object.assign({},T.sk3);for(const k of inS)delete T.sk3[k]}rf();break}
   case 'deckDel':{if(!T||!T.deck)break;T.deck.splice(+b.dataset.k,1);rf();break}
@@ -2929,7 +3009,7 @@ $('#v-char').addEventListener('click',async e=>{
   case 'impP':openImport(T);break;
   case 'impText':openImport(null);break;
   case 'pickAbil':openPicker('abil',{hideOldOnly:!isOld(P),chosen:()=>new Set([P.ability]),onPick:n=>{P.ability=n;rf()}});break;
-  case 'newAbil':openEdit('abil',-1,{preset:{1:P.ability},onSaved:n=>{P.ability=n;rf()}});break;
+  case 'newAbil':break;openEdit('abil',-1,{preset:{1:P.ability},onSaved:n=>{P.ability=n;rf()}});break;
   case 'pickItem':openPicker('items',{onPick:n=>{P.item=n;rf()},onOrig:q=>openOwnItem(P,q,()=>{closeModal();rf()})});break;
   case 'ownItem':openOwnItem(P,P.item,rf);break;
   case 'addItemX':P.items2=P.items2||[];if(P.items2.length<2){P.items2.push({item:''});rf()}break;
@@ -2938,7 +3018,8 @@ $('#v-char').addEventListener('click',async e=>{
   case 'ownItemX':{const x=(P.items2||[])[+k];if(x)openOwnItem(x,x.item,rf);break}
   case 'pickMove':openPicker('moves',{title:'기술 검색·추가',multi:true,hideOldOnly:!isOld(P),chosen:()=>new Set(P.moves.map(m=>m.name)),onPick:n=>{const m={name:n,half:false};P.moves.push(m);if(isBigMv(T,P,m))toast(`「${n}」 소켓 ${moveSock(P,m)} · ${bigMvRule(T)} · 경고만 띄우고 넣었습니다`);else if(followWide(P))toast(followWideTxt(followWide(P)));rf()},onRemove:n=>{P.moves=P.moves.filter(m=>m.name!==n);rf()}});break;
   case 'mvDel':P.moves.splice(+k,1);rf();break;
-  case 'mvEdit':{const n=b.dataset.name;const ix=S.db.moves.findIndex(r=>r[2]===n);if(ix>=0)openEdit('moves',ix,{onSaved:()=>renderChar()});break}
+  case 'mvOv':openMvOv(T,P,k,rf);break;   /* 11-08 포켓몬별 기술 덮어쓰기 */
+  case 'mvEdit':break;{const n=b.dataset.name;const ix=S.db.moves.findIndex(r=>r[2]===n);if(ix>=0)openEdit('moves',ix,{onSaved:()=>renderChar()});break}
   case 'editPot':if(e.target.closest('[data-act="potDel"]'))break;openPotEditor(T,P,k==='excl'?'excl':String(k)[0]==='x'?{ex:+String(k).slice(1)}:+k);break;
   case 'addEx':P.exclX=P.exclX||[];P.exclX.push({name:'',eff:''});save();refreshTrainer(T);openPotEditor(T,P,{ex:P.exclX.length-1});break;
 case 'addPot':{const ix=P.pots.findIndex(n=>!n);if(ix>=0)openPotEditor(T,P,ix);break}

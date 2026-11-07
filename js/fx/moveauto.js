@@ -57,10 +57,17 @@ window.OM_MOVEAUTO=(()=>{
   if(mv.cat==='변화')return 'target';
   return v>0?'self':'target'}
 
- function parse(mv){
-  mv=mv||{};const name=String(mv.name||'').trim();
-  const R=FX()&&FX().rm?FX().rm('기술 : '+name):null;
-  if(R&&R.ops&&R.ops.length)return {groups:[{n:10,label:'레디메이드 「기술 : '+name+'」',who:'once',ops:R.ops,when:(mv.cat==='변화'&&/필드|자신|아군|자기|장/.test(String(mv.range||'')))?'use':'hit'}],recoil:null,drain:null,notes:[],src:'rm'};   /* 11-05: 필드 전체 · 자신 대상 변화기(초읽기 …)는 맞힐 상대가 없어도 쓰면 건다 */
+ function parse(mv,opt){
+  mv=mv||{};opt=opt||{};const name=String(mv.name||'').trim();
+  /* opt.text: 구문(포켓몬별 · 레디메이드)을 건너뛰고 효과 글만 읽는다 — 제작기 구문 칸의 「지금 상태 · 추천」용 (11-08) */
+  /* 11-08 망령 「포켓몬마다 기술을 따로」: 포켓몬별 덮어쓰기 구문(mv.auto, 제작기 p.moves[i].ov.auto)이 레디메이드보다 먼저 */
+  const OWN=String(mv.auto||'').trim();const OR=OWN&&FX()&&FX().parse?FX().parse(OWN):null;
+  const R=opt.text?null:OR&&OR.ops.length?{ops:OR.ops,own:1}:FX()&&FX().rm?FX().rm('기술 : '+name):null;
+  if(R&&R.ops&&R.ops.length){const when=(mv.cat==='변화'&&/필드|자신|아군|자기|장/.test(String(mv.range||'')))?'use':'hit';const lab=R.own?'포켓몬별 구문 「'+name+'」':'레디메이드 「기술 : '+name+'」';
+   /* 11-08: 「상대1체」 줄은 맞은 대상마다(who target) — 순서가 걸린 구문(조건 · 선택 · 확인)이 있으면 예전처럼 한 번에 */
+   const seq=R.ops.some(o=>o&&['cond','choice','confirm'].includes(o.k));const tg=seq?[]:R.ops.filter(o=>o&&o.tgt==='enemy1'),rest=seq?R.ops:R.ops.filter(o=>!(o&&o.tgt==='enemy1'));
+   const groups=[...(rest.length?[{n:10,label:lab,who:'once',ops:rest,when}]:[]),...(tg.length?[{n:10,label:lab,who:'target',ops:tg.map(o=>Object.assign({},o,{tgt:'target'})),when:'hit'}]:[])];
+   return {groups,recoil:null,drain:null,notes:[],src:R.own?'own':'rm'}}   /* 11-05: 필드 전체 · 자신 대상 변화기(초읽기 …)는 맞힐 상대가 없어도 쓰면 건다 */
   /* 예고 공격(「지연」 기술: 미래예지 계열): 쓸 때는 대미지 없이 대상에게 예고 상태만 걸고, 다음 턴 종료 때 터진다 */
   {const fut=FX()&&FX().FUTURE||[];const en=FX()&&FX().stEn?FX().stEn(name):'';if(en&&fut.includes(en)||(mv.tag==='지연'&&/다음 턴 가장 마지막/.test(String(mv.eff||'')))){const st=en||((String(mv.eff||'').match(/대상을 「([^」]+)」 상태로/)||[])[1]||'FutureSight');
    return {groups:[{n:10,label:'예고 「'+name+'」',who:'target',ops:[{k:'future',state:st,mv:name,tgt:'target'}],when:'hit'}],recoil:null,drain:null,notes:[],src:'parse',delay:1}}}
