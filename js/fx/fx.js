@@ -137,7 +137,7 @@ window.OM_FX=(()=>{
     /* 11-02 망령 「고유나 포텐셜로 미래예지를 걸면?」: 「상태 미래예지 …」처럼 상태로만 적어도 예고 공격으로 — 상태만 걸면 다음 턴 끝에 「해제」만 뜨고 대미지가 없었다 */
     if(op.k==='state'&&!op.remove&&FUTURE.includes(stEn(op.state)||op.state))op=Object.assign({},op,{k:'future',state:stEn(op.state)||op.state,tgt:op.tgt||'enemy1'});
     switch(op.k){
-     case 'none':break;case 'sk':break;
+     case 'none':break;case 'sk':break;case 'tsel':break;   /* 대상 지정 표시 (웹툴 지시 입력이 읽는다) */
      case 'confirm':{const ok=ctx.confirm?await ctx.confirm(op.q):true;if(!ok){L.push(`「${name}」 조건을 만족하지 않아 발동하지 않았다 (${op.q})`);stop=true}break}
      case 'cond':{let ok=true;if(op.c==='ally_fainted')ok=Object.values(b.mons||{}).some(m=>teamOf(b,m)===teamOf(b,self)&&m.id!==self.id&&m.hp.cur<=0);
        else if(op.c==='self_state'){ok=hasSt(self,op.st);if(!ok){L.push(`「${name}」 ${self.name}이(가) 「${stKo(op.st)}」 상태가 아니라 발동하지 않았다`);stop=true;break}}
@@ -440,6 +440,8 @@ window.OM_FX=(()=>{
   const types=()=>{const i=words.findIndex(w=>/^타입[:：]?/.test(w));if(i<0)return [];let v=words[i].replace(/^타입[:：]?/,'');if(!v&&words[i+1]){v=words[i+1];words.splice(i,2)}else words.splice(i,1);return v.split(/[,/·]/).map(x=>KO_TYPE[x.trim()]||x.trim()).filter(Boolean)};
   const spEvade=()=>{const pi=words.findIndex(w=>/^\d+(할|%)$/.test(w));const pw=words.splice(pi,1)[0];const pct=/할$/.test(pw)?+pw.replace('할','')*10:+pw.replace('%','');return {k:'sp',sp:'evade',pct,types:types(),tg:tagW(),cat:has('물리')?'물리':has('특수')?'특수':has('접촉')?'접촉':''}};
   switch(head){
+   /* 11-07 망령 「전용 · 고유 입력에 대상 지정」: 「대상지정 [상대1체|아군1체|자신포함아군1체|아무나1체]」 — 효과는 없고, 웹툴 지시 입력에서 이 포텐셜을 선행 입력할 때 대상을 찍게 한다. 발동하면 구문의 「상대 1체」 · 「아군 1체」 를 그 대상으로 */
+   case '대상지정':{const w=words.join('').replace(/\s/g,'');const t=/자신포함|본인포함/.test(w)?'ally1s':/아무나|누구나|전체1체|전원1체/.test(w)?'any1':/아군/.test(w)?'ally1':'enemy1';return {k:'tsel',tgt:t}}
    case '랭크':case '배율':{const tgt=tgtOf(words)||'self';const temp=has('임시')||has('턴종료까지');const forced=has('강제');const p7=has('명중회피포함')||has('7능력');const from=has('기준:정면')||has('기준정면')||has('정면기준')?'front':'';const stats={};let rnd=null;const picks=[];let spdV=null;for(const w of words){{/* 11-05 망령 「가장 높은 · 낮은 능력치 (상승 · 저하)」: 최고+1 · 최고-1 · 최저×0.67 · 스피드면×1.5 */const pm=w.match(/^(최고|최저)\s*([+\-×x*])\s*(\d+(?:\.\d+)?)$/);if(pm){if(head==='랭크'&&/[×x*]/.test(pm[2])||head==='배율'&&/[+\-]/.test(pm[2]))return {k:'?',raw:line,why:head==='랭크'?'랭크는 최고+1 · 최저-1 처럼 적어요':'배율은 최고×1.3 처럼 적어요'};picks.push({lo:pm[1]==='최저'?1:0,v:pm[2]==='-'?-+pm[3]:+pm[3]});continue}const sm=w.match(/^스피드면\s*([+\-×x*])\s*(\d+(?:\.\d+)?)$/);if(sm){spdV=sm[1]==='-'?-+sm[2]:+sm[2];continue}}let m=w.match(/^무작위(\d+)?(?:개)?\s*([+\-×x*])\s*(\d+(?:\.\d+)?)$/);if(m){rnd={n:+m[1]||1,v:m[2]==='-'?-+m[3]:+m[3]};continue}m=w.match(/^(.+?)\s*([+\-×x*])\s*(\d+(?:\.\d+)?)$/);if(!m)continue;const k=KO_STAT[m[1]];if(!k)continue;/* 10-26 점검: 랭크는 ±, 배율은 × 만 — 섞이면 모르는 줄로 */if(head==='랭크'&&/[×x*]/.test(m[2])||head==='배율'&&/[+\-]/.test(m[2]))return {k:'?',raw:line,why:head==='랭크'?'랭크는 +1 · -1 처럼 적어요 (×는 배율)':'배율은 ×1.5 처럼 적어요 (+는 랭크)'};if(head==='배율'&&+m[3]===1)continue;stats[k]=m[2]==='-'?-+m[3]:+m[3]}if(rnd&&p7)rnd.pool='7';if(spdV!=null)picks.forEach(p=>p.spd=spdV);if(!rnd&&!picks.length&&!Object.keys(stats).length)return {k:'?',raw:line,why:'능력치와 값을 못 읽었어요'};return Object.assign({k:head==='랭크'?'rank':'mult',tgt,stats},rnd?{rnd}:{},picks.length?{picks}:{},picks.length&&from?{from}:{},temp?{temp:1}:{},forced?{forced:1}:{})}
    case '초기화':{const what=words.includes('배율')?'mult':words.includes('랭크')?'rank':'all';return {k:'reset',what,tgt:tgtOf(words)||'self'}}
    case '위력':case '완화':case '회피':{if(head==='회피'&&words.some(w=>/^\d+(할|%)$/.test(w)))return spEvade(words);   /* 11-06: 「회피 2할」(특수 효과 회피 — 칼솜씨 · 행운)이 아래 회피 강화(×) 줄로 읽혀 ×1 이 되던 것 */
@@ -553,6 +555,7 @@ window.OM_FX=(()=>{
    case 'fxoff':L.push('효과해제'+tg(op.tgt)+(op.name?' 이름:'+op.name:' '+({pot:'포텐셜',trait:'특성',item:'소지품'}[op.what]||'전부')));break;
    case 'resetstates':L.push('상태초기화'+tg(op.tgt)+(op.group==='negative'?' 전부':''));break;
    case 'confirm':L.push('확인 "'+op.q+'"');break;
+   case 'tsel':L.push('대상지정 '+({enemy1:'상대1체',ally1:'아군1체',ally1s:'자신포함아군1체',any1:'아무나1체'}[op.tgt]||'상대1체'));break;
    case 'none':L.push('없음');break;case 'sk':L.push('은열쇠 '+(op.fx||''));break;
    case 'cond':L.push('조건 '+(op.c==='ally_fainted'?'아군빈사':op.c==='self_state'?'상태:'+stKoW(op.st):op.c==='foe_type'?'적진타입 '+(op.types||[]).map(t=>TYPE_KO[t]||t).join(','):'HP≤'+op.frac));break;
    case 'stcount':L.push('상태턴'+tg(op.tgt)+' '+(op.st==='all'?'전부':op.st==='neg'?'부정':stKoW(op.st))+' '+(op.mode==='set'?'=':(op.v>=0?'+':''))+op.v);break;

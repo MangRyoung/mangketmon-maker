@@ -25,6 +25,7 @@ window.OM_FX_UI=(()=>{
 종족치 방어,특방 +1 · 종족치 스피드 최대 (시트 종족치에 반영)        상태수정 아쿠아링 1/6 (이 포켓몬의 상태 변화 비율)
 예고 미래예지 [위력 120] [기술 미래예지] [대상]        변신 [대상] [그림유지] · 변신 해제        철거 [상대|양쪽] [장벽|전부]        반드시교대 [대상] [N턴]
 수세유지 [기술:우드혼,…] [타입:풀] [물리|특수] [HP≤1/2]  (그 기술로 공격해도 자신의 【수세】 효과가 켜진 채)
+대상지정 [상대1체|아군1체|자신포함아군1체|아무나1체]  (웹툴 지시 입력에서 이 포텐셜을 선행 입력할 때 기술처럼 대상을 찍어 둔다 · 발동하면 구문의 「1체」가 그 대상)
 확인 "조건 문장"  (발동 때 물어본다)        조건 아군빈사 · 조건 HP≤1/2 · 조건 상태:날따름        레이드 구간:4
 선택   (여러 효과 중 하나 고르기 · 「선택 여럿」 이면 여러 개를 고른다) — 다음 줄부터 빈 줄까지가 선택지
 랭크 아군1체 특공+1
@@ -234,6 +235,7 @@ window.OM_FX_UI=(()=>{
  /* ===== 생성기 판 (10-23 망령) ===== host 안에 무리별 버튼 · 칸 · 미리보기를 그리고, 「줄 추가」로 ta(textarea) 끝에 줄을 붙인다. 붙이면 ta 에 input 이벤트를 보낸다 */
  const GCSS=`.fxg [hidden]{display:none!important}.fxg-form input[type=number]{width:66px}.fxg-form input[type=text]{min-width:90px}.fxg-form select{max-width:230px}
 .fxg{border:1px dashed color-mix(in srgb,currentColor 28%,transparent);border-radius:10px;padding:8px 10px;margin-top:4px}
+.fxg-ts{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-size:12.5px;margin:2px 0 8px;padding:5px 8px;border-radius:8px;background:color-mix(in srgb,currentColor 6%,transparent)}.fxg-ts label{display:inline-flex;gap:4px;align-items:center;font-weight:700}
 .fxg-h{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;margin-bottom:4px}.fxg-h .dim{font-weight:400}
 .fxg-pal{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:start}
 .fxg-gl{font-size:11.5px;opacity:.65;padding-top:5px;white-space:nowrap}.fxg-bs{display:flex;flex-wrap:wrap;gap:4px}
@@ -250,13 +252,19 @@ window.OM_FX_UI=(()=>{
  function mountGen(host,ta,opt){if(!host||!ta)return;opt=opt||{};const toast=opt.toast||(t=>{try{A().toast(t)}catch(e){}});
   if(!document.getElementById('fxg-css')){const st=document.createElement('style');st.id='fxg-css';st.textContent=GCSS;document.head.appendChild(st)}
   host.innerHTML=`<div class="fxg"><div class="fxg-h">⚙ 생성기 <span class="small dim">항목을 누르고 칸을 채운 뒤 「줄 추가」</span></div>
+   <div class="fxg-ts"><label title="웹툴 지시 입력에서 이 포텐셜(전용 · 고유 · 일반)을 선행 입력할 때 기술처럼 대상을 찍어 둔다 — 발동하면 구문의 「상대 1체」 · 「아군 1체」 가 그 대상"><input type="checkbox" data-gts> ◎ 대상 지정</label> <select data-gtst><option value="상대1체">상대 1체</option><option value="아군1체">아군 1체</option><option value="자신포함아군1체">아군 1체 (자신 포함)</option><option value="아무나1체">아무나 1체</option></select> <span class="small dim">지시 입력 때 대상을 찍어 둔다 (추가 반동 · 상대를 고르는 전용 · 고유)</span></div>
    <div class="fxg-pal">${GROUPS.map(([gl,ks])=>`<span class="fxg-gl">${esc(gl)}</span><div class="fxg-bs">${ks.map(([k,l])=>`<button type="button" class="fxg-k" data-gk="${k}">${esc(l)}</button>`).join('')}</div>`).join('')}</div>
    <div class="fxg-form" hidden><div class="fxg-ttl"><b data-gt></b><span data-gd></span></div><div data-gf></div>
     <div class="fxg-opt"><label>확률 <select data-gx="pk"><option value="">없음 (항상)</option><option value="pct">직접 (할 · %)</option><option>드물게</option><option>저확률</option><option>중확률</option><option>고확률</option></select></label><label data-gpn hidden><input type="number" class="n xs" data-gx="pn" value="30" min="1" max="99">%</label>
      <label title="이 효과를 쓴 포켓몬이 필드를 떠나면(교대 · 퇴장 · 빈사) 되돌린다"><input type="checkbox" data-gx="hold"> 필드 위에 있는 한 (나가면 풀림)</label><label data-glb hidden>선택지 이름 <input type="text" data-gx="lab" placeholder="① 특공 +1" style="width:130px"></label></div>
     <div class="fxg-out"><code data-gline></code><button type="button" class="btn sm pri" data-gadd>+ 줄 추가</button></div></div>
    <div class="fxg-ch" data-gch hidden>🔀 선택지를 넣는 중 — 지금부터 넣는 줄이 하나씩 선택지가 된다 <button type="button" class="btn sm" data-gend>선택지 끝</button></div></div>`;
-  const q=s=>host.querySelector(s);let kind='';let inCh=/(^|\n)\s*(선택|선택 여럿|선택:)\s*(\n\s*-[^\n]*)*\s*$/.test(ta.value);
+  const q=s=>host.querySelector(s);let kind='';
+  /* 11-07 망령 「전용 · 고유 입력에 대상 지정」: 체크하면 구문 맨 위에 「대상지정 …」 한 줄 (끄면 그 줄을 지운다) */
+  {const TS=/^[ \t]*대상지정(?=[ \t]|$)[^\n]*\n?/gm;const cb=q('[data-gts]'),se=q('[data-gtst]');
+   const sync=()=>{const mm=String(ta.value||'').match(/^\s*대상지정\s*([^\n]*)/m);cb.checked=!!mm;if(mm){const w=mm[1].replace(/\s/g,'');se.value=/자신포함|본인포함/.test(w)?'자신포함아군1체':/아무나|누구나|전체1체|전원1체/.test(w)?'아무나1체':/아군/.test(w)?'아군1체':'상대1체'}};
+   const put=()=>{let v=String(ta.value||'').replace(TS,'');if(cb.checked)v='대상지정 '+se.value+(v.trim()?'\n'+v:'');ta.value=v;ta.dispatchEvent(new Event('input',{bubbles:true}))};
+   sync();ta.addEventListener('input',sync);cb.onchange=put;se.onchange=()=>{if(cb.checked)put()}}let inCh=/(^|\n)\s*(선택|선택 여럿|선택:)\s*(\n\s*-[^\n]*)*\s*$/.test(ta.value);
   const drawCh=()=>{q('[data-gch]').hidden=!inCh;q('[data-glb]').hidden=!inCh||kind==='choice'};
   const cur=()=>{if(!kind)return '';const base=genLine(kind,host);if(kind==='choice')return base;let l=decorate(base,host);if(l&&inCh){const lb=String((host.querySelector('[data-gx="lab"]')||{}).value||'').trim();l='- '+(lb||l)+' → '+l}return l};
   const upd=()=>{const l=cur();const el=q('[data-gline]');el.textContent=l||'(칸을 채우면 여기에 줄이 생긴다)';el.style.opacity=l?1:.55;q('[data-gpn]').hidden=q('[data-gx="pk"]').value!=='pct';const pc=kind==='choice';q('.fxg-opt').style.display=pc?'none':''};
