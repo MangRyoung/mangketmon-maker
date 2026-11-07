@@ -104,7 +104,7 @@ window.OM_FX=(()=>{
  /* ===== 실행 ===== */
  /* ctx: {b(사본), self(포켓몬), name(효과 이름), area?, pick(list,label)->mon, confirm(q)->bool, choose(labels,multi)->idx[]} */
  /* 지금 필드: run 중이면 그 사본을 본다 (필드의 상태이상 방어 · 매직룸) */
- let RUNB=null;
+ let RUNB=null;let RUNSTK=0;   /* 11-07: 이미 걸린 효과를 「중첩」으로 다시 걸 때(ctx.stack>1) 같은 출처 배율도 겹친다 */
  function fieldNow(){const b=RUNB||(((window.OM_APP||{}).ST||{}).state||{}).battle||{};return b.field||{}}
  function magicRoom(){return +(((fieldNow().rooms)||{})['매직룸']||0)>0}
  /* 매직룸 동안 소지품에서 온 효과는 잠든다 (이름이 지금 소지품과 같은 항목) */
@@ -123,7 +123,7 @@ window.OM_FX=(()=>{
   if(self){for(const p of [...(self.pots||[]),self.excl,...(self.exclX||[])])if(p&&String(p.name||'').replace(/『|』/g,'').trim()===nm)T.push(p.eff);try{const bt=(((window.OM_APP||{}).ST||{}).state||{}).battle;const tr=bt&&bt.trainers&&bt.trainers[self.tid];const u=tr&&(tr.unique||[]).find(x=>x&&String(x.name||'').replace(/『|』/g,'').trim()===nm);if(u)T.push(u.eff)}catch(e){}}
   const r=rm(nm);if(r)T.push(r.t||r.text||r.eff||'');for(const t of T){const m=String(t||'').match(re);if(m)return Math.max(1,+m[1])}return 1}
  async function run(ops,ctx){const L=[];const SHEET_ONLY=(ops||[]).every(o=>o&&['baseup','statadd','none'].includes(o.k));   /* 시트 몫(종족치 · 실수치)은 그것만 있을 때만 알린다 — 다른 효과와 섞이면 조용히 */
- const b=ctx.b;const prevB=RUNB;RUNB=b;const self=ctx.self;const name=ctx.name||'효과';let stop=false;const STK=stackOf(self,name,ctx);
+ const b=ctx.b;const prevB=RUNB;RUNB=b;const prevS=RUNSTK;RUNSTK=+(ctx&&ctx.stack)>1?1:0;const self=ctx.self;const name=ctx.name||'효과';let stop=false;const STK=stackOf(self,name,ctx);
   for(let op of ops||[]){if(stop)break;/* let: 「날씨 무작위」가 op 를 바꿔 끼운다 */
    try{
     /* 10-23 망령: 줄 앞의 확률(「5할」 「30%」 「저확률」) — 이 줄만 굴린다 */
@@ -132,7 +132,7 @@ window.OM_FX=(()=>{
     await runOp(op);
     if(hs)holdDiff(b,self,hs,name,ctx.uniq);
    }catch(e){L.push(`(${op.k} 처리 중 오류: ${e.message})`)}}
-  RUNB=prevB;return {lines:L,b};
+  RUNB=prevB;RUNSTK=prevS;return {lines:L,b};
   async function runOp(op){
     /* 11-02 망령 「고유나 포텐셜로 미래예지를 걸면?」: 「상태 미래예지 …」처럼 상태로만 적어도 예고 공격으로 — 상태만 걸면 다음 턴 끝에 「해제」만 뜨고 대미지가 없었다 */
     if(op.k==='state'&&!op.remove&&FUTURE.includes(stEn(op.state)||op.state))op=Object.assign({},op,{k:'future',state:stEn(op.state)||op.state,tgt:op.tgt||'enemy1'});
@@ -281,7 +281,7 @@ window.OM_FX=(()=>{
     if(k==='critical_buff'){m.critBuff=(+m.critBuff||0)+v;parts.push(`급소 방호 ${v>0?'+':''}${v}`);continue}
     m.rank=m.rank||{};const lim=k==='critical'?4:6;const before=+m.rank[k]||0;const after=Math.max(-lim,Math.min(lim,before+v));m.rank[k]=after;if(op.temp){m.tempRank=m.tempRank||{};m.tempRank[k]=(+m.tempRank[k]||0)+(after-before)}
     parts.push(`${STAT_KO[k]} ${v>0?'+':''}${v}${after!==before+v?' (한계 '+after+')':''}`)}
-   else{/* 10-26 망령: 같은 출처(같은 효과 ← 같은 포켓몬)의 같은 능력 배율은 겹치지 않는다 — 상시 · 고유를 다시 눌러 0.75×0.75 가 되던 것 */{const F0=fx(m);const e0=F0.mults.find(x=>x.key===name+' ← '+self.name);if(e0&&e0.stats&&e0.stats[k]!=null){L.push(`${m.name} 「${name}」 ${STAT_KO[k]} 배율은 이미 걸려 있다`);continue}}
+   else{/* 10-26 망령: 같은 출처(같은 효과 ← 같은 포켓몬)의 같은 능력 배율은 겹치지 않는다 — 상시 · 고유를 다시 눌러 0.75×0.75 가 되던 것 */{const F0=fx(m);const e0=F0.mults.find(x=>x.key===name+' ← '+self.name);if(e0&&e0.stats&&e0.stats[k]!=null&&!RUNSTK){L.push(`${m.name} 「${name}」 ${STAT_KO[k]} 배율은 이미 걸려 있다`);continue}}
     m.mod=m.mod||{};m.mod[k]=Math.round(((+m.mod[k]||1)*v)*1000)/1000;if(op.temp){m.tempMod=m.tempMod||{};m.tempMod[k]=Math.round(((+m.tempMod[k]||1)*v)*1000)/1000}parts.push(`${STAT_KO[k]} ×${v}`);
     /* 배율 출처를 남겨서 나중에 해제할 수 있게 */ const F=fx(m);const key=name+' ← '+self.name;let e=F.mults.find(x=>x.key===key);if(!e){e={key,name,stats:{},temp:!!op.temp};F.mults.push(e)}e.stats[k]=Math.round(((+e.stats[k]||1)*v)*1000)/1000}}
   if(parts.length)L.push(`${m.name} 「${name}」 ${parts.join(' · ')}${op.temp?' (턴 종료까지)':''}`);return L}
