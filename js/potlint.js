@@ -135,6 +135,9 @@ window.MKM_POTLINT=(()=>{
    const syncT=t0=>{if(/【동조\s*\(상대\)】/.test(tags)&&(!t0||t0==='상대1체'||t0==='상대전체'))return '동조상대';if(/【동조】/.test(tags)&&(!t0||t0==='아군1체'||t0==='아군전체'||t0==='지정에리어'))return '동조아군';return t0};
    const tgAt=i=>{let t=tgtIn(segB(c,i),temp);if(hold&&(t==='아군1체'||t==='지정에리어')&&!/아군 1체|같은 에리어/.test(segB(c,i)))t='아군전체';return syncT(t)};const tgW=t=>t?' '+t:'';const hW=t=>hold&&t&&t!=='자신'?' 있는한':'';
    const L=[];let m;const cond=condOf(c);
+    /* 11-08 망령 「「돌던지기」가 「타입 : 물」에게 명중 했을 때 대상을 강제 교대 시킨다」 → 조건 명중 기술:돌던지기 상대타입:물 + 강제교대 대상 */
+    {const hm=c.match(/「([^」:：]+)」\s*(?:이|가|으로|로)?\s*((?:「타입\s*[:：]\s*[^」]+」\s*(?:,|·|또는|이나|나)?\s*)*)(?:에게|에)?\s*명중\s*했을\s*때/);if(hm){const ty=[...String(hm[2]||'').matchAll(/「타입\s*[:：]\s*([^」]+)」/g)].flatMap(x=>x[1].split(/[,·\/]/)).map(x=>x.trim()).filter(Boolean);for(let i=cond.length-1;i>=0;i--)if(/명중|「타입\s*[:：][^」]*」\s*에게/.test(cond[i]))cond.splice(i,1);cond.unshift(`조건 명중 기술:${hm[1].replace(/\s+/g,'')}${ty.length?' 상대타입:'+ty.join(','):''}`)}
+     if(/(?:대상|상대)(?:을|를)\s*강제\s*교대\s*시(?:킨다|키고|켜)/.test(c))L.push('강제교대 대상')}
    /* 11-06 망령 「『HP : 1/2 이하』일 때 『우드혼』을 내보낼 때 【수세】가 적용된다」 → 수세유지 (늘 켜 두는 줄 — HP 조건은 줄 안에, 조건 줄로 앞에 세우지 않는다) */
    {const kd=c.match(KEEPDEF_RE);if(kd){const ks=[...kd[2].matchAll(/「([^」]+)」/g)].map(x=>x[1].trim());const TY=(window.OM_FX&&OM_FX.TYPE_KO)||{};const tys=ks.filter(k=>Object.values(TY).includes(k)),cat=ks.find(k=>/^(물리|특수)기?$/.test(k));const mvs=ks.filter(k=>!tys.includes(k)&&k!==cat&&!/^HP\s*:/.test(k));
      const s='수세유지'+(mvs.length?' 기술:'+mvs.join(','):'')+(tys.length?' 타입:'+tys.join(','):'')+(cat?' '+cat.replace(/기$/,''):'')+(kd[1]?' HP≤'+kd[1].replace(/\s+/g,''):'');if(!lines.includes(s)){lines.push(s);why.push(c0.length>60?c0.slice(0,60)+'…':c0)}continue}}

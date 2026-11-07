@@ -30,7 +30,7 @@ window.OM_MOVEAUTO=(()=>{
   if(/필드의 상태를 정상으로/.test(s)){G({k:'weather',w:'',count:0});G({k:'terrain',t:'',count:0});G({k:'terrain',t:'',room:true,count:0});G({k:'etc',e:'',count:0});G({k:'clearobj',side:'both',what:'hazard'});G({k:'clearobj',side:'both',what:'wall'});hit=true;fld=true}
   /* 11-07 천지를먹기 「「날씨」를 해제하고 공격한다」 — 날씨가 없으면 실패는 웹툴 공격 창이 막는다 */
   if(/「날씨」를 해제/.test(s)&&!/일 때|라면/.test(s)){G({k:'weather',w:'',count:0});hit=true;fld=true}
-  if(/대상을\s*(?:「배턴」 효과를 부여하여\s*)?강제 교대시(킨다|키고)/.test(s)){F.forceSwitch=true;hit=sw=true}
+  if(/대상을\s*(?:「배턴」 효과를 부여하여\s*)?강제\s*교대\s*시(킨다|키고)/.test(s)){F.forceSwitch=true;hit=sw=true}
   if(/임의 교대(한다|를 행한다)$/.test(s)&&!/때|라면|할 수 있/.test(s)){F.selfSwitch=/「배턴」/.test(s)?'batton':'free';hit=sw=true}
   if(!hit)return false;if(fld&&!sw)return true;   /* 설치·전개 뒤의 설명은 효과 엔진이 안다 */
   /* 아는 말만 남았는지: 남으면 손으로 볼 몫을 notes 에 */

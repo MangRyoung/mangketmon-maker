@@ -27,6 +27,7 @@ window.OM_FX_UI=(()=>{
 수세유지 [기술:우드혼,…] [타입:풀] [물리|특수] [HP≤1/2]  (그 기술로 공격해도 자신의 【수세】 효과가 켜진 채)
 대상지정 [상대1체|아군1체|자신포함아군1체|아무나1체]  (웹툴 지시 입력에서 이 포텐셜을 선행 입력할 때 기술처럼 대상을 찍어 둔다 · 발동하면 구문의 「1체」가 그 대상)
 확인 "조건 문장"  (발동 때 물어본다)        조건 아군빈사 · 조건 HP≤1/2 · 조건 상태:날따름        레이드 구간:4
+조건 명중 [기술:돌던지기] [상대타입:물] [타입:바위]  (자신의 기술이 맞았을 때 — 【자동】 이면 웹툴이 맞은 대상마다 저절로, 대상 = 맞은 포켓몬)        강제교대 [대상|상대1체|상대전체]  (배턴터치 없이 나가고 벤치에서 무작위 1마리 · 흡반 · 뿌리박기 · 교대무시는 막힌다)
 선택   (여러 효과 중 하나 고르기 · 「선택 여럿」 이면 여러 개를 고른다) — 다음 줄부터 빈 줄까지가 선택지
 랭크 아군1체 특공+1
 랭크 아군1체 특방+1
@@ -38,7 +39,7 @@ window.OM_FX_UI=(()=>{
   ['상태',[['state','상태 걸기'],['statefx','확률로 걸기'],['cure','치유'],['stcount','턴 조정'],['resetst','상태 초기화'],['immune','면역'],['stmod','회복 · 대미지 비율']]],
   ['HP',[['heal','회복'],['dmg','대미지 (비례 · 타입)'],['future','예고 공격']]],
   ['필드',[['weather','날씨'],['terrain','필드 · 룸'],['etc','필드의 상태'],['object','설치기 · 벽'],['clearobj','철거']]],
-  ['행동',[['prio','우선도'],['pursuit','추격'],['freesw','반드시 교대'],['freeswitch','임의 교대'],['usemove','기술 내보내기']]],
+  ['행동',[['prio','우선도'],['pursuit','추격'],['freesw','반드시 교대'],['freeswitch','임의 교대'],['forceswitch','강제 교대'],['usemove','기술 내보내기']]],
   ['특수',[['extra','추가 공격'],['mvtype','기술 타입'],['scrappy','무효 관통'],['evade','N할 회피'],['secx','추가 효과 배율'],['redirect','끌어오기'],['bounce','반사'],['mold','특성 무시'],['protect','변경 보호'],['ext','지속 연장'],['nodex','해석 차단'],['keepdef','수세 유지']]],
   ['무시',[['ignoreup','상대 상승·강화 / 감소·저하 무시 (계산에서 뺌)'],['nodrop','감소 무시 (내 능력이 안 깎임)'],['noind','비례 · 설치기 무시'],['float','하늘 위']]],
   ['모습',[['type','타입'],['trait','특성'],['item','소지품'],['transform','변신'],['role','역할']]],
@@ -54,7 +55,7 @@ window.OM_FX_UI=(()=>{
   ignoreup:'상대의 랭크 상승 · 감소를 무시한다 (천진 · 성스러운칼)',nodrop:'자신의 능력이 내려가지 않는다',noind:'비례 대미지 · 설치기 · 강제 교대를 무시한다',float:'땅 위 효과를 받지 않는다',
   type:'타입을 더하거나 바꾼다',trait:'특성을 바꾼다',transform:'상대로 변신한다',role:'역할(에이스 · 블로커 …) 취급',
   choice:'여러 효과 중 고르게 한다 — 이 다음에 넣는 줄이 하나씩 선택지가 된다',chance:'이 포켓몬의 확률 효과가 더 잘 (또는 반드시) 발동한다',confirm:'발동할 때 조건을 물어본다',cond:'조건이 맞을 때만 자동으로 이어 간다',
-  baseup:'시트 종족치를 올린다 (제작기 시트에 반영)',freeswitch:'그 자리에서 임의 교대 창을 연다 (맞았을 때 · 턴 종료 뒤 같은 계기에)',usemove:'그 기술을 내보낸다 — 공격 창을 그 기술로 연다 (기술 목록에 없어도 기술 DB 에서)',extra:'맞는 기술이 포켓몬 하나에게 명중하면 1번 더 공격 (난무 · 흡혈귀)',mvtype:'기술의 타입을 바꾼다 (카세트 · 메모리 · 스킨)',scrappy:'무효 타입에도 맞는다 (배짱 · 코어드릴)',evade:'N할로 공격을 피한다',secx:'추가 효과(N할) 발생률을 곱한다',redirect:'상대의 단일 대상 기술을 자신에게 끌어온다 (피뢰침 · 마중물 · 음절초)',bounce:'상대의 변화기를 되받아친다 (매직미러)',keepdef:'그 기술로 공격해도 자신의 【수세】 효과가 켜진 채 (「HP : 1/2 이하」일 때 「우드혼」을 내보낼 때 【수세】가 적용된다)',mold:'자신의 기술이 상대의 특성(완화)을 무시한다 (틀깨기)',protect:'특성 · 소지품이 바뀌거나 없어지지 않는다',ext:'날씨 · 필드 · 벽의 지속 턴을 늘린다',nodex:'자신에 대한 데이터 해석을 막는다',statadd:'시트 실수치에 수를 더하거나 뺀다 (제작기 시트에 반영)',statset:'배틀 중 실수치를 더하기 · 정하기 · 곱하기 · 상대와 교환 · 평균 · 내 두 능력 맞바꿈 (교대하면 원래대로)'};
+  baseup:'시트 종족치를 올린다 (제작기 시트에 반영)',forceswitch:'대상을 강제 교대시킨다 — 배턴터치 없이 나가고 벤치에서 무작위 1마리 (흡반 · 뿌리박기 · 교대무시는 막는다). 「명중했을 때」는 자동 조건 줄을 앞에',freeswitch:'그 자리에서 임의 교대 창을 연다 (맞았을 때 · 턴 종료 뒤 같은 계기에)',usemove:'그 기술을 내보낸다 — 공격 창을 그 기술로 연다 (기술 목록에 없어도 기술 DB 에서)',extra:'맞는 기술이 포켓몬 하나에게 명중하면 1번 더 공격 (난무 · 흡혈귀)',mvtype:'기술의 타입을 바꾼다 (카세트 · 메모리 · 스킨)',scrappy:'무효 타입에도 맞는다 (배짱 · 코어드릴)',evade:'N할로 공격을 피한다',secx:'추가 효과(N할) 발생률을 곱한다',redirect:'상대의 단일 대상 기술을 자신에게 끌어온다 (피뢰침 · 마중물 · 음절초)',bounce:'상대의 변화기를 되받아친다 (매직미러)',keepdef:'그 기술로 공격해도 자신의 【수세】 효과가 켜진 채 (「HP : 1/2 이하」일 때 「우드혼」을 내보낼 때 【수세】가 적용된다)',mold:'자신의 기술이 상대의 특성(완화)을 무시한다 (틀깨기)',protect:'특성 · 소지품이 바뀌거나 없어지지 않는다',ext:'날씨 · 필드 · 벽의 지속 턴을 늘린다',nodex:'자신에 대한 데이터 해석을 막는다',statadd:'시트 실수치에 수를 더하거나 뺀다 (제작기 시트에 반영)',statset:'배틀 중 실수치를 더하기 · 정하기 · 곱하기 · 상대와 교환 · 평균 · 내 두 능력 맞바꿈 (교대하면 원래대로)'};
  const BU_STS=['HP','공격','방어','특공','특방','스피드'];
  const STMOD_STS=[['아쿠아링','1/8'],['뿌리박기','1/16'],['환희의노래','1/16'],['희망사항','1/2'],['씨뿌리기','1/8'],['독','1/8'],['화상','1/16'],['악몽','1/4'],['저주','1/4'],['조이기','1/8']];
  const TG=['self','ally','enemy','others','all','ally1','adj','enemy1','randother','randenemy','randall','area'];
@@ -99,7 +100,8 @@ window.OM_FX_UI=(()=>{
    case 'confirm':return `<div class="row"><label>조건 문장 <input type="text" data-g="q" placeholder="자신이 「특성 : ○○오라」일 때" style="width:360px"></label></div>`;
    case 'statadd':return `<div class="row">${BU_STS.map(s=>`<label><input type="checkbox" data-g="sa_${s}"> ${s}</label>`).join(' ')}</div><div class="row">${sel('g_sam',[['add','더하기 ±N'],['copy','다른 능력과 같게']],'add')} <label>N <input type="number" class="n xs" data-g="n" value="10"></label> <label>같게 할 능력 ${sel('g_saf',['공격','방어','특공','특방','스피드'].map(x=>[x,x]),'특공')}</label></div><div class="small dim">제작기 시트의 실수치에 바로 더한다 (종족치 · 등급은 그대로). 배틀로 가져가면 그 실수치로 나온다</div>`;
    case 'statset':return `<div class="row">대상 ${tgSel('g_tgt')} ${sel('g_sm',[['add','더하기 ±N'],['set','N 으로 정하기'],['mul','× N'],['copy','다른 능력과 같게'],['swap','대상과 교환'],['avg','대상과 평균'],['flip','두 능력 맞바꿈']],'add')} <label>N <input type="number" class="n xs" data-g="n" value="10" step="any"></label> <label>같게 할 능력 ${sel('g_ssf',['공격','방어','특공','특방','스피드'].map(x=>[x,x]),'특공')}</label></div><div class="row">${BU_STS.filter(x=>x!=='HP').map(s=>`<label><input type="checkbox" data-g="ss_${s}"> ${s}</label>`).join(' ')}</div><div class="small dim">배틀 중 실수치(랭크 · 배율 전 값)를 바꾼다. 교환 · 평균은 자신과 대상 사이(대상 기본 상대 1체) · 맞바꿈은 능력 두 개만 (파워트릭처럼). 교대하면 원래대로</div>`;
-   case 'freeswitch':return `<div class="small dim">계기(맞았을 때 · 턴 종료 이후 …)는 효과 글의 【】 표식대로. 구문 「임의교대」</div>`;
+   case 'forceswitch':return `<div class="row">대상 ${tgSel('g_tgt','enemy1')}</div><div class="small dim">「돌던지기가 물 타입에게 명중했을 때」 같은 계기는 「자동 조건 → 기술이 명중했을 때」 줄을 이 줄 앞에. 구문 「강제교대 대상」</div>`;
+    case 'freeswitch':return `<div class="small dim">계기(맞았을 때 · 턴 종료 이후 …)는 효과 글의 【】 표식대로. 구문 「임의교대」</div>`;
    case 'usemove':return `<div class="row"><label>기술 이름 <input type="text" data-g="mv" placeholder="김밥말이"></label></div>`;
    case 'extra':return `<div class="row"><label>타입 (쉼표) <input type="text" data-g="types" placeholder="드래곤 (비우면 모든 기술)"></label> <label>태그 <input type="text" data-g="tg" placeholder="베기"></label> 분류 ${sel('g_ecat',[['','모두'],['물리','물리'],['특수','특수']],'')}</div><div class="row"><label>위력 × <input type="number" step="0.05" class="n xs" data-g="pw" value="0.25"></label> <label><input type="checkbox" data-g="sure" checked> 필중</label> <label>횟수 <input type="number" class="n xs" data-g="n" value="1" min="1"></label></div>`;
    case 'mvtype':return `<div class="row"><label>기술 이름 <input type="text" data-g="mv" placeholder="비우면 아래 타입 · 전부"></label> <label>원래 타입 ${tySel('g_from','', '제한 없음')}</label> → <label>바꿀 타입 ${tySel('g_to','Steel')}</label></div>`;
@@ -119,7 +121,7 @@ window.OM_FX_UI=(()=>{
    case 'resetst':return `<div class="row">대상 ${tgSel('g_tgt')} <label><input type="checkbox" data-g="all"> 부정 상태 전부 (끄면 상태 이상만)</label></div>`;
    case 'clearobj':return `<div class="row">${sel('g_cs',[['self','자기 쪽'],['enemy','상대 쪽'],['both','양쪽']],'self')} ${sel('g_cw',[['hazard','설치기'],['wall','장벽'],['all','전부']],'hazard')}</div>`;
    case 'freesw':return `<div class="row">대상 ${tgSel('g_tgt')} <label>턴 <input type="number" class="n xs" data-g="turns" value="-1"></label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
-   case 'cond':return `<div class="row">${sel('g_c',[['ally_fainted','「빈사」 상태인 아군이 있을 때'],['hp_le','HP 가 비율 이하일 때'],['self_state','자신이 이 상태일 때']],'ally_fainted')} <label>비율 <input type="text" class="n xs" data-g="frac" value="1/2"></label> <label>상태 ${stSel('g_cst','FollowMe')}</label></div>`;
+   case 'cond':return `<div class="row">${sel('g_c',[['ally_fainted','「빈사」 상태인 아군이 있을 때'],['hp_le','HP 가 비율 이하일 때'],['self_state','자신이 이 상태일 때'],['on_hit','자신의 기술이 명중했을 때']],'ally_fainted')} <label>비율 <input type="text" class="n xs" data-g="frac" value="1/2"></label> <label>상태 ${stSel('g_cst','FollowMe')}</label></div><div class="row"><label>명중: 기술 이름 <input type="text" data-g="hmv" placeholder="돌던지기 (비우면 아무 기술)"></label> <label>상대 타입 <input type="text" data-g="hft" placeholder="물 (쉼표)"></label></div><div class="small dim">「명중했을 때」는 【자동】 이 붙은 효과면 공격을 적용한 뒤 맞은 대상마다 저절로 (【N/시】 횟수도 깎는다)</div>`;
    case 'rrand':return `<div class="row">대상 ${tgSel('g_tgt')} ${sel('g_rk',[['rank','랭크'],['mult','배율']],'rank')} <label>몇 개 <input type="number" class="n xs" data-g="n" value="1" min="1" max="7"></label> <label>값 <input type="number" step="0.01" class="n xs" data-g="v" value="2" title="랭크면 +2 · -1, 배율이면 1.5"></label> ${sel('g_pool',[['5','공격 · 방어 · 특공 · 특방 · 스피드'],['7','+ 명중 · 회피']],'5')} <label><input type="checkbox" data-g="temp"> 임시</label></div>`;
    case 'next':return `<div class="row">대상 ${tgSel('g_tgt')} <label><input type="checkbox" data-g="sure" checked> 필중</label> <label><input type="checkbox" data-g="uturn"> 유턴 (쓴 뒤 교대)</label> <label><input type="checkbox" data-g="pur"> 추격</label> <label><input type="checkbox" data-g="cx"> 확정 급소</label> <label>우선도 <input type="number" class="n xs" data-g="prio" value="0"></label> <label>급소 + <input type="number" class="n xs" data-g="cr" value="0"></label> <label>위력 × <input type="number" step="0.1" class="n xs" data-g="pw" value="1"></label></div><div class="small dim">다음 기술 한 번 쓰면 사라진다 (공격 창이 필중 · 급소 · 위력을 자동으로 넣는다)</div>`;
    case 'stcount':return `<div class="row">대상 ${tgSel('g_tgt','enemy1')} ${sel('g_stc',[['all','걸린 상태 전부'],['neg','부정 상태 전부'],...stOpts()],'all')} ${sel('g_stm',[['add','늘리기 / 줄이기'],['set','이 턴으로 맞추기']],'add')} <label>턴 <input type="number" class="n xs" data-g="v" value="-1" title="+1 늘림 · -1 줄임"></label></div>`;
@@ -156,6 +158,7 @@ window.OM_FX_UI=(()=>{
    case 'statset':{let st=BU_STS.filter(x=>x!=='HP'&&g('ss_'+x));const m=s('g_sm');if(m==='copy'){st=st.filter(x=>x!==s('g_ssf'));if(!st.length)return '';return '실수치변경 '+st.join(',')+' ='+s('g_ssf')+tg(s('g_tgt'))}const n=+g('n')||0;if(!st.length)return '';if(m==='flip'&&st.length!==2)return '';const t=s('g_tgt');const tgw=(m==='swap'||m==='avg')?tga(t==='self'?'enemy1':t):tg(t);
     return '실수치변경 '+st.join(',')+' '+({add:(n>0?'+':'')+Math.round(n),set:'='+Math.round(n),mul:'×'+n,swap:'교환',avg:'평균',flip:'맞바꿈'}[m])+tgw}
    case 'freeswitch':return '임의교대';
+    case 'forceswitch':return '강제교대'+tga(s('g_tgt'));
    case 'usemove':{const v=String(g('mv')||'').trim();return v?'기술사용 '+v:''}
    case 'extra':{const pw=+g('pw')||0.25;const n=Math.max(1,+g('n')||1);return '추가공격'+(g('types').trim()?' 타입:'+tyK(g('types')).replace(/ /g,''):'')+(g('tg').trim()?' 태그:'+g('tg').trim().replace(/\s+/g,''):'')+(s('g_ecat')?' '+s('g_ecat'):'')+(pw!==0.25?' 위력×'+pw:'')+(g('sure')?'':' 명중판정')+(n>1?' '+n+'번':'')}
    case 'mvtype':{const to=s('g_to');if(!to)return '';const mv=String(g('mv')||'').trim();const fr=s('g_from');return '기술타입 '+(mv||(fr?'타입:'+K.TYPE_KO[fr]:'전부'))+' '+K.TYPE_KO[to]}
@@ -175,7 +178,7 @@ window.OM_FX_UI=(()=>{
    case 'resetst':return '상태초기화'+tg(s('g_tgt'))+(g('all')?' 전부':'');
    case 'clearobj':return '철거'+({self:'',enemy:' 상대',both:' 양쪽'})[s('g_cs')]+({hazard:'',wall:' 장벽',all:' 전부'})[s('g_cw')];
    case 'freesw':return '반드시교대'+tg(s('g_tgt'))+(+g('turns')>0?' '+g('turns')+'턴':'')+(g('off')?' 해제':'');
-   case 'cond':return s('g_c')==='hp_le'?'조건 HP≤'+(g('frac')||'1/2'):s('g_c')==='self_state'?'조건 상태:'+String(K.stKo(s('g_cst'))).replace(/\s+/g,''):'조건 아군빈사';
+   case 'cond':return s('g_c')==='on_hit'?'조건 명중'+(String(g('hmv')||'').trim()?' 기술:'+String(g('hmv')).trim().replace(/\s+/g,''):'')+(String(g('hft')||'').trim()?' 상대타입:'+tyK(g('hft')):''):s('g_c')==='hp_le'?'조건 HP≤'+(g('frac')||'1/2'):s('g_c')==='self_state'?'조건 상태:'+String(K.stKo(s('g_cst'))).replace(/\s+/g,''):'조건 아군빈사';
    case 'rrand':{const rk=s('g_rk');const v=+g('v');if(!v||(rk==='mult'&&v<=0))return '';const nn=Math.max(1,Math.min(7,+g('n')||1));return (rk==='rank'?'랭크':'배율')+tg(s('g_tgt'))+' 무작위'+(nn>1?nn+'개':'')+(rk==='rank'?(v>0?'+':'')+v:'×'+v)+(s('g_pool')==='7'?' 명중회피포함':'')+(g('temp')?' 임시':'')}
    case 'next':{let l='다음기술'+tg(s('g_tgt'));if(g('sure'))l+=' 필중';if(g('uturn'))l+=' 유턴';if(g('pur'))l+=' 추격';if(g('cx'))l+=' 확정급소';if(+g('prio'))l+=' 우선도'+(+g('prio')>0?'+':'')+(+g('prio'));if(+g('cr')>0)l+=' 급소+'+(+g('cr'));if(+g('pw')&&+g('pw')!==1)l+=' 위력×'+(+g('pw'));return l===('다음기술'+tg(s('g_tgt')))?'':l}
    case 'stcount':{const v=+g('v');const m=s('g_stm');if(!v&&m!=='set')return '';const st=s('g_stc');return '상태턴'+tg(s('g_tgt'))+' '+(st==='all'?'전부':st==='neg'?'부정':String(K.stKo(st)).replace(/\s+/g,''))+' '+(m==='set'?'='+Math.max(0,v):(v>0?'+':'')+v)}
