@@ -113,7 +113,7 @@ window.OM_FX=(()=>{
  /* 땅 위 포켓몬: 미스트필드는 상태 이상·혼란, 일렉트릭필드는 잠듦·하품을 막는다 */
  function sideObj(m,k){return !!(m&&m.side&&+((((fieldNow().objects)||{})[m.side]||{})[k]||0)>0)}
  /* 11-01 망령 「맑음일 때 얼음이 안 된다 · 밤일 때 잠듦이 안 된다」(맵툴 print_effect_weather): 맑음 · 큰가뭄 → 「얼음」 없음, 밤 · 깊은밤 → 고스트 · 악 타입 「잠듦」 없음 */
- function weatherBlock(m,en){const w=(fieldNow().weather||{}).type;if(!w||!m)return '';if((w==='맑음'||w==='큰가뭄')&&en==='Freeze')return w;if((w==='밤'||w==='깊은밤')&&en==='Sleep'&&typesOf(m).some(t=>t==='Ghost'||t==='Dark'))return w;return ''}
+ function weatherBlock(m,en){const w=(fieldNow().weather||{}).type;if(!w||!m)return '';/* 11-07 에어록 · 날씨부정: 필드 위에 있는 한 날씨 효과 없음 */{const B0=RUNB||(((window.OM_APP||{}).ST||{}).state||{}).battle||{};if(Object.values(B0.mons||{}).some(x=>x&&x.entry&&x.hp&&x.hp.cur>0&&/에어록|날씨부정/.test(String(x.ability||''))))return ''}if((w==='맑음'||w==='큰가뭄')&&en==='Freeze')return w;if((w==='밤'||w==='깊은밤')&&en==='Sleep'&&typesOf(m).some(t=>t==='Ghost'||t==='Dark'))return w;return ''}
  function terrainBlock(m,en){const t=(fieldNow().terrain||{}).type;if(!t||!m||!groundedX(m))return '';if(t==='미스트필드'&&(ABN.includes(en)||en==='Confusion'))return t;if(t==='일렉트릭필드'&&(en==='Sleep'||en==='Yawn'))return t;return ''}
  /* 지속 턴 +3 소지품 (2026-10-23): 자신이 기술·특성으로 깐 날씨 · 필드 · 벽. 매직룸 중에는 없음 */
  const EXT_ITEM={'맑음':'뜨거운바위','비':'축축한바위','모래바람':'보송보송바위','눈':'차가운바위','싸라기눈':'차가운바위','별하늘':'별이박힌바위','밤':'거무칙칙한바위','짙은안개':'습한바위','필드':'그라운드코트','리플렉터':'빛의점토','빛의장막':'빛의점토','오로라베일':'빛의점토'};
