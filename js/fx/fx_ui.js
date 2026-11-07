@@ -15,7 +15,7 @@ window.OM_FX_UI=(()=>{
 완화 ×0.75 … (위력과 같은 조건 — 받는 쪽) [HP가득 = 「HP : 가득」일 때만]        없음 (배틀 효과가 없는 포텐셜 — 시트 · 파티 규칙뿐)
 상태 화상 [대상] [N턴] [강제] (항상 건다)        상태확률 화상 50% [대상] [1체]        치유 [대상] [독,맹독 | 이상] [N%]        상태초기화 [대상] [전부]
 효과해제 [대상] [포텐셜 | 특성 | 소지품 | 전부 | 이름:에이스]   (그 출처가 건 배율 · 위력 · 무시 · 우선도 · 역할 효과를 뗀다)
-소지품파괴 [대상] · 소지품모두파괴 · 소지품파괴약탈 (빈손이면 빼앗고 못 빼앗으면 파괴) · 소지품강탈 (자신이 받음) · 소지품주기 · 소지품교환 · 소지품지정 [대상] 느림보꼬리 (빈손이면 새로 지님 · 있으면 바꿈)   대상을 안 쓰면 상대1체 · 배틀 한정
+소지품파괴 [대상] · 소지품모두파괴 · 소지품파괴약탈 (빈손이면 빼앗고 못 빼앗으면 파괴) · 소지품강탈 (자신이 받음) · 소지품주기 · 소지품교환 · 소지품지정 [대상] 느림보꼬리 (빈손이면 새로 지님 · 있으면 바꿈) · 소지품추가 [대상] 느림보꼬리 (지닌 것은 두고 빈 칸에 하나 더)   대상을 안 쓰면 상대1체 · 배틀 한정
 회복 1/4 [대상] [전부] [타입:독]        피해 1/8 [대상] [현재|직전|타입:바위] [제외:독] [상태:잠듦] [빈사없음]
 날씨 비 5 · 날씨 해제        필드 그래스필드 5 · 룸 트릭룸 5 · 필드상태 중력 5        설치기 [아군|상대] 리플렉터 5
 타입 [대상] 추가|변경|원래 불꽃,비행        특성 [대상] 변경 X · 특성 원래        역할 추가|제거 에이스,블로커        추격 [숨김]
@@ -43,11 +43,12 @@ window.OM_FX_UI=(()=>{
   ['행동',[['prio','우선도'],['pursuit','추격'],['freesw','반드시 교대'],['freeswitch','임의 교대'],['forceswitch','강제 교대'],['usemove','기술 내보내기']]],
   ['특수',[['extra','추가 공격'],['mvtype','기술 타입'],['scrappy','무효 관통'],['evade','N할 회피'],['secx','추가 효과 배율'],['redirect','끌어오기'],['bounce','반사'],['mold','특성 무시'],['protect','변경 보호'],['ext','지속 연장'],['nodex','해석 차단'],['keepdef','수세 유지']]],
   ['무시',[['ignoreup','상대 상승·강화 / 감소·저하 무시 (계산에서 뺌)'],['nodrop','감소 무시 (내 능력이 안 깎임)'],['noind','비례 · 설치기 무시'],['float','하늘 위']]],
-  ['모습',[['type','타입'],['trait','특성'],['item','소지품'],['transform','변신'],['role','역할']]],
+  ['소지품',[['item','파괴 · 빼앗기 · 건네기'],['itemset','변경'],['itemadd','추가']]],
+  ['모습',[['type','타입'],['trait','특성'],['transform','변신'],['role','역할']]],
   ['발동 조건',[['choice','선택지'],['chance','확률 보정'],['confirm','확인 질문'],['cond','자동 조건']]],
   ['시트',[['baseup','종족치'],['statadd','실수치']]]];
  const KINDS=GROUPS.flatMap(g=>g[1]);
- const DESC={item:'상대(대상)의 소지품을 파괴 · 강탈 · 맞바꾸기 하거나, 자신의 것을 건네주거나, 정한 소지품으로 만든다 (배틀 한정 · 점착 · 보호 소지품이 막는다)',rank:'능력 랭크를 올리거나 내린다',mult:'능력에 배율을 곱한다 (해제하면 되돌린다)',rrand:'정한 능력 중 무작위로 골라 랭크 · 배율을 바꾼다',reset:'랭크 · 배율을 처음으로',
+ const DESC={item:'상대(대상)의 소지품을 파괴 · 강탈 · 맞바꾸기 하거나, 자신의 것을 건네준다 (배틀 한정 · 점착 · 보호 소지품이 막는다)',itemset:'대상의 1번 칸 소지품을 정한 것으로 바꾼다 — 빈손이면 새로 지닌다 (배틀 한정 · 점착 · 보호 소지품이 막는다)',itemadd:'지닌 소지품은 그대로 두고 빈 칸에 하나 더 지닌다 — 1번 칸이 비면 1번, 아니면 2 · 3번 칸 (3칸까지 · 배틀 한정)',rank:'능력 랭크를 올리거나 내린다',mult:'능력에 배율을 곱한다 (해제하면 되돌린다)',rrand:'정한 능력 중 무작위로 골라 랭크 · 배율을 바꾼다',reset:'랭크 · 배율을 처음으로',
   boost:'조건이 맞는 기술의 위력을 올린다 (공격 쪽)',guard:'조건이 맞는 기술의 대미지를 줄인다 (받는 쪽)',next:'다음에 쓰는 기술 한 번에 필중 · 유턴 · 추격 · 우선도 · 급소를 붙인다',
   state:'상태 변화를 건다 (면역 · 필드 판정 포함)',statefx:'확률로 상태 변화를 건다',cure:'상태 변화를 푼다',stcount:'걸려 있는 상태의 남은 턴을 늘리거나 줄인다 (0이 되면 풀린다)',resetst:'상태 이상 · 부정 상태를 한 번에 푼다',immune:'그 상태에 걸리지 않는다',stmod:'이 포켓몬이 그 상태일 때 턴 종료 회복 · 대미지 비율',
   heal:'HP 를 회복한다',dmg:'최대 HP 비례 · 현재 HP 비례 · 타입 상성 비례 대미지',future:'다음 턴 끝에 덮치는 예고 공격 (미래예지)',
@@ -88,7 +89,8 @@ window.OM_FX_UI=(()=>{
    case 'etc':return `<div class="row">${sel('g_e',[['','해제'],['중력','중력'],['물놀이','물놀이'],['흙놀이','흙놀이']],'중력')} <label>턴 <input type="number" class="n xs" data-g="count" value="5"></label></div>`;
    case 'object':return `<div class="row">진영 ${sel('g_side',[['ally','아군'],['enemy','상대']],'ally')} 설치기 ${sel('g_o',['리플렉터','빛의장막','오로라베일','신비의부적','흰안개','주술','검은숲','얼음의장벽','신기루','순풍','무지개','습원','불바다','돌격','희망사항','압정뿌리기','독압정','스텔스록','끈적끈적네트','기뢰','지뢰원','가시원','장미원','불기둥','아이스번','얼음꼬챙이','전기발판','트램펄린','저주의묘','악의소굴','전파탑'].map(x=>[x,x]),'리플렉터')} <label>턴 <input type="number" class="n xs" data-g="count" value="5"></label></div>`;
    case 'type':return `<div class="row">대상 ${tgSel('g_tgt')} ${sel('g_mode',[['add','타입 추가'],['set','타입 변경'],['reset','원래대로']],'add')} <label>타입 (쉼표) <input type="text" data-g="types" placeholder="불꽃,비행"></label> <label>지속 <input type="number" class="n" data-g="turns" min="0" placeholder="계속" style="width:56px">턴</label></div>`;
-   case 'item':return `<div class="row">대상 ${tgSel('g_tgt','enemy1')} ${sel('g_mode',[['break','한 칸 파괴'],['rob','파괴(약탈) — 빈손이면 빼앗고 못 빼앗으면 파괴'],['breakall','모두 파괴'],['steal','강탈 (자신이 받음)'],['give','자신의 것을 건네줌'],['swap','맞바꾸기'],['set','소지품 지정']],'break')} <label>지정할 소지품 <input type="text" data-g="name" placeholder="느림보꼬리 (지정일 때만)"></label></div>`;
+   case 'item':return `<div class="row">대상 ${tgSel('g_tgt','enemy1')} ${sel('g_mode',[['break','한 칸 파괴'],['rob','파괴(약탈) — 빈손이면 빼앗고 못 빼앗으면 파괴'],['breakall','모두 파괴'],['steal','강탈 (자신이 받음)'],['give','자신의 것을 건네줌'],['swap','맞바꾸기']],'break')}</div>`;
+   case 'itemset':case 'itemadd':return `<div class="row">대상 ${tgSel('g_tgt','self')} <label>소지품 <input type="text" data-g="name" placeholder="느림보꼬리"></label></div><div class="small dim">${esc(DESC[kind]||'')}</div>`;
    case 'trait':return `<div class="row">대상 ${tgSel('g_tgt','enemy1')} ${sel('g_mode',[['set','특성 변경'],['reset','원래대로']],'set')} <label>특성 <input type="text" data-g="tn" placeholder="미라"></label> <label>지속 <input type="number" class="n" data-g="turns" min="0" placeholder="계속" style="width:56px">턴</label></div>`;
    case 'prio':return `<div class="row">대상 ${tgSel('g_tgt')} <label>우선도 <input type="number" step="0.5" class="n xs" data-g="v" value="1"></label> ${sel('g_mode',[['add','더하기'],['set','고정'],['off','해제']],'add')} 분류 ${sel('g_cat',[['all','모두'],['물리','물리'],['특수','특수'],['변화','변화']],'all')} 타입 ${tySel('g_type','', '제한 없음')} <label>태그 <input type="text" data-g="tag" placeholder="회복,드레인"></label> ${sel('g_dur',[['keep','해제 전까지'],['turn','이번 턴']],'keep')}</div>`;
    case 'immune':return `<div class="row">대상 ${tgSel('g_tgt')} <label>상태 (쉼표) <input type="text" data-g="states" placeholder="잠듦,마비 · 이상"></label> <label><input type="checkbox" data-g="off"> 해제</label></div>`;
@@ -144,6 +146,7 @@ window.OM_FX_UI=(()=>{
    case 'etc':{const e=s('g_e');return '필드상태 '+(e?e+' '+(+g('count')>=1000?'계속':(+g('count')||5)):'해제')}
    case 'object':return '설치기 '+(s('g_side')==='enemy'?'상대 ':'아군 ')+s('g_o')+' '+(+g('count')>=1000?'계속':(+g('count')||5));
    case 'type':{const m=s('g_mode');return '타입'+tg(s('g_tgt'))+' '+({add:'추가',set:'변경',reset:'원래'})[m]+(m==='reset'?'':' '+tyK(g('types'))+(+g('turns')>0?' '+(+g('turns'))+'턴':''))}
+   case 'itemset':case 'itemadd':{const n=(g('name')||'').trim();return n?(kind==='itemadd'?'소지품추가':'소지품지정')+tga(s('g_tgt'))+' '+n:''}
    case 'item':{const m=s('g_mode');return '소지품'+({rob:'파괴약탈',break:'파괴',breakall:'모두파괴',steal:'강탈',give:'주기',swap:'교환',set:'지정'})[m]+tga(s('g_tgt'))+(m==='set'?' '+(g('name')||''):'')}
    case 'trait':return '특성'+tga(s('g_tgt'))+' '+(s('g_mode')==='reset'?'원래':'변경 '+g('tn')+(+g('turns')>0?' '+(+g('turns'))+'턴':''));   /* 11-03 21:01 망령: 타입 · 특성 변경 턴제 */
    case 'prio':{const m=s('g_mode');return '우선도 '+(m==='set'?'=':(+g('v')>0?'+':''))+(+g('v')||0)+tg(s('g_tgt'))+(s('g_type')?' 타입:'+K.TYPE_KO[s('g_type')]:'')+(s('g_cat')!=='all'?' '+s('g_cat'):'')+(g('tag')?' 태그:'+tyK(g('tag')):'')+(s('g_dur')==='turn'?' 이번턴':'')+(m==='off'?' 해제':'')}
