@@ -2270,7 +2270,7 @@ function pokeCardHTML(t,p,ed){const E=(k,v,tt,x)=>ed?`<button type="button" clas
  const tot=p.base.reduce((a,b)=>a+(+b||0),0);const cap=moveCap(t,p);
  const mv=p.moves.filter(m=>m.name&&!m.hide).map(m=>{const r=idx.moves.get(m.name)||[];   /* 「숨김」 기술은 한 장 요약에 안 나온다 */const g=i=>r[i]??'';const ti=typeInfo(g(5));return {name:m.name,ty:g(5),bg:ti&&safeCss(ti[1])||'var(--sunk2)',fg:ti&&safeCss(ti[2])||'var(--ink)',cat:g(6),pow:g(7),acc:g(8),range:g(9),prio:g(11),eff:g(13)}});
  const all=S.db.types.map(x=>x[0]).filter(x=>x&&x!=='-'&&tyChart()[x]);const mul={};for(const a of all)mul[a]=tyMult(a,tys);
- const grp=[[4,'4배','x4'],[2,'2배','x2'],[0.5,'1/2','h'],[0.25,'1/4','q'],[0,'무효','z']].map(([v,l,c])=>({l,c,list:all.filter(a=>v===4?mul[a]>=4:v===2?mul[a]===2:v===0.5?mul[a]===0.5:v===0.25?mul[a]>0&&mul[a]<=0.25:mul[a]===0)})).filter(g=>g.list.length);
+ const grp=[[8,'8배','x8'],[4,'4배','x4'],[2,'2배','x2'],[0.5,'1/2','h'],[0.25,'1/4','q'],[0.125,'1/8','e'],[0,'무효','z']].map(([v,l,c])=>({l,c,list:all.filter(a=>v===8?mul[a]>=8:v===4?mul[a]===4:v===2?mul[a]===2:v===0.5?mul[a]===0.5:v===0.25?mul[a]===0.25:v===0.125?mul[a]>0&&mul[a]<=0.125:mul[a]===0)})).filter(g=>g.list.length);
  const pots=p.pots.map((n,i)=>({n,i,k:potKindOf(p,i),e:potEffOf(p,i)})).filter(x=>x.n&&x.n!=='-');const XL=exclAll(p);
  const sub=[roleOf(p),classOf(p),prideOf(p)?'프라이드 '+prideOf(p):''].filter(Boolean).join(' · ');
  return `<div class="pcd" style="${pkVars(p)}"><div class="pcd-l">
