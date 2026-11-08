@@ -795,7 +795,7 @@ function copyText(t,p){
  const xn=p.excl.name&&p.excl.name!=='전용 포텐셜'?p.excl.name:'-';
  const ex=xn+'#'+(xn==='-'?'-':nlBr(p.excl.eff||'-'))+'#';
  const mvs=[];
- for(const m of p.moves.filter(m=>m.name)){const r=idx.moves.get(m.name)||[];const g=i=>r[i]??'';
+ for(const m of p.moves.filter(m=>m.name)){const r=mvRowOv(m)||[];
   mvs.push(moveLine(m.name,r))}
  const mv=mvs.join('\\');
  return (nlBr(basic)+names+'#'+effs+'#'+ord+'#'+ex+mv+'#').trim()}
@@ -826,7 +826,9 @@ function parseCopy(txt,t){
   /* 11-08 망령 「토큰 붙여넣기도 DB 대신 이 포켓몬만으로」: DB 에 없는 기술은 GM 이면 예전처럼 DB 에 오리지널로, PL 이면 그 포켓몬의 기술 덮어쓰기(ov)로만 */
   if(!idx.moves.has(f[0])&&!ME.gm){const ov={type:f[1],cat:f[2],pow:f[3],acc:f[4],range:f[5],contact:f[6],prio:f[7],eff:f[9]};for(const k of Object.keys(ov)){const v=String(ov[k]??'').trim();if(v===''||(v==='-'&&k!=='contact')){delete ov[k];continue}if(['pow','acc','prio'].includes(k)){if(isNaN(+v)){delete ov[k];continue}ov[k]=+v}else ov[k]=k==='eff'?v.slice(0,1500):v}p.moves.push(Object.assign({name:f[0],half:false},Object.keys(ov).length?{ov}:{}));continue}
   if(!idx.moves.has(f[0])){S.db.moves.push([String(3),'#오리지널, #가져옴',f[0],'','',f[1],f[2],f[3],f[4],f[5],f[6],f[7],f[8],f[9],f[10],f[11],f[12],f[13],f[15],f[16]]);S.custom.moves.push(f[0]);idx.moves.set(f[0],S.db.moves[S.db.moves.length-1]);added.moves++}
-  p.moves.push({name:f[0],half:false})}
+  {const r=idx.moves.get(f[0]);const ov={};   /* 11-08: 복사 글의 값이 DB 와 다르면 그 칸만 이 포켓몬 덮어쓰기로 (복사 → 붙여넣기로 ov 가 이어진다) */
+   if(r)for(const [k,j,i] of [['type',1,5],['cat',2,6],['pow',3,7],['acc',4,8],['range',5,9],['contact',6,10],['prio',7,11],['eff',9,13]]){const v=String(f[j]??'').trim();const d=cleanF(nlBr(String(r[i]??'')));if(v===''||v===(i===13?brN(d):d).trim())continue;if(['pow','acc','prio'].includes(k)){if(isNaN(+v))continue;if(+v===+r[i])continue;ov[k]=+v}else ov[k]=k==='eff'?v.slice(0,1500):v}
+   p.moves.push(Object.assign({name:f[0],half:false},Object.keys(ov).length?{ov}:{}))}}
  if(added.moves)save(true);
  return p}
 
@@ -837,7 +839,7 @@ function sessionPoke(t,p,types){
  const fill=p.pots.map((n,i)=>i).filter(i=>p.pots[i]&&p.pots[i]!=='-');
  const ab=idx.abil&&idx.abil.get(p.ability),it=itemRow(p);
  const hasBase=p.base.some(v=>v!==''&&v!=null);
- const moves=p.moves.filter(m=>m.name).map(m=>{const r=idx.moves.get(m.name)||[];const g=i=>r[i]??'';useT(g(5));
+ const moves=p.moves.filter(m=>m.name).map(m=>{const r=mvRowOv(m)||[];const g=i=>r[i]??'';useT(g(5));
   return {name:m.name,type:g(5),cat:g(6),pow:String(g(7)),acc:String(g(8)),range:g(9),contact:g(10),prio:String(g(11)),eff:brN(g(13)),sock:String(g(0))}});
  return {id:p.id,name:p.name||'',gender:p.gender||'-',lv:lv(t,p),types:tys,tera:p.tera||'-',ability:p.ability||'',abilEff:ab?brN(ab[2]):'',item:p.item||'',itemEff:it?brN(it[4]):'',items2:(p.items2||[]).filter(x=>x.item).map(x=>{const r=itemRow(x);return {item:x.item,itemEff:r?brN(r[4]):''}}),
   pride:prideOf(p),partner:!!p.partner,bench:onBench(p)||undefined,awaken:awOf(t,p)||undefined,base:p.base.map(v=>v===''||v==null?'':+v),stats:hasBase?[0,1,2,3,4,5].map(i=>stat(t,p,i)):[],role:roleOf(p)||'',
@@ -1486,6 +1488,9 @@ function mvAssist(l,oldName){const host=$('[data-mvassist]',l);if(!host)return n
    빈 칸은 DB 값을 따른다 (DB 가 바뀌면 따라감). 오레마스 가져오기(import.js withOv)가 DB 기술 위에 덮는다 */
 const MV_OV_KEYS=['type','cat','pow','acc','prio','range','contact','eff','auto'];
 const mvOvOn=m=>!!(m&&m.ov&&MV_OV_KEYS.some(k=>m.ov[k]!=null&&String(m.ov[k]).trim()!==''));
+/* 11-08 망령 「노트 앱 · 한 장 요약 · 복사 글도 덮어쓴 값으로」: DB 기술 줄(배열)에 이 포켓몬의 ov 를 덮은 사본. ov 없으면 DB 줄 그대로 */
+const MV_OV_IDX={type:5,cat:6,pow:7,acc:8,range:9,contact:10,prio:11,eff:13};
+function mvRowOv(m){const r=m&&idx.moves.get(m.name);if(!mvOvOn(m))return r;const a=r?r.slice():[];for(const k in MV_OV_IDX){const v=m.ov[k];if(v!=null&&String(v).trim()!=='')a[MV_OV_IDX[k]]=String(v)}return a}
 function mvView(m,r){const o=m&&m.ov||{};const v=(k,i)=>o[k]!=null&&String(o[k]).trim()!==''?String(o[k]):r?r[i]:'';return {type:v('type',5),cat:v('cat',6),pow:v('pow',7),acc:v('acc',8),prio:v('prio',11),range:v('range',9),contact:v('contact',10),eff:v('eff',13)}}
 function openMvOv(T,P,k,done){const m=P.moves[+k];if(!m)return;const r=idx.moves.get(m.name);const o=Object.assign({},m.ov||{});const dv=(i)=>r?String(r[i]??''):'';
  const ph=(i)=>esc(dv(i)||'-');const val=k2=>esc(o[k2]==null?'':String(o[k2]));
@@ -2355,7 +2360,7 @@ function pcdMemoHTML(memo,edBtn){const L=String(memo||'').replace(/\r/g,'').spli
  return `<div class="pcd-memo"><div class="pcd-h">메모${edBtn||''}</div>${out.length?`<div class="pcd-mbody">${out.join('')}</div>`:'<div class="small faint">비어 있다</div>'}</div>`}
 function pokeCardHTML(t,p,ed){const E=(k,v,tt,x)=>ed?`<button type="button" class="pce${x?' '+x:''}" data-pce="${k}"${v!=null?` data-v="${esc(v)}"`:''} title="${esc(tt||'고치기')}">${x==='add'?'＋':x==='del'?'×':'✎'}</button>`:'';   /* 10-24 망령: 한 장 요약에서 바로 고치기 · 더하기 (ed) */const tys=[p.t1,p.t2,p.t3].filter(x=>x&&x!=='-').flatMap(tyParts);const ab=idx.abil.get(p.ability),it=itemRow(p);
  const tot=p.base.reduce((a,b)=>a+(+b||0),0);const cap=moveCap(t,p);
- const mv=p.moves.filter(m=>m.name&&!m.hide).map(m=>{const r=idx.moves.get(m.name)||[];   /* 「숨김」 기술은 한 장 요약에 안 나온다 */const g=i=>r[i]??'';const ti=typeInfo(g(5));return {name:m.name,ty:g(5),bg:ti&&safeCss(ti[1])||'var(--sunk2)',fg:ti&&safeCss(ti[2])||'var(--ink)',cat:g(6),pow:g(7),acc:g(8),range:g(9),prio:g(11),eff:g(13)}});
+ const mv=p.moves.filter(m=>m.name&&!m.hide).map(m=>{const r=mvRowOv(m)||[];   /* 「숨김」 기술은 한 장 요약에 안 나온다 */const g=i=>r[i]??'';const ti=typeInfo(g(5));return {name:m.name,ty:g(5),bg:ti&&safeCss(ti[1])||'var(--sunk2)',fg:ti&&safeCss(ti[2])||'var(--ink)',cat:g(6),pow:g(7),acc:g(8),range:g(9),prio:g(11),eff:g(13)}});
  const all=S.db.types.map(x=>x[0]).filter(x=>x&&x!=='-'&&tyChart()[x]);const mul={};for(const a of all)mul[a]=tyMult(a,tys);
  const grp=[[8,'8배','x8'],[4,'4배','x4'],[2,'2배','x2'],[0.5,'1/2','h'],[0.25,'1/4','q'],[0.125,'1/8','e'],[0,'무효','z']].map(([v,l,c])=>({l,c,list:all.filter(a=>v===8?mul[a]>=8:v===4?mul[a]===4:v===2?mul[a]===2:v===0.5?mul[a]===0.5:v===0.25?mul[a]===0.25:v===0.125?mul[a]>0&&mul[a]<=0.125:mul[a]===0)})).filter(g=>g.list.length);
  const pots=p.pots.map((n,i)=>({n,i,k:potKindOf(p,i),e:potEffOf(p,i)})).filter(x=>x.n&&x.n!=='-');const XL=exclAll(p);
