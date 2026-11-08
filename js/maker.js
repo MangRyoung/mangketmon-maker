@@ -3970,12 +3970,24 @@ function embMake(){if(EMB.made||!(EMB.nu||EMB.add))return '';if(!embReady())retu
   S.trainers.push(t);save();EMB.t=t.id;EMB.p='';EMB.one=false;tell({kind:'trainer',id:t.id,name:t.name});return ''}
  const T=S.trainers.find(x=>x.id===EMB.t);if(!T)return '';EMB.made=true;const p=newPoke();applySheetTpl(T,p);if(EMB.add==='aw'){p.awaken=T.pokemon.some(x=>x.awaken==='free')?'c':'free';awClassSync(T,p)}
  T.open=true;T.pokemon.push(p);save();EMB.p=p.id;EMB.one=true;tell({kind:'poke',id:p.id,tid:T.id,aw:p.awaken||''});return ''}
+/* 11-09 망령 「노트 카드에서 그 칸을 누르면 바로 그 칸을 고치게」: 노트가 ?sec= 로 보낸다 (포켓몬 한 장 embed)
+   head = 이름 · 레벨 · 프라이드 · 타입 · 알그룹 · stat = 능력치 · ab = 특성(고르는 창까지) · item = 소지품 · ex.<excl|x0…> = 전용(편집 창까지) · pot.<n> = 포텐셜(편집 창까지) · mv.<n> = 기술 */
+const EMB_SECT={head:'base',stat:'base',ab:'base',item:'base',ex:'pots',pot:'pots',mv:'moves'};
+function embSec(){const m=/^(head|stat|ab|item|ex|pot|mv)(?:\.([\w-]+))?$/.exec(EMB.sec||'');return m?{k:m[1],a:m[2]||''}:null}
+function embGoSec(p,es){const pk=document.getElementById('pk-'+p.id);if(!pk||!es)return;const q=s=>{try{return pk.querySelector(s)}catch(e){return null}};let el=null,go=null;
+ if(es.k==='head'){const n=q('#nm-'+CSS.escape(p.id));el=n&&n.closest('.fgrid')}
+ else if(es.k==='stat'){const s=q('.stwrap');el=s&&(s.closest('.panel')||s)}
+ else if(es.k==='ab'){el=q('[data-act="pickAbil"]');go=el}
+ else if(es.k==='item')el=q('[data-act="pickItem"]');
+ else if(es.k==='ex'||es.k==='pot'){el=q(`[data-act="editPot"][data-k="${CSS.escape(es.a)}"]`);go=el}
+ else if(es.k==='mv')el=q(`.mv[data-si="${CSS.escape(es.a)}"]`);
+ el=el||pk;try{el.scrollIntoView({block:'center'})}catch(e){}el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600);if(go&&!RO_EMB)setTimeout(()=>go.click(),250)}
 function embRender(root){const wait=embMake();if(wait){root.innerHTML=`<div class="empty">${esc(wait)}</div>`;return true}
  const ti=S.trainers.findIndex(x=>x.id===EMB.t);
  if(ti<0){root.innerHTML=`<div class="empty">${SH.on&&!SH.ready?'공유 DB 에서 트레이너를 불러오는 중…':'이 트레이너를 찾지 못했습니다 (비공개라면 「서명」을 확인하세요)'}</div>`;return true}
- const t=S.trainers[ti];if(!EMB.done){t.open=true;const p=EMB.p&&t.pokemon.find(x=>x.id===EMB.p);if(p){p.open=true;if(!p.tab)p.tab='base'}}
+ const t=S.trainers[ti];if(!EMB.done){t.open=true;const p=EMB.p&&t.pokemon.find(x=>x.id===EMB.p);if(p){p.open=true;if(!p.tab)p.tab='base';const es=embSec();if(es)p.tab=EMB_SECT[es.k]}}
  root.innerHTML=`<div id="trs" class="embtrs">${trainerHTML(t,ti)}</div>`;fitFlist(root);
- if(!EMB.done&&!(EMB.sec==='pcard'&&SH.on&&!SH.ready)){EMB.done=true;if(EMB.sec==='pcard'){const pp=EMB.p&&t.pokemon.find(x=>x.id===EMB.p);if(pp)setTimeout(()=>openPokeCard(t,pp),150)}else if(!EMB.one)setTimeout(()=>{const el=(EMB.sec&&document.querySelector('#tr-'+t.id+' .'+EMB.sec.replace(/[^a-z]/g,'')))||document.getElementById(EMB.p?'pk-'+EMB.p:'tr-'+t.id);if(el&&EMB.sec){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600)}if(el){const hd=document.querySelector('header.top');const off=EMB.embed||!hd?0:hd.offsetHeight;window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-off-8)})}},120)}
+ if(!EMB.done&&!(EMB.sec==='pcard'&&SH.on&&!SH.ready)&&!(embSec()&&EMB.p&&!t.pokemon.some(x=>x.id===EMB.p))){EMB.done=true;if(EMB.sec==='pcard'){const pp=EMB.p&&t.pokemon.find(x=>x.id===EMB.p);if(pp)setTimeout(()=>openPokeCard(t,pp),150)}else if(embSec()&&EMB.p){const pp=t.pokemon.find(x=>x.id===EMB.p);if(pp)setTimeout(()=>embGoSec(pp,embSec()),150)}else if(!EMB.one)setTimeout(()=>{const el=(EMB.sec&&document.querySelector('#tr-'+t.id+' .'+EMB.sec.replace(/[^a-z]/g,'')))||document.getElementById(EMB.p?'pk-'+EMB.p:'tr-'+t.id);if(el&&EMB.sec){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600)}if(el){const hd=document.querySelector('header.top');const off=EMB.embed||!hd?0:hd.offsetHeight;window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-off-8)})}},120)}
  return true}
 /* 10-30 망령 「포켓몬 고치기를 누르면 제작기가 이상하게 떠 — 그 포켓몬 고치는 칸만 나오면 될 거 아니야」:
    ?p= 가 있으면 그 포켓몬 시트 한 장만 (위에 트레이너 이름 · 통솔점 · PT 기술점 한 줄). 「트레이너 전체 보기」로 예전처럼 */
