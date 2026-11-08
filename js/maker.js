@@ -149,6 +149,8 @@ const DBS={
 
 /* ---------- 상태 ---------- */
 const K_T='mkm_trainers_v2',K_DB='mkm_db_v2',K_OLD='mangketmon_maker_v1';
+/* 11-08 22:28 망령 「시트에서 권한 없는 것도 한 장으로 보기 — 비밀로 잠금 처리해 둔 게 아니면 볼 수 있게」: 세션 노트가 ?embed=1&ro=1 로 열면 읽기 전용 — 저장 · 공유 올리기를 하지 않고, 한 장 요약에서 고치기 단추를 뺀다 */
+const RO_EMB=(()=>{try{const q=new URLSearchParams(location.search);return q.get('embed')==='1'&&q.get('ro')==='1'}catch(e){return false}})();
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
 let S={db:null,custom:{moves:[],abil:[],items:[],pots:[],points:[],old:[]},trainers:[],folders:[],ui:{tab:'char'}};
@@ -176,7 +178,7 @@ function load(){
  if(!S.trainers.length)S.trainers.push(sampleTrainer());
 }
 let dbDirty=false,svT=null;
-function save(dbToo){if(dbToo){dbDirty=true;SH.dbDirty=true}clearTimeout(svT);svT=setTimeout(()=>{
+function save(dbToo){if(RO_EMB)return;if(dbToo){dbDirty=true;SH.dbDirty=true}clearTimeout(svT);svT=setTimeout(()=>{
  mkmChanged();if(SH.failed)lsSet('mkm_unsynced','1');let ok=lsSet(K_T,JSON.stringify({trainers:S.trainers,folders:S.folders,ui:S.ui}));
  if(dbDirty){ok=lsSet(K_DB,JSON.stringify({db:S.db,custom:S.custom}))&&ok;dbDirty=false}
  if(SH.on){shFlush();return}
@@ -2380,6 +2382,7 @@ function goNew(cardId,inputId){requestAnimationFrame(()=>{const el=document.getE
 function goPoke(T,P){T.open=true;P.open=true;save();refreshTrainer(T);requestAnimationFrame(()=>{const el=document.getElementById('pk-'+P.id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'})})}
 function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요약</h2><span class="sp"></span><button class="btn sm" data-pced title="이 요약에서 바로 고치고 더한다 (✎ · ＋ · ×)">✎ 편집</button><button class="btn sm ghost" data-pcgo title="제작기에서 이 포켓몬 시트로 이동">시트로</button><button class="btn sm" data-pcdc title="이 요약을 그림으로 만들어 디스코드의 정해 둔 스레드에 올린다 (웹툴 설정 「디스코드」 탭에서 이어 둔 곳)">디코로</button><button class="btn sm" data-pcpng title="이 요약을 그림 파일로 저장">PNG 저장</button><button class="btn sm ghost pcdelb" data-pcmore title="이 포켓몬 시트를 지운다 (5초 안 실행 취소)">삭제</button><button class="btn ghost" data-x>닫기</button></div>${pcdTabs(p,null)}<div class="mbody pcd-wrap">${pokeCardHTML(t,p)}</div>`,{wide:true});
  $('.mbox',l).classList.add('pcdbox');l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>closeModal());
+ if(RO_EMB){l.querySelectorAll('[data-pced],[data-pcgo],[data-pcdc],[data-pcmore]').forEach(b=>b.remove());l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{closeModal();try{window.parent.postMessage({mkm:'close'},'*')}catch(_){}})}   /* 읽기 전용: 보기 · PNG 저장 · 닫기만, 닫으면 세션 노트 창도 닫는다 */
  /* 10-24 망령: 「✎ 편집」 — 요약 위에서 이름 · 특성 · 도구 · 기술 · 포텐셜 · 메모를 고치고 더한다. 고르기 창은 시트와 같은 것을 쓴다 */
  let ED=false;const wrap=$('.pcd-wrap',l);const depth=layers.length;
  /* 11-06 망령 「한 장 요약 편집이 저장이 안 되고 날아간다」: 연 뒤에 공유 DB 가 시트를 새 객체로 다시 만들면(처음 연결 · 노트 안 제작기) 붙잡고 있던 t · p 가 떨어져 나가 고친 것이 어디에도 안 남았다 → 매번 id 로 지금 것을 다시 찾는다 */
@@ -3907,7 +3910,7 @@ function shRender(what){shRW.t=shRW.t||what.t;shRW.d=shRW.d||what.d;clearTimeout
 async function shInit(){let db=null;try{db=window.MKM_STORE?await MKM_STORE.connect():null}catch(e){console.warn('[공유 DB]',e);toast('공유 DB에 연결하지 못했습니다: '+(e&&e.message||e))}
  if(!db){if(window.MKM_RULEBOOK)try{MKM_RULEBOOK.attach(null)}catch(e){}if(window.MKM_STORE&&MKM_STORE.configured())SH.failed=true;const el=$('#saved');if(el)el.textContent=window.MKM_STORE&&MKM_STORE.configured()?'공유 DB 연결 실패 · 이 브라우저에만 저장':'이 브라우저에만 저장 (js/config.js에 공유 DB 설정 없음)';shDot();return}
  SH.db=db;SH.on=true;SH.orph=new Map();SH.unsubs=[];SH.net='ok';if(db.onState)try{db.onState((st,code)=>{SH.net=st==='off'?'off':'ok';if(st==='off')SH.netCode=code||'';shDot()})}catch(e){}if(window.MKM_NOTES)try{MKM_NOTES.attach(db)}catch(e){}if(window.MKM_RULEBOOK)try{MKM_RULEBOOK.attach(db,()=>SH.canWrite!==false)}catch(e){}shStatus('공유 저장소 연결 중…');
- SH.canWrite=db.canWrite!==false;
+ SH.canWrite=db.canWrite!==false&&!RO_EMB;
  for(const kind of SH_KINDS){SH.init[kind]=false;
   SH.unsubs.push(db.collection(kind).onSnapshot(snap=>{
    if(!SH.ready){SH.buf[kind]=snap.docs.map(d=>[d.id,d.data()]);SH.init[kind]=true;if(SH_KINDS.every(k=>SH.init[k]))shStart();return}
@@ -3980,7 +3983,7 @@ function shDirtyPaths(only){const out=[];if(!SH.on||!SH.ready||!SH.canWrite)retu
  for(const [p,b] of W){const j=canon(b);if(SH.synced.get(p)!==j&&!(SH.bad&&SH.bad.get(p)===j))out.push(p)}for(const p of SH.synced.keys())if(!W.has(p))out.push(p)}catch(_){}return out}
 function shDirty(){if(!SH.on||!SH.ready||!SH.canWrite)return false;if(SH.flushing)return true;return shDirtyPaths().length>0}
 /* 11-03 저녁: 올릴 게 없으면 바로 답하고, 있으면 「지금 안 올라간 것」만 올라갈 때까지 기다린다 (다른 올리기 · fresh 재동기화가 돌고 있어도 응답을 막지 않게) */
-window.addEventListener('message',async e=>{const d=e.data;if(!d||d.mkm!=='flush'||e.source!==window.parent)return;const t0=Date.now();let ok=true;
+window.addEventListener('message',async e=>{const d=e.data;if(!d||d.mkm!=='flush'||e.source!==window.parent)return;if(RO_EMB){try{e.source.postMessage({mkm:'flushed',ok:true,ro:true},'*')}catch(_){}return}const t0=Date.now();let ok=true;
  try{const need=shDirtyPaths();if(need.length){clearTimeout(shTimer);SH.pendT=false;let kicked=false;
   while(shDirtyPaths(need).length){if(!SH.flushing){shLastFlush=0;shFlush()}else if(!kicked){SH.again=true}kicked=true;await new Promise(r=>setTimeout(r,100));if(Date.now()-t0>9000){ok=false;break}}}}catch(x){ok=false}
  try{e.source.postMessage({mkm:'flushed',ok,ro:SH.on&&SH.ready&&!SH.canWrite},'*')}catch(_){}});
