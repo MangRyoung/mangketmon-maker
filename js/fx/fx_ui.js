@@ -284,5 +284,35 @@ window.OM_FX_UI=(()=>{
   q('[data-gadd]').onclick=()=>{const l=cur();if(!l)return toast('칸을 채워 줘');if(kind==='choice'){if(inCh)put('');put(l);inCh=true;drawCh();toast('이제 넣는 줄이 하나씩 선택지가 된다');return}put(l);const lb=host.querySelector('[data-gx="lab"]');if(lb)lb.value='';upd()};
   q('[data-gend]').onclick=()=>{ta.value=ta.value.replace(/\s+$/,'')+'\n\n';ta.dispatchEvent(new Event('input',{bubbles:true}));inCh=false;drawCh();upd()};
   drawCh()}
- return {openEditor,openRm,HELP,mountGen};
+ /* ---------- 11-09 망령 「필드 전개에도 구문 — 턴 개시 · 턴 종료 확률 발동, 등장(임의 교대 · 죽어내밀기 포함), 복합 효과」 ----------
+    필드 한 장의 구문 = auto: {deploy 전개 시, start 턴 개시 시, end 턴 종료 시, entry 등장 시, hold 필드 동안, who 등장 대상(all|own|foe)} — 칸마다 한국어 구문(여러 줄 · 줄 앞 「3할」 「저확률」 확률).
+    제작기 · 노트 · 웹툴의 필드 편집 창이 같이 쓴다 (창 위에 창을 띄우지 않고 그 자리에서 고친다 — 웹툴 창은 겹쳐 열리지 않는다).
+    실행은 웹툴 battle_ui fieldAuto: 전개 · 턴 개시 · 턴 종료의 「자신」 = 필드 주인 포켓몬(트레이너 필드면 그 트레이너의 나와 있는 첫 포켓몬), 등장의 「자신」 = 나온 포켓몬.
+    필드 동안 = 줄의 대상(자신 · 아군 · 상대 · 전체)에 맞는 포켓몬마다 건다 · 나중에 나온 포켓몬에게도 · 필드가 걷히면 그 이름(《필드 이름》)으로 건 효과를 푼다 */
+ const FA_K=['deploy','start','end','entry','hold'];
+ const FA_ROWS=[['deploy','전개 시','펼치는 순간 한 번. 자신 = 필드 주인 (트레이너 필드면 그 트레이너의 나와 있는 첫 포켓몬)'],
+  ['start','턴 개시 시','매 턴 개시. 확률 발동은 줄 앞에 「3할」 「30%」 「저확률」'],
+  ['end','턴 종료 시','매 턴 종료 — 남은 턴이 줄기 전. 확률 발동은 줄 앞에'],
+  ['entry','등장 시','포켓몬이 나올 때마다 (통상 교대 · 임의 교대 · 죽어내밀기 · 강제 교대). 자신 = 나온 포켓몬, 아군 · 상대도 나온 포켓몬 기준'],
+  ['hold','필드 동안','펼쳐 둔 동안만 걸리는 지속 효과 (배율 · 위력 · 면역 · 감소 무시 …). 줄의 대상(자신 = 주인 · 아군 · 상대 · 전체)에 맞는 포켓몬마다 걸고, 나중에 나온 포켓몬에게도 걸고, 걷히면 푼다. 랭크 · 상태처럼 한 번 걸고 끝나는 것은 「전개 시」 · 「등장 시」로']];
+ const FA_WHO=[['all','누구든'],['own','주인 편만'],['foe','상대 편만']];
+ function fieldAutoNorm(a){if(!a||typeof a!=='object')return null;const o={};for(const k of FA_K){const v=String(a[k]==null?'':a[k]).replace(/\r/g,'').trim();if(v)o[k]=v.slice(0,4000)}if(!Object.keys(o).length)return null;if(a.who==='own'||a.who==='foe')o.who=a.who;return o}
+ function fieldAutoSum(a){a=fieldAutoNorm(a);if(!a)return '';return FA_ROWS.filter(([k])=>a[k]).map(([,n])=>n).join(' · ')}
+ const FAB_CSS=`.fab{border:1px solid var(--line,#8886);border-radius:8px;padding:8px 10px;margin-top:8px}.fab-h{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;margin-bottom:4px}.fab-h b{font-size:13px}.fab-r{border-top:1px dashed var(--line,#8885);padding:4px 0}.fab-r>summary{cursor:pointer;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;list-style:none}.fab-r>summary::-webkit-details-marker{display:none}.fab-r>summary::before{content:'▸';opacity:.6}.fab-r[open]>summary::before{content:'▾'}.fab-r b{font-size:12.5px;min-width:5.5em}.fab-s{font-size:11.5px;opacity:.75;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fab-s.on{opacity:1;color:var(--acc,#c58b00)}.fab-d{font-size:11.5px;opacity:.7;margin:2px 0 4px}.fab-r textarea{width:100%;box-sizing:border-box;font-family:var(--mono,monospace);font-size:12.5px}.fab-p{font-size:11.5px;white-space:pre-wrap;margin-top:3px;opacity:.85}.fab-p .er{color:var(--red,#e05555)}.fab-w{display:flex;gap:6px;align-items:center;font-size:12px;margin-bottom:4px}`;
+ function fieldAutoBox(host,au,o){o=o||{};if(!host)return {get:()=>fieldAutoNorm(au)};au=Object.assign({},fieldAutoNorm(au)||{});
+  if(!document.getElementById('fab-css')){const st=document.createElement('style');st.id='fab-css';st.textContent=FAB_CSS;document.head.appendChild(st)}
+  const K=FX();
+  host.innerHTML=`<div class="fab"><div class="fab-h"><b>⚙ 자동화 구문</b><span class="small dim">웹툴 배틀에서 이 필드를 펼치면 칸마다 저절로 돈다 · 비워 두면 손으로 · 한 칸에 여러 줄(복합 효과)</span></div>
+   ${FA_ROWS.map(([k,n,d])=>`<details class="fab-r" data-fak="${k}" ${au[k]?'open':''}><summary><b>${n}</b><span class="fab-s" data-fas="${k}"></span></summary><div class="fab-d">${esc(d)}</div>${k==='entry'?`<label class="fab-w">누가 나올 때 <select data-faw>${FA_WHO.map(([v,l])=>`<option value="${v}" ${(au.who||'all')===v?'selected':''}>${l}</option>`).join('')}</select></label>`:''}<textarea data-fat="${k}" rows="3" placeholder="${k==='hold'?'예) 배율 아군전체 공격×1.3&#10;위력 ×1.3 아군전체 타입:불꽃':k==='entry'?'예) 피해 1/8 자신&#10;저확률 상태 혼란 자신':k==='start'||k==='end'?'예) 3할 회복 1/16 아군전체&#10;저확률 상태 풀죽음 상대1체':'예) 랭크 상대전체 스피드-1'}">${esc(au[k]||'')}</textarea><div class="fab-p" data-fap="${k}"></div><div data-fag="${k}"></div></details>`).join('')}
+   <details class="fab-r"><summary><b>도움말</b><span class="fab-s">구문 꼴 · 대상 · 확률</span></summary><pre class="fab-p" style="white-space:pre-wrap">${esc(HELP)}</pre></details></div>`;
+  const draw=k=>{const v=au[k]||'';const sm=host.querySelector(`[data-fas="${k}"]`),pv=host.querySelector(`[data-fap="${k}"]`);let ops=[],errs=[];if(v&&K&&K.parse){try{const r=K.parse(v);ops=r.ops||[];errs=r.errs||[]}catch(e){errs=[e.message]}}
+   let un=[];try{un=ops.length&&K.unparse?K.unparse(ops):[]}catch(e){}
+   if(sm){sm.textContent=v?(un.length?un.join(' / '):v.split('\n')[0]):'없음';sm.classList.toggle('on',!!v)}
+   if(pv)pv.innerHTML=v?(un.length?'<b>미리보기</b> '+esc(un.join(' / ')):'')+(errs.length?`<div class="er">모르는 줄: ${esc(errs.join(' / '))}</div>`:''):''};
+  host.querySelectorAll('[data-fat]').forEach(ta=>{const k=ta.dataset.fat;ta.addEventListener('input',()=>{au[k]=ta.value;draw(k)});draw(k)});
+  host.querySelectorAll('.fab-r[data-fak]').forEach(dt=>dt.addEventListener('toggle',()=>{if(!dt.open)return;const k=dt.dataset.fak;const g=host.querySelector(`[data-fag="${k}"]`);if(g&&!g.dataset.on){g.dataset.on='1';try{const ta=host.querySelector(`[data-fat="${k}"]`);mountGen(g,ta,{toast:o.toast});ta.addEventListener('input',()=>{au[k]=ta.value;draw(k)})}catch(e){}}}));
+  const w=host.querySelector('[data-faw]');if(w)w.onchange=()=>{au.who=w.value};
+  /* 생성기의 「줄 추가」는 textarea 값을 바꾸고 input 을 안 쏠 수 있다 — 꺼낼 때 textarea 에서 다시 읽는다 */
+  return {get:()=>{host.querySelectorAll('[data-fat]').forEach(ta=>{au[ta.dataset.fat]=ta.value});return fieldAutoNorm(au)}}}
+ return {openEditor,openRm,HELP,mountGen,fieldAutoBox,fieldAutoNorm,fieldAutoSum,FA_ROWS};
 })();
