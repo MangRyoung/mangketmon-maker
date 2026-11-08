@@ -28,6 +28,7 @@ window.OM_FX_UI=(()=>{
 수세유지 [기술:우드혼,…] [타입:풀] [물리|특수] [HP≤1/2]  (그 기술로 공격해도 자신의 【수세】 효과가 켜진 채)
 대상지정 [상대1체|아군1체|자신포함아군1체|아무나1체]  (웹툴 지시 입력에서 이 포텐셜을 선행 입력할 때 기술처럼 대상을 찍어 둔다 · 발동하면 구문의 「1체」가 그 대상)
 확인 "조건 문장"  (발동 때 물어본다)        조건 아군빈사 · 조건 HP≤1/2 · 조건 상태:날따름        레이드 구간:4
+조건 설치기:끈적끈적네트 (자진 · 땅 위 전용 설치기면 땅 위일 때만) · 조건 적진설치기:스텔스록 · 조건 타입:벌레 (자신의 타입) · 조건 소모:나무열매 (방금 다 쓴 소지품 — 「소모했을 때」 효과)        줄 끝 「대상타입:벌레」: 그 줄의 대상 중 그 타입에게만        감소무시 [대상] [능력] 저하  (랭크 감소에 더해 배율 저하도 막는다)
 조건 명중 [기술:돌던지기] [상대타입:물] [타입:바위]  (자신의 기술이 맞았을 때 — 【자동】 이면 웹툴이 맞은 대상마다 저절로, 대상 = 맞은 포켓몬)        강제교대 [대상|상대1체|상대전체]  (배턴터치 없이 나가고 벤치에서 무작위 1마리 · 흡반 · 뿌리박기 · 교대무시는 막힌다)
 선택   (여러 효과 중 하나 고르기 · 「선택 여럿」 이면 여러 개를 고른다) — 다음 줄부터 빈 줄까지가 선택지
 랭크 아군1체 특공+1
@@ -289,13 +290,18 @@ window.OM_FX_UI=(()=>{
     제작기 · 노트 · 웹툴의 필드 편집 창이 같이 쓴다 (창 위에 창을 띄우지 않고 그 자리에서 고친다 — 웹툴 창은 겹쳐 열리지 않는다).
     실행은 웹툴 battle_ui fieldAuto: 전개 · 턴 개시 · 턴 종료의 「자신」 = 필드 주인 포켓몬(트레이너 필드면 그 트레이너의 나와 있는 첫 포켓몬), 등장의 「자신」 = 나온 포켓몬.
     필드 동안 = 줄의 대상(자신 · 아군 · 상대 · 전체)에 맞는 포켓몬마다 건다 · 나중에 나온 포켓몬에게도 · 필드가 걷히면 그 이름(《필드 이름》)으로 건 효과를 푼다 */
- const FA_K=['deploy','start','end','entry','hold'];
- const FA_ROWS=[['deploy','전개 시','펼치는 순간 한 번. 자신 = 필드 주인 (트레이너 필드면 그 트레이너의 나와 있는 첫 포켓몬)'],
-  ['start','턴 개시 시','매 턴 개시. 확률 발동은 줄 앞에 「3할」 「30%」 「저확률」'],
-  ['end','턴 종료 시','매 턴 종료 — 남은 턴이 줄기 전. 확률 발동은 줄 앞에'],
-  ['entry','등장 시','포켓몬이 나올 때마다 (통상 교대 · 임의 교대 · 죽어내밀기 · 강제 교대). 자신 = 나온 포켓몬, 아군 · 상대도 나온 포켓몬 기준'],
-  ['hold','필드 동안','펼쳐 둔 동안만 걸리는 지속 효과 (배율 · 위력 · 면역 · 감소 무시 …). 줄의 대상(자신 = 주인 · 아군 · 상대 · 전체)에 맞는 포켓몬마다 걸고, 나중에 나온 포켓몬에게도 걸고, 걷히면 푼다. 랭크 · 상태처럼 한 번 걸고 끝나는 것은 「전개 시」 · 「등장 시」로']];
+ const FA_K=['deploy','start','end','entry','use','hold'];
+ /* 11-09 망령 「필드는 전체에 깔리는 거니까 상대라는 개념은 그다지 없어 — 모든 포켓몬 적용이 디폴트」: 전개 · 턴 개시 · 턴 종료 · 필드 동안은 대상을 안 쓰면 「전체」(필드 위 모든 포켓몬). 아군 · 상대는 주인 기준으로 그대로 쓸 수 있다 */
+ const FA_ROWS=[['deploy','전개 시','펼치는 순간 한 번. 대상을 안 쓰면 필드 위 모든 포켓몬 (아군 · 상대 = 필드 주인 기준)'],
+  ['start','턴 개시 시','매 턴 개시. 대상을 안 쓰면 모든 포켓몬. 확률 발동은 줄 앞에 「3할」 「30%」 「저확률」'],
+  ['end','턴 종료 시','매 턴 종료 — 남은 턴이 줄기 전. 대상을 안 쓰면 모든 포켓몬. 확률 발동은 줄 앞에'],
+  ['entry','등장 시','포켓몬이 나올 때마다 (통상 교대 · 임의 교대 · 죽어내밀기 · 강제 교대). 대상을 안 쓰면 나온 그 포켓몬. 「조건 설치기:끈적끈적네트」 처럼 조건 줄을 앞에 두면 맞을 때만'],
+  ['use','소지품 소모 시','필드 위 포켓몬이 소지품을 다 썼을 때. 대상을 안 쓰면 쓴 그 포켓몬. 「조건 소모:나무열매」 로 어떤 소지품인지 거른다'],
+  ['hold','필드 동안','펼쳐 둔 동안만 걸리는 지속 효과 (배율 · 위력 · 면역 · 감소 무시 …). 대상을 안 쓰면 모든 포켓몬 · 나중에 나온 포켓몬에게도 걸고 · 걷히면 푼다. 줄 끝 「대상타입:벌레」 로 그 타입에게만. 랭크 · 상태처럼 한 번 걸고 끝나는 것은 「전개 시」 · 「등장 시」로']];
  const FA_WHO=[['all','누구든'],['own','주인 편만'],['foe','상대 편만']];
+ /* 웹툴 battle_ui faTo 와 같은 규칙: 대상 낱말이 없는 줄 끝에 「전체」(전개 · 턴 · 필드 동안) · 「자신」(등장 · 소지품 소모) — 미리보기도 실제로 도는 대로 */
+ const FA_TW=/(^|\s)(자신|아군전체|아군|상대전체|상대|자신이외|전체|아군1체|아군1|상대1체|상대1|무작위1|자신이외무작위|상대무작위|전원무작위|에리어|지정에리어)(?=\s|$)/;
+ const faTo=(t,w)=>String(t||'').split('\n').map(l=>{const x=l.trim();if(!x||x.startsWith('#')||/^(조건|확인|선택|-|·|•)/.test(x)||/[;；]/.test(x)||FA_TW.test(x))return l;return l.replace(/\s*(있는한)?\s*$/,m=>' '+w+m)}).join('\n');
  function fieldAutoNorm(a){if(!a||typeof a!=='object')return null;const o={};for(const k of FA_K){const v=String(a[k]==null?'':a[k]).replace(/\r/g,'').trim();if(v)o[k]=v.slice(0,4000)}if(!Object.keys(o).length)return null;if(a.who==='own'||a.who==='foe')o.who=a.who;return o}
  function fieldAutoSum(a){a=fieldAutoNorm(a);if(!a)return '';return FA_ROWS.filter(([k])=>a[k]).map(([,n])=>n).join(' · ')}
  const FAB_CSS=`.fab{border:1px solid var(--line,#8886);border-radius:8px;padding:8px 10px;margin-top:8px}.fab-h{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;margin-bottom:4px}.fab-h b{font-size:13px}.fab-r{border-top:1px dashed var(--line,#8885);padding:4px 0}.fab-r>summary{cursor:pointer;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;list-style:none}.fab-r>summary::-webkit-details-marker{display:none}.fab-r>summary::before{content:'▸';opacity:.6}.fab-r[open]>summary::before{content:'▾'}.fab-r b{font-size:12.5px;min-width:5.5em}.fab-s{font-size:11.5px;opacity:.75;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fab-s.on{opacity:1;color:var(--acc,#c58b00)}.fab-d{font-size:11.5px;opacity:.7;margin:2px 0 4px}.fab-r textarea{width:100%;box-sizing:border-box;font-family:var(--mono,monospace);font-size:12.5px}.fab-p{font-size:11.5px;white-space:pre-wrap;margin-top:3px;opacity:.85}.fab-p .er{color:var(--red,#e05555)}.fab-w{display:flex;gap:6px;align-items:center;font-size:12px;margin-bottom:4px}`;
@@ -303,9 +309,9 @@ window.OM_FX_UI=(()=>{
   if(!document.getElementById('fab-css')){const st=document.createElement('style');st.id='fab-css';st.textContent=FAB_CSS;document.head.appendChild(st)}
   const K=FX();
   host.innerHTML=`<div class="fab"><div class="fab-h"><b>⚙ 자동화 구문</b><span class="small dim">웹툴 배틀에서 이 필드를 펼치면 칸마다 저절로 돈다 · 비워 두면 손으로 · 한 칸에 여러 줄(복합 효과)</span></div>
-   ${FA_ROWS.map(([k,n,d])=>`<details class="fab-r" data-fak="${k}" ${au[k]?'open':''}><summary><b>${n}</b><span class="fab-s" data-fas="${k}"></span></summary><div class="fab-d">${esc(d)}</div>${k==='entry'?`<label class="fab-w">누가 나올 때 <select data-faw>${FA_WHO.map(([v,l])=>`<option value="${v}" ${(au.who||'all')===v?'selected':''}>${l}</option>`).join('')}</select></label>`:''}<textarea data-fat="${k}" rows="3" placeholder="${k==='hold'?'예) 배율 아군전체 공격×1.3&#10;위력 ×1.3 아군전체 타입:불꽃':k==='entry'?'예) 피해 1/8 자신&#10;저확률 상태 혼란 자신':k==='start'||k==='end'?'예) 3할 회복 1/16 아군전체&#10;저확률 상태 풀죽음 상대1체':'예) 랭크 상대전체 스피드-1'}">${esc(au[k]||'')}</textarea><div class="fab-p" data-fap="${k}"></div><div data-fag="${k}"></div></details>`).join('')}
+   ${FA_ROWS.map(([k,n,d])=>`<details class="fab-r" data-fak="${k}" ${au[k]?'open':''}><summary><b>${n}</b><span class="fab-s" data-fas="${k}"></span></summary><div class="fab-d">${esc(d)}</div>${k==='entry'?`<label class="fab-w">누가 나올 때 <select data-faw>${FA_WHO.map(([v,l])=>`<option value="${v}" ${(au.who||'all')===v?'selected':''}>${l}</option>`).join('')}</select></label>`:''}<textarea data-fat="${k}" rows="3" placeholder="${k==='hold'?'예) 감소무시 스피드 저하 대상타입:벌레&#10;위력 ×1.3 타입:불꽃':k==='entry'?'예) 조건 설치기:끈적끈적네트&#10;상태 바인드 1턴':k==='use'?'예) 조건 소모:나무열매&#10;타입 변경 고스트':k==='start'||k==='end'?'예) 3할 회복 1/16&#10;저확률 상태 잠듦':'예) 랭크 스피드-1'}">${esc(au[k]||'')}</textarea><div class="fab-p" data-fap="${k}"></div><div data-fag="${k}"></div></details>`).join('')}
    <details class="fab-r"><summary><b>도움말</b><span class="fab-s">구문 꼴 · 대상 · 확률</span></summary><pre class="fab-p" style="white-space:pre-wrap">${esc(HELP)}</pre></details></div>`;
-  const draw=k=>{const v=au[k]||'';const sm=host.querySelector(`[data-fas="${k}"]`),pv=host.querySelector(`[data-fap="${k}"]`);let ops=[],errs=[];if(v&&K&&K.parse){try{const r=K.parse(v);ops=r.ops||[];errs=r.errs||[]}catch(e){errs=[e.message]}}
+  const draw=k=>{const v=au[k]||'';const sm=host.querySelector(`[data-fas="${k}"]`),pv=host.querySelector(`[data-fap="${k}"]`);let ops=[],errs=[];if(v&&K&&K.parse){try{const r=K.parse(faTo(v,k==='entry'||k==='use'?'자신':'전체'));ops=r.ops||[];errs=r.errs||[]}catch(e){errs=[e.message]}}
    let un=[];try{un=ops.length&&K.unparse?K.unparse(ops):[]}catch(e){}
    if(sm){sm.textContent=v?(un.length?un.join(' / '):v.split('\n')[0]):'없음';sm.classList.toggle('on',!!v)}
    if(pv)pv.innerHTML=v?(un.length?'<b>미리보기</b> '+esc(un.join(' / ')):'')+(errs.length?`<div class="er">모르는 줄: ${esc(errs.join(' / '))}</div>`:''):''};
