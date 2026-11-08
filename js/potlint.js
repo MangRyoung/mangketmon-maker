@@ -295,6 +295,6 @@ window.MKM_POTLINT=(()=>{
   for(let k=0;k<2;k++){const ci=lines.findIndex(s=>/^(?:위력 ×1 .*급소\+\d|랭크 급소\+\d)$/.test(s));if(ci<0)break;const cr=lines[ci].match(/급소\+\d$/)[0];const want=lines[ci].startsWith('랭크')?[]:lines[ci].replace(/^위력 ×1 /,'').replace(/\s*급소\+\d$/,'').split(/\s+/).filter(Boolean);
    const bi=lines.findIndex((s,i)=>{if(i===ci||!/^위력 ×(?!1(?:\s|$))/.test(s)||/급소\+/.test(s))return false;const ws=s.replace(/^위력 ×[\d.]+/,'').split(/\s+/).filter(w=>w&&w!=='공세');return want.length?want.every(w=>ws.includes(w))&&ws.every(w=>want.includes(w)):!ws.length});
    if(bi<0)break;lines[bi]+=' '+cr;lines.splice(ci,1);why.splice(ci,1)}
-  const timing=/【등장/.test(all)?'【등장】이 있어 오레마스에서 나올 때 자동으로 걸린다':/【상시】/.test(all)?'【상시】라 늘 켜져 있다':'배틀의 포텐셜 칸 「발동」 버튼으로 건다';
+  const timing=/【등장/.test(all)?'【등장】이 있어 오레마스에서 나올 때 자동으로 걸린다':/상태가\s*(?:되었을|됐을)\s*때/.test(all)?'「~ 상태가 되었을 때」라 오레마스에서 그 상태가 걸리는 순간 자동으로 걸린다 (확률은 그때 굴림)':/【상시】/.test(all)?'【상시】라 늘 켜져 있다':'배틀의 포텐셜 칸 「발동」 버튼으로 건다';
   return {lines,why,timing}}
  return {check,fixAll,fixOne,suggest,clauses}})();
