@@ -147,14 +147,14 @@ window.OM_FX=(()=>{
     if(hs)holdDiff(b,self,hs,name,ctx.uniq);
    }catch(e){L.push(`(${op.k} 처리 중 오류: ${e.message})`)}}
   for(const x of Object.values((b&&b.mons)||{})){const t=abSync(x);if(t)L.push(t)}
-  RUNB=prevB;RUNSTK=prevS;return {lines:L,b};
+  RUNB=prevB;RUNSTK=prevS;const BL=stop?L.slice().reverse().find(x=>/발동하지 않았다/.test(x)):'';return Object.assign({lines:L,b},BL?{blocked:BL}:{});
   async function runOp(op){
     /* 11-02 망령 「고유나 포텐셜로 미래예지를 걸면?」: 「상태 미래예지 …」처럼 상태로만 적어도 예고 공격으로 — 상태만 걸면 다음 턴 끝에 「해제」만 뜨고 대미지가 없었다 */
     if(op.k==='state'&&!op.remove&&FUTURE.includes(stEn(op.state)||op.state))op=Object.assign({},op,{k:'future',state:stEn(op.state)||op.state,tgt:op.tgt||'enemy1'});
     switch(op.k){
      case 'none':break;case 'sk':break;case 'tsel':break;   /* 대상 지정 표시 (웹툴 지시 입력이 읽는다) */
-     case 'confirm':{const ok=ctx.confirm?await ctx.confirm(op.q):true;if(!ok){L.push(`「${name}」 조건을 만족하지 않아 발동하지 않았다 (${op.q})`);stop=true}break}
-     case 'cond':{let ok=true;if(op.c==='ally_fainted')ok=Object.values(b.mons||{}).some(m=>teamOf(b,m)===teamOf(b,self)&&m.id!==self.id&&m.hp.cur<=0);
+     case 'confirm':{if(ctx.force){L.push(`(강제 발동 — 확인 「${op.q}」 건너뜀)`);break}const ok=ctx.confirm?await ctx.confirm(op.q):true;if(!ok){L.push(`「${name}」 조건을 만족하지 않아 발동하지 않았다 (${op.q})`);stop=true}break}
+     case 'cond':{/* 11-09 망령 「혹시 모를 에러나 몇몇 효과를 대비해 강제로 발동도」: ctx.force 면 조건을 보지 않고 넘어간다 */if(ctx.force){L.push(`(강제 발동 — 「${(unparse([op])[0]||'조건')}」 건너뜀)`);break}let ok=true;if(op.c==='ally_fainted')ok=Object.values(b.mons||{}).some(m=>teamOf(b,m)===teamOf(b,self)&&m.id!==self.id&&m.hp.cur<=0);
        else if(op.c==='self_state'){ok=hasSt(self,op.st);if(!ok){L.push(`「${name}」 ${self.name}이(가) 「${stKo(op.st)}」 상태가 아니라 발동하지 않았다`);stop=true;break}}
        else if(op.c==='foe_type'){/* 11-04 감우 (망령 「높음 두 개 개선」 — 에리식톤 『폭식죄의 요살』 「적진에 「타입 : 풀, 페어리」가 있을 때」): 필드에 나와 있는 상대 중 그 타입이 하나라도 */const want=(op.types||[]).map(String);ok=Object.values(b.mons||{}).some(m=>m&&m.entry&&m.hp&&m.hp.cur>0&&teamOf(b,m)!==teamOf(b,self)&&(m.types||[]).some(t=>want.includes(t)));if(!ok){L.push(`「${name}」 적진에 「${want.map(t=>TYPE_KO[t]||t).join(' · ')}」 타입이 없어 발동하지 않았다`);stop=true}break}
        else if(op.c==='on_hit'){/* 11-08: 웹툴이 맞은 대상 정보(ctx.hit)를 줄 때만 본다 — 카드 「발동」으로 손으로 쓰면 그대로 이어 간다 */if(ctx.hit&&!hitOk(op,ctx.hit)){L.push(`「${name}」 명중 조건(${hitDesc(op)||'명중'})이 맞지 않아 발동하지 않았다`);stop=true}break}
