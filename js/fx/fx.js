@@ -108,7 +108,10 @@ window.OM_FX=(()=>{
  function fieldNow(){const b=RUNB||(((window.OM_APP||{}).ST||{}).state||{}).battle||{};return b.field||{}}
  function magicRoom(){return +(((fieldNow().rooms)||{})['매직룸']||0)>0}
  /* 매직룸 동안 소지품에서 온 효과는 잠든다 (이름이 지금 소지품과 같은 항목) */
- function itemOff(m,e){return !!(m&&m.item&&e&&e.name===String(m.item).replace(/『|』/g,'').trim()&&magicRoom())}
+ /* 11-08 23:12 망령 「금제 · 서투름은 지닌 효과도 전부 꺼」: 소지품 칸 전부(2 · 3번 칸 포함) · 매직룸 또는 그 포켓몬이 금제 · 서투름(OM_FIELD.itemOff) */
+ const itemNames=m=>m?[m.item,...((m.items2||[]).map(x=>x&&x.item))].map(n=>String(n||'').replace(/『|』/g,'').trim()).filter(Boolean):[];
+ function itemsDead(m){const F=window.OM_FIELD;return F&&F.itemOff?F.itemOff(m):magicRoom()}
+ function itemOff(m,e){return !!(m&&e&&itemNames(m).includes(String(e.name||'').replace(/『|』/g,'').trim())&&itemsDead(m))}
  function groundedX(m){const F=window.OM_FIELD;return F&&F.grounded?F.grounded(m):!typesOf(m).includes('Flying')}
  /* 땅 위 포켓몬: 미스트필드는 상태 이상·혼란, 일렉트릭필드는 잠듦·하품을 막는다 */
  function sideObj(m,k){return !!(m&&m.side&&+((((fieldNow().objects)||{})[m.side]||{})[k]||0)>0)}
@@ -117,7 +120,7 @@ window.OM_FX=(()=>{
  function terrainBlock(m,en){const t=(fieldNow().terrain||{}).type;if(!t||!m||!groundedX(m))return '';if(t==='미스트필드'&&(ABN.includes(en)||en==='Confusion'))return t;if(t==='일렉트릭필드'&&(en==='Sleep'||en==='Yawn'))return t;return ''}
  /* 지속 턴 +3 소지품 (2026-10-23): 자신이 기술·특성으로 깐 날씨 · 필드 · 벽. 매직룸 중에는 없음 */
  const EXT_ITEM={'맑음':'뜨거운바위','비':'축축한바위','모래바람':'보송보송바위','눈':'차가운바위','싸라기눈':'차가운바위','별하늘':'별이박힌바위','밤':'거무칙칙한바위','짙은안개':'습한바위','필드':'그라운드코트','리플렉터':'빛의점토','빛의장막':'빛의점토','오로라베일':'빛의점토'};
- function itemExt(self,what){const it=self&&self.item?String(self.item).replace(/『|』/g,'').trim():'';return it&&EXT_ITEM[what]===it&&!magicRoom()?it:''}
+ function itemExt(self,what){if(!self||itemsDead(self))return '';return itemNames(self).find(it=>EXT_ITEM[what]===it)||''}
  /* 이 효과의 중첩 한도: ctx.stack → 포켓몬 포텐셜 글 · 트레이너 고유 · 레디메이드 글의 【중첩 (N회)】. 없으면 1 */
  function stackOf(self,name,ctx){if(ctx&&+ctx.stack>0)return +ctx.stack;const nm=String(name||'').replace(/『|』/g,'').trim();const re=/【\s*중첩\s*\(\s*(\d+)\s*회\s*\)\s*】/;const T=[];
   if(self){for(const p of [...(self.pots||[]),self.excl,...(self.exclX||[])])if(p&&String(p.name||'').replace(/『|』/g,'').trim()===nm)T.push(p.eff);try{const bt=(((window.OM_APP||{}).ST||{}).state||{}).battle;const tr=bt&&bt.trainers&&bt.trainers[self.tid];const u=tr&&(tr.unique||[]).find(x=>x&&String(x.name||'').replace(/『|』/g,'').trim()===nm);if(u)T.push(u.eff)}catch(e){}}
@@ -333,7 +336,7 @@ window.OM_FX=(()=>{
  function immuneHit(m,en){for(const e of (m.fx&&m.fx.immune)||[]){if(itemOff(m,e))continue;if(e.states.includes(en)||(en==='Toxic'&&e.states.includes('Poison'))||(e.states.includes('abnormal')&&ABN.includes(en)))return e.name}return ''}
  function nodropHit(m,stat){const t=+(((window.OM_APP||{}).ST||{}).state||{}).battle?.turn||0;for(const e of (m.fx&&m.fx.nodrop)||[]){if(e.until>=0&&t>e.until)continue;if(!e.st||e.st===stat)return e.name}
   /* 10-25 망령: 소지품 「클리어참」 — 자신 이외로 인해 능력이 떨어지지 않는다 (레디메이드 없이도, 매직룸이면 무효) */
-  if(m&&[m.item,...((m.items2||[]).map(x=>x&&x.item))].some(n=>String(n||'').replace(/『|』/g,'').trim()==='클리어참')&&!magicRoom())return '클리어참';return ''}
+  if(m&&itemNames(m).includes('클리어참')&&!itemsDead(m))return '클리어참';return ''}
  function noind(m,kind){const t=curTurn();for(const e of (m.fx&&m.fx.noind)||[]){if(e.until>=0&&t>e.until)continue;if(itemOff(m,e))continue;if(e.kind===kind||(e.kind===''&&kind!=='switch'&&kind!=='freesw'))return true}return false}   /* 강제 교대 무시(switch)는 「비례 대미지 무시」에 딸려 오지 않는다 */
  function noindName(m,kind){for(const e of (m.fx&&m.fx.noind)||[]){if(itemOff(m,e))continue;if(e.kind===kind||(e.kind===''&&kind!=='switch'&&kind!=='freesw'))return e.name}return ''}
  /* 10-22 망령: 포켓몬마다 상태 변화 사양 바꾸기 — 시트(포텐셜 · 전용 · 특성 · 소지품)에 적어 둔 것만, 배틀 중엔 손대지 않는다.
@@ -343,7 +346,7 @@ window.OM_FX=(()=>{
  const RE_STMOD=/「([^」]+)」\s*(?:에\s*의한|에\s*따른|로\s*인한|으로\s*인한|의)[^(（\n]{0,24}[(（]\s*\d+\s*\/\s*\d+\s*(?:→|->|⇒|=>|➜)\s*(\d+)\s*\/\s*(\d+)\s*[)）]/g;
  function stMod(m,en){if(!m||!en)return null;
   for(const k in (m.auto||{}))for(const op of ((m.auto[k]||{}).ops||[]))if(op&&op.k==='stmod'&&op.st===en)return {n:+op.n,d:+op.d,name:k};
-  const src=[...(m.pots||[]).filter(p=>p&&p.name&&!p.ph).map(p=>[p.name,p.eff]),...(m.excl?[[m.excl.name,m.excl.eff]]:[]),...(m.exclX||[]).map(x=>[x.name,x.eff]),[m.ability,m.abilityEff],...(magicRoom()?[]:[[m.item,m.itemEff]])];
+  const src=[...(m.pots||[]).filter(p=>p&&p.name&&!p.ph).map(p=>[p.name,p.eff]),...(m.excl?[[m.excl.name,m.excl.eff]]:[]),...(m.exclX||[]).map(x=>[x.name,x.eff]),[m.ability,m.abilityEff],...(itemsDead(m)?[]:[[m.item,m.itemEff],...((m.items2||[]).filter(x=>x&&x.item).map(x=>[x.item,x.itemEff]))])];
   for(const [name,eff] of src){if(!name||!eff)continue;for(const r of String(eff).matchAll(RE_STMOD))if(stEn(r[1])===en&&+r[3]>0)return {n:+r[2],d:+r[3],name:String(name).replace(/『|』/g,'')}}
   return null}
  function floating(m){const f=m.fx&&m.fx.float;if(!f)return false;const t=curTurn();return !(f.until>=0&&t>f.until)}
