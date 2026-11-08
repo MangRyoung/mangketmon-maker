@@ -70,3 +70,9 @@ window.OM_DB.readymade={"기술 : 초읽기":{"text":"","ops":[{"k":"countdown",
 /* 11-05 망령 「약점회피 같은 건 자동화 못 시켜?」: 조건부 회피 강화 엔진(fx 「회피 ×1.1 굉장」 · k:eva)이 생겨서 자동으로 — 상성 2배 이상 기술의 명중 판정에서만 회피 ×1.1 */
 (()=>{const R=window.OM_DB.readymade;const t="【육성 : A】/「상성 : 2배~8배」인 기술에 대한 「회피」를 강화(1.1배)한다.";for(const k of ["약점회피","약점 회피"])R[k]={text:t,ops:[{"k":"eva","tgt":"self","v":1.1,"types":[],"cat":"all","eff":"super","rng":"all","uses":-1,"turn":0,"tl":0,"ro":[],"st":"","tg":[],"sb":""}]}})();
 /* 11-06 망령: 엽록소 · 쓱쓱 · 모래헤치기 · 눈치우기 · 별똥별 · 서핑테일 · 야행성 은 구문을 비움 — 웹툴(battle_ui spMulOf)이 특성 글을 읽고 행동 순서 계산 때 스피드를 곱해서, 「선택: 조건을 만족한다 → 스피드×2」를 누르면 4배가 됐다. 「상태 이상을 치유한다」(치유의마음 · 치유의잎사귀 · 익스펜션 : 물 · 두목의 특권)는 상태초기화(상태 이상만 — 혼란 · 도발은 안 풂) */
+/* 11-08 망령 「일단 다 해」 (51-2): 소지품 레디메이드 — 타입가드(보호 타입) · 가면 3(오거폰 타입 + 위력 ×1.2, 효과 글이 소지품 규칙에 안 잡혀 겹치지 않음) · 선제공격손톱(턴 개시 2할 — 손으로 → 자동, 웹툴 autoTurnStart 가 굴린다) */
+(()=>{const R=window.OM_DB.readymade;const BO=v=>({k:'boost',tgt:'self',v,types:[],cat:'all',eff:'all',rng:'all',uses:-1,turn:0,tl:0,ro:[],st:'',tg:[],sb:''});
+ R['소지품 : 타입가드']={text:'【상시】 자신 이외로 인해 「타입」이 변경(무시)되지 않는다.',ops:[{k:'sp',sp:'protect',what:['type']}],item:1};
+ for(const [n,t2,ko] of [['우물의가면','Water','물'],['화덕의가면','Fire','불꽃'],['주춧돌의가면','Rock','바위']])R['소지품 : '+n]={text:`【상시】 「오거폰」을 「타입 : 풀/${ko}」로 만들고 기술의 대미지를 강화(1.2배)한다.`,ops:[{k:'type',tgt:'self',mode:'set',types:['Grass',t2]},BO(1.2)],item:1};
+ R['소지품 : 선제공격손톱']={text:'턴 개시 시 2할로 자신의 기술에 「우선도 : +0.5」한다.',ops:[{k:'prio',tgt:'self',mode:'add',v:0.5,cat:'all',type:'',dur:'turn',tag:''}],item:1};
+})();

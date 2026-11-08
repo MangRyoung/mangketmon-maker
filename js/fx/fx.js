@@ -50,7 +50,7 @@ window.OM_FX=(()=>{
  function spOf(m,kind){const t=curTurn();return ((m&&m.fx&&m.fx.sp)||[]).filter(e=>(!kind||e.sp===kind)&&!itemOff(m,e)&&!(e.until>=0&&t>e.until))}
  const tyK=ts=>(ts||[]).map(t=>TYPE_KO[t]||t).join('·');
  function spDesc(e){const f=[e.types&&e.types.length?tyK(e.types)+' 기술':'',e.tg&&e.tg.length?'「'+e.tg.join('」「')+'」':'',e.cat||''].filter(Boolean).join(' ');
-  switch(e.sp){case 'extra':return `${f||'기술'}이 명중하면 ${e.n>1?e.n+'번':'1번'} 더 공격 (위력 ×${e.pw}${e.sure?' · 필중':''})`;case 'protect':return (e.what||['trait']).map(w=>w==='item'?'소지품':'특성').join(' · ')+'이(가) 바뀌거나 없어지지 않는다';case 'mold':return '자신의 기술이 상대의 특성을 무시한다';
+  switch(e.sp){case 'extra':return `${f||'기술'}이 명중하면 ${e.n>1?e.n+'번':'1번'} 더 공격 (위력 ×${e.pw}${e.sure?' · 필중':''})`;case 'protect':return (e.what||['trait']).map(w=>w==='item'?'소지품':w==='type'?'타입':'특성').join(' · ')+'이(가) 바뀌거나 없어지지 않는다';case 'mold':return '자신의 기술이 상대의 특성을 무시한다';
    case 'mvtype':return `${e.mv?'「'+e.mv+'」':e.from?tyK([e.from])+' 기술':'모든 기술'} → ${tyK([e.to])} 기술`;case 'ext':return `${(e.what||[]).join('·')||'날씨 · 필드 · 벽'} 지속 +${e.n}턴`;case 'nodex':return '자신에 대한 데이터 해석을 막는다';
    case 'scrappy':return `${e.types&&e.types.length?tyK(e.types):'모든'} 기술이 ${[...(e.vs||[]).map(t=>'타입 : '+(TYPE_KO[t]||t)),...(e.float?['하늘 위']:[])].join(' · ')}에게도 명중`;case 'evade':return `${f||'공격'}을 ${e.pct}% 로 회피`;
    case 'secx':return `${f||'기술'}의 추가 효과 발생률 ×${e.v}`;case 'redirect':return `${f||'단일 대상 기술'}의 대상을 자신으로`;case 'bounce':return `${e.cat||'변화기'}를 되받아친다`;
@@ -112,11 +112,17 @@ window.OM_FX=(()=>{
  const itemNames=m=>m?[m.item,...((m.items2||[]).map(x=>x&&x.item))].map(n=>String(n||'').replace(/『|』/g,'').trim()).filter(Boolean):[];
  function itemsDead(m){const F=window.OM_FIELD;return F&&F.itemOff?F.itemOff(m):magicRoom()}
  function itemOff(m,e){return !!(m&&e&&itemNames(m).includes(String(e.name||'').replace(/『|』/g,'').trim())&&itemsDead(m))}
+ /* 11-08 51-2: 지금 효과가 살아 있는 소지품을 지녔나 (매직룸 · 금제 · 서투름이면 없음) · 다 써서 칸에서 뺀다 */
+ const holds=(m,n)=>!!m&&itemNames(m).includes(n)&&!itemsDead(m);
+ function useItem(m,n){if(!m)return '';const nI=v=>String(v||'').replace(/『|』/g,'').trim();let k=0,sl=m;if(nI(m.item)!==n){const i=(m.items2||[]).findIndex(q=>q&&nI(q.item)===n);if(i<0)return '';k=i+1;sl=m.items2[i]}m.itemUsed=Object.assign({name:sl.item,eff:sl.itemEff||'',turn:curTurn()},k?{k}:{});try{removeByName(m,sl.item)}catch(e){}sl.item='';sl.itemEff='';if(k)delete sl.itemOwn;return `${m.name}의 「${n}」 — 다 써서 없어졌다`}
+ /* 11-08 51-2 ㉓ 「특성 파괴」: 걸리면 특성을 접어 두고(m.abBroken) 풀리면 되돌린다 — 저장 직전(웹툴 saveBattle · saveMon) · 교대 정리 · 치유에서 맞춘다 */
+ function abSync(m){if(!m)return '';const st=m.states||{};if(st.TraitBroken&&!m.abBroken){if(!m.ability)return '';m.abBroken={n:m.ability,e:m.abilityEff||''};try{dropAbFx(m,m.ability)}catch(e){}m.ability='';m.abilityEff='';return `${m.name} 특성 「${m.abBroken.n}」 — 파괴되어 효과가 없다`}
+  if(!st.TraitBroken&&m.abBroken){m.ability=m.abBroken.n;m.abilityEff=m.abBroken.e;delete m.abBroken;return `${m.name} 특성 「${m.ability}」 — 되돌아왔다`}return ''}
  function groundedX(m){const F=window.OM_FIELD;return F&&F.grounded?F.grounded(m):!typesOf(m).includes('Flying')}
  /* 땅 위 포켓몬: 미스트필드는 상태 이상·혼란, 일렉트릭필드는 잠듦·하품을 막는다 */
  function sideObj(m,k){return !!(m&&m.side&&+((((fieldNow().objects)||{})[m.side]||{})[k]||0)>0)}
  /* 11-01 망령 「맑음일 때 얼음이 안 된다 · 밤일 때 잠듦이 안 된다」(맵툴 print_effect_weather): 맑음 · 큰가뭄 → 「얼음」 없음, 밤 · 깊은밤 → 고스트 · 악 타입 「잠듦」 없음 */
- function weatherBlock(m,en){const w=(fieldNow().weather||{}).type;if(!w||!m)return '';/* 11-07 에어록 · 날씨부정: 필드 위에 있는 한 날씨 효과 없음 */{const B0=RUNB||(((window.OM_APP||{}).ST||{}).state||{}).battle||{};if(Object.values(B0.mons||{}).some(x=>x&&x.entry&&x.hp&&x.hp.cur>0&&/에어록|날씨부정/.test(String(x.ability||''))))return ''}if((w==='맑음'||w==='큰가뭄')&&en==='Freeze')return w;if((w==='밤'||w==='깊은밤')&&en==='Sleep'&&typesOf(m).some(t=>t==='Ghost'||t==='Dark'))return w;return ''}
+ function weatherBlock(m,en){const w=(fieldNow().weather||{}).type;if(!w||!m)return '';if(holds(m,'만능우산'))return '';   /* 11-08 51-2 ⑫ 만능우산: 날씨의 효과를 받지 않는다 *//* 11-07 에어록 · 날씨부정: 필드 위에 있는 한 날씨 효과 없음 */{const B0=RUNB||(((window.OM_APP||{}).ST||{}).state||{}).battle||{};if(Object.values(B0.mons||{}).some(x=>x&&x.entry&&x.hp&&x.hp.cur>0&&/에어록|날씨부정/.test(String(x.ability||''))))return ''}if((w==='맑음'||w==='큰가뭄')&&en==='Freeze')return w;if((w==='밤'||w==='깊은밤')&&en==='Sleep'&&typesOf(m).some(t=>t==='Ghost'||t==='Dark'))return w;return ''}
  function terrainBlock(m,en){const t=(fieldNow().terrain||{}).type;if(!t||!m||!groundedX(m))return '';if(t==='미스트필드'&&(ABN.includes(en)||en==='Confusion'))return t;if(t==='일렉트릭필드'&&(en==='Sleep'||en==='Yawn'))return t;return ''}
  /* 지속 턴 +3 소지품 (2026-10-23): 자신이 기술·특성으로 깐 날씨 · 필드 · 벽. 매직룸 중에는 없음 */
  const EXT_ITEM={'맑음':'뜨거운바위','비':'축축한바위','모래바람':'보송보송바위','눈':'차가운바위','싸라기눈':'차가운바위','별하늘':'별이박힌바위','밤':'거무칙칙한바위','짙은안개':'습한바위','필드':'그라운드코트','리플렉터':'빛의점토','빛의장막':'빛의점토','오로라베일':'빛의점토'};
@@ -138,6 +144,7 @@ window.OM_FX=(()=>{
     await runOp(op);
     if(hs)holdDiff(b,self,hs,name,ctx.uniq);
    }catch(e){L.push(`(${op.k} 처리 중 오류: ${e.message})`)}}
+  for(const x of Object.values((b&&b.mons)||{})){const t=abSync(x);if(t)L.push(t)}
   RUNB=prevB;RUNSTK=prevS;return {lines:L,b};
   async function runOp(op){
     /* 11-02 망령 「고유나 포텐셜로 미래예지를 걸면?」: 「상태 미래예지 …」처럼 상태로만 적어도 예고 공격으로 — 상태만 걸면 다음 턴 끝에 「해제」만 뜨고 대미지가 없었다 */
@@ -166,7 +173,7 @@ window.OM_FX=(()=>{
        for(const m of ts){const rr=rollP(self,+op.chance||100,ctx);if(rr.ok)L.push(setState(m,en,-1,0,self,name)+` (${rr.r}/${rr.p})${rr.adj}`);else L.push(`${m.name} 「${stKo(en)}」 실패 (${rr.r}/${rr.p})${rr.adj}`)}break}
      case 'cure':{let ts=await targets(b,self,op.tgt,ctx);if(op.self)ts=[self];const list=op.states==='negative'||!op.states?NEG:stWide(op.states);
        for(const m of ts){if(op.chance&&+op.chance<100){const rr=rollP(self,+op.chance,ctx);if(!rr.ok){L.push(`${m.name} 치유 실패 (${rr.r}/${rr.p})${rr.adj}`);continue}}
-        const cured=[];for(const k of list)if((m.states||{})[k]){delete m.states[k];cured.push(stKo(k))}/* 10-24 망령: 부가 치유(열탕 · 화염방사의 「얼음」 치유 …)는 걸린 게 없으면 줄을 남기지 않는다 */if(cured.length)L.push(`${m.name} 「${cured.join('」「')}」 해제`);else if(list===NEG)L.push(`${m.name} 해제할 상태가 없다`)}break}
+        const cured=[];for(const k of list)if((m.states||{})[k]){delete m.states[k];cured.push(stKo(k))}const abT=abSync(m);/* 10-24 망령: 부가 치유(열탕 · 화염방사의 「얼음」 치유 …)는 걸린 게 없으면 줄을 남기지 않는다 */if(cured.length)L.push(`${m.name} 「${cured.join('」「')}」 해제`);else if(list===NEG)L.push(`${m.name} 해제할 상태가 없다`);if(abT)L.push(abT)}break}
      case 'heal':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){if((m.states||{}).HealBlock){L.push(`${m.name} 「회복봉인」이라 회복하지 못함`);continue}if(op.ytype&&!typesOf(m).includes(op.ytype)){L.push(`${m.name} ${TYPE_KO[op.ytype]||op.ytype} 타입이 아니라 회복 없음`);continue}
        const v=op.value==='full'?m.hp.max-m.hp.cur:frac(m.hp.max,op.value);const h=Math.min(v,m.hp.max-m.hp.cur);m.hp.latest=m.hp.cur;m.hp.cur+=h;L.push(`${m.name} 「${name}」 회복 +${h} (HP ${m.hp.cur}/${m.hp.max})`)}break}
      case 'dmg':{const ts=await targets(b,self,op.tgt||'enemy1',ctx);for(const m of ts){if(op.st&&!hasSt(m,op.st)){L.push(`${m.name} 「${stKo(op.st)}」 상태가 아니라 대미지 없음`);continue}if(op.xtype&&typesOf(m).includes(op.xtype)){L.push(`${m.name} ${TYPE_KO[op.xtype]||op.xtype} 타입이라 대미지 없음`);continue}
@@ -179,7 +186,7 @@ window.OM_FX=(()=>{
        for(const sd of sides){const o=f.objects[sd]=f.objects[sd]||{};const gone=Object.keys(o).filter(k=>+o[k]>0&&(op.what==='all'||G.includes(k)));for(const k of gone)delete o[k];L.push(`${sd==='left'?'좌측':'우측'} ${gone.length?'「'+gone.join('」「')+'」 철거':(({hazard:'설치기',wall:'장벽',all:'설치물'})[op.what||'hazard']||'설치물')+' 없음'}`)}break}
      case 'object':{const f=field(b);const side=op.side==='enemy'?(self.side==='left'?'right':'left'):self.side;f.objects[side]=f.objects[side]||{};const cur=+f.objects[side][op.o]||0;
        if(op.o==='압정뿌리기'||op.o==='독압정'){const mx=op.o==='압정뿌리기'?3:2;f.objects[side][op.o]=Math.min(mx,cur+1);L.push(`${side==='left'?'좌측':'우측'} 「${op.o}」 ${f.objects[side][op.o]}겹`)}else{const ext=+op.count<1000&&side===self.side?itemExt(self,op.o):'';const sx=+op.count<1000&&side===self.side?spExt(self,op.o):{n:0,by:[]};f.objects[side][op.o]=(+op.count||5)+(ext?3:0)+sx.n;if(sx.n)L.push(`「${sx.by.join('」「')}」 「${op.o}」 지속 +${sx.n}턴`);L.push(`${side==='left'?'좌측':'우측'} 「${op.o}」 ${op.count>=1000?'계속':((+op.count||5)+(ext?3:0)+sx.n)+'턴'}${ext?' (「'+ext+'」 +3)':''}`)}break}
-     case 'type':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){if(op.mode==='reset'){if(m.typesOrig){m.types=m.typesOrig;delete m.typesOrig}m.typesKo=m.types.map(t=>TYPE_KO[t]||t);delete m.typeUntil;L.push(`${m.name} 타입 원래대로`);continue}if(m.teraActive&&m.teraEn&&m.teraEn!=='-'){L.push(`${m.name} 「테라스탈」 상태라 타입이 바뀌지 않는다`);continue}   /* 11-02 망령 (상태 「테라스탈」: 다른 효과로 타입이 바뀌지 않는다) */m.typesOrig=m.typesOrig||m.types.slice();m.typesBy=name;
+     case 'type':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){if(op.mode==='reset'){if(m.typesOrig){m.types=m.typesOrig;delete m.typesOrig}m.typesKo=m.types.map(t=>TYPE_KO[t]||t);delete m.typeUntil;L.push(`${m.name} 타입 원래대로`);continue}{const pr=m.id!==self.id&&spOf(m,'protect').find(e=>(e.what||[]).includes('type'));if(pr){L.push(`${m.name} 「${pr.name}」 — 타입이 바뀌지 않는다`);continue}}   /* 11-08 망령 「일단 다 해」 51-2 ①: 타입가드 = 「보호 타입」 — 자신 이외로는 타입이 바뀌지 않는다 */if(m.teraActive&&m.teraEn&&m.teraEn!=='-'){L.push(`${m.name} 「테라스탈」 상태라 타입이 바뀌지 않는다`);continue}   /* 11-02 망령 (상태 「테라스탈」: 다른 효과로 타입이 바뀌지 않는다) */m.typesOrig=m.typesOrig||m.types.slice();m.typesBy=name;
        const add=(op.types||[]).map(t=>KO_TYPE[t]||t);if(op.mode==='set')m.types=add;else m.types=[...new Set([...m.types.filter(t=>t!=='-'),...add])];m.typesKo=m.types.map(t=>TYPE_KO[t]||t);   /* 11-06 감우: 한글 타입도 같이 — 미사그 A-1 판정이 옛 typesKo 를 보고 「아직 지정 타입」으로 읽던 것 */if(op.turns>0)m.typeUntil=(+b.turn||0)+op.turns-1;else delete m.typeUntil;L.push(`${m.name} 타입 ${op.mode==='set'?'→':'+'} ${add.map(t=>TYPE_KO[t]||t).join('/')}${op.turns>0?' ('+op.turns+'턴)':''}`)}break}
      case 'item':{const I=window.OM_ITEMS;if(!I||!I.itemOp){L.push(`소지품 ${({rob:'파괴(약탈)',break:'파괴',breakall:'모두 파괴',steal:'강탈',give:'건네주기',swap:'맞바꾸기',set:'지정 '+(op.name||''),add:'추가 '+(op.name||'')})[op.mode]||''} — 배틀 웹툴에서 처리`);break}const ts=await targets(b,self,op.tgt||'enemy1',ctx);const r=I.itemOp(b,self,ts,op,name);L.push(...(r.length?r:[`『${name}』 소지품 — 바뀐 것 없음`]));break}
      case 'trait':{const ts=await targets(b,self,op.tgt||'enemy1',ctx);for(const m of ts){if(op.mode==='reset'){resetAb(m);delete m.abUntil;L.push(`${m.name} 특성 원래대로`);continue}{const pr=m.id!==self.id&&spOf(m,'protect').find(e=>(e.what||['trait']).includes('trait'));if(pr){L.push(`${m.name} 「${pr.name}」 — 특성이 바뀌지 않는다`);continue}}setAb(m,op.tn,name);if(op.turns>0)m.abUntil=(+b.turn||0)+op.turns-1;else delete m.abUntil;L.push(`${m.name} 특성 → 「${op.tn}」${op.turns>0?' ('+op.turns+'턴)':''}`)}break}
@@ -284,19 +291,22 @@ window.OM_FX=(()=>{
  const NOIND_KO={'':'비례 대미지를 받지 않는다',noko:'비례 대미지로는 빈사가 되지 않는다',hazard:'설치기를 무시한다',hazdmg:'설치기의 비례 대미지를 받지 않는다',recoil:'반동 비례 대미지를 받지 않는다',switch:'강제 교대를 받지 않는다',freesw:'교대 제한을 받지 않고 반드시 교대할 수 있다'};
  const OBJ_GROUP={hazard:['압정뿌리기','독압정','지뢰원','끈적끈적네트','기뢰','트램펄린','스텔스록','불기둥','장미원','가시원','얼음꼬챙이','전기발판','아이스번','저주의묘','악의소굴','전파탑'],wall:['리플렉터','빛의장막','오로라베일','얼음의장벽']};
  function field(b){b.field=Object.assign({weather:{type:'',count:0},terrain:{type:'',count:0},rooms:{},etc:{},objects:{left:{},right:{}}},b.field||{});b.field.objects=b.field.objects||{left:{},right:{}};return b.field}
- function applyStats(m,op,self,name){const L=[];const isMult=op.k==='mult';const parts=[];
+ function applyStats(m,op,self,name){const L=[];const isMult=op.k==='mult';const parts=[];const UPS={};
   for(const k in op.stats){let v=+op.stats[k];if(!v)continue;
    if(!isMult){ /* 랭크 */
     /* 능력반전: 랭크 변화를 거꾸로 (급소·강제 설정은 그대로) */
     if((m.states||{}).reverse&&k!=='critical'&&k!=='critical_buff'&&op.mode!=='set'){v=-v;parts.push('능력반전')}
     if(v<0&&!op.forced&&m.id!==self.id){const nd=nodropHit(m,k)||(sideObj(m,'흰안개')?'흰안개':'')||((m.states||{}).Substitute?'대타출동':'');if(nd){L.push(`${m.name} ${STAT_KO[k]} 감소 무시 (${nd})`);continue}}
     if(k==='critical_buff'){m.critBuff=(+m.critBuff||0)+v;parts.push(`급소 방호 ${v>0?'+':''}${v}`);continue}
-    m.rank=m.rank||{};const lim=k==='critical'?4:6;const before=+m.rank[k]||0;const after=Math.max(-lim,Math.min(lim,before+v));m.rank[k]=after;if(op.temp){m.tempRank=m.tempRank||{};m.tempRank[k]=(+m.tempRank[k]||0)+(after-before)}
+    m.rank=m.rank||{};const lim=k==='critical'?4:6;const before=+m.rank[k]||0;const after=Math.max(-lim,Math.min(lim,before+v));m.rank[k]=after;if(after>before&&!op.mirror&&k!=='critical')UPS[k]=after-before;if(op.temp){m.tempRank=m.tempRank||{};m.tempRank[k]=(+m.tempRank[k]||0)+(after-before)}
     parts.push(`${STAT_KO[k]} ${v>0?'+':''}${v}${after!==before+v?' (한계 '+after+')':''}`)}
    else{/* 10-26 망령: 같은 출처(같은 효과 ← 같은 포켓몬)의 같은 능력 배율은 겹치지 않는다 — 상시 · 고유를 다시 눌러 0.75×0.75 가 되던 것 */{const F0=fx(m);const e0=F0.mults.find(x=>x.key===name+' ← '+self.name);if(e0&&e0.stats&&e0.stats[k]!=null&&!RUNSTK){L.push(`${m.name} 「${name}」 ${STAT_KO[k]} 배율은 이미 걸려 있다`);continue}}
     m.mod=m.mod||{};m.mod[k]=Math.round(((+m.mod[k]||1)*v)*1000)/1000;if(op.temp){m.tempMod=m.tempMod||{};m.tempMod[k]=Math.round(((+m.tempMod[k]||1)*v)*1000)/1000}parts.push(`${STAT_KO[k]} ×${v}`);
     /* 배율 출처를 남겨서 나중에 해제할 수 있게 */ const F=fx(m);const key=name+' ← '+self.name;let e=F.mults.find(x=>x.key===key);if(!e){e={key,name,stats:{},temp:!!op.temp};F.mults.push(e)}e.stats[k]=Math.round(((+e.stats[k]||1)*v)*1000)/1000}}
-  if(parts.length)L.push(`${m.name} 「${name}」 ${parts.join(' · ')}${op.temp?' (턴 종료까지)':''}`);return L}
+  if(parts.length)L.push(`${m.name} 「${name}」 ${parts.join(' · ')}${op.temp?' (턴 종료까지)':''}`);
+  /* 11-08 51-2 ⑭ 흉내허브: 상대의 랭크가 오르면 지닌 포켓몬도 똑같이 올리고 다 쓴다 */
+  if(Object.keys(UPS).length&&!op.temp&&RUNB&&m.side){for(const x of Object.values(RUNB.mons||{})){if(!x||x.id===m.id||!x.entry||!alive(x)||!x.side||x.side===m.side||!holds(x,'흉내허브'))continue;L.push(...applyStats(x,{k:'rank',stats:Object.assign({},UPS),mirror:1,forced:1},x,'흉내허브'));L.push(useItem(x,'흉내허브'))}}
+  return L}
  /* 11-05 망령 「기술 초읽기류 — 미래예지 같은 건 안 건드리고, T 카운트를 +1 하면서 필드의 상태 T 를 줄이는 느낌」:
     필드 위 포켓몬 · 필드의 「남은 턴」을 n 만큼 당긴다 (턴 번호는 그대로).
     · 포켓몬 상태: 턴으로 줄어드는 것(상태 DB prog turn · once, 기술로 주는 것 · 얼음 제외)을 −n, 0 이 되면 풀림. 예고 공격(미래예지 계 futRsv)은 그대로.
@@ -329,10 +339,19 @@ window.OM_FX=(()=>{
    if(fromOther&&sideObj(m,'신비의부적')&&(ABN.includes(en)||en==='Confusion'))return `${m.name} 「신비의부적」이 「${stKo(en)}」을(를) 막았다`;
    if(fromOther&&m.states.Substitute&&NEG.includes(en))return `${m.name} 「대타출동」이 「${stKo(en)}」을(를) 막았다`;if(ABN.includes(en)&&ABN.some(k=>m.states[k]))return `${m.name} 이미 상태 이상이라 「${stKo(en)}」이 되지 않음`;
    if(en==='Burn'&&typesOf(m).includes('Fire'))return `${m.name} 불꽃 타입이라 「화상」 없음`;if((en==='Poison'||en==='Toxic')&&(typesOf(m).includes('Poison')||typesOf(m).includes('Steel')))return `${m.name} 독·강철 타입이라 「${stKo(en)}」 없음`;if(en==='Paralysis'&&typesOf(m).includes('Electric'))return `${m.name} 전기 타입이라 「마비」 없음`;if(en==='Freeze'&&typesOf(m).includes('Ice')&&(fieldNow().weather||{}).type!=='극한')return `${m.name} 얼음 타입이라 「얼음」 없음`}   /* 11-01: 「날씨 : 극한」은 「얼음」 상태 내성을 무효화 */
-  const d=stDB()[en]||{};const c=count!=null&&+count>0?+count:(d.min>=1000||!d.min?1000:(+d.max>+d.min&&+d.max<1000?+d.min+Math.floor(Math.random()*(+d.max-+d.min+1)):+d.min));m.states[en]=c;
+  /* 11-08 51-2 ㉓: 「이 특성은 변경(파괴)되지 않는다」(변경 보호 특성)는 특성 파괴를 막는다 · ㉑ 떨어뜨리기는 이미 땅 위면 걸리지 않는다 */
+  if(!forced&&en==='TraitBroken'&&(!self||self.id!==m.id)){const pr=spOf(m,'protect').find(e=>(e.what||['trait']).includes('trait'));if(pr)return `${m.name} 「${pr.name}」 — 특성이 파괴되지 않는다`}
+  if(!forced&&en==='SmackDown'&&groundedX(m))return `${m.name} 이미 땅 위라 「${stKo(en)}」 상태가 되지 않는다`;
+  const d=stDB()[en]||{};let c=count!=null&&+count>0?+count:(d.min>=1000||!d.min?1000:(+d.max>+d.min&&+d.max<1000?+d.min+Math.floor(Math.random()*(+d.max-+d.min+1)):+d.min));
+  /* 11-08 51-2 ⑩ 끈기갈고리손톱: 건 쪽이 지니면 「조이기 : 4~5턴」이 늘 5턴 · ⑪ 조이기를 건 쪽을 남긴다(조임밴드 1/6) */
+  let ext='';if(en==='Bind'&&self&&self.id!==m.id){if(!(count!=null&&+count>0)&&holds(self,'끈기갈고리손톱')){c=5;ext=` (「끈기갈고리손톱」 ${self.name})`}m.bindFrom=self.id}
+  if((en==='LockOn'||en==='Gaze')&&self&&self.id!==m.id)m.lockFrom=self.id;   /* ⑰ 건 포켓몬의 기술만 필중 */
+  m.states[en]=c;
+  if(en==='SmackDown'){const off=['MagnetRise','Telekinesis','Fly'].filter(k=>m.states[k]);for(const k of off)delete m.states[k];if(m.fx&&m.fx.float)m.fx.float=null;if(off.length)ext+=` · 「${off.map(stKo).join('」「')}」 해제`}
+  if(en==='TraitBroken'){const t=abSync(m);if(t)ext+=' · '+t}
   /* 씨뿌리기: 드레인은 씨를 뿌린 에리어로 (맵툴 seed_src_set) */
   if(en==='LeechSeed'){if(self&&self.id!==m.id&&self.entry)m.seedFrom=self.side+'_'+self.entry;else delete m.seedFrom}
-  return `${m.name} 「${stKo(en)}」${c<1000?' '+c+'턴':''}${(d.desc||[]).length?' — '+d.desc.join(' '):''}`}
+  return `${m.name} 「${stKo(en)}」${c<1000?' '+c+'턴':''}${ext}${(d.desc||[]).length?' — '+d.desc.join(' '):''}`}
  function immuneHit(m,en){for(const e of (m.fx&&m.fx.immune)||[]){if(itemOff(m,e))continue;if(e.states.includes(en)||(en==='Toxic'&&e.states.includes('Poison'))||(e.states.includes('abnormal')&&ABN.includes(en)))return e.name}return ''}
  function nodropHit(m,stat){const t=+(((window.OM_APP||{}).ST||{}).state||{}).battle?.turn||0;for(const e of (m.fx&&m.fx.nodrop)||[]){if(e.until>=0&&t>e.until)continue;if(!e.st||e.st===stat)return e.name}
   /* 10-25 망령: 소지품 「클리어참」 — 자신 이외로 인해 능력이 떨어지지 않는다 (레디메이드 없이도, 매직룸이면 무효) */
@@ -390,7 +409,7 @@ window.OM_FX=(()=>{
  function consume(b,names){for(const n of names||[]){const m=b.mons[n.who];if(!m||!m.fx)continue;const e=m.fx.mods.find(x=>x.key===n.key&&(!n.kind||!x.kind||x.kind===n.kind));if(!e)continue;if(e.uses>0){e.uses--;if(e.uses===0){m.fx.mods=m.fx.mods.filter(x=>x!==e);if(e.next){m.fx.prio=(m.fx.prio||[]).filter(x=>x.key!==e.key);if(m.flags&&m.flags.pursuitBy===e.name){delete m.flags.pursuit;delete m.flags.pursuitBy}}}}}}
  /* 다음 기술 필중 · 유턴 (공격 창이 명중 전에 본다) */
  function nextOf(m){const t=curTurn();return ((m&&m.fx&&m.fx.mods)||[]).filter(e=>e.next&&e.uses!==0&&!itemOff(m,e))}
- function prioOf(m,mv){let p=+(mv&&mv.prio)||0;let set=null;const t=curTurn();/* 11-07 망령 「복합기는 첫째 · 둘째 타입 관계없다」: 「X 타입 기술」 우선도 조건은 기술의 모든 타입 중 하나라도 맞으면 */const TS=window.OM_STATS;const mty=[mv&&mv.typeEn,...String((mv&&mv.type)||'').split(/[()/,]/).map(x=>x.trim()).filter(Boolean).map(x=>TS&&TS.typeEn?TS.typeEn(x):x)].filter(Boolean);for(const e of (m.fx&&m.fx.prio)||[]){if(e.turn>=0&&e.turn<t)continue;if(itemOff(m,e))continue;if(e.cat&&e.cat!=='all'&&e.cat!==mv.cat)continue;if(e.type&&!mty.includes(e.type))continue;if(e.tag&&!e.tag.split(',').some(x=>String(mv.tag||mv.name||'').includes(x.trim())))continue;if(e.mode==='set')set=e.v;else p+=e.v}return set!=null?set:p}
+ function prioOf(m,mv){let p=+(mv&&mv.prio)||0;let set=null;const t=curTurn();{const st=(m&&m.states)||{};if(st.GlassShoes)p+=0.5;if(st.Positioning)p+=1}   /* 11-08 51-2 ㉒ 유리구두 +0.5 · 자세잡기 +1 (기술을 내보내면 웹툴 공격 적용이 푼다) *//* 11-07 망령 「복합기는 첫째 · 둘째 타입 관계없다」: 「X 타입 기술」 우선도 조건은 기술의 모든 타입 중 하나라도 맞으면 */const TS=window.OM_STATS;const mty=[mv&&mv.typeEn,...String((mv&&mv.type)||'').split(/[()/,]/).map(x=>x.trim()).filter(Boolean).map(x=>TS&&TS.typeEn?TS.typeEn(x):x)].filter(Boolean);for(const e of (m.fx&&m.fx.prio)||[]){if(e.turn>=0&&e.turn<t)continue;if(itemOff(m,e))continue;if(e.cat&&e.cat!=='all'&&e.cat!==mv.cat)continue;if(e.type&&!mty.includes(e.type))continue;if(e.tag&&!e.tag.split(',').some(x=>String(mv.tag||mv.name||'').includes(x.trim())))continue;if(e.mode==='set')set=e.v;else p+=e.v}return set!=null?set:p}
  /* 턴 종료: 기한 지난 항목 정리 */
  function turnEnd(b){const t=+b.turn||0;const L=[];for(const id in b.mons||{}){const m=b.mons[id];
   /* 11-03 21:01 망령 「타입변경 · 특성변경 턴제 지정」: 「타입 변경 물 2턴」 · 「특성 변경 ○○ 2턴」 — 그 턴 종료 때 원래대로 */
@@ -510,7 +529,7 @@ window.OM_FX=(()=>{
    case '레이드':{const m=words.join(' ').match(/구간[:：]?(\d+)/);return {k:'raid',on:1,x:m?+m[1]:'',cond:'cap',floor:1,cure:1,cstat:1,rup:1,rmod:0}}
    /* ----- 11-03 특수 효과(sp) 구문 ----- */
    case '추가공격':{const op={k:'sp',sp:'extra',types:types(),tg:tagW(),cat:has('물리')?'물리':has('특수')?'특수':'',pw:0.25,sure:has('명중판정')?0:1,n:1};const pi=words.findIndex(w=>/^위력/.test(w));if(pi>=0){const v=words.splice(pi,1)[0].replace(/^위력[×x*]?/,'');op.pw=/\//.test(v)?(+v.split('/')[0])/(+v.split('/')[1]||1):(+v||0.25)}const ni=words.findIndex(w=>/^\d+(번|회)$/.test(w));if(ni>=0)op.n=+words.splice(ni,1)[0].replace(/\D/g,'')||1;return op}
-   case '보호':{const w=[];if(has('특성'))w.push('trait');if(has('소지품'))w.push('item');return {k:'sp',sp:'protect',what:w.length?w:['trait']}}
+   case '보호':{const w=[];if(has('특성'))w.push('trait');if(has('소지품'))w.push('item');if(has('타입'))w.push('type');return {k:'sp',sp:'protect',what:w.length?w:['trait']}}
    case '특성무시':return {k:'sp',sp:'mold'};
    case '해석차단':return {k:'sp',sp:'nodex'};
    case '기술타입':{const fr=types();const to=KO_TYPE[words[words.length-1]]||'';if(!to)return {k:'?',raw:line};words.pop();const mv=words.join(' ').trim();return {k:'sp',sp:'mvtype',mv:mv==='전부'?'':mv,from:fr[0]||'',to}}
@@ -590,7 +609,7 @@ window.OM_FX=(()=>{
    case 'raid':L.push('레이드'+(op.x?' 구간:'+op.x:''));break;case 'dex':L.push('해석');break;
    case 'baseup':L.push('종족치 '+op.stats.join(',')+' '+(op.top?'최고':op.max?'최대':(op.n>0?'+':'')+op.n));break;
    case 'sp':{const T=op.types&&op.types.length?' 타입:'+op.types.map(t=>TYPE_KO[t]||t).join(','):'',G=op.tg&&op.tg.length?' 태그:'+op.tg.join(','):'',C=op.cat?' '+op.cat:'';
-    L.push(({extra:()=>'추가공격'+T+G+C+(+op.pw!==0.25?' 위력×'+op.pw:'')+(op.sure?'':' 명중판정')+(op.n>1?' '+op.n+'번':''),protect:()=>'보호 '+(op.what||['trait']).map(w=>w==='item'?'소지품':'특성').join(' '),mold:()=>'특성무시',nodex:()=>'해석차단',
+    L.push(({extra:()=>'추가공격'+T+G+C+(+op.pw!==0.25?' 위력×'+op.pw:'')+(op.sure?'':' 명중판정')+(op.n>1?' '+op.n+'번':''),protect:()=>'보호 '+(op.what||['trait']).map(w=>w==='item'?'소지품':w==='type'?'타입':'특성').join(' '),mold:()=>'특성무시',nodex:()=>'해석차단',
      mvtype:()=>'기술타입 '+(op.from?'타입:'+(TYPE_KO[op.from]||op.from):(op.mv||'전부'))+' '+(TYPE_KO[op.to]||op.to),ext:()=>'지속연장 '+((op.what||[]).join(',')||'날씨')+' +'+op.n,scrappy:()=>'명중확장 '+(op.types&&op.types.length?(TYPE_KO[op.types[0]]||op.types[0]):'전부')+((op.vs||[]).length?' '+op.vs.map(t=>TYPE_KO[t]||t).join(','):'')+(op.float?' 하늘위':''),
      evade:()=>'회피 '+(op.pct%10===0?op.pct/10+'할':op.pct+'%')+T+G+C,secx:()=>'추가효과 ×'+op.v+T+G,redirect:()=>'끌어오기'+T+G+(op.cat?' '+(op.cat==='변화'?'변화기':op.cat):''),bounce:()=>'반사 변화기',keepdef:()=>'수세유지'+((op.mv||[]).length?' 기술:'+op.mv.join(','):'')+T+C+(op.hp?' HP≤'+op.hp:'')}[op.sp]||(()=>'# '+JSON.stringify(op)))()+(op.tgt&&op.tgt!=='self'?' '+(TGT_KO[op.tgt]||op.tgt).replace(/\s/g,''):''));break}
    case 'freeswitch':L.push('임의교대');break;
@@ -604,5 +623,5 @@ window.OM_FX=(()=>{
   return L}
  /* 사람이 읽는 설명 (미리보기·로그) */
  function describe(ops){return unparse(ops)}
- return {hitOk,hitDesc,syncPairs,roleFam,roleFams,ROLE_FAM,spOf,spDesc,SP_KO,reAura,effOf,rmChance,rollP,lineChance,release,nextOf,scopeKo,chanceOf,setAb,resetAb,stMod,untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,evaMods,accMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,weatherBlock,magicRoom,itemOff,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
+ return {hitOk,hitDesc,syncPairs,roleFam,roleFams,ROLE_FAM,spOf,spDesc,SP_KO,reAura,effOf,rmChance,rollP,lineChance,release,nextOf,scopeKo,chanceOf,setAb,resetAb,stMod,untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,evaMods,accMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,weatherBlock,magicRoom,itemOff,abSync,holds,useItem,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
 })();
