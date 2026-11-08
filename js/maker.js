@@ -3070,7 +3070,9 @@ const trOfRow=x=>{const id=x&&x.id&&x.id.startsWith('tr-')?x.id.slice(3):null;re
 function moveTrainersFromDom(d){const moved=trOfRow(d.item);
  if(d.fdrop!=null){if(moved){moved.folder=d.fdrop==='_none'?'':d.fdrop;S.trainers=S.trainers.filter(t=>t!==moved).concat([moved]);S.ui.fclosed=S.ui.fclosed||{};const f=S.folders.find(x=>x.id===moved.folder);toast(`「${moved.name}」 → ${f?f.name:'폴더 없음'}`)}save();renderChar();return}
  const seen=new Set(),order=[];
- $$('#trs [data-sort="trainers"]').forEach(l=>{const fid=l.dataset.fid||'';[...l.children].forEach(x=>{if(x.dataset.si==null)return;const t=trOfRow(x);if(t&&!seen.has(t)){seen.add(t);t.folder=fid;order.push(t)}})});
+ /* 11-08 22:15 망령 「종종 트레이너가 폴더 이동이 된다」: 예전엔 끌어서 놓을 때마다 화면의 모든 줄을 돌며 「보이는 칸의 폴더」를 모든 트레이너에게 다시 적었다 → 폴더 문서가 아직 안 왔거나(공유 저장소 순서) 지워진 폴더의 트레이너는 「폴더 없음」 칸에 그려져 있다가, 다른 트레이너 하나를 옮기기만 해도 폴더가 비워졌다.
+    이제 폴더는 끌어서 옮긴 그 트레이너만 바꾸고, 나머지는 순서만 맞춘다 */
+ $$('#trs [data-sort="trainers"]').forEach(l=>{const fid=l.dataset.fid||'';[...l.children].forEach(x=>{if(x.dataset.si==null)return;const t=trOfRow(x);if(t&&!seen.has(t)){seen.add(t);if(t===moved&&tFolder(t)!==fid){t.folder=fid;const f=S.folders.find(q=>q.id===fid);toast(`「${t.name}」 → ${f?f.name:'폴더 없음'}`)}order.push(t)}})});
  S.trainers.forEach(t=>{if(!seen.has(t))order.push(t)});S.trainers=order;save();renderChar()}
 function applySort(list,order){const re=a=>order.map(i=>a[i]);const kind=list.dataset.sort;if(kind==='trainers'){/* 10-26 점검: 안 보이는(남의 비공개) 트레이너가 정렬에서 빠져 지워지던 것 */const picked=order.map(i=>S.trainers[i]).filter(Boolean);const rest=S.trainers.filter(t=>!picked.includes(t));S.trainers=picked.concat(rest);save();renderChar();return}
  if(kind==='folders'){const slots=[...order].sort((a,b)=>a-b);const nf=S.folders.slice();slots.forEach((p,k)=>{nf[p]=S.folders[order[k]]});S.folders=nf;save();renderChar();return}   /* 10-24: 하위 폴더 줄은 그 폴더들 자리끼리만 */const T=S.trainers[+list.dataset.i];if(!T)return;
