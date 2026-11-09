@@ -81,3 +81,7 @@ window.OM_DB.readymade={"기술 : 초읽기":{"text":"","ops":[{"k":"countdown",
  put('특성 : 이판사판','【상시】 「반동 비례 대미지」를 받는 기술의 대미지를 강화(1.2배)한다.',[Object.assign({k:'boost',v:1.2,rc:1},B)]);
  put('특성 : 텔레파시','【상시】【방호】/아군의 공격을 무효화한다.',[Object.assign({k:'guard',v:0,al:1},B)]);
 })();
+/* 11-10 망령 「철나막신 같은 설치기 무효계가 설치기를 만나면 띄워는 주는데 스피드 깎이는 건 자동 처리 그대로」: 특성 글 「「설치기」의 효과를 받지 않는다」인데 레디메이드에 설치기 무시(noind hazard)가 빠져 있던 것 — 철나막신(스피드 반감만) · 단단한발굽(접촉 1.3배만) · 부유(하늘 위만). 신출귀몰 · 당세구족은 이미 있음 */
+(()=>{const R=window.OM_DB.readymade;const NH={k:'noind',tgt:'self',mode:'on',kind:'hazard',turns:-1};
+ for(const n of ['철나막신','단단한발굽','부유']){const k='특성 : '+n;const r=R[k];if(!r)continue;r.ops=r.ops||[];if(!r.ops.some(o=>o&&o.k==='noind'&&o.kind==='hazard'))r.ops.push(Object.assign({},NH))}
+})();
