@@ -178,7 +178,7 @@ function load(){
  if(!S.trainers.length)S.trainers.push(sampleTrainer());
 }
 let dbDirty=false,svT=null;
-function save(dbToo){if(RO_EMB)return;if(dbToo){dbDirty=true;SH.dbDirty=true}clearTimeout(svT);svT=setTimeout(()=>{
+function save(dbToo){if(RO_EMB)return;SH.userEdit=(SH.userEdit||0)+1;   /* 11-09 감우 57: 이 창에서 고친 것이 있다는 표시 — shFlush 는 이것이 있을 때만 올린다 */if(dbToo){dbDirty=true;SH.dbDirty=true}clearTimeout(svT);svT=setTimeout(()=>{
  mkmChanged();if(SH.failed)lsSet('mkm_unsynced','1');let ok=lsSet(K_T,JSON.stringify({trainers:S.trainers,folders:S.folders,ui:S.ui}));
  if(dbDirty){ok=lsSet(K_DB,JSON.stringify({db:S.db,custom:S.custom}))&&ok;dbDirty=false}
  if(SH.on){shFlush();return}
@@ -3832,6 +3832,10 @@ function shSchedule(ms){clearTimeout(shTimer);SH.pendT=true;shTimer=setTimeout((
 async function shFlush(){if(!SH.on||!SH.ready)return;if(!SH.canWrite){shStatus('읽기 전용 · 고친 내용은 공유되지 않습니다');return}
  if(SH.flushing){SH.again=true;return}
  const wait=800-(Date.now()-shLastFlush);if(wait>0){shSchedule(wait);return}
+ /* 11-09 감우 57 (망령 「잎사귀법의 1.33 으로 고쳤는데 2배로 돌아갔다」): 읽기만 하던 낡은 창(제작기를 연 뒤 남이 고친 행을 표에 다시 짓지 못한 창)이 떠날 때(beforeunload) · 시작할 때 「내 표와 올라간 값이 다르다」를 내 수정으로 보고
+    남의 수정을 옛 값으로 덮었다(15:12:18 특성 행 · 레디메이드 행 · 포켓몬 시트). 이 창에서 고친 것(save — userEdit)이 없으면 아무것도 올리지 않는다. 처음 빈 DB 를 채울 때(autoOk)만 예외 */
+ if(!SH.userEdit&&!SH.autoOk){const n=shDirtyPaths().length;if(n){console.warn('[공유 저장소] 이 창에서 고친 것이 없는데 올라간 값과 다른 문서가 '+n+'개 — 남의 수정을 덮지 않게 올리지 않는다',shDirtyPaths().slice(0,10));shStatus('연결됨 · 이 창에서 고친 것 없음')}return}
+ const UE0=SH.userEdit||0;
  SH.flushing=true;shLastFlush=Date.now();let retry=false,hard=0,did=false;SH.bad=SH.bad||new Map();
  try{if(SH.db&&SH.db.fresh)try{await SH.db.fresh(60000,SH_KINDS)}catch(e){}   /* 11-03: meta · dbedit · folders 도 표 통째 쓰기라 낡은 탭이 덮지 않게 먼저 맞춘다 */
   do{SH.again=false;const want=shWant();const jobs=[];
@@ -3842,6 +3846,7 @@ async function shFlush(){if(!SH.on||!SH.ready)return;if(!SH.canWrite){shStatus('
    if(jobs.length){shStatus(`저장 중… (${jobs.length})`);await runPool(jobs,2);did=true}
   }while(SH.again&&!retry)}finally{SH.flushing=false}
  if(retry){shBack=Math.min(30000,(shBack||1500)*2);SH.retryAt=Date.now()+shBack;shStatus(`잠시 뒤 다시 저장합니다 (${SH_ERR_KO[SH.lastErr]||SH.lastErr})`);shSchedule(shBack);return}
+ if(!hard&&!SH.again&&(SH.userEdit||0)===UE0){SH.userEdit=0;SH.autoOk=0}   /* 다 올렸으면 표시를 지운다 — 그 사이에 또 고쳤으면 남긴다 */
  SH.retryAt=0;if(SH.net==='off'&&!hard)SH.net='ok';shBack=0;shStatus(hard?`저장 실패 ${hard}건 · ${SH_ERR_KO[SH.lastErr]||SH.lastErr}`:'저장됨 '+nowHM());if(did&&!hard)savedFx();if(SH.again)shSchedule(300)}
 /* 1.5MB 를 넘는 문서: 안에 든 그림(data URL)을 공유 저장소로 옮기고 주소만 남긴 뒤 다시 저장한다 */
 function shHostBig(path){SH.hosting=SH.hosting||new Set();if(SH.hosting.has(path))return true;const [kind,id]=[path.slice(0,path.indexOf('/')),path.slice(path.indexOf('/')+1)];
@@ -3879,7 +3884,7 @@ function shRebuildDB(){/* 아직 올리지 않은 내 설정 묶음은 받은 �
   for(const p of SH.synced.keys())if(p.startsWith('dbedit/')&&!loc.has(p)){const d=ED.get(p.slice(7));if(d&&okK(d.kind)){ED.delete(p.slice(7));SH.kept.add(p)}}}catch(e){console.warn('[공유 저장소] 미전송 수정 행 보존 실패',e)}}
  /* 11-03 23:35 망령 「레디메이드 DB 다 어디 갔니?」(제작기 레디메이드 DB 1행): 레디메이드 · 상태 변화의 기본 행은 fx 스크립트를 읽은 뒤에야 생기는데, 그 전에 직접 추가한 행(작살잡이) 하나만 있는 표를
     「다 지운 것」으로 잘못 읽어 기본 행 전부에 「지움」 수정 행(dbedit deleted)을 올렸다. 한 번에 이렇게 많이 지운 것은 사람이 한 일이 아니니 지움 표시를 버린다 — 다음 저장 때 공유 DB 에서도 그 문서가 지워진다 */
- SH.healed=SH.healed||{};for(const lk of ['rm','st']){if(!lazyOk(lk))continue;const dels=[...ED].filter(([id,d])=>d&&d.kind===lk&&d.deleted);if(dels.length>=MASS_DEL){for(const [id] of dels)ED.delete(id);if(!SH.healed[lk]){SH.healed[lk]=dels.length;setTimeout(()=>{try{shSchedule(1500)}catch(e){}},600);setTimeout(()=>toast(`${DBS[lk].t} DB 기본 행 ${dels.length}개에 잘못 붙은 「지움」 표시를 되돌렸습니다 (공유 DB 에도 저장)`),400)}}}
+ SH.healed=SH.healed||{};for(const lk of ['rm','st']){if(!lazyOk(lk))continue;const dels=[...ED].filter(([id,d])=>d&&d.kind===lk&&d.deleted);if(dels.length>=MASS_DEL){for(const [id] of dels)ED.delete(id);if(!SH.healed[lk]){SH.healed[lk]=dels.length;SH.autoOk=1;setTimeout(()=>{try{shSchedule(1500)}catch(e){}},600);setTimeout(()=>toast(`${DBS[lk].t} DB 기본 행 ${dels.length}개에 잘못 붙은 「지움」 표시를 되돌렸습니다 (공유 DB 에도 저장)`),400)}}}
  const byKind={};for(const [id,d] of ED){if(d&&d.kind)(byKind[d.kind]=byKind[d.kind]||[]).push([id,d])}
  /* 10-27 망령: DB 새 판이 올라와도 고친 것을 잃지 않게.
     · 기본 DB에 이름이 없어진 수정 → 버리지 않고 SH.orph_ed 에 남긴다 (공유 DB 에서도 지우지 않음 · DB 탭에서 살리기/옮겨 붙이기/버리기)
@@ -3947,7 +3952,7 @@ async function shStart(){if(SH.ready||SH.starting)return;SH.starting=true;if(SH.
   let up=false;
   if(!up&&has&&!SH.initFail){lsSet('mkm_local_before_share',JSON.stringify(backupObj()));saveFile('망켓몬_제작기_이_브라우저_백업.json',JSON.stringify(backupObj()))}
   if(!up&&!SH.initFail){S.trainers=SH.canWrite?[sampleTrainer()]:[];S.folders=[];SH.ed=new Map();SH.meta=null;SH.metaL=null;SH.metaG={};shRebuildDB()}
-  SH.synced=new Map();SH.ready=true;SH.live=true;SH.dbDirty=true;renderAll();await shFlush();return}
+  SH.synced=new Map();SH.ready=true;SH.live=true;SH.dbDirty=true;renderAll();SH.autoOk=1;await shFlush();return}
  /* 지난번 공유 DB 에 못 붙어 이 브라우저에만 저장한 수정이 있으면, 공유 DB 내용으로 바꾸기 전에 백업 파일로 남긴다 (백업 불러오기 「지금 목록에 추가」로 되살린다) */
  if(lsGet('mkm_unsynced')&&S.trainers.length){const j=JSON.stringify(backupObj());lsSet('mkm_local_before_share',j);try{saveFile(`망켓몬_제작기_미전송_${impStamp()}.json`,j)}catch(e){}toast('지난번 공유 DB에 못 올린 수정을 백업 파일로 저장했습니다')}lsSet('mkm_unsynced','');
  S.trainers=[];S.folders=[];SH.orph=new Map();SH.ed=new Map();SH.meta=null;SH.metaL=null;SH.metaG={};
@@ -4026,7 +4031,7 @@ loadFx();
 meLoad();
 shInit();
 /* 아직 공유 DB 에 올라가지 않은 수정이 있으면 탭을 닫기 전에 한 번 묻는다 (그 사이 저장을 한 번 더 시도) */
-window.addEventListener('beforeunload',e=>{if(!SH.on||!SH.ready||!SH.canWrite)return;let dirty=!!SH.flushing;try{if(!dirty)for(const [p,b] of shWant()){const j=canon(b);if(SH.synced.get(p)!==j&&!(SH.bad&&SH.bad.get(p)===j)){dirty=true;break}}}catch(_){}if(dirty){try{shFlush()}catch(_){}e.preventDefault();e.returnValue=''}});
+window.addEventListener('beforeunload',e=>{if(!SH.on||!SH.ready||!SH.canWrite)return;if(!SH.userEdit&&!SH.flushing)return;   /* 11-09 감우 57: 이 창에서 고친 게 없으면 떠날 때 올리지 않는다 */let dirty=!!SH.flushing;try{if(!dirty)for(const [p,b] of shWant()){const j=canon(b);if(SH.synced.get(p)!==j&&!(SH.bad&&SH.bad.get(p)===j)){dirty=true;break}}}catch(_){}if(dirty){try{shFlush()}catch(_){}e.preventDefault();e.returnValue=''}});
 /* ---------- 폰: 숫자 칸 −/+ (포인트 기본값 · 분배 레벨 · 종족치). 손가락 화면에서만 버튼이 보인다. 꾹 누르면 계속 바뀐다 ---------- */
 (()=>{const RE=/\.(base\.[^.]+|dist)$/;const root=document.getElementById('v-char');if(!root)return;
  const wrap=()=>{for(const i of root.querySelectorAll('input[data-p]')){if(!RE.test(i.dataset.p)||i.parentElement.classList.contains('stp'))continue;const w=document.createElement('span');w.className='stp';i.replaceWith(w);
