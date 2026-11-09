@@ -117,7 +117,7 @@ window.OM_MOVEAUTO=(()=>{
    if(!okRest||(!rk.length&&!st.length)){notes.push((cm?cm[0]:'')+s);continue}
    const label=(n<10?n+'할 ':'')+s;
    const byWho={};const add=(who,op)=>{(byWho[who]=byWho[who]||[]).push(op)};
-   for(const r of rk){const v=+Object.values(r.stats)[0];const who=r.recoil?'self':whoFor(s,v,mv);add(who,{k:'rank',tgt:who,stats:r.stats})}
+   for(const r of rk){const v=+Object.values(r.stats)[0];const who=r.recoil?'self':whoFor(s,v,mv);add(who,Object.assign({k:'rank',tgt:who,stats:r.stats},r.recoil?{recoil:1}:{}))}   /* 11-09 감우 54-A: 「반동 (특공) : -2」 = 능력 반동 — 웹툴이 「비례무시 반동」으로 막을 수 있게 표시 */
    let oneOf=null;const tt=turnsOf(s);
    for(const x of st){const who=whoFor(s,-1,mv);
     const mk=en=>({k:'state',tgt:who,state:en,count:tt?(tt.min+Math.floor(Math.random()*(tt.max-tt.min+1))):undefined});
