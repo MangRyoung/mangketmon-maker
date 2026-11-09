@@ -76,3 +76,8 @@ window.OM_DB.readymade={"기술 : 초읽기":{"text":"","ops":[{"k":"countdown",
  for(const [n,t2,ko] of [['우물의가면','Water','물'],['화덕의가면','Fire','불꽃'],['주춧돌의가면','Rock','바위']])R['소지품 : '+n]={text:`【상시】 「오거폰」을 「타입 : 풀/${ko}」로 만들고 기술의 대미지를 강화(1.2배)한다.`,ops:[{k:'type',tgt:'self',mode:'set',types:['Grass',t2]},BO(1.2)],item:1};
  R['소지품 : 선제공격손톱']={text:'턴 개시 시 2할로 자신의 기술에 「우선도 : +0.5」한다.',ops:[{k:'prio',tgt:'self',mode:'add',v:0.5,cat:'all',type:'',dur:'turn',tag:''}],item:1};
 })();
+/* 11-09 망령 「A·B·E 다 고치기」: 새 구문(반동기 · 아군공격 · 완화 ×0 무효)으로 되는 특성 — 이판사판 · 텔레파시. 인분 · 원격 · 굳건한신념 · 스크루지느러미는 웹툴(battle_ui covOf · farOf · redirectOf)이 특성 이름으로, 포자는 특성 글(hitRules)로 처리한다 */
+(()=>{const R=window.OM_DB.readymade;const B={tgt:'self',types:[],cat:'all',eff:'all',rng:'all',uses:-1,turn:0,tl:0,ro:[],st:'',tg:[],sb:''};const put=(k,text,ops)=>{if(!R[k]||!(R[k].ops||[]).length)R[k]={text,ops}};
+ put('특성 : 이판사판','【상시】 「반동 비례 대미지」를 받는 기술의 대미지를 강화(1.2배)한다.',[Object.assign({k:'boost',v:1.2,rc:1},B)]);
+ put('특성 : 텔레파시','【상시】【방호】/아군의 공격을 무효화한다.',[Object.assign({k:'guard',v:0,al:1},B)]);
+})();
