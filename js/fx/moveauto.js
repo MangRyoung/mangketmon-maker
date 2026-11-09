@@ -12,7 +12,7 @@ window.OM_MOVEAUTO=(()=>{
  const KO_STAT={공격:'attack',방어:'defense',특공:'specialattack',특방:'specialdefense',스피드:'speed',명중:'accuracy',회피:'evasion',C:'critical',급소:'critical'};
  const COND=/(때|라면|경우|이라면|으면|않으면|하면|이성에게|중 무작위|무작위한|에 따라|만큼 오른|비례해)/;
  const TAG_ONLY=/^(「[^」]+」)+\s*기술$/;
- const SILENT=/^「필중기」$|^「날씨」가 전개되어 있지 않으면 실패한다$|^「우선도」\s*[+-]\d+$|^「연속 제한[^」]*」$|^기술이 급소에 맞기 쉽다|^「(차지|설치기|다이브)」 기술$|^「연속기\s*:[^」]*」$|^통상기$|^「설치기」$|^「설치기\s*:[^」]*」$|무시하지만 위력이 저하|^대상의 랭크 변화를 무시한다$/;   /* 랭크 무시는 공격 창이 굴릴 때 처리 (성스러운칼 · 야금야금) */
+ const SILENT=/^「필중기」$|^「날씨」가 전개되어 있지 않으면 실패한다$|^「우선도」\s*[+-]\d+$|^「연속 제한[^」]*」$|^기술이 급소에 맞기 쉽다|^「(차지|설치기|다이브)」 기술$|^「연속기\s*:[^」]*」$|^통상기$|^「설치기」$|^「설치기\s*:[^」]*」$|무시하지만 위력이 저하|^대상의 랭크 변화를 무시한다$|^이 피해는 기술 대미지로 취급한다$|^「장벽」의 효과를 무시한다$/;   /* 랭크 무시는 공격 창이 굴릴 때 처리 (성스러운칼 · 야금야금) */
  const OBJ={리플렉터:5,빛의장막:5,오로라베일:5,신비의부적:5,흰안개:5,주술:5,검은숲:5,얼음의장벽:4,신기루:4,순풍:4,무지개:4,습원:4,불바다:4,돌격:4,압정뿌리기:1000,압정:1000,독압정:1000,지뢰원:1000,끈적끈적네트:1000,기뢰:1000,트램펄린:1000,스텔스록:1000,불기둥:1000,장미원:1000,가시원:1000,얼음꼬챙이:1000,전기발판:1000,아이스번:1000,저주의묘:1000,악의소굴:1000,전파탑:1000};
  const TERR=['그래스필드','일렉트릭필드','미스트필드','사이코필드'],ROOMS=['트릭룸','매직룸','원더룸','블랙룸'],ETC={중력:'중력',증력:'중력',물놀이:'물놀이',흙놀이:'흙놀이'};
  /* 필드·날씨·설치기·교대 문장: 다 읽으면 true. 읽은 op 는 G(op, 대상별?) 로, 교대는 F 플래그로 */
@@ -67,7 +67,8 @@ window.OM_MOVEAUTO=(()=>{
    /* 11-08: 「상대1체」 줄은 맞은 대상마다(who target) — 순서가 걸린 구문(조건 · 선택 · 확인)이 있으면 예전처럼 한 번에 */
    const seq=R.ops.some(o=>o&&['cond','choice','confirm'].includes(o.k));const tg=seq?[]:R.ops.filter(o=>o&&o.tgt==='enemy1'),rest=seq?R.ops:R.ops.filter(o=>!(o&&o.tgt==='enemy1'));
    const groups=[...(rest.length?[{n:10,label:lab,who:'once',ops:rest,when}]:[]),...(tg.length?[{n:10,label:lab,who:'target',ops:tg.map(o=>Object.assign({},o,{tgt:'target'})),when:'hit'}]:[])];
-   return {groups,recoil:null,drain:null,notes:[],src:R.own?'own':'rm'}}   /* 11-05: 필드 전체 · 자신 대상 변화기(초읽기 …)는 맞힐 상대가 없어도 쓰면 건다 */
+   const TX=parse(mv,Object.assign({},opt,{text:1}))||{};const FX0={};for(const k of ['firstOnly','failHit','failNoAtk','failLate','effVs','accNot','onlyVs','mold','noRedirect','koHeal','counter','iai','stance'])if(TX[k])FX0[k]=TX[k];   /* 11-09 감우 55: 구문이 있어도 효과 글의 실패 조건 · 상성 플래그는 그대로 */
+   return Object.assign({groups,recoil:null,drain:null,notes:[],src:R.own?'own':'rm'},FX0)}   /* 11-05: 필드 전체 · 자신 대상 변화기(초읽기 …)는 맞힐 상대가 없어도 쓰면 건다 */
   /* 예고 공격(「지연」 기술: 미래예지 계열): 쓸 때는 대미지 없이 대상에게 예고 상태만 걸고, 다음 턴 종료 때 터진다 */
   {const fut=FX()&&FX().FUTURE||[];const en=FX()&&FX().stEn?FX().stEn(name):'';if(en&&fut.includes(en)||(mv.tag==='지연'&&/다음 턴 가장 마지막/.test(String(mv.eff||'')))){const st=en||((String(mv.eff||'').match(/대상을 「([^」]+)」 상태로/)||[])[1]||'FutureSight');
    return {groups:[{n:10,label:'예고 「'+name+'」',who:'target',ops:[{k:'future',state:st,mv:name,tgt:'target'}],when:'hit'}],recoil:null,drain:null,notes:[],src:'parse',delay:1}}}
@@ -76,6 +77,24 @@ window.OM_MOVEAUTO=(()=>{
   const groups=[],notes=[],FL={};let recoil=null,drain=null,critSure=false,selfFaint=false;
   for(let s of sents){
    if(TAG_ONLY.test(s)||SILENT.test(s))continue;
+   /* 11-09 감우 55: 실패 조건 · 상성 · 명중 · 특성 무시 · 끌어오기 무시 · 쓰러뜨리면 회복 · 자세 → 거합 타입 · 되돌려주기 — 플래그로 (웹툴 공격 창이 본다) */
+   {let x;if(/^필드에 등장하여 최초로 내보내지 않으면 실패한다$/.test(s)){FL.firstOnly=1;continue}
+    if(/^(?:포켓몬의\s*)?공격을 받으면 실패한다$/.test(s)){FL.failHit=1;continue}
+    if(/^대상이 공격하지 않으면 실패한다$/.test(s)){FL.failNoAtk=1;continue}
+    if(/^대상보다 먼저 행동하지 않으면 실패한다$/.test(s)){FL.failLate=1;continue}
+    if((x=s.match(/^「타입\s*:\s*([^」]+)」에게 「상성\s*:\s*(\d+(?:\/\d+)?)배」가 된다$/))){const ty=FX()&&FX().TYPE_KO?Object.keys(FX().TYPE_KO).find(k=>FX().TYPE_KO[k]===x[1].trim()):'';const v=x[2].includes('/')?(+x[2].split('/')[0])/(+x[2].split('/')[1]):+x[2];if(ty){FL.effVs={ty,v};continue}}
+    if((x=s.match(/^「타입\s*:\s*([^」]+)」(?:이|가) 아니라면 「명중\s*:\s*(\d+)」(?:이|가) 된다$/))){const ty=FX()&&FX().TYPE_KO?Object.keys(FX().TYPE_KO).find(k=>FX().TYPE_KO[k]===x[1].trim()):'';if(ty){FL.accNot={ty,acc:+x[2]};continue}}
+    if((x=s.match(/^「타입\s*:\s*([^」]+)」\s*이외에게 내보내면 실패한다$/))){const ty=FX()&&FX().TYPE_KO?Object.keys(FX().TYPE_KO).find(k=>FX().TYPE_KO[k]===x[1].trim()):'';if(ty){FL.onlyVs=ty;continue}}
+    if(/^대상의 「특성」을 무시한다$/.test(s)){FL.mold=1;continue}
+    if(/^「기술의 대상을 변경하는 효과」를 무시한다$/.test(s)){FL.noRedirect=1;continue}
+    if((x=s.match(/^이 기술로 대상을 쓰러뜨렸을 때 자신의 「HP」를 (\d+\/\d+)만큼 회복한다$/))){FL.koHeal=x[1];continue}
+    if((x=s.match(/^마지막으로 자신을 「(물리기|특수기)」로 공격한 대상의 에리어로 받은 대미지를 (\d+(?:\.\d+)?)배로 되돌려준다$/))){FL.counter={cat:x[1]==='물리기'?'물리':'특수',mul:+x[2]};continue}
+    if((x=s.match(/^이 턴 동안 가장 마지막으로 자신을 공격한 에리어에 최근에 받은 기술 대미지를 (\d+(?:\.\d+)?)배로 되돌려준다$/))){FL.counter={cat:'',mul:+x[1],turn:1};continue}
+    if((x=s.match(/^「자세」를 변경하고 다음 「거합」 기술을 「([^」]+)」 기술로 만든다$/))){const ty=FX()&&FX().TYPE_KO?Object.keys(FX().TYPE_KO).find(k=>FX().TYPE_KO[k]===x[1].trim()):'';if(ty){FL.iai=ty;continue}}
+    if(/^「자세」를 변경하고\s+/.test(s)){FL.stance=1;s=s.replace(/^「자세」를 변경하고\s+/,'')}
+    if(/^에리어를 이동한다$/.test(s)){groups.push({n:10,label:'에리어 이동',who:'once',ops:[{k:'areamove',tgt:'self'}],when:'use'});continue}
+    if((x=s.match(/^(?:명중 시\s*)?대상의 「소지품」을 (모두\s*)?파괴한다$/))){groups.push({n:10,label:s,who:'target',ops:[{k:'item',mode:x[1]?'breakall':'break',tgt:'target'}],when:'hit'});continue}
+    if(/^대상의 「최대 HP」만큼의 대미지를 입힌다$/.test(s)){groups.push({n:10,label:'일격 — 대상의 최대 HP 만큼',who:'target',ops:[{k:'dmg',tgt:'target',basis:'max',value:'1/1'}],when:'hit'});continue}}
    const hitOnly=/^명중 후\s*/.test(s);s=s.replace(/^명중 후\s*/,'').replace(/^사용 후\s*(?=자신)/,'');
    /* 반동 비례 대미지 */
    let m=s.match(/^(명중하지 않았을 때\s*)?「반동 비례 대미지\s*:\s*(최대\s*HP\s*)?(\d+\/\d+)」$/)||s.match(/^(명중하지 않았을 때\s*)?공격 후\s*「반동 비례 대미지\s*:\s*(최대\s*HP\s*)?(\d+\/\d+)」$/);
@@ -95,6 +114,7 @@ window.OM_MOVEAUTO=(()=>{
    /* 11-07 망령 「대타가 굴릴 때와 적용할 때 1/4 를 각각 뺀다」: 대역인형 소환은 웹툴 battle_ui 가 HP 비용 · 실패(HP 모자람 · 이미 인형)를 함께 맡는다 → 여기서는 비용을 안 만든다 */
    m=s.match(/^「HP」를 (\d+\/\d+)만큼 소비하여\s*(.+)$/);if(m&&/「대역인형」/.test(m[2])){s=m[2];m=null}if(m){groups.push({n:10,label:'HP '+m[1]+' 소비',who:'once',ops:[{k:'dmg',tgt:'self',value:m[1],nofaint:1}],when:'use'});s=m[2]}
    m=s.match(/^(대상|상대 전체)의 「얼음」을 치유한다$/);if(m){groups.push({n:10,label:s,who:m[1]==='대상'?'target':'once',ops:[{k:'cure',tgt:m[1]==='대상'?'target':'enemy',states:['Freeze']}],when:'hit'});continue}
+   m=s.match(/^대상에게 (\d+\/\d+)(?:만큼)?의 비례 대미지를 입힌다$/);if(m){groups.push({n:10,label:s,who:'target',ops:[{k:'dmg',tgt:'target',basis:'max',value:m[1]}],when:'hit'});continue}   /* 11-09 감우 55: 지구던지기 · 나이트헤드 · 소닉붐 · 용의분노 (최대 HP 비례) */
    m=s.match(/^대상에게 「현재 HP」의 (\d+\/\d+)만큼의 비례 대미지를 입힌다$/);if(m){groups.push({n:10,label:s,who:'target',ops:[{k:'dmg',tgt:'target',basis:'cur',value:m[1]}],when:'hit'});continue}
    /* 10-23 망령 「상태변화를 거는 기술」: 「대상을 (N턴 동안) 「X」 상태로 만들어 (설명)」 — 상태만 걸고 뒷말(설명)은 상태 DB 가 맡는다. 앞의 N할 · 이성 조건도 읽는다 */
    {const sm=s.replace(/^\d+\/시\/\s*/,'').replace(/^다음 자신의 행동 시까지\s*/,'').replace(/^자신을 제외한 포켓몬 하나를/,'대상을').match(/^(?:(\d+)할(?:의 확률)?로\s*)?(?:(\d+)(?:~(\d+))?턴 동안\s*)?(대상|상대 전체|상대|자신|아군|이성인 상대 전체|이성)(?:을|를)\s*(?:(\d+)(?:~(\d+))?턴 동안\s*|\d+번 행동할 동안\s*|(?:다음 )?턴 종료 시\s*까지\s*)?「([^」]+)」\s*상태로 만(?:들어|들고|들며|든다)\s*(.*)$/);
@@ -127,12 +147,12 @@ window.OM_MOVEAUTO=(()=>{
    for(const who in byWho)groups.push({n,sec:!!cm,label,who:who==='target'?'target':'once',ops:byWho[who],when:'hit'})}
   if(OBJ[name]&&/^(자진|적진)$/.test(String(mv.range||''))&&!groups.some(g=>g.ops.some(o=>o.k==='object'))){const t=(txt.match(/(\d+)턴 동안/)||[])[1];groups.push({n:10,label:'「'+name+'」 설치',who:'once',ops:[{k:'object',side:mv.range==='자진'?'self':'enemy',o:name,count:+t||OBJ[name]}],when:'hit'});const i=notes.findIndex(x=>x.includes(name));if(i>=0)notes.splice(i,1);else if(notes.length===1)notes.length=0}
   if(ROOMS.includes(name)&&!groups.some(g=>g.ops.some(o=>o.k==='terrain'))){groups.push({n:10,label:'「'+name+'」',who:'once',ops:[{k:'terrain',t:name,room:true,count:5}],when:'hit'});const i=notes.findIndex(x=>x.includes(name));if(i>=0)notes.splice(i,1)}
-  return {groups,recoil,drain,critSure,selfFaint,forceSwitch:!!FL.forceSwitch,selfSwitch:FL.selfSwitch||'',notes,src:'parse'}}
+  return {groups,recoil,drain,critSure,selfFaint,forceSwitch:!!FL.forceSwitch,selfSwitch:FL.selfSwitch||'',notes,src:'parse',...(()=>{const o={};for(const k of ['firstOnly','failHit','failNoAtk','failLate','effVs','accNot','onlyVs','mold','noRedirect','koHeal','counter','iai','stance'])if(FL[k])o[k]=FL[k];return o})()}}
 
  /* 사람이 읽는 한 줄 요약 */
  function describe(a){if(!a)return '';const L=[];
   for(const g of a.groups){const body=g.oneOf?g.oneOf.map(o=>FX().unparse(o).join(' ')).join(' 또는 '):FX().unparse(g.ops).join(' / ');L.push((g.n<10?g.n+'할 ':'')+body)}
   if(a.recoil)L.push(`반동 ${a.recoil.basis==='max'?'최대 HP ':'가한 대미지 '}${a.recoil.frac}${a.recoil.when==='miss'?' (빗나갔을 때)':''}${a.recoil.hard?' (무시 불가)':''}`);
-  if(a.drain)L.push(`드레인 ${a.drain}`);if(a.selfFaint)L.push('사용 후 자신 빈사');if(a.forceSwitch)L.push('대상 강제 교대');if(a.selfSwitch)L.push(a.selfSwitch==='batton'?'배턴터치 교대':'임의 교대');if(a.critSure)L.push('확정 급소');return L.join(' · ').replace(/ target/g,' 대상')}
- const auto=a=>!!a&&!!(a.groups.length||a.recoil||a.drain||a.selfFaint||a.critSure||a.forceSwitch||a.selfSwitch);
+  if(a.drain)L.push(`드레인 ${a.drain}`);if(a.selfFaint)L.push('사용 후 자신 빈사');if(a.forceSwitch)L.push('대상 강제 교대');if(a.selfSwitch)L.push(a.selfSwitch==='batton'?'배턴터치 교대':'임의 교대');if(a.critSure)L.push('확정 급소');if(a.firstOnly)L.push('나온 뒤 첫 기술이 아니면 실패');if(a.failHit)L.push('이번 턴 공격을 받으면 실패');if(a.failNoAtk)L.push('대상이 공격하지 않으면 실패');if(a.failLate)L.push('대상보다 늦으면 실패');if(a.onlyVs)L.push((FX().TYPE_KO[a.onlyVs]||a.onlyVs)+' 이외에게 실패');if(a.effVs)L.push((FX().TYPE_KO[a.effVs.ty]||a.effVs.ty)+'에게 상성 ×'+a.effVs.v);if(a.accNot)L.push((FX().TYPE_KO[a.accNot.ty]||a.accNot.ty)+'가 아니면 명중 '+a.accNot.acc);if(a.mold)L.push('특성 무시');if(a.noRedirect)L.push('끌어오기 무시');if(a.koHeal)L.push('쓰러뜨리면 HP '+a.koHeal+' 회복');if(a.counter)L.push((a.counter.cat?a.counter.cat+'기로 ':'')+'받은 대미지 ×'+a.counter.mul+' 되돌려주기');if(a.iai)L.push('다음 거합 기술 → '+(FX().TYPE_KO[a.iai]||a.iai));return L.join(' · ').replace(/ target/g,' 대상')}
+ const auto=a=>!!a&&!!(a.groups.length||a.recoil||a.drain||a.selfFaint||a.critSure||a.forceSwitch||a.selfSwitch||a.firstOnly||a.failHit||a.failNoAtk||a.failLate||a.effVs||a.accNot||a.onlyVs||a.mold||a.noRedirect||a.koHeal||a.counter||a.iai);
  return {parse,describe,auto}})();
