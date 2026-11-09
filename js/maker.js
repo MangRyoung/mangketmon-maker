@@ -657,10 +657,14 @@ function misagSubPr(t){const r=String((t.ranks||{})['통솔']||'').trim();const 
 function awSubSync(t){if(!t||!isMisag(t))return false;const w=misagSubPr(t);if(!w)return false;let ch=false;for(const p of t.pokemon||[])if(p&&p.awaken==='c'&&String(p.pride||'')!==w){p.pride=w;ch=true}return ch}
 function misagPen(t){if(!t.misagPen||typeof t.misagPen!=='object')t.misagPen={};const P=t.misagPen;if(!P.ex||typeof P.ex!=='object')P.ex={};if(!P.ordOff||typeof P.ordOff!=='object')P.ordOff={};return P}
 /* 실제로 걸린 대가 {분류: 'B' | 'A'} — B·A 등급은 고른 분류 하나, EX 는 GM이 분류마다 직접 */
-function misagEff(t){const e={};if(!isMisag(t))return e;const g=misagGrade(t),P=misagPen(t);if(g==='B'||g==='A'){if(MISAG_CATS.includes(P.cat))e[P.cat]=g}else if(g==='EX'){for(const c of MISAG_CATS)if(P.ex[c]==='B'||P.ex[c]==='A')e[c]=P.ex[c]}return e}
+function misagEff(t){const e={};if(!isMisag(t))return e;const g=misagGrade(t),P=misagPen(t);if(g==='B'||g==='A'){if(MISAG_CATS.includes(P.cat))e[P.cat]=g}else if(g==='EX'){for(const c of MISAG_CATS)if(P.ex[c]==='B'||P.ex[c]==='A'||(c==='육성'&&P.ex[c]==='A만'))e[c]=P.ex[c]}return e}   /* 11-09 망령 「EX는 따로따로」: EX 육성은 A만(−20, B 몫 없이)도 고를 수 있다 */
 const misagItems=lv=>(MR().items||[]).filter(r=>r&&r[0]&&(!lv||String(r[1]||'').toUpperCase()===lv));
 const misagItem=k=>(MR().items||[]).find(r=>r&&r[0]===k)||null;
-function misagDistPen(t){const e=misagEff(t).육성;return e==='A'?mnum('distB')+mnum('distA'):e==='B'?mnum('distB'):0}
+function misagDistPen(t){const e=misagEff(t).육성;return e==='A'?mnum('distB')+mnum('distA'):e==='B'?mnum('distB'):e==='A만'?mnum('distA'):0}
+/* 11-09 망령 「2/6 + 4/6 으로 나눠 각성체 / PL 분배레벨로 · 패널티도 그렇게 · 반올림」: 육성 대가를 각성체 몫 1/3(반올림) · PL 몫 나머지로. B 와 A 를 따로 반올림해 더한다 — B −3/−7 · A만 −7/−13 · B+A −10/−20 */
+function misagDistAw(t){const e=misagEff(t).육성,r=x=>Math.round(x/3);return e==='A'?r(mnum('distB'))+r(mnum('distA')):e==='B'?r(mnum('distB')):e==='A만'?r(mnum('distA')):0}
+function misagDistPl(t){return misagDistPen(t)-misagDistAw(t)}
+function tplSix(q,item,rank){const k=strip(rank||'');const L=(S.db.tpl||[]).filter(r=>r[0]===q&&r[2]===item);const r=L.find(x=>x[1]===rank)||L.find(x=>strip(x[1])===k&&!/[+-]/.test(x[1]))||L.find(x=>strip(x[1])===k);return r&&!isNaN(+r[3])?+r[3]:null}
 /* 11-01 망령: 지시 D 는 『6령』(교회식이면 『영창』)이 없으므로 B부터 『4식』(『결계』)을 뺀다 — 『4식』 1 = 『6령』 2 */
 function misagOrdNeed(t){const e=misagEff(t).지시;if(!e)return {c:0,o:0};const c=mnum('ordB'),o=e==='A'?mnum('ordA'):0;if((t.orders||{}).preset&&!ordAvail(t,'c').length)return {c:0,o:Math.ceil(c/2)+o};return {c,o}}
 const misagOrdOff=(t,kind)=>{const L=misagPen(t).ordOff[kind];return Array.isArray(L)?L:[]};
@@ -683,7 +687,9 @@ function tplSolo(q,item,rank){const k=strip(rank||'');const L=(S.db.tpl||[]).fil
 const mOn=k=>String(MR()[k]??MISAG_DEF[k])!=='0';
 function misagG3(rank){const k=strip(rank||'');for(const x of String(MR().g3??MISAG_DEF.g3).split(/[,，]/)){const [r,a,b]=x.split(':').map(y=>(y||'').trim());if(r&&r.toUpperCase()===k.toUpperCase())return {aw:a,pl:b}}return null}
 function misagTwoChecks(t){const out=[],A=awList(t);if(!A.length)return out;const tag='각성체 2체 몫';
- const dcap=tplSolo('육성','분배레벨',t.ranks['육성']);const ds=A.reduce((a,p)=>a+(Math.round(+p.dist)||0),0);if(dcap!=null&&ds>dcap)out.push(`${tag} — 분배레벨 합 ${ds} / ${dcap} (1인 기준 (2체) · 육성 ${strip(t.ranks['육성'])})`);
+ {const d1=tplSolo('육성','분배레벨',t.ranks['육성']),d6=tplSix('육성','분배레벨',t.ranks['육성']),pa=misagDistAw(t),pp=misagDistPl(t);const ds=A.reduce((a,p)=>a+(Math.round(+p.dist)||0),0);   /* 11-09: 각성체 2체 = 1인 값 − 육성 대가 각성체 몫, PL 4체 = (6체 − 1인) − PL 몫 */
+  if(d1!=null&&ds>d1-pa)out.push(`${tag} — 분배레벨 합 ${ds} / ${d1-pa} (1인 기준 (2체) ${d1} · 육성 ${strip(t.ranks['육성'])}${pa?` · 육성 대가 각성체 몫 −${pa}`:''})`);
+  if(d1!=null&&d6!=null){const PL=t.pokemon.filter(p=>!awOf(t,p)),pcap=d6-d1-pp,ps=PL.reduce((a,p)=>a+(Math.round(+p.dist)||0),0);if(ps>pcap)out.push(`PL 4체 — 분배레벨 합 ${ps} / ${pcap} (6체 ${d6} − 각성체 몫 ${d1}${pp?` · 육성 대가 PL 몫 −${pp}`:''})`)}}
  /* 10-30 망령 「전용도 기본적으로 각성체에 2개가 부여 돼 · D 는 각성체 1체만」 · 「따로 받음 (상한에 안 셈)」: 각성체는 능력 표와 따로 1체에 전용 2개(룰 상수 미사그 awExcl).
     능력 D 면 각성체 1체만 받는다. 능력 표의 전용 개수(6체 기준, 능력 대가 −n 포함)는 PL 4체 몫으로 센다 */
  {const per=mnum('awExcl'),dOne=strip(t.ranks['능력'])==='D';const has=A.map(p=>exclAll(p).length);
@@ -2525,14 +2531,14 @@ function tOrdHTML(t,ti){const o=t.orders||{};const p=o.preset||'';const rk=(t.ra
 const RP_PC=[['bg','배경 · 설정'],['goal','목표 · 동기'],['bond','인간관계'],['style','말투 · 겉모습'],['note','메모']],RP_NPC=[['bg','정체 · 설정'],['goal','원하는 것 · 동기'],['bond','인간관계'],['style','말투 · 겉모습'],['note','PL 이 아는 것']];
 /* 10-28 망령: 미사그 대학 (4+2) 「각성체 대가」 패널 — 등급은 각성 (대가)의 프라이드에서 매번 계산, 고른 것만 t.misagPen 에 */
 function misagOut(t){if(!isMisag(t))return undefined;const P=misagPen(t),e=misagEff(t);const it=[];if(e.통솔){for(const k of e.통솔==='A'?[P.b,P.a]:[P.b]){const r=k&&misagItem(k);if(r)it.push({key:r[0],grade:r[1],desc:r[2],need:r[3]||''})}}
- return {grade:misagGrade(t),pen:e,dist:misagDistPen(t),excl:misagExclPen(t),uq:misagUqPen(t),ordOff:e.지시?{o:misagOrdOff(t,'o'),c:misagOrdOff(t,'c')}:{o:[],c:[]},items:it,type:P.type||'',role:String(P.role||'').trim(),note:String(P.note||'').trim(),two:misagTwoOut(t)}}
+ return {grade:misagGrade(t),pen:e,dist:misagDistPen(t),distAw:misagDistAw(t),distPl:misagDistPl(t),distSolo:tplSolo('육성','분배레벨',t.ranks['육성']),excl:misagExclPen(t),uq:misagUqPen(t),ordOff:e.지시?{o:misagOrdOff(t,'o'),c:misagOrdOff(t,'c')}:{o:[],c:[]},items:it,type:P.type||'',role:String(P.role||'').trim(),note:String(P.note||'').trim(),two:misagTwoOut(t)}}
 /* 10-30 망령 「세션 노트에도 이어지게」: 2체 기준 요약 — 각성체 2체 몫 검사 글 · 2체 기준으로 고른 4식 · 6령(대가로 뺀 것 제외) · 3계제권 · 검사 켜짐 */
 function misagTwoOut(t){let O=null;try{O=ordSnap(t)}catch(e){}const pk=kind=>O&&O.preset?(O[kind]||[]).filter(x=>x.pick&&x.avail&&!x.off):[];
  return {checks:misagChecks(t).filter(x=>/^(2체 기준|각성체 2체 몫)/.test(x)),pick:{o:pk('o').map(x=>x.k),c:pk('c').map(x=>x.k)},names:{o:pk('o').map(x=>x.nm),c:pk('c').map(x=>x.nm)},need:O&&O.pickN?O.pickN:{o:soloOrdN('o',t),c:soloOrdN('c',t)},g3:misagG3(t.ranks['육성'])||null,b1:mOn('twoB1'),role:mOn('twoRole')}}
 /* 10-28 망령: 각성체 대가를 짧은 줄로 — 트레이너 카드(서머리)와 각성체 한 장 요약에 띄운다 */
 function misagPenLines(t){if(!isMisag(t))return [];const o=misagOut(t),e=o.pen,out=[];const KO=k=>TORD.KO[k]||k;
  if(e.지시){const nd=misagOrdNeed(t);const off=[...o.ordOff.c,...o.ordOff.o].map(KO);out.push(['지시',e.지시,`${[nd.c?`지령 −${nd.c}`:'',nd.o?`명령 −${nd.o}`:''].filter(Boolean).join(' · ')}${off.length?` (${off.join(', ')})`:''}`])}
- if(e.육성)out.push(['육성',e.육성,`분배레벨 −${o.dist}`]);
+ if(e.육성)out.push(['육성',e.육성,`분배레벨 −${o.dist} (각성체 −${misagDistAw(t)} · PL −${misagDistPl(t)})`]);
  if(e.통솔)for(const it of o.items)out.push(['통솔',it.grade,`${it.key} ${it.desc}${it.need==='type'&&o.type?` [${o.type}]`:''}${it.need==='role'&&o.role?` [${o.role}]`:''}`]);
  if(e.통솔&&!o.items.length)out.push(['통솔',e.통솔,'항목을 아직 안 골랐다']);
  if(e.능력)out.push(['능력',e.능력,`전용 −${o.excl}${o.uq?` · 고유 점수 −${o.uq}`:''}`]);
@@ -2542,12 +2548,12 @@ function misagPenHTML(t,cls){const L=misagPenLines(t),g=misagGrade(t);if(!isMisa
 function misagHTML(t,ti){const P=misagPen(t),R=MR(),g=misagGrade(t),e=misagEff(t),B=`T.${ti}.misagPen`;
  const nm=(L)=>L.map(p=>`${esc(p.name||'(이름 없음)')} <span class="faint">${esc(prideOf(p)||'-')}</span>`).join(', ')||'<span class="warn">없음</span>';
  const gLab=g==='?'?'<span class="warn">등급표에 없음</span>':g?`<b class="mgr g${g}">${g}</b>`:'<span class="faint">없음</span>';
- const catHint={지시:`지령 (6령) ${mnum('ordB')}개 · A면 명령 (4식) ${mnum('ordA')}개 더`,육성:`분배레벨 −${mnum('distB')} · A면 −${mnum('distA')} 더`,통솔:'B 항목 1택 · A면 A 항목도 1택',능력:`전용 포텐셜 총 개수 −${mnum('exclB')} · A면 고유 포텐셜 점수 −${mnum('uqA')} 또는 전용 −${mnum('exclA')} 더`};
+ const catHint={지시:`지령 (6령) ${mnum('ordB')}개 · A면 명령 (4식) ${mnum('ordA')}개 더`,육성:`분배레벨 −${mnum('distB')} · A면 −${mnum('distA')} 더 (각성체 1/3 · PL 2/3)`,통솔:'B 항목 1택 · A면 A 항목도 1택',능력:`전용 포텐셜 총 개수 −${mnum('exclB')} · A면 고유 포텐셜 점수 −${mnum('uqA')} 또는 전용 −${mnum('exclA')} 더`};
  const pick=g==='B'||g==='A'?`<label class="plrow"><span>대가 분류</span><select data-p="${B}.cat"><option value="" ${!P.cat?'selected':''}>고르기</option>${MISAG_CATS.map(c=>`<option value="${c}" ${P.cat===c?'selected':''}>${c}</option>`).join('')}</select></label>${P.cat&&catHint[P.cat]?'':`<p class="small muted" style="margin:2px 0 0">${MISAG_CATS.map(c=>`${c}: ${esc(catHint[c])}`).join(' · ')}</p>`}`
-  :g==='EX'?`<div class="mgex"><span class="small muted">EX — GM이 분류마다 대가를 정합니다</span>${MISAG_CATS.map(c=>`<label class="row small" style="gap:4px">${c}<select data-p="${B}.ex.${c}">${[['','없음'],['B','B'],['A','A (B 포함)']].map(([v,l])=>`<option value="${v}" ${(P.ex[c]||'')===v?'selected':''}>${l}</option>`).join('')}</select></label>`).join('')}</div>`:'';
+  :g==='EX'?`<div class="mgex"><span class="small muted">EX — GM이 분류마다 대가를 정합니다</span>${MISAG_CATS.map(c=>`<label class="row small" style="gap:4px">${c}<select data-p="${B}.ex.${c}">${[['','없음'],['B','B'],['A','A (B 포함)'],...(c==='육성'?[['A만','A만']]:[])].map(([v,l])=>`<option value="${v}" ${(P.ex[c]||'')===v?'selected':''}>${l}</option>`).join('')}</select></label>`).join('')}</div>`:'';
  const lines=[];const nd=misagOrdNeed(t);
  if(e.지시)lines.push(`<li><b>지시 ${e.지시}</b> · 지령 (6령) ${nd.c}개${nd.o?` · 명령 (4식) ${nd.o}개`:''}를 뺍니다 — 위 「지시 체계」에서 고르기 (지금 ${misagOrdOff(t,'c').length}${nd.o?' · '+misagOrdOff(t,'o').length:''})</li>`);
- if(e.육성)lines.push(`<li><b>육성 ${e.육성}</b> · 분배레벨 −${misagDistPen(t)} (포인트 표 「분배레벨」 소모에 들어갑니다 · 모자라면 음수만큼 레벨을 깎습니다)</li>`);
+ if(e.육성)lines.push(`<li><b>육성 ${e.육성}</b> · 분배레벨 −${misagDistPen(t)} — 각성체 2체 몫 −${misagDistAw(t)} · PL 4체 몫 −${misagDistPl(t)} (1/3 반올림 · 포인트 표 「분배레벨」 소모에 들어가고, 모자라면 음수만큼 레벨을 깎습니다)</li>`);
  if(e.통솔){const types=S.db.types.map(x=>x[0]).filter(x=>x&&x!=='-');const roles=[...new Set(t.pokemon.map(p=>roleOf(p)).filter(Boolean))];
   const isel=(lv,k)=>`<select data-p="${B}.${k}"><option value="" ${!P[k]?'selected':''}>${lv} 항목 고르기</option>${misagItems(lv).map(r=>`<option value="${esc(r[0])}" ${P[k]===r[0]?'selected':''}>${esc(r[0])} — ${esc(r[2])}</option>`).join('')}</select>`;
   const used=(e.통솔==='A'?[P.b,P.a]:[P.b]).map(misagItem).filter(Boolean);
