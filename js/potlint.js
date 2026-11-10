@@ -253,7 +253,7 @@ window.MKM_POTLINT=(()=>{
    if((m=c.match(/「(죽음의카운트)\s*:\s*(\d)」(?:으로|로) 만든다/))){const sg=segB(c,m.index);if(/서로/.test(sg)){L.push(`상태 죽음의카운트 상대1체 ${m[2]}턴`);L.push(`상태 죽음의카운트 자신 ${m[2]}턴`)}else{const t=tgtIn(sg,temp)||'상대1체';L.push(`상태 죽음의카운트 ${t} ${m[2]}턴`)}}
    if((m=c.match(/(?:「HP」|HP)(?:가|이)\s*회복되지 않는다/))){const t=tgtIn(segB(c,m.index),temp)||'상대1체';L.push(`상태 회복봉인 ${t}`)}
    if(/「따라가때리기」\s*효과를 받지 않는다/.test(c)){const t=tgtIn(segB(c,c.search(/「따라가때리기」/)),temp);L.push(`추격 무시${t==='아군전체'?' 아군전체':''}`)}
-   if((m=c.match(/「예리\s*:\s*C\+(\d)」\s*상태가 된다/)))L.push(`상태 예리${m[1]} 자신`);
+   if((m=c.match(/「예리\s*:?\s*(?:C\s*)?\+?\s*(\d)」\s*상태(?:가 (?:된다|되고|되며)|로 만든다|(?:으)?로 한다)/))){const sg=segB(c,m.index);const t=/상태로/.test(m[0])?(tgtIn(sg,temp)||'자신'):'자신';L.push(`상태 예리${m[1]} ${t}${turns?` ${turns}턴`:''}`)}   /* 11-10 망령 「예리 : +1」 꼴도 (C 없이) */
    else if((m=c.match(/「([가-힣 ]+)」\s*상태가 (?:된다|되고|되며)/))&&!/빈사/.test(m[1])){const s=m[1].replace(/\s/g,'');if(!window.OM_FX||isSt(s))L.push(`상태 ${s} 자신${turns?` ${turns}턴`:/영구히/.test(c)?' 1000턴':temp?' 1턴':''}`)}
    if((m=c.match(/((?:「[가-힣\/]+」\s*)+)\s*상태가 되지 않(?:는다|고)/))){const sts=[].concat(...[...m[1].matchAll(/「([가-힣\/]+)」/g)].map(y=>y[1].split('/'))).filter(y=>y!=='빈사'&&(!window.OM_FX||isSt(y)));const t=tgtIn(segB(c,m.index),temp);if(sts.length)L.push(`면역${t&&t!=='상대1체'?' '+t:''} ${sts.join(',')}`)}   /* 11-03: 「빈사」 상태가 되지 않는다(버티기)는 면역 구문이 아니다 */
    if((m=c.match(/상태 이상이 되지 않(?:는다|고)/))){const t=tgtIn(segB(c,m.index),temp);L.push(`면역${t&&t!=='상대1체'?' '+t:''} 이상`)}
