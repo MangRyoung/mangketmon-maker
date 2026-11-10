@@ -63,7 +63,7 @@ window.OM_MOVEAUTO=(()=>{
   /* 11-08 망령 「포켓몬마다 기술을 따로」: 포켓몬별 덮어쓰기 구문(mv.auto, 제작기 p.moves[i].ov.auto)이 레디메이드보다 먼저 */
   const OWN=String(mv.auto||'').trim();const OR=OWN&&FX()&&FX().parse?FX().parse(OWN):null;
   const R=opt.text?null:OR&&OR.ops.length?{ops:OR.ops,own:1}:FX()&&FX().rm?FX().rm('기술 : '+name):null;
-  if(R&&R.ops&&R.ops.length){const when=(mv.cat==='변화'&&/필드|자신|아군|자기|장/.test(String(mv.range||'')))?'use':'hit';const lab=R.own?'포켓몬별 구문 「'+name+'」':'레디메이드 「기술 : '+name+'」';
+  if(R&&R.ops&&R.ops.length){const when=(mv.cat==='변화'&&/필드|자신|아군|자기|장|자진/.test(String(mv.range||'')))?'use':'hit';   /* 11-10: 자진(황금극장 「이때다!」) — 맞힘 없이 쓰면 건다 */const lab=R.own?'포켓몬별 구문 「'+name+'」':'레디메이드 「기술 : '+name+'」';
    /* 11-08: 「상대1체」 줄은 맞은 대상마다(who target) — 순서가 걸린 구문(조건 · 선택 · 확인)이 있으면 예전처럼 한 번에 */
    const seq=R.ops.some(o=>o&&['cond','choice','confirm'].includes(o.k));const tg=seq?[]:R.ops.filter(o=>o&&o.tgt==='enemy1'),rest=seq?R.ops:R.ops.filter(o=>!(o&&o.tgt==='enemy1'));
    const groups=[...(rest.length?[{n:10,label:lab,who:'once',ops:rest,when}]:[]),...(tg.length?[{n:10,label:lab,who:'target',ops:tg.map(o=>Object.assign({},o,{tgt:'target'})),when:'hit'}]:[])];
