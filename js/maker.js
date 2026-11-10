@@ -1636,6 +1636,17 @@ function gotoSheet(tid,pid){const t=S.trainers.find(x=>x.id===tid);if(!t)return 
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-goto-t]');if(!b)return;e.preventDefault();gotoSheet(b.dataset.gotoT,b.dataset.gotoP||'')});
 
 /* ---------- 포텐셜 편집기 ---------- */
+/* 11-10 망령 「공유는 확인을 위해 미리보기 아래쪽에 무엇이랑 공유되고 있는지」: 웹툴(battle_ui shareTag · shareWhy)과 같은 규칙 — 포켓몬 기준.
+   괄호 없는 【공유】끼리 · 【공유 (『X』)】 = 이름에 X 가 들어간 효과 (『전용』 = 전용 포텐셜 또는 이름에 전용 · 한 글자는 그 글자로 끝나는 이름) */
+function shareTagOf(e){const m=String(e||'').match(/【\s*공유([^】]*)】/);if(!m)return null;const g=[...m[1].matchAll(/『([^』)]+)/g)].map(x=>x[1].trim()).filter(Boolean);return {p:!g.length,g}}
+function shareHas(n,x,g){n=String(n||'');if(g==='전용')return !!x||n.includes('전용');if(g.length===1)return new RegExp(g.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?=$|\\s|[』,·)])').test(n);return n.includes(g)}
+function shareWithHTML(p,slot,name,eff,isEx){const nm=String(name||'').replace(/[『』]/g,'').trim();const me=shareTagOf(eff);const O=[];
+ (p.pots||[]).forEach((n,i)=>{if(!n||i===slot)return;O.push({n:String(n).replace(/[『』]/g,'').trim(),e:potEffOf(p,i),x:false})});
+ const ex=[p.excl,...(p.exclX||[])];ex.forEach((q,i)=>{if(!q||!q.name)return;if(isEx&&((slot==='excl'&&i===0)||(slot&&typeof slot==='object'&&slot.ex===i-1)))return;O.push({n:String(q.name).replace(/[『』]/g,'').trim(),e:q.eff,x:true})});
+ const hit=[];for(const o of O){if(!o.n||o.n===nm)continue;const t=shareTagOf(o.e);let why='';if(me&&me.p&&t&&t.p)why='둘 다 【공유】';else{const g1=me?me.g.find(g=>shareHas(o.n,o.x,g)):null;if(g1)why=g1==='전용'&&o.x?'전용 포텐셜':`이름에 『${g1}』`;else{const g2=t?t.g.find(g=>shareHas(nm,isEx,g)):null;if(g2)why=`저쪽이 【공유 (『${g2}』)】`}}if(why)hit.push({n:o.n,why})}
+ if(!me&&!hit.length)return '';
+ const head=me?(me.p?'【공유】':`【공유 (${me.g.map(g=>'『'+g+'』').join(', ')})】`):'다른 효과의 【공유】';
+ return `<div class="small" style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--line,rgba(127,127,127,.35))"><b>${esc(head)}</b> — 같은 턴에 같이 못 쓰는 것 (이 포켓몬): ${hit.length?hit.map(h=>`『${esc(h.n)}』 <span class="faint">(${esc(h.why)})</span>`).join(' · '):'<span class="faint">이 포켓몬에는 없음</span>'}</div>`}
 function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전용 칸) or {unique:i} */
  const xi=slot&&typeof slot==='object'&&slot.ex!=null?slot.ex:null,exO=slot==='excl'?p.excl:xi!=null?p.exclX[xi]:null;
  const isEx=!!exO,isU=!isEx&&typeof slot==='object';
@@ -1676,7 +1687,7 @@ function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전�
  autoUpd();l.addEventListener('input',e=>{if(e.target.id==='pe-auto'||e.target.id==='pe-name')autoUpd()});
  {const gh=$('[data-autogen]',l),ta3=$('#pe-auto',l);if(gh&&ta3&&window.OM_FX_UI&&OM_FX_UI.mountGen)OM_FX_UI.mountGen(gh,ta3,{toast})}   /* 10-23 망령: 고유 포함 — 편집 창에서 바로 생성기 */
  const fill=o=>{$('#pe-name',l).value=o.name||'';ta.value=o.eff||'';const k=$('#pe-kind',l);if(k&&o.kind)k.value=o.kind;upd();seg('edit')};
- const upd=()=>{$('[data-prev]',l).innerHTML=`<b>${esc($('#pe-name',l).value||'(이름 없음)')}</b><br>`+rich(ta.value);const h=banHits(ta.value);$('[data-ban]',l).innerHTML=(h.length?`<span class="warn">금지 키워드 감지: ${h.map(esc).join(', ')}</span>`:'<span class="okc">금지 키워드 없음</span>')+lintHTML(ta.value);wordUpd()};
+ const upd=()=>{$('[data-prev]',l).innerHTML=`<b>${esc($('#pe-name',l).value||'(이름 없음)')}</b><br>`+rich(ta.value)+(isU?'':(()=>{try{return shareWithHTML(p,slot,$('#pe-name',l).value,ta.value,isEx)}catch(e){return ''}})());const h=banHits(ta.value);$('[data-ban]',l).innerHTML=(h.length?`<span class="warn">금지 키워드 감지: ${h.map(esc).join(', ')}</span>`:'<span class="okc">금지 키워드 없음</span>')+lintHTML(ta.value);wordUpd()};
  /* 10-24 망령: 뉴비 워딩 도우미 — DB 문장 꼴로 고칠 곳 · 자동화 구문 추천 (js/potlint.js) */
  let wFind=[],wDsl=[];
  const wordUpd=()=>{const W=window.MKM_POTLINT,box=$('[data-wordbox]',l);if(!W||!box)return;const txt=ta.value;wFind=txt.trim()?W.check(txt):[];const fx=txt.trim()?W.fixAll(txt):'';const sg=fx?W.suggest(fx):{lines:[],why:[],timing:''};wDsl=sg.lines;const left=fx?banHits(fx):[];
