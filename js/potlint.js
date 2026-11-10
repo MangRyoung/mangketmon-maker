@@ -149,6 +149,11 @@ window.MKM_POTLINT=(()=>{
   if((m=c.match(/아군의\s*(?:공격|기술)(?:을|를|으로|로|에 의한)/)))put('아군공격',m[0],1);
   if((m=c.match(/(상대의\s*|아군의\s*)?「우선도\s*[:：]\s*([+\-])(\d)」\s*(이상|이하)(?:인|의)\s*(?:공격|기술)/))){const wh=/상대/.test(m[1]||'')||/받|상대로부터|상대가|무효화|실패/.test(c)?'상대':/아군/.test(m[1]||'')?'아군':'';put(wh+'우선도'+m[2]+m[3]+m[4],m[0],1)}
   if((m=c.match(/「HP\s*[:：]\s*가득」\s*(?:일|인)\s*때/)))put('HP가득',m[0]);
+  /* 11-10 소지품 조건: 「소지품 : X」인 포켓몬이 PT에 없거나 (빈사) → !PT에소지품:X · PT에 「소지품 : X」인 포켓몬이 (N체 이상) 있을 때 → PT에소지품:X(≥N) · 「소지품 : X」인 아군이 있을 때 → 아군소지품:X · (자신이) 「소지품 : X」일 때 → 소지품:X */
+  if((m=c.match(/「소지품\s*[:：]\s*([^」]+)」\s*(?:인|을 착용한|을 든)\s*포켓몬이\s*PT에\s*(?:없거나|없을\s*때|없으면|없는\s*동안)/)))put('!PT에소지품:'+nm(m[1]).join(','),m[0]);
+  else if((m=c.match(/PT에\s*「소지품\s*[:：]\s*([^」]+)」\s*(?:인|을 착용한|을 든)\s*포켓몬이\s*(?:(\d)\s*체\s*이상\s*)?(?:있을\s*때|있으면|있는\s*동안)/)))put('PT에소지품:'+nm(m[1]).join(',')+(m[2]&&+m[2]>1?'≥'+m[2]:''),m[0]);
+  if((m=c.match(/「소지품\s*[:：]\s*([^」]+)」\s*(?:인|을 착용한|을 든)\s*아군이\s*(?:필드에\s*)?(?:있을\s*때|있으면|있는\s*동안)/)))put('아군소지품:'+nm(m[1]).join(','),m[0]);
+  if((m=c.match(/(?:자신이\s*|자신의\s*소지품이\s*)?「소지품\s*[:：]\s*([^」]+)」\s*일\s*때/))&&!/(?:인|든)\s*$/.test(c.slice(Math.max(0,m.index-4),m.index)))put('소지품:'+nm(m[1]).join(','),m[0]);
   if((m=c.match(/「HP\s*[:：]\s*(\d+\/\d+)\s*이상」\s*(?:일|인)\s*때/)))put('HP≥'+m[1],m[0]);
   if((m=c.match(/「성별\s*[:：]\s*(♂|♀)」\s*(?:일|인)\s*때/)))put('성별:'+m[1],m[0]);
   if((m=c.match(/「기술머신」\s*(?:으로|로)\s*내보낸/)))put('기술머신',m[0],1);
@@ -324,6 +329,11 @@ window.MKM_POTLINT=(()=>{
    /* 조건은 효과가 있을 때만 맨 앞에. 「HP : 가득」 조건은 완화 줄의 HP가득 으로 넣었으면 따로 묻지 않는다 */
    /* 11-10 망령 「트랜스처럼 배틀 중 종족치 변경」: 가장 높은 종족치를 복사 → 종족치변경 복사:상대최고 · 지속(N턴 동안 · 턴 종료 시까지 · 이번 턴)이 붙은 「X」의 종족치를 N랭크 상승/감소 → 종족치변경 X±N (지속 없는 꼴은 제작기 시트가 종족치에 넣는다) */
    if(!L.length){if(/가장 높은 종족치를\s*복사/.test(c))L.push('종족치변경 복사:상대최고');else{const bm=[...c.matchAll(/「((?:(?:공격|방어|특공|특방|스피드|HP)\/)*(?:공격|방어|특공|특방|스피드|HP))」의\s*종족치를\s*(\d)\s*랭크\s*(상승|감소|하락)/g)];const once=temp||/이번 턴/.test(c);if(bm.length&&(once||turns)){const t0=tgtIn(c,temp);L.push('종족치변경'+(t0&&t0!=='자신'?' '+t0:'')+bm.map(x=>x[1].split('/').map(z=>' '+z+(x[3]==='상승'?'+':'-')+x[2]).join('')).join('')+(turns?' '+turns+'턴':' 이번턴'))}}}
+   /* 11-10 망령 「「소지품 : 왕의징표석」인 포켓몬이 PT에 없거나 「빈사」 상태일 때 이 포텐셜을 무효화하고 「특성 : 무기력」이 된다」: 조건이 맞는 동안만 — 「동안」 줄 (포텐셜무효 · 특성 · 이 포텐셜의 종족치 상승을 되돌리는 종족치변경) */
+   {const offP=/이\s*포텐셜(?:을|를)?\s*무효화/.test(c),tq=c.match(/「특성\s*[:：]\s*([^」]+)」\s*(?:이|가)\s*된다/);if((offP||tq)&&/(?:일|인)\s*때|없거나|없으면/.test(c)&&!/【준비】/.test(tags)){const T0=ctoks(c).filter(x=>!x.mv);if(T0.length){const ts=T0.map(x=>x.t).join(' ');
+     if(offP){L.push('포텐셜무효 '+ts+' 동안');const ch=[];for(const cl of clauses(all)){if(cl===c0||/\d턴\s*동안|턴\s*종료\s*시\s*까지|이번\s*턴|했을\s*때|되었을\s*때|받았을\s*때|【(?:선행|사전|함성|보급|\d+\s*\/\s*[시턴])/.test(cl))continue;for(const q of cl.matchAll(/「([^」]+)」의\s*종족치(?:를|가|도)?\s*(\d+)\s*랭크\s*(상승|감소)/g))for(const st of q[1].split(/[\/,·\s]+/).filter(x=>/^(HP|공격|방어|특공|특방|스피드)$/.test(x)))ch.push(st+(q[3]==='상승'?'-':'+')+q[2])}if(ch.length)L.push('종족치변경 '+ch.join(' ')+' '+ts+' 동안')}
+     if(tq){for(let i=L.length-1;i>=0;i--)if(/^특성 /.test(L[i])&&!/ 동안$/.test(L[i]))L.splice(i,1);L.push('특성 변경 '+tq[1].trim()+' '+ts+' 동안')}
+     cond.length=0}}}
    /* 11-10 망령 「추천기 싹」: 『4식』 · 『지령』 소모 (발동할 때 남은 것 중 고르는 창) · 선행 입력 때 기술 · 대상 지정 · 추가 효과 면역 */
    {const o4=/『4식』(?:\s*\d개)?(?:을|를)?\s*(?:\d개\s*)?소모/.test(c),cm=/『(?:지령|6령)』(?:\s*\d개)?(?:을|를)?\s*(?:\d개\s*)?소모/.test(c),eo=/『4식』\s*(?:이나|또는|혹은)\s*『지령』|『지령』\s*(?:이나|또는|혹은)\s*『4식』/.test(c);if((o4||cm)&&L.length&&!L.some(x=>/^소모/.test(x))){const nn=(c.match(/『(?:4식|지령|6령)』\s*(\d)개/)||[])[1];L.unshift('소모 '+(eo||(o4&&cm)?'4식지령':o4?'4식':'지령')+(nn&&+nn>1?' '+nn:''))}}
    if(/기술\s*\d?\s*(?:개|하나)?(?:을|를)\s*지정한다/.test(c)&&!L.some(x=>/^기술지정/.test(x)))L.unshift('기술지정'+(/아군의?\s*기술/.test(c)?' 아군':''));
@@ -337,7 +347,7 @@ window.MKM_POTLINT=(()=>{
      if(T.some(x=>x.t==='반동기')&&!L.some(x=>/^위력/.test(x))){const q=c.match(/기술의\s*(?:대미지|위력)(?:을|를)?\s*강화\s*\((\d+(?:\.\d+)?)배\)/);if(q)L.push('위력 ×'+q[1])}
      if(T.some(x=>/우선도[+\-]\d/.test(x.t))&&/(?:공격|기술)(?:을|를)\s*(?:모두\s*)?무효화/.test(c)&&!L.some(x=>/^완화/.test(x)))L.push('완화 ×0');
      /* 그 줄이 토큰을 받는지는 구문을 직접 읽어 본다 — 토큰을 붙였을 때 조건이 달라지면 받는 줄 (랭크 · 상태 · 회복처럼 토큰을 조용히 버리는 줄은 조건 줄로) */
-     const inl=(x,t)=>{if(!F||!F.parse||/^(?:확인|은열쇠|선택)/.test(x))return false;try{const A=F.parse(x),B=F.parse(x+' '+t);const a=A.ops||[],b=B.ops||[];if(!(a.length>0&&a.length===b.length)||(B.errs&&B.errs.length))return false;const CK=['mv','ft','cs','os','wx','trn','hl','hg','hs','hf','h1','rc','al','oa','ob','rk','ork','sure','it','iw','tm','ab','dx','odx','mr','ks','tmv','pr','pmin','pmax','br','at','aab','sg','og','stp','foe','dmv'];let ch=false;for(let j=0;j<a.length;j++){const ks=new Set([...Object.keys(a[j]||{}),...Object.keys(b[j]||{})]);for(const k of ks)if(JSON.stringify((a[j]||{})[k])!==JSON.stringify((b[j]||{})[k])){if(!CK.includes(k))return false;ch=true}}return ch}catch(e){return false}};   /* 토큰을 붙여 바뀐 칸이 조건 칸뿐일 때만 (타입 · 확인 줄처럼 남는 낱말을 삼키는 줄은 아니다) */let needC=false;const left=new Set();
+     const inl=(x,t)=>{if(!F||!F.parse||/^(?:확인|은열쇠|선택)/.test(x))return false;try{const A=F.parse(x),B=F.parse(x+' '+t);const a=A.ops||[],b=B.ops||[];if(!(a.length>0&&a.length===b.length)||(B.errs&&B.errs.length))return false;const CK=['mv','ft','cs','os','wx','trn','hl','hg','hs','hf','h1','rc','al','oa','ob','rk','ork','sure','it','iw','tm','ab','dx','odx','mr','ks','tmv','pr','pmin','pmax','br','at','aab','sg','og','stp','foe','dmv','pit','ait'];let ch=false;for(let j=0;j<a.length;j++){const ks=new Set([...Object.keys(a[j]||{}),...Object.keys(b[j]||{})]);for(const k of ks)if(JSON.stringify((a[j]||{})[k])!==JSON.stringify((b[j]||{})[k])){if(!CK.includes(k))return false;ch=true}}return ch}catch(e){return false}};   /* 토큰을 붙여 바뀐 칸이 조건 칸뿐일 때만 (타입 · 확인 줄처럼 남는 낱말을 삼키는 줄은 아니다) */let needC=false;const left=new Set();
      /* 조건 줄은 마디 전체를 막으니 — 마디가 한 문장이고 그 문장의 조건일 때만. 여러 문장(기술 글 「…회복한다. 「날씨 : 맑음」일 때 회복량이 …」)은 줄 끝 토큰만. 「「성별 : ♂」인 상대 전체를」처럼 대상을 거르는 상대 쪽 조건도 조건 줄로 세우지 않는다 */
      const sents=c.split(/(?<=[.。])\s+/).filter(Boolean),multi=sents.length>1,first=sents[0]||c,wide=/상대 전체|적진의|모든 상대|필드에 있는|모든 포켓몬/.test(c);const used=new Set();
      const okC=x=>!x.mv&&!multi&&(!x.src||first.includes(x.src))&&!(wide&&/^(상대|같은타입|다른타입)/.test(x.t));
