@@ -231,6 +231,8 @@ function baseUp(t,p){const src=[];const ab=p.ability&&idx.abil?idx.abil.get(p.ab
  const key=JSON.stringify([p.base,src.map(s=>s[2]),t&&t.ranks,p.auto]);const hit=BU_C.get(key);if(hit)return hit;
  const n=[0,0,0,0,0,0],mx=[0,0,0,0,0,0],mn=[0,0,0,0,0,0],set=[null,null,null,null,null,null],by=[[],[],[],[],[],[]],miss=[];const add=[0,0,0,0,0,0],addBy=[[],[],[],[],[],[]],cp=[null,null,null,null,null,null],top=[0,0,0,0,0,0];
  for(const [kind,name,eff] of src){for(const cl of String(eff).replace(/<br\s*\/?>/g,'\n').split(/\n|(?=[①-⑳])/)){
+  /* 11-10 망령 「트랜스처럼 배틀 중 종족치 변경」: 지속(N턴 동안 · 턴 종료 시까지 · 이번 턴) · 계기(했을 때 · 되었을 때 · 받았을 때 · 【선행】【사전】【함성】【보급】【N/시】)가 붙은 마디는 시트에 넣지 않는다 — 웹툴 구문 「종족치변경」이 배틀 중에 걸고 풀면 원래대로 */
+  if(/\d턴\s*동안|턴\s*종료\s*시\s*까지|이번\s*턴|했을\s*때|되었을\s*때|받았을\s*때|【(?:선행|사전|함성|보급|\d+\s*\/\s*[시턴])/.test(cl))continue;
   for(const m of cl.matchAll(/「([^」]+)」의\s*종족치(?:를|가|도)?\s*(\d+)\s*랭크\s*(상승|감소)/g)){if(!buCondOk(t,p,cl.slice(0,m.index)))continue;const d=(+m[2]||1)*(m[3]==='감소'?-1:1);
    for(const s of m[1].split(/[\/,·\s]+/)){const i=BU_ST[s.trim()];if(i==null)continue;n[i]+=d;by[i].push(`${kind} 『${name}』 ${d>0?'+':''}${d}랭크`)}}
   /* 11-03 망령: 「「공격」을 가장 높은 종족치와 같은 랭크로 만든다」 (상시 효과일 때만 — 나이트 쉽 계열 「이때」는 기술 한 번만이라 뺀다) */
@@ -871,7 +873,7 @@ const fxReady=()=>!!(window.OM_FX&&window.OM_FX_UI);
 window.OM_APP=window.OM_APP||{openModal:h=>{const l=openModal(h,{wide:true});l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))closeModal()});return l},closeModal:()=>closeModal(),toast:t=>toast(t),ST:{role:'player',state:{}},set:async()=>false};
 let fxLoadP=null,FXST='';/* '' 불러오는 중 · ok · fail */
 function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
- const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611100155h1';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
+ const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611101420br';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
  FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');await one('itemrule.js');try{await one('moveauto.js')}catch(e){}FXST='ok';rmInit();stInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
 function fxRetry(){if(fxReady())return;fxLoadP=null;toast('구문 스크립트를 다시 불러옵니다…');loadFx();if(S.ui&&S.ui.tab)refreshAll()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fxretry]');if(!b)return;e.preventDefault();e.stopPropagation();fxRetry()},true);

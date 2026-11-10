@@ -113,7 +113,16 @@ window.MKM_POTLINT=(()=>{
    if(/[:：]|위력/.test(k)||/상태/.test(after)||STATS_W.includes(k)||!isTy(k)&&!k.split(/[\/,·]/).every(t=>isTy(t.trim()))&&isSt(k)||/^(?:타입|특성|소지품|날씨|필드|변화기|일격기|기술)$/.test(k))continue;
    const parts=k.split(/[\/,·]/).map(t=>t.trim()).filter(Boolean);if(parts.every(isTy))ty.push(...parts);else tg.push(...parts)}
   if(/(?:타입\s*)?비일치|자속이 아닌/.test(s))w.push('비자속');
+  /* 11-10 망령 「종족치 랭크 확인 · 상대와 비교」: 「공격 : B」 이하일 때 → 종족치:공격≤B · 「HP : A+」 이상인 상대 → 상대종족치:HP≥A+ · 「공격」 종족치 랭크가 같을 때 → 종족치:공격=상대 · 자신의 「공격」 종족치 랭크보다 「방어」가 낮은 상대 → 상대종족치:방어<공격 */
+  for(const x of s.matchAll(/「(HP|공격|방어|특공|특방|스피드)\s*[:：]\s*(EX|S|A{1,3}[+\-]?|[A-E][+\-]?)」\s*(이하|이상|미만|초과)/g)){const rest=s.slice(x.index+x[0].length,x.index+x[0].length+8);const opp=/^\s*인\s*(?:상대|대상)/.test(rest);w.push((opp?'상대종족치:':'종족치:')+x[1]+({이하:'≤',이상:'≥',미만:'<',초과:'>'})[x[3]]+x[2])}
+  {const q=s.match(/「(HP|공격|방어|특공|특방|스피드)」\s*종족치\s*랭크가\s*(?:상대와\s*)?같(?:을|은)/);if(q)w.push('종족치:'+q[1]+'=상대')}
+  {const q=s.match(/자신의\s*「(HP|공격|방어|특공|특방|스피드)」\s*(?:종족치\s*)?(?:랭크\s*)?보다\s*「(HP|공격|방어|특공|특방|스피드)」\s*(?:종족치\s*)?(?:랭크\s*)?(?:가|이)\s*(낮은|높은|같은)\s*상대/);if(q)w.push('상대종족치:'+q[2]+({낮은:'<',높은:'>',같은:'='})[q[3]]+q[1])}
   return (ty.length?' 타입:'+[...new Set(ty)].join(','):'')+(tg.length?' 태그:'+[...new Set(tg)].join(','):'')+[...new Set(w.filter(Boolean))].map(x=>' '+x).join('')}
+ /* 11-10 망령 「종족치 랭크 확인 · 상대와 비교」: 마디 전체에서 종족치 랭크 조건 토큰을 뽑는다 (위력 · 완화 · 회피 줄 끝에 붙인다 — 오레마스가 판정할 때마다 지금 종족치로 본다) */
+ function brToks(c){const R=[];c=String(c||'');for(const x of c.matchAll(/「(HP|공격|방어|특공|특방|스피드)\s*[:：]\s*(EX|S|A{1,3}[+\-]?|[A-E][+\-]?)」\s*(이하|이상|미만|초과)/g)){const rest=c.slice(x.index+x[0].length,x.index+x[0].length+8);const opp=/^\s*인\s*(?:상대|대상)/.test(rest);R.push((opp?'상대종족치:':'종족치:')+x[1]+({이하:'≤',이상:'≥',미만:'<',초과:'>'})[x[3]]+x[2])}
+  {const q=c.match(/「(HP|공격|방어|특공|특방|스피드)」\s*종족치\s*랭크가\s*(?:상대와\s*)?같(?:을|은)/);if(q)R.push('종족치:'+q[1]+'=상대')}
+  {const q=c.match(/자신의\s*「(HP|공격|방어|특공|특방|스피드)」\s*(?:종족치\s*)?(?:랭크\s*)?보다\s*「(HP|공격|방어|특공|특방|스피드)」\s*(?:종족치\s*)?(?:랭크\s*)?(?:가|이)\s*(낮은|높은|같은)\s*상대/);if(q)R.push('상대종족치:'+q[2]+({낮은:'<',높은:'>',같은:'='})[q[3]]+q[1])}
+  return [...new Set(R)]}
  /* 조건 (거짓이면 뒤 줄을 멈춘다) — 엔진이 아는 것은 「조건 …」, 모르는 것은 「확인 "…"」 (GM 이 발동할 때 맞는지 묻는다) */
  const TRIG=/했을|받았을|되었을|됐을|등장했|내보낼|명중|받으면|만들었을|무효화했/;
  function condOf(c){let m;const R=[];
@@ -280,7 +289,10 @@ window.MKM_POTLINT=(()=>{
    /* 확률: 「저확률로 · 중확률로 · 드물게 · N할로」를 줄 앞에 (11-03 — 빠지면 늘 켜지는 줄이 된다). 회피 · 상태확률은 제 안에 확률이 있어 그대로, 조건 · 확인 줄에는 붙이지 않는다(실패하면 그 줄만 건너뛰어 뒤 효과가 늘 걸린다) */
    {const pc=(c.match(/(저확률|중확률|고확률|드물게)/)||[])[1],pn=(c.match(/(\d)할로/)||[])[1];const pre=pc?pc+': ':pn?pn+'할: ':'';if(pre)for(let i=0;i<L.length;i++)if(!/^(회피|상태확률|임의교대|기술사용|조건|확인)/.test(L[i])&&!/^(드물게|저확률|중확률|고확률|\d+할)/.test(L[i]))L[i]=pre+L[i]}
    /* 조건은 효과가 있을 때만 맨 앞에. 「HP : 가득」 조건은 완화 줄의 HP가득 으로 넣었으면 따로 묻지 않는다 */
-   {const cs=cond.filter(x=>!(/「HP\s*:\s*가득」/.test(x)&&L.length&&L.every(s=>/HP가득/.test(s))));
+   /* 11-10 망령 「트랜스처럼 배틀 중 종족치 변경」: 가장 높은 종족치를 복사 → 종족치변경 복사:상대최고 · 지속(N턴 동안 · 턴 종료 시까지 · 이번 턴)이 붙은 「X」의 종족치를 N랭크 상승/감소 → 종족치변경 X±N (지속 없는 꼴은 제작기 시트가 종족치에 넣는다) */
+   if(!L.length){if(/가장 높은 종족치를\s*복사/.test(c))L.push('종족치변경 복사:상대최고');else{const bm=[...c.matchAll(/「((?:(?:공격|방어|특공|특방|스피드|HP)\/)*(?:공격|방어|특공|특방|스피드|HP))」의\s*종족치를\s*(\d)\s*랭크\s*(상승|감소|하락)/g)];const once=temp||/이번 턴/.test(c);if(bm.length&&(once||turns)){const t0=tgtIn(c,temp);L.push('종족치변경'+(t0&&t0!=='자신'?' '+t0:'')+bm.map(x=>x[1].split('/').map(z=>' '+z+(x[3]==='상승'?'+':'-')+x[2]).join('')).join('')+(turns?' '+turns+'턴':' 이번턴'))}}}
+   {const bt=brToks(c);if(bt.length)for(let i=0;i<L.length;i++)if(/^(?:(?:드물게|저확률|중확률|고확률|\d+할):\s*)?(?:위력|완화|회피)\s/.test(L[i]))for(const t of bt)if(!L[i].includes(t))L[i]+=' '+t}   /* 11-10 종족치 랭크 조건은 줄 끝 토큰으로 */
+   {const cs=cond.filter(x=>!(/「HP\s*:\s*가득」/.test(x)&&L.length&&L.every(s=>/HP가득/.test(s)))&&!(/^확인 "[^"]*(?:「(?:HP|공격|방어|특공|특방|스피드)\s*[:：]\s*[A-Z]{1,3}[+-]?」|종족치\s*랭크)/.test(x)&&L.length&&L.every(s=>/종족치:/.test(s))));
     /* 날씨 · 필드 조건 「스피드」 배율(엽록소 · 쓱쓱 …)은 오레마스가 글을 읽어 행동 순서 때 곱한다 — 구문으로 또 걸면 두 번 */
     if(cs.some(x=>/^확인 .*「(?:날씨|필드)\s*:/.test(x)))for(let i=L.length-1;i>=0;i--)if(/^배율 스피드×[\d.]+$/.test(L[i]))L.splice(i,1);
     /* 자기 등급 조건(「공격 : B」 이하일 때 — 천하장사 · 퍼코트 …)은 레디메이드 꼴 「선택: - 조건을 만족한다 → …」로 — 오레마스가 등급을 보고 등장 때 저절로 건다(효과 한 줄일 때) */
