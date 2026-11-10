@@ -16,7 +16,7 @@ window.OM_FX_UI=(()=>{
 상태 화상 [대상] [N턴] [강제] (항상 건다)        상태확률 화상 50% [대상] [1체]        치유 [대상] [독,맹독 | 이상] [N%]        상태초기화 [대상] [전부]
 효과해제 [대상] [포텐셜 | 특성 | 소지품 | 전부 | 이름:에이스]   (그 출처가 건 배율 · 위력 · 무시 · 우선도 · 역할 효과를 뗀다)
 소지품파괴 [대상] · 소지품모두파괴 · 소지품파괴약탈 (빈손이면 빼앗고 못 빼앗으면 파괴) · 소지품강탈 (자신이 받음) · 소지품주기 · 소지품교환 · 소지품지정 [대상] 느림보꼬리 (빈손이면 새로 지님 · 있으면 바꿈) · 소지품추가 [대상] 느림보꼬리 (지닌 것은 두고 빈 칸에 하나 더)   대상을 안 쓰면 상대1체 · 배틀 한정
-회복 1/4 [대상] [전부] [타입:독]        피해 1/8 [대상] [현재|직전|타입:바위] [제외:독] [상태:잠듦] [빈사없음]
+회복 1/4 [대상] [전부] [타입:독]        피해 1/8 [대상] [현재|직전|타입:바위] [제외:독] [상태:잠듦] [빈사없음] [드레인]  (드레인 = 깎은 만큼 자신이 회복 · 아군 1체에게도)
 날씨 비 5 · 날씨 해제        필드 그래스필드 5 · 룸 트릭룸 5 · 필드상태 중력 5        설치기 [아군|상대] 리플렉터 5
 타입 [대상] 추가|변경|제거|원래 불꽃,비행        특성 [대상] 변경 X · 특성 원래        역할 추가|제거 에이스,블로커        추격 [숨김]
 비례무시 [대상] [빈사|설치기|설치기피해|반동|반동빈사] [조건] [1회] [N턴]  (반동빈사 = 반동으로는 「빈사」가 되지 않음 · 1회 = 한 번 막으면 사라짐)        우선도 +1 [대상] [타입:X] [물리|특수|변화] [태그:회복] [조건] [이번턴]
@@ -37,7 +37,8 @@ window.OM_FX_UI=(()=>{
 수세유지 [기술:우드혼,…] [타입:풀] [물리|특수] [HP≤1/2]  (그 기술로 공격해도 자신의 【수세】 효과가 켜진 채)
 대상지정 [상대1체|아군1체|자신포함아군1체|아무나1체]  (웹툴 지시 입력에서 이 포텐셜을 선행 입력할 때 기술처럼 대상을 찍어 둔다 · 발동하면 구문의 「1체」가 그 대상)
 기술지정 [상대|아군]  (선행 입력할 때 기술 이름 하나를 고른다 · 해석된 기술 + DB 검색) — 위력 · 완화 줄의 「지정기술」 = 그 기술을 이번 턴 나에게 내보낸 상대에게만 · 「상대공격」 = 다른 편의 기술만 · 「급소방호-4」 = 급소에 맞기 쉬워짐(C+4)
-확인 "조건 문장"  (발동 때 물어본다)        조건 아군빈사 · 조건 HP≤1/2 · 조건 상태:날따름        레이드 구간:4
+확인 "조건 문장"  (발동 때 물어본다)        조건 아군빈사 · 조건 HP≤1/2 · 조건 상태:날따름
+조건 + 줄 끝 조건 토큰 (발동할 때 한 번 본다 · 상대 = 맞은 대상, 없으면 정면): 조건 랭크:방어≥+1 · 조건 상대랭크:스피드≤-2 · 조건 상대상태:도발 · 조건 필드:그래스필드 · 조건 성별:♀ · 조건 같은타입 · 조건 HP가득        레이드 구간:4
 조건 설치기:끈적끈적네트 (자진 · 땅 위 전용 설치기면 땅 위일 때만) · 조건 적진설치기:스텔스록 · 조건 타입:벌레 (자신의 타입) · 조건 소모:나무열매 (방금 다 쓴 소지품 — 「소모했을 때」 효과)
 조건 아군타입:풀 (자신 빼고 필드 위 아군에 하나라도) · 조건 PT타입:풀 (소지 전원이 모두 — 벤치 포함) · 조건 PT에타입:풀 (소지에 하나라도) · 조건 적진타입:풀 · 조건 알그룹:괴수 (자신) · 조건 아군알그룹:X · 조건 PT알그룹:X · 조건 PT에알그룹:X · 조건 적진알그룹:X
 조건 소지품:생명의구슬 (자신) · 조건 아군소지품:나무열매 · 조건 적진소지품:구애스카프 (상대소지품 도 됨) · 조건 PT소지품:X · 조건 PT에소지품:X   (나무열매 = 「…열매」 · 쥬얼 = 「…쥬얼」 · 빈손 = 아무것도 안 지님)        줄 끝 「대상타입:벌레」: 그 줄의 대상 중 그 타입에게만        감소무시 [대상] [능력] 저하  (랭크 감소에 더해 배율 저하도 막는다)
@@ -95,7 +96,7 @@ window.OM_FX_UI=(()=>{
    case 'statefx':return `<div class="row">상태 ${stSel('g_state')} 대상 ${tgSel('g_tgt','enemy1')} <label>확률 <input type="number" class="n xs" data-g="chance" value="30">%</label> <label><input type="checkbox" data-g="one"> 1체만</label></div>`;
    case 'cure':return `<div class="row">대상 ${tgSel('g_tgt')} <label>상태 (쉼표, 비우면 모든 이상) <input type="text" data-g="states" placeholder="독,맹독"></label> <label>확률 <input type="number" class="n xs" data-g="chance" value="100">%</label></div>`;
    case 'heal':return `<div class="row">대상 ${tgSel('g_tgt')} <label>양 <input type="text" class="n" data-g="value" value="1/4" placeholder="1/4 · 30 · 전부"></label> <label>타입 한정 ${tySel('g_ytype','', '없음')}</label></div>`;
-   case 'dmg':return `<div class="row">대상 ${tgSel('g_tgt','enemy1')} <label>양 <input type="text" class="n" data-g="value" value="1/8"></label> 기준 ${sel('g_basis',[['max','최대 HP'],['cur','현재 HP'],['last','직전에 입힌 대미지'],['type','타입 상성 비례']],'max')} <label>제외 타입 ${tySel('g_xtype','', '없음')}</label> <label><input type="checkbox" data-g="nofaint"> 빈사 없음</label></div>
+   case 'dmg':return `<div class="row">대상 ${tgSel('g_tgt','enemy1')} <label>양 <input type="text" class="n" data-g="value" value="1/8"></label> 기준 ${sel('g_basis',[['max','최대 HP'],['cur','현재 HP'],['last','직전에 입힌 대미지'],['type','타입 상성 비례']],'max')} <label>제외 타입 ${tySel('g_xtype','', '없음')}</label> <label><input type="checkbox" data-g="nofaint"> 빈사 없음</label> <label title="깎은 만큼 자신이 회복 (회복봉인이면 없음 · 대상이 해감액이면 반대로 피해)"><input type="checkbox" data-g="drain"> 드레인</label></div>
      <div class="fxg-ty"><span class="small dim">타입 상성 비례 — 누르면 타입 비례가 된다 (여럿이면 상성을 곱한다)</span>${TYPES.map(t=>`<label class="fxg-tyc"><input type="checkbox" data-g="aty_${t}"> ${esc(FX().TYPE_KO[t])}</label>`).join('')}</div>`;
    case 'weather':return `<div class="row">날씨 ${sel('g_w',[['','해제'],['맑음','맑음'],['비','비'],['모래바람','모래바람'],['눈','눈'],['싸라기눈','싸라기눈'],['짙은안개','짙은안개'],['밤','밤'],['별하늘','별하늘'],['폭우','폭우'],['큰가뭄','큰가뭄'],['극한','극한'],['깊은밤','깊은밤'],['난기류','난기류'],['random','무작위']],'비')} <label>턴 <input type="number" class="n xs" data-g="count" value="5"> (1000 = 계속)</label></div>`;
    case 'terrain':return `<div class="row">${sel('g_t',[['','해제'],['그래스필드','그래스필드'],['일렉트릭필드','일렉트릭필드'],['미스트필드','미스트필드'],['사이코필드','사이코필드'],['트릭룸','트릭룸'],['매직룸','매직룸'],['원더룸','원더룸'],['블랙룸','블랙룸']],'그래스필드')} <label>턴 <input type="number" class="n xs" data-g="count" value="5"></label></div>`;
@@ -153,7 +154,7 @@ window.OM_FX_UI=(()=>{
    case 'statefx':return '상태확률 '+String(K.stKo(s('g_state'))).replace(/\s+/g,'')+' '+(+g('chance')||100)+'%'+tga(s('g_tgt'))+(g('one')?' 1체':'');
    case 'cure':return '치유'+tg(s('g_tgt'))+' '+(tyK(g('states'))||'이상')+(+g('chance')&&+g('chance')<100?' '+g('chance')+'%':'');
    case 'heal':return '회복 '+(g('value')||'1/4')+tg(s('g_tgt'))+(s('g_ytype')?' 타입:'+K.TYPE_KO[s('g_ytype')]:'');
-   case 'dmg':{const ats=TYPES.filter(t=>g('aty_'+t));let b=s('g_basis');if(ats.length)b='type';if(b==='type'&&!ats.length)return '';return '피해 '+(g('value')||'1/8')+tga(s('g_tgt'))+(b==='cur'?' 현재':b==='last'?' 직전':b==='type'?' 타입:'+ats.map(t=>K.TYPE_KO[t]).join(','):'')+(s('g_xtype')?' 제외:'+K.TYPE_KO[s('g_xtype')]:'')+(g('nofaint')?' 빈사없음':'')}
+   case 'dmg':{const ats=TYPES.filter(t=>g('aty_'+t));let b=s('g_basis');if(ats.length)b='type';if(b==='type'&&!ats.length)return '';return '피해 '+(g('value')||'1/8')+tga(s('g_tgt'))+(b==='cur'?' 현재':b==='last'?' 직전':b==='type'?' 타입:'+ats.map(t=>K.TYPE_KO[t]).join(','):'')+(s('g_xtype')?' 제외:'+K.TYPE_KO[s('g_xtype')]:'')+(g('nofaint')?' 빈사없음':'')+(g('drain')?' 드레인':'')}
    case 'weather':{const w=s('g_w');return w?'날씨 '+(w==='random'?'무작위':w)+' '+(+g('count')>=1000?'계속':(+g('count')||5)):'날씨 해제'}
    case 'terrain':{const t=s('g_t');return (/룸$/.test(t)?'룸 ':'필드 ')+(t?t+' '+(+g('count')>=1000?'계속':(+g('count')||5)):'해제')}
    case 'etc':{const e=s('g_e');return '필드상태 '+(e?e+' '+(+g('count')>=1000?'계속':(+g('count')||5)):'해제')}

@@ -40,7 +40,7 @@ window.OM_DB.readymade={"기술 : 초읽기":{"text":"","ops":[{"k":"countdown",
  put("특성 : 무지개의극광","①【등장】/모든 포켓몬의 랭크 변화를 초기화한다.",[{"k": "reset", "what": "rank", "tgt": "all"}]);
  put("특성 : 배리어프리","①【등장】/필드 전체의 「장벽」을 철거한다.",[{"k": "clearobj", "side": "both", "what": "wall"}]);
  put("특성 : 함께날다","①【상시】/필드 위에 있는 한 아군이 하늘 위에 떠오른다.",[{"k": "float", "tgt": "ally", "mode": "on", "turns": -1, "hold": 1}]);
- put("특성 : 악몽의오라","①턴 종료 시 「잠듦」 상태인 상대의 「HP」를 1/8만큼 드레인한다. (회복은 손으로)",[{"k": "dmg", "tgt": "enemy", "value": "1/8", "basis": "max", "st": "Sleep"}]);
+ put("특성 : 악몽의오라","①턴 종료 시 「잠듦」 상태인 상대의 「HP」를 1/8만큼 드레인한다.",[{"k": "dmg", "tgt": "enemy", "value": "1/8", "basis": "max", "st": "Sleep", "drain": 1}]);
  put("소지품 : 파괴의유전자","소모품/【등장】/영구히 「혼란」 상태가 되고 「공격 : +2」한다.",[{"k": "state", "state": "혼란", "tgt": "self", "count": 1000, "forced": 0}, {"k": "rank", "tgt": "self", "stats": {"attack": 2}}]);
  put("소지품 : 클리어참","【상시】/자신 이외로 인해 자신의 능력이 감소(저하)하지 않는다.",[{"k": "nodrop", "tgt": "self", "mode": "on", "st": "", "turns": -1, "ytype": "", "ro": []}]);
  put("소지품 : 만복향로","【상시】/자신의 기술에 「우선도 : -0.5」한다.",[{"k": "prio", "tgt": "self", "mode": "add", "v": -0.5, "cat": "all", "type": "", "dur": "keep", "tag": ""}]);

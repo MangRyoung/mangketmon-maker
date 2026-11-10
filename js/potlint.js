@@ -126,6 +126,36 @@ window.MKM_POTLINT=(()=>{
   {const q=c.match(/「성별\s*[:：]\s*(♂|♀|무성)」\s*(?:에\s*대한|인\s*(?:상대|대상|포켓몬)|에게)/);if(q)R.push('상대성별:'+q[1])}
   if(/같은\s*「타입」\s*(?:에\s*대한|인\s*(?:상대|대상|포켓몬)|의\s*(?:상대|포켓몬)|에게)/.test(c))R.push('같은타입');
   return [...new Set(R)]}
+ /* 11-10 망령 「자동화 추가 되게 많이 했으니 추천기 업뎃 한번 싹~」: 마디에서 조건 토큰을 뽑는다 — {t: 토큰, src: 글에서 잡힌 부분, mv: 기술을 쓸 때만 뜻이 있는 것(조건 줄에는 안 씀)}
+    날씨:비 · 필드:그래스필드 · 상태:독 / 상태:이상 · 상대상태:도발 · 랭크:방어≥+1 · 상대랭크:스피드≤-2 · 아군타입:벌레 · 아군특성:플러스 · 상대타입:물 · 성별:♀ · 상대성별:♂ · 같은타입 · 다른타입 · 이계:X · 반동기 · 아군공격 · 상대우선도+1이상 · 종족치 랭크(brToks) */
+ const RK_ST='공격|방어|특공|특방|스피드|명중|회피';
+ function ctoks(c){c=String(c||'');const R=[];const put=(t,src,mv)=>{if(t&&!R.some(x=>x.t===t))R.push({t,src:String(src||'').trim(),mv:!!mv})};let m;const nm=x=>x.split(/[,·\/]|\s*(?:또는|이나)\s*/).map(y=>y.replace(/^(?:날씨|필드)\s*[:：]\s*/,'').trim()).filter(Boolean);
+  if((m=c.match(/(?:필드의 상태가\s*)?((?:「날씨\s*[:：]\s*[^」]+」\s*(?:또는|이나|나|,|·)?\s*)+)\s*(?:일|인)\s*때/)))put('날씨:'+[...m[1].matchAll(/「날씨\s*[:：]\s*([^」]+)」/g)].flatMap(x=>nm(x[1])).join(','),m[0]);
+  if((m=c.match(/(?:필드의 상태가\s*)?「필드\s*[:：]\s*([^」]+)」\s*(?:일|인)\s*때/)))put('필드:'+m[1].trim(),m[0]);
+  for(const x of c.matchAll(/(?:(상대|대상|정면|아군)(?:이|가)\s*)?「([가-힣 ]+)」\s*상태(?:일|인)\s*때/g)){const st=x[2].replace(/\s/g,'');if(st==='빈사'||(window.OM_FX&&!isSt(st)))continue;if(x[1]==='아군')continue;put((x[1]?'상대상태:':'상태:')+st,x[0])}
+  for(const x of c.matchAll(/「([가-힣 ]+)」\s*상태인\s*(?:상대|대상|포켓몬)/g)){const st=x[1].replace(/\s/g,'');if(st!=='빈사'&&(!window.OM_FX||isSt(st)))put('상대상태:'+st,x[0])}
+  if((m=c.match(/(?<!상대가\s*|상대의\s*|대상이\s*)(?:자신이\s*)?상태 이상(?:일|인)\s*때/)))put('상태:이상',m[0]);
+  for(const x of c.matchAll(new RegExp('「('+RK_ST+')\\s*[:：]\\s*([+\\-−])(\\d)」\\s*(이상|이하)','g'))){const pre=c.slice(Math.max(0,x.index-6),x.index),rest=c.slice(x.index+x[0].length,x.index+x[0].length+8);const opp=/(?:상대|대상|정면)(?:의|이|가)\s*$/.test(pre)||/^\s*(?:인|의)\s*(?:상대|대상)/.test(rest);put((opp?'상대랭크:':'랭크:')+x[1]+(x[4]==='이상'?'≥':'≤')+(x[2]==='+'?'+':'-')+x[3],x[0])}
+  for(const x of c.matchAll(new RegExp('(?:(자신|상대|대상|정면)의\\s*)?「('+RK_ST+')」\\s*(?:능력\\s*)?랭크가\\s*([+\\-−]?)(\\d)\\s*(이상|이하)','g'))){const opp=x[1]&&x[1]!=='자신';put((opp?'상대랭크:':'랭크:')+x[2]+(x[5]==='이상'?'≥':'≤')+(x[3]&&x[3]!=='+'?'-':'+')+x[4],x[0])}
+  if((m=c.match(/아군(?:이|에|에게|중에?)\s*「타입\s*[:：]\s*([^」]+)」\s*(?:이|가|인 포켓몬이)?\s*(?:일|있을|인)\s*때/)))put('아군타입:'+nm(m[1]).join(','),m[0]);
+  if((m=c.match(/아군(?:이|에|에게|중에?)\s*「특성\s*[:：]\s*([^」]+)」\s*(?:이|가|인 포켓몬이)?\s*(?:일|있을|인)\s*때/)))put('아군특성:'+nm(m[1]).join(','),m[0]);
+  if((m=c.match(/「타입\s*[:：]\s*([^」]+)」\s*(?:인\s*(?:상대|대상|포켓몬)(?:에게|에 대한|의)?|에게(?!도)|에 대한)/))&&!/적진에\s*$|아군(?:이|에|에게)\s*$/.test(c.slice(Math.max(0,m.index-6),m.index)))put('상대타입:'+nm(m[1]).join(','),m[0]);
+  if((m=c.match(/자신(?:이|의)\s*「성별\s*[:：]\s*(♂|♀)」/)))put('성별:'+m[1],m[0]);
+  if((m=c.match(/「성별\s*[:：]\s*(♂|♀|무성)」\s*(?:에\s*대한|인\s*(?:상대|대상|포켓몬)|에게)/))&&!/자신(?:이|의)\s*$/.test(c.slice(Math.max(0,m.index-5),m.index)))put('상대성별:'+m[1],m[0]);
+  if((m=c.match(/같은\s*「타입」\s*(?:에\s*대한|인\s*(?:상대|대상|포켓몬)|의\s*(?:상대|포켓몬)|에게)/)))put('같은타입',m[0]);
+  if((m=c.match(/다른\s*「타입」\s*(?:에\s*대한|인\s*(?:상대|대상|포켓몬)|의\s*(?:상대|포켓몬)|에게)/)))put('다른타입',m[0]);
+  if((m=c.match(/《([^》]+)》\s*(?:가|이)\s*(?:발동하고|전개되어)\s*있을 때/)))put('이계:'+m[1].replace(/^이계\//,'').trim(),m[0]);
+  if((m=c.match(/「반동 비례 대미지」를 받는 기술|반동이 있는 기술/)))put('반동기',m[0],1);
+  if((m=c.match(/아군의\s*(?:공격|기술)(?:을|를|으로|로|에 의한)/)))put('아군공격',m[0],1);
+  if((m=c.match(/(상대의\s*|아군의\s*)?「우선도\s*[:：]\s*([+\-])(\d)」\s*(이상|이하)(?:인|의)\s*(?:공격|기술)/))){const wh=/상대/.test(m[1]||'')||/받|상대로부터|상대가|무효화|실패/.test(c)?'상대':/아군/.test(m[1]||'')?'아군':'';put(wh+'우선도'+m[2]+m[3]+m[4],m[0],1)}
+  if((m=c.match(/「HP\s*[:：]\s*가득」\s*(?:일|인)\s*때/)))put('HP가득',m[0]);
+  if((m=c.match(/「HP\s*[:：]\s*(\d+\/\d+)\s*이상」\s*(?:일|인)\s*때/)))put('HP≥'+m[1],m[0]);
+  if((m=c.match(/「성별\s*[:：]\s*(♂|♀)」\s*(?:일|인)\s*때/)))put('성별:'+m[1],m[0]);
+  if((m=c.match(/「기술머신」\s*(?:으로|로)\s*내보낸/)))put('기술머신',m[0],1);
+  if((m=c.match(/(?:『데이터 해석』|데이터 해석)(?:이|을)?\s*(?:된|당한)\s*(?:상대|대상)/)))put('상대해석됨',m[0]);
+  if((m=c.match(/지정한\s*기술/)))put('지정기술',m[0],1);
+  for(const t of brToks(c))put(t,(t.match(/[A-Z+\-]+$/)||[''])[0],0);
+  return R}
  /* 조건 (거짓이면 뒤 줄을 멈춘다) — 엔진이 아는 것은 「조건 …」, 모르는 것은 「확인 "…"」 (GM 이 발동할 때 맞는지 묻는다) */
  const TRIG=/했을|받았을|되었을|됐을|등장했|내보낼|명중|받으면|만들었을|무효화했/;
  function condOf(c){let m;const R=[];
@@ -154,7 +184,7 @@ window.MKM_POTLINT=(()=>{
    {const kd=c.match(KEEPDEF_RE);if(kd){const ks=[...kd[2].matchAll(/「([^」]+)」/g)].map(x=>x[1].trim());const TY=(window.OM_FX&&OM_FX.TYPE_KO)||{};const tys=ks.filter(k=>Object.values(TY).includes(k)),cat=ks.find(k=>/^(물리|특수)기?$/.test(k));const mvs=ks.filter(k=>!tys.includes(k)&&k!==cat&&!/^HP\s*:/.test(k));
      const s='수세유지'+(mvs.length?' 기술:'+mvs.join(','):'')+(tys.length?' 타입:'+tys.join(','):'')+(cat?' '+cat.replace(/기$/,''):'')+(kd[1]?' HP≤'+kd[1].replace(/\s+/g,''):'');if(!lines.includes(s)){lines.push(s);why.push(c0.length>60?c0.slice(0,60)+'…':c0)}continue}}
    /* 랭크 (「공격 : +1」 · 「공격 : +12」 · 무작위 능력 · 가장 높은/낮은 능력) */
-   const rk=[...c.matchAll(/「((?:공격|방어|특공|특방|스피드|명중|회피)(?:\/(?:공격|방어|특공|특방|스피드|명중|회피))*) : ([+-]\d+)」/g)];
+   const rk=[...c.matchAll(/「((?:공격|방어|특공|특방|스피드|명중|회피)(?:\/(?:공격|방어|특공|특방|스피드|명중|회피))*) : ([+-]\d+)」(?!\s*(?:이상|이하|미만|초과))/g)];   /* 11-10: 「방어 : +1」 이상일 때 같은 조건은 랭크 변화가 아니다 (조건 토큰으로) */
    const branch=/(?:이|하)?라면|비교하여/.test(c)&&rk.length>1;   /* 업로드 · 다운로드: 「A라면 X, B라면 Y」는 어느 쪽인지 몰라 추천하지 않는다 */
    if(rk.length&&/」\s*(?:한다|하고|하며|된다|되고|시킨다|시키고)|한다|된다/.test(c)&&!/종족치/.test(c)&&!branch){const parts=[];for(const x of rk)for(const s of x[1].split('/'))parts.push(ST_EN[s]+x[2]);const t=tgAt(rk[0].index);L.push(`랭크${tgW(t)} ${parts.join(' ')}${temp?' 임시':''}`)}
    if((m=c.match(/「(?:(?:공격\/방어\/특공\/특방\/스피드) 중 무작위한 하나|무작위한 능력치?) : ([+-]\d)」/)))L.push(`랭크${tgW(tgAt(m.index))} 무작위${m[1]}${temp?' 임시':''}`);
@@ -241,7 +271,7 @@ window.MKM_POTLINT=(()=>{
    else if(/땅으로 떨어진다/.test(c))L.push('하늘위 해제');
    /* 비례 피해 (주는 쪽) */
    if((m=c.match(/(?:「([가-힣]+)\s*:\s*(\d+\/\d+)」|(\d+\/\d+))\s*(?:만큼)?(?:의)?\s*비례 대미지를\s*(?:입힌다|가한다|준다|입히고)|「HP」를\s*(\d+\/\d+)만큼\s*드레인/))){const v=m[2]||m[3]||m[4];const sg=segB(c,m.index);const st=sg.match(/「([가-힣 ]+)」\s*상태인 상대/);const ex=sg.match(/「타입\s*:\s*([가-힣]+)」\s*이외/);let t=st?'상대전체':ex?'전체':tgtIn(sg,temp)||'상대1체';if(t==='자신이외'&&ex)t='전체';
-    L.push(`피해 ${v} ${t}${m[1]?' 타입:'+m[1]:''}${st?' 상태:'+st[1].replace(/\s/g,''):''}${ex?' 제외:'+ex[1]:''}${noFaint?' 빈사없음':''}`)}
+    L.push(`피해 ${v} ${t}${m[1]?' 타입:'+m[1]:''}${st?' 상태:'+st[1].replace(/\s/g,''):''}${ex?' 제외:'+ex[1]:''}${noFaint?' 빈사없음':''}${m[4]?' 드레인':''}`)}
    else if((m=c.match(/(\d+\/\d+)\s*(?:만큼)?(?:의)?\s*비례 대미지를\s*(?:입는다|받는다)/)))L.push(`피해 ${m[1]} 자신`);
    /* 날씨 · 필드 · 필드상태 · 설치기 · 철거 */
    {const T=(c.match(/(\d)턴 동안/)||[])[1];const keep=hold&&!T;
@@ -294,7 +324,28 @@ window.MKM_POTLINT=(()=>{
    /* 조건은 효과가 있을 때만 맨 앞에. 「HP : 가득」 조건은 완화 줄의 HP가득 으로 넣었으면 따로 묻지 않는다 */
    /* 11-10 망령 「트랜스처럼 배틀 중 종족치 변경」: 가장 높은 종족치를 복사 → 종족치변경 복사:상대최고 · 지속(N턴 동안 · 턴 종료 시까지 · 이번 턴)이 붙은 「X」의 종족치를 N랭크 상승/감소 → 종족치변경 X±N (지속 없는 꼴은 제작기 시트가 종족치에 넣는다) */
    if(!L.length){if(/가장 높은 종족치를\s*복사/.test(c))L.push('종족치변경 복사:상대최고');else{const bm=[...c.matchAll(/「((?:(?:공격|방어|특공|특방|스피드|HP)\/)*(?:공격|방어|특공|특방|스피드|HP))」의\s*종족치를\s*(\d)\s*랭크\s*(상승|감소|하락)/g)];const once=temp||/이번 턴/.test(c);if(bm.length&&(once||turns)){const t0=tgtIn(c,temp);L.push('종족치변경'+(t0&&t0!=='자신'?' '+t0:'')+bm.map(x=>x[1].split('/').map(z=>' '+z+(x[3]==='상승'?'+':'-')+x[2]).join('')).join('')+(turns?' '+turns+'턴':' 이번턴'))}}}
-   {const bt=brToks(c);if(bt.length)for(let i=0;i<L.length;i++)if(/^(?:(?:드물게|저확률|중확률|고확률|\d+할):\s*)?(?:위력|완화|회피)\s/.test(L[i]))for(const t of bt)if(!L[i].includes(t))L[i]+=' '+t}   /* 11-10 종족치 랭크 조건은 줄 끝 토큰으로 */
+   /* 11-10 망령 「추천기 싹」: 『4식』 · 『지령』 소모 (발동할 때 남은 것 중 고르는 창) · 선행 입력 때 기술 · 대상 지정 · 추가 효과 면역 */
+   {const o4=/『4식』(?:\s*\d개)?(?:을|를)?\s*(?:\d개\s*)?소모/.test(c),cm=/『(?:지령|6령)』(?:\s*\d개)?(?:을|를)?\s*(?:\d개\s*)?소모/.test(c),eo=/『4식』\s*(?:이나|또는|혹은)\s*『지령』|『지령』\s*(?:이나|또는|혹은)\s*『4식』/.test(c);if((o4||cm)&&L.length&&!L.some(x=>/^소모/.test(x))){const nn=(c.match(/『(?:4식|지령|6령)』\s*(\d)개/)||[])[1];L.unshift('소모 '+(eo||(o4&&cm)?'4식지령':o4?'4식':'지령')+(nn&&+nn>1?' '+nn:''))}}
+   if(/기술\s*\d?\s*(?:개|하나)?(?:을|를)\s*지정한다/.test(c)&&!L.some(x=>/^기술지정/.test(x)))L.unshift('기술지정'+(/아군의?\s*기술/.test(c)?' 아군':''));
+   {const q=c.match(/(상대|아군|자신을 포함한 아군|아무나)\s*1\s*체를\s*지정한다/);if(q&&!L.some(x=>/^대상지정/.test(x)))L.unshift('대상지정 '+({상대:'상대1체',아군:'아군1체','자신을 포함한 아군':'자신포함아군1체',아무나:'아무나1체'})[q[1]])}
+   if(/(?:자신에 대한\s*)?(?:기술의\s*)?추가 효과를 받지 않는다/.test(c)&&!L.some(x=>/^추가효과/.test(x)))L.push('추가효과면역');
+   for(let i=0;i<L.length;i++)L[i]=L[i].replace(/ 태그:기술머신(?=\s|$)/,'');
+   /* 11-10 망령 「추천기 싹」: 조건 토큰 — 위력 · 완화 · 회피 · 배율 · 추가효과 · 우선도 줄은 줄 끝에(오레마스가 쓸 때마다 본다 · 배율은 조건부 배율), 그 밖의 줄(랭크 · 상태 · 회복 …)은 앞에 「조건 토큰…」 한 줄(발동할 때 한 번 본다). 기술 쪽 토큰(반동기 · 아군공격 · 우선도)은 줄 끝에만 */
+   {const T=ctoks(c);if(T.length){
+     if(T.some(x=>/^(날씨|필드):/.test(x.t)))for(let i=L.length-1;i>=0;i--)if(/^배율 스피드×[\d.]+$/.test(L[i]))L.splice(i,1);   /* 엽록소 · 쓱쓱 류는 오레마스가 글을 읽어 행동 순서 때 곱한다 — 구문으로 또 걸면 두 번 */
+     if(/아군의\s*(?:공격|기술)(?:을|를)\s*(?:모두\s*)?무효화/.test(c)&&!L.some(x=>/^완화/.test(x)))L.push('완화 ×0');
+     if(T.some(x=>x.t==='반동기')&&!L.some(x=>/^위력/.test(x))){const q=c.match(/기술의\s*(?:대미지|위력)(?:을|를)?\s*강화\s*\((\d+(?:\.\d+)?)배\)/);if(q)L.push('위력 ×'+q[1])}
+     if(T.some(x=>/우선도[+\-]\d/.test(x.t))&&/(?:공격|기술)(?:을|를)\s*(?:모두\s*)?무효화/.test(c)&&!L.some(x=>/^완화/.test(x)))L.push('완화 ×0');
+     /* 그 줄이 토큰을 받는지는 구문을 직접 읽어 본다 — 토큰을 붙였을 때 조건이 달라지면 받는 줄 (랭크 · 상태 · 회복처럼 토큰을 조용히 버리는 줄은 조건 줄로) */
+     const inl=(x,t)=>{if(!F||!F.parse||/^(?:확인|은열쇠|선택)/.test(x))return false;try{const A=F.parse(x),B=F.parse(x+' '+t);const a=A.ops||[],b=B.ops||[];if(!(a.length>0&&a.length===b.length)||(B.errs&&B.errs.length))return false;const CK=['mv','ft','cs','os','wx','trn','hl','hg','hs','hf','h1','rc','al','oa','ob','rk','ork','sure','it','iw','tm','ab','dx','odx','mr','ks','tmv','pr','pmin','pmax','br','at','aab','sg','og','stp','foe','dmv'];let ch=false;for(let j=0;j<a.length;j++){const ks=new Set([...Object.keys(a[j]||{}),...Object.keys(b[j]||{})]);for(const k of ks)if(JSON.stringify((a[j]||{})[k])!==JSON.stringify((b[j]||{})[k])){if(!CK.includes(k))return false;ch=true}}return ch}catch(e){return false}};   /* 토큰을 붙여 바뀐 칸이 조건 칸뿐일 때만 (타입 · 확인 줄처럼 남는 낱말을 삼키는 줄은 아니다) */let needC=false;const left=new Set();
+     /* 조건 줄은 마디 전체를 막으니 — 마디가 한 문장이고 그 문장의 조건일 때만. 여러 문장(기술 글 「…회복한다. 「날씨 : 맑음」일 때 회복량이 …」)은 줄 끝 토큰만. 「「성별 : ♂」인 상대 전체를」처럼 대상을 거르는 상대 쪽 조건도 조건 줄로 세우지 않는다 */
+     const sents=c.split(/(?<=[.。])\s+/).filter(Boolean),multi=sents.length>1,first=sents[0]||c,wide=/상대 전체|적진의|모든 상대|필드에 있는|모든 포켓몬/.test(c);const used=new Set();
+     const okC=x=>!x.mv&&!multi&&(!x.src||first.includes(x.src))&&!(wide&&/^(상대|같은타입|다른타입)/.test(x.t));
+     for(let i=0;i<L.length;i++){if(/^(?:조건|확인|선택)/.test(L[i]))continue;if(/^피해 /.test(L[i])&&/ 상태:/.test(L[i]))continue;for(const x of T){if(L[i].split(/\s+/).includes(x.t)){used.add(x.t);continue}if(inl(L[i],x.t)){L[i]+=' '+x.t;used.add(x.t)}else if(okC(x)){needC=true;left.add(x.t)}}}
+     const stT=[...left];
+     if(needC&&stT.length){const add=stT.filter(t=>!(/^상태:/.test(t)&&cond.includes('조건 '+t)));for(const t of stT)used.add(t);if(add.length)cond.push('조건 '+add.join(' '))}
+     if(!needC)for(let i=cond.length-1;i>=0;i--)if(/^조건 상태:/.test(cond[i])&&T.some(x=>used.has(x.t)&&'조건 '+x.t===cond[i]))cond.splice(i,1);
+     if(L.length)for(let i=cond.length-1;i>=0;i--){const q=(cond[i].match(/^확인 "(.*)"$/)||[])[1];if(q!=null){const qq=q.replace(/ 기술$/,'');if(T.some(x=>used.has(x.t)&&x.src&&(qq.includes(x.src)||x.src.includes(qq))))cond.splice(i,1)}}}}
    {const cs=cond.filter(x=>!(/「HP\s*:\s*가득」/.test(x)&&L.length&&L.every(s=>/HP가득/.test(s)))&&!(/^확인 "[^"]*(?:「(?:HP|공격|방어|특공|특방|스피드)\s*[:：]\s*[A-Z]{1,3}[+-]?」|종족치\s*랭크)/.test(x)&&L.length&&L.every(s=>/종족치:/.test(s)))&&!(/^확인 "[^"]*(?:「성별\s*[:：]|같은\s*「타입」)/.test(x)&&L.length&&L.every(s=>/성별:|같은타입/.test(s))));
     /* 날씨 · 필드 조건 「스피드」 배율(엽록소 · 쓱쓱 …)은 오레마스가 글을 읽어 행동 순서 때 곱한다 — 구문으로 또 걸면 두 번 */
     if(cs.some(x=>/^확인 .*「(?:날씨|필드)\s*:/.test(x)))for(let i=L.length-1;i>=0;i--)if(/^배율 스피드×[\d.]+$/.test(L[i]))L.splice(i,1);
