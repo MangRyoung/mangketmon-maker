@@ -227,7 +227,7 @@ window.MKM_POTLINT=(()=>{
     else if((x=c.match(/((?:「[^」]+」\s*)+)\s*(?:기술(?:이|에 대한 타입 상성이)|에 대한 타입 상성이)\s*「상성 : 1\/2배」가 된다/))){v='0.5';at=x.index}
     else if((x=c.match(/(?:공격을 받으면 그 공격이|(?:「[^」]+」\s*)*(?:기술|공격)?\s*(?:의\s*)?대미지를)\s*(?:「상성 : 1\/2배」가 된다|(반감)한다|완화\s?\((\d?\.\d+)배\))/))&&/【방호】|【수세】/.test(tags)){v=x[2]||'0.5';at=x.index}
     if(v){const seg=v==='0'||/상성 : 1\/2배」가 된다/.test(x[0])?x[0]:segB(c,at)+x[0];let s=`완화 ×${v}`+flt(seg);if(/「상성 : 2배?~8배」/.test(c)&&!/굉장/.test(s))s+=' 굉장';if(/「상성 : 1\/2배?~1\/8배」/.test(c)&&!/별로/.test(s))s+=' 별로';if(/「전체기」/.test(c)&&!/전체기/.test(s))s+=' 전체기';if(/타입 비일치/.test(seg)&&!/비자속/.test(s))s+=' 비자속';
-     const t=tgtIn(segB(c,at),temp);if(t&&t!=='상대1체'&&t!=='자신이외')s+=' '+t;if(/「HP : 가득」\s*일 때/.test(c))s+=' HP가득';if(/【수세】/.test(tags+c0))s+=' 수세';if(turns)s+=` ${turns}턴`;else if(temp)s+=' 이번턴';L.push(s)}
+     const t=tgtIn(segB(c,at),temp);if(t&&t!=='상대1체'&&t!=='자신이외')s+=' '+t;if(/「HP : 가득」\s*일 때/.test(c))s+=' HP가득';if(/【수세】/.test(tags+c0))s+=' 수세';if(/상대의\s*「[^」]+」의 위력을 저하/.test(c)&&!/자신에게|자신이 받는/.test(c))s+=' 기술자체';   /* 11-10 망령 병법술: 「상대의 「전체기」의 위력을 저하」 = 맞는 쪽이 누구든 그 기술 자체 */if(turns)s+=` ${turns}턴`;else if(temp)s+=' 이번턴';L.push(s)}
     else if((m=c.match(/「위력\s*[:：]\s*(\d+)」\s*이하의 기술을 무효화/)))L.push(`완화 ×0 위력≤${m[1]}`)}
    /* 기술로 「빈사」가 되지 않는다 = 완화 견딤 (11-03: 「빈사」 면역 줄은 아무 일도 안 해서 견딤으로) · 급소 면역 */
    if((m=c.match(/(?:기술(?:\s*대미지)?|공격)(?:로|으로)\s*「빈사」\s*상태가 되지(?:는)? 않는다/))&&!/①로/.test(c)){let s='완화 ×1 견딤';if(/「HP\s*:\s*가득」/.test(c))s+=' HP가득';if(/다음/.test(segB(c,m.index)+m[0]))s+=' 1회';if(temp)s+=' 이번턴';L.push(s)}
