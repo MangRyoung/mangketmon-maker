@@ -255,6 +255,7 @@ window.MKM_POTLINT=(()=>{
    if((m=c.match(/((?:「[가-힣\/]+」\s*)+)\s*상태가 되지 않(?:는다|고)/))){const sts=[].concat(...[...m[1].matchAll(/「([가-힣\/]+)」/g)].map(y=>y[1].split('/'))).filter(y=>y!=='빈사'&&(!window.OM_FX||isSt(y)));const t=tgtIn(segB(c,m.index),temp);if(sts.length)L.push(`면역${t&&t!=='상대1체'?' '+t:''} ${sts.join(',')}`)}   /* 11-03: 「빈사」 상태가 되지 않는다(버티기)는 면역 구문이 아니다 */
    if((m=c.match(/상태 이상이 되지 않(?:는다|고)/))){const t=tgtIn(segB(c,m.index),temp);L.push(`면역${t&&t!=='상대1체'?' '+t:''} 이상`)}
    /* 비례 대미지 · 설치기 · 교대 */
+   if((m=c.match(/(?:대상|상대|공격한\s*(?:상대|포켓몬))에게\s*(?:받은\s*대미지의\s*)?(\d+\/\d+)\s*(?:의|만큼의?)\s*반동\s*대미지를\s*(?:준다|입힌다|돌려준다)/)))L.push(`피해 ${m[1]} 대상 받은`);   /* 11-10 망령 「공격 받았을 때 대상에게 1/3의 반동 대미지를 준다」: 받은 대미지의 N (요격 꼴) — 웹툴 「공격을 받았을 때」 계기가 대상 = 공격한 상대로 */
    const RMV=x=>{if(!/반동/.test(x))return x;const q=c.match(/「([^」]+)」의\s*「?반동/);if(q&&!/[:：]/.test(q[1]))return x+' 기술:'+q[1].replace(/\s+/g,'');const r=c.match(/「([^」]+)」\s*기술의\s*「?반동/);if(r){const f=(flt('「'+r[1]+'」 기술').match(/타입:\S+/)||[])[0];if(f&&!x.includes(f))return x+' '+f}return x};   /* 11-10 「X」의 반동 = 그 기술만 */
    if((m=c.match(/(반동 )?비례 대미지(?:」)?(?:를|을)?\s*(?:받지 않는다|무시)/))&&!/에 의한 비례|에 의해 받는/.test(c.slice(Math.max(0,m.index-8),m.index))||(m=c.match(/비례 대미지를 받지 않는다/))){const t=tgtIn(segB(c,m.index),temp);L.push(RMV(`비례무시${t&&t!=='상대1체'?' '+t:''}${/반동/.test(m[0])||/「반동 비례 대미지」를 받지/.test(c)?' 반동':''}`))}
    else if(/「반동 비례 대미지」를 받지 않는다/.test(c))L.push(RMV('비례무시 반동'));
