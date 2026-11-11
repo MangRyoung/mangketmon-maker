@@ -50,6 +50,7 @@ window.OM_DB.readymade={"섬란 카구라":{"text":"","ops":[{"k":"mult","tgt":"
  put("소지품 : 무사태평향로","【상시】/「회피」를 강화(1.05배)한다.",[{"k": "mult", "tgt": "self", "stats": {"evasion": 1.05}}]);
  put("소지품 : 스피드파우더","【상시】/「메타몽」 전용. 「스피드」를 2배로 만든다.",[{"k": "mult", "tgt": "self", "stats": {"speed": 2}}]);
  put("소지품 : 정화부적","【상시】/자신 이외로 인해 「화상/마비/독」 상태가 되지 않는다.",[{"k": "immune", "tgt": "self", "mode": "on", "states": ["Burn", "Paralysis", "Poison", "Toxic"]}]);
+ put("익스펜션 : 고스트","【상시】/자신의 「타입 : 고스트」가 반드시 유지된다.",[{"k":"sp","sp":"keeptype","types":["Ghost"]}]);   /* 11-11 망령 */
  put("익스펜션 : 악","【상시】/자신이 받을 기술의 「따라가때리기」 효과를 받지 않는다.",[{"k": "pursuit", "on": 1, "hide": 0, "immune": 1, "tgt": "self"}]);
  put("익스펜션 : 물","턴 개시 시 중확률로 자신의 상태 이상을 치유한다.",[{"k": "resetstates", "tgt": "self", "group": "condition_abnormal", "pl": "중확률"}]);
 })();
