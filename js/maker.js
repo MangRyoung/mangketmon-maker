@@ -480,9 +480,13 @@ function ptChecks(t){const th=pnum(PR().weakAtk,60);const L=t.pokemon.filter(p=>
  /* 11-03: 같은 소지품을 둘 이상이 들면(2 · 3번 칸 포함) 경고 · 잠긴(특제 미해금) 소지품 착용 경고 */
  {const who=new Map();for(const p of t.pokemon)for(const n of pokeItems(p)){if(!who.has(n))who.set(n,[]);who.get(n).push(p.name||'이름 없음')}
   const dup=[...who].filter(([,L])=>L.length>1);if(dup.length)out.push(`같은 소지품을 둘 이상이 들었습니다 · ${dup.map(([n,L])=>`${n} (${L.join(', ')})`).join(' / ')}`);
+  /* 11-11 망령: 룰북 「PT 내에 【같은 TO】 소지품은 중복시킬 수 없다」 — 비고의 【TO (그룹, 그룹)】이 같은 다른 소지품을 둘 이상이 들면 경고 (같은 이름은 위 경고가 맡음) */
+  {const tg=new Map();for(const p of t.pokemon)for(const n of pokeItems(p))for(const g of itemTO(n)){if(!tg.has(g))tg.set(g,[]);tg.get(g).push([n,p.name||'이름 없음'])}
+   const bad=[...tg].filter(([,L])=>new Set(L.map(x=>x[0])).size>1);if(bad.length)out.push(`같은 TO 소지품을 둘 이상이 들었습니다 · ${bad.map(([g,L])=>`【TO (${g})】 ${L.map(([n,w])=>w+': '+n).join(', ')}`).join(' / ')}`)}
   const lk=[];for(const p of t.pokemon)for(const n of pokeItems(p)){const l=ilockOf(n);if(l&&!l.open)lk.push(`${p.name||'이름 없음'}: ${n} (${l.place}${l.cond?' · '+l.cond:''})`)}if(lk.length)out.push(`아직 잠긴 특제 소지품을 들었습니다 · ${lk.join(' / ')}`)}
  return out}
 const pokeItems=p=>[p.item,...(p.items2||[]).map(x=>x&&x.item)].filter(Boolean);
+const itemTO=n=>{const r=idx.items&&idx.items.get(n);if(!r)return[];return (String(r[6]||'').match(/【TO \(([^)]+)\)】/g)||[]).flatMap(x=>x.slice(5,-2).split(/\s*,\s*/)).filter(Boolean)};   /* 11-11: 소지품 비고의 TO 그룹 */
 /* 「전체기 C+4」 꼴 (11-03: 「C : +4」 · 「C:+4」 띄어 쓴 꼴도) */
 const WIDE_C4=/C\s*:?\s*\+\s*([4-9])/;
 /* 능력치 막대: 하한·할증·할인 구간 (0~200 눈금) */
