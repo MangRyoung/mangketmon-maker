@@ -901,7 +901,7 @@ const fxReady=()=>!!(window.OM_FX&&window.OM_FX_UI);
 window.OM_APP=window.OM_APP||{openModal:h=>{const l=openModal(h,{wide:true});l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))closeModal()});return l},closeModal:()=>closeModal(),toast:t=>toast(t),ST:{role:'player',state:{}},set:async()=>false};
 let fxLoadP=null,FXST='';/* '' 불러오는 중 · ok · fail */
 function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
- const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611112200pp';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
+ const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611120650wx';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
  FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');await one('itemrule.js');try{await one('moveauto.js')}catch(e){}FXST='ok';rmInit();stInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
 function fxRetry(){if(fxReady())return;fxLoadP=null;toast('구문 스크립트를 다시 불러옵니다…');loadFx();if(S.ui&&S.ui.tab)refreshAll()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fxretry]');if(!b)return;e.preventDefault();e.stopPropagation();fxRetry()},true);
@@ -2833,7 +2833,7 @@ function fitLog(){for(const [fi,vi] of [['#logFrame','#v-log'],['#ruleFrame','#v
 function fitFrame(f){const top=f.getBoundingClientRect().top+window.scrollY;let bot=0;const tb=$('#mk .tabs');if(tb){const r=tb.getBoundingClientRect();if(getComputedStyle(tb).position==='fixed'&&r.top>innerHeight/2)bot=r.height}f.style.height=Math.max(420,Math.floor(innerHeight-top-bot))+'px'}
 addEventListener('resize',()=>{clearTimeout(fitLog.t);fitLog.t=setTimeout(fitLog,80)});
 const LOGV='20261026g';   /* 로그 정리기 판 (캐시 깨기) */
-function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v='+LOGV;requestAnimationFrame(fitLog);return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=202611120350rv';requestAnimationFrame(fitLog);return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
+function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v='+LOGV;requestAnimationFrame(fitLog);return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=202611120650wx';requestAnimationFrame(fitLog);return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
 let rT=null;
 let composing=false;
 $('#v-char').addEventListener('compositionstart',()=>{composing=true;clearTimeout(rT)});
