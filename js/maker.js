@@ -709,6 +709,8 @@ function misagThreeChecks(t){const out=[];if(!isMisag(t))return out;const S=subO
  const sp=S[0];if(awOf(t,sp))out.push(`${tag} — 각성체(${sp.name||'이름 없음'})는 서브가 될 수 없다 · PL 포켓몬 중에서 고른다`);
  const C=subCaps(t);const pc=prideCost(t,sp,true);if(pc>C.lead+1e-9)out.push(`${tag} — ${sp.name||'이름 없음'} 통솔점 ${pc} / ${C.lead} (PL 4체 통솔점 ${C.leadAll} × ${MR().subRatio||MISAG_DEF.subRatio})`);
  {const c=moveCap(t,sp);const u=c.mode==='count'?c.pt:c.used;if(u>C.pt+1e-9)out.push(`${tag} — ${sp.name||'이름 없음'} PT 기술점 ${u} / ${C.pt} (PL 4체 PT 기술점 ${C.ptAll} × ${MR().subRatio||MISAG_DEF.subRatio})`)}
+ /* 11-11 망령 「B-1 는 데려온 3체 기준」: 통솔 대가 B-1(특정 타입 3체 이상)이면 각성체 2 + 서브 셋 다 지정 타입 · A-1 은 2체 규칙과 같게 · A-2 는 짝 PC 도 꺼짐(웹툴은 원래 「아군」 전부) */
+ {const e=misagEff(t),P=misagPen(t);if(mHasB(e.통솔)&&P.type&&misagItem(P.b)&&misagItem(P.b)[3]==='type'){const no=[...awList(t),sp].filter(p=>![p.t1,p.t2,p.t3].some(x=>x&&x!=='-'&&String(x).split(/[()]/).includes(P.type)));if(no.length)out.push(`${tag} — 통솔 대가 ${P.b}: 데려가는 3체(각성체 2 + 서브) 모두 ${P.type} 타입이어야 합니다 (${no.map(p=>p.name||'이름 없음').join(', ')})`)}}
  if(mOn('twoRole')){const r=roleOf(sp);const hit=awList(t).filter(a=>roleOf(a)&&roleOf(a)===r&&r!=='역할 포텐셜');if(r&&hit.length)out.push(`${tag} — 서브와 각성체의 역할이 같습니다 (『${r}』) · 3체 안에서는 역할 중복 불가`)}
  return out}
 function misagTwoChecks(t){const out=[],A=awList(t);if(!A.length)return out;const tag='각성체 2체 몫';
