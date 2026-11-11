@@ -2177,7 +2177,7 @@ function renderMe(){const b=$('#mebtn');if(!b)return;b.textContent=ME.hash?(ME.g
 const canSee=o=>!o||!o.priv||ME.gm||!!(ME.hash&&o.owner===ME.hash);
 const canEditPriv=o=>!o.priv||ME.gm||!!(ME.hash&&o.owner===ME.hash)||!o.owner;
 /* 11-12 08:02 망령 「포켓몬 1체만 숨기기 — 제작기 · 세션 노트 · 웹툴 셋 다, 다른 플레이어에게만 안 보이게」: 포켓몬 문서 p.priv · p.owner(켠 사람 서명). 주인(트레이너 · 포켓몬 서명) · GM 만 본다 */
-const canSeeMon=(t,p)=>!p||!p.priv||ME.gm||!!(ME.hash&&(p.owner===ME.hash||(t&&t.owner===ME.hash)))||!(p.owner||(t&&t.owner));
+const canSeeMon=(t,p)=>!p||!p.priv||ME.gm||!!(ME.hash&&(p.owner===ME.hash||(t&&t.owner===ME.hash)));   /* 서명(owner)이 없으면 GM 만 — 세션 노트에서 켤 때도 같은 브라우저의 제작기 서명을 owner 로 적는다 */
 /* 10-24 망령: 폴더 안의 폴더 — 폴더에 parent(상위 폴더 id). 지워졌거나 고리가 생긴 parent 는 맨 위로 본다 */
 const fById=id=>id?S.folders.find(f=>f.id===id):null;
 const fPar=f=>{if(!f||!f.parent)return '';const p=fById(f.parent);if(!p)return '';let c=p,n=0;while(c&&n++<50){if(c.id===f.id)return '';c=c.parent?fById(c.parent):null}return p.id};
