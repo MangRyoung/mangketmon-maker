@@ -218,7 +218,8 @@ window.MKM_POTLINT=(()=>{
      {let t=tgtIn(pre,temp);if(t==='지정에리어')t='아군1체';if(hold&&t==='아군1체')t='아군전체';if(t&&t!=='상대1체'&&t!=='자신이외')s+=' '+t}const cr=c.match(/\(C\+(\d)\)/);if(cr)s+=' 급소+'+cr[1];if(/【공세】/.test(tags+c0))s+=' 공세';if(/다음\s*(?:「[^」]+」\s*)*(?:기술|기)?/.test(pre)&&/다음/.test(pre)){s+=' 1회';if(temp)s+=' 이번턴'}L.push(s)}
     else if((m=c.match(/((?:「[^」]+」\s*)+)\s*기술을\s*강화\s*\((\d+(?:\.\d+)?)배\)/))&&!/받을|자신에 대한/.test(segB(c,m.index))){const sg=segB(c,m.index);const t=tgtIn(sg,temp);L.push(`위력 ×${m[2]}${t==='전체'||t==='아군전체'||t==='상대전체'?' '+t:''}${flt(m[1])}`)}
     else if((m=c.match(/타입 일치에 의한 (?:강화 )?배율이 2배가 된다/))){const ty=(segB(c,m.index).match(/「([가-힣]+)」/)||[])[1];L.push(`위력 ×1.3333${ty&&isTy(ty)?' 타입:'+ty:''} 자속`)}
-    else if((m=c.match(/\(C\+(\d)\)/))){const f=flt(segB(c,m.index));L.push(f?`위력 ×1${f} 급소+${m[1]}`:`랭크 급소+${m[1]}`)}
+    else if((m=c.match(/\(C\+(\d)\)/))){const f=flt(segB(c,m.index));L.push(`위력 ×1${f||''} 급소+${m[1]}`)}
+    else if((m=c.match(/(?:자신의\s*)?(?:「([^」]+)」\s*기술이\s*)?「타입\s*:\s*([^」]+)」에게\s*「상성\s*:\s*(\d+(?:\/\d+)?)배」/))){const TY=(window.OM_FX&&OM_FX.TYPE_KO)||{};const isTy=x=>Object.values(TY).includes(x);const tys=m[2].split(/[,·]/).map(x=>x.trim()).filter(isTy);if(tys.length){const k=m[1]?m[1].trim():'';L.push(`위력 ×1 상성×${m[3]}${k?(isTy(k)?' 타입:'+k:' 태그:'+k):''} 상대타입:${tys.join(',')}`)}}   /* 11-11 망령 특성 참철 꼴 */
     else if(/「물리기」와\s*「특수기」\s*중[^.]*더\s*(?:높은|큰)\s*대미지/.test(c))L.push(`위력 ×1${/「?기능\s*확장」?을\s*내보낼/.test(c)?' 기능확장':''} 분류최대`);   /* 11-11 망령 코유키 『이윽고 당신이 되는 이야기』 · 셸암즈 */
     else if((m=c.match(/반드시 급소에 맞는다/))&&!/다음 기술/.test(c)){const sg=segB(c,m.index);const f=flt(sg);if(f)L.push(`위력 ×1${f} 확정급소`);else if(!/「[^」]*위력/.test(sg))L.push('랭크 급소+3')}}
    /* 완화 (받는 쪽) — 반감 · 완화(n배) · 강화(n배) · n배가 된다 · 무효화(×0) · 「상성 : 1/2배」가 된다 */
