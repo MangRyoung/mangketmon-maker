@@ -82,7 +82,7 @@ window.OM_MOVEAUTO=(()=>{
     if(/^(?:포켓몬의\s*)?공격을 받으면 실패한다$/.test(s)){FL.failHit=1;continue}
     if(/^대상이 공격하지 않으면 실패한다$/.test(s)){FL.failNoAtk=1;continue}
     if(/^대상보다 먼저 행동하지 않으면 실패한다$/.test(s)){FL.failLate=1;continue}
-    if((x=s.match(/^「타입\s*:\s*([^」]+)」에게 「상성\s*:\s*(\d+(?:\/\d+)?)배」가 된다$/))){const ty=FX()&&FX().TYPE_KO?Object.keys(FX().TYPE_KO).find(k=>FX().TYPE_KO[k]===x[1].trim()):'';const v=x[2].includes('/')?(+x[2].split('/')[0])/(+x[2].split('/')[1]):+x[2];if(ty){FL.effVs={ty,v};continue}}
+    if((x=s.match(/^「타입\s*:\s*([^」]+)」에게\s*「상성\s*:\s*(\d+(?:\/\d+)?)배」(?:가\s*된다)?$/))){const tys=x[1].split(/[,·、]/).map(t=>t.trim()).filter(Boolean).map(t=>FX()&&FX().TYPE_KO?Object.keys(FX().TYPE_KO).find(k=>FX().TYPE_KO[k]===t):'').filter(Boolean);const v=x[2].includes('/')?(+x[2].split('/')[0])/(+x[2].split('/')[1]):+x[2];if(tys.length){FL.effVs=tys.length===1?{ty:tys[0],v}:tys.map(ty=>({ty,v}));continue}}   /* 11-11 「타입 : 악, 고스트」 여럿 · 「…1배」.(가 된다 없이 — 니힐레이저) */
     if((x=s.match(/^「타입\s*:\s*([^」]+)」(?:이|가) 아니라면 「명중\s*:\s*(\d+)」(?:이|가) 된다$/))){const ty=FX()&&FX().TYPE_KO?Object.keys(FX().TYPE_KO).find(k=>FX().TYPE_KO[k]===x[1].trim()):'';if(ty){FL.accNot={ty,acc:+x[2]};continue}}
     if((x=s.match(/^「타입\s*:\s*([^」]+)」\s*이외에게 내보내면 실패한다$/))){const ty=FX()&&FX().TYPE_KO?Object.keys(FX().TYPE_KO).find(k=>FX().TYPE_KO[k]===x[1].trim()):'';if(ty){FL.onlyVs=ty;continue}}
     if(/^대상의 「특성」을 무시한다$/.test(s)){FL.mold=1;continue}
