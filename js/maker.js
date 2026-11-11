@@ -798,7 +798,7 @@ const kindCode=k=>String(k).replace(/^0|\..*/g,'').trim();
 function potKindOf(p,i){const n=p.pots[i];if(p.potKind[i])return p.potKind[i];const r=potRow(n);return r?r[0]:''}
 const AUTO_HELP=`대상: 자신(기본) · 아군전체 · 상대전체 · 자신이외 · 전체 · 아군1체 · 상대1체 · 자신이외무작위 · 상대무작위 · 전원무작위
 랭크 [대상] 공격+1 방어-1 … [임시] [강제]        배율 [대상] 공격×1.33 …        초기화 랭크|배율|전부
-위력 ×1.3 [대상] [타입:불꽃,물] [물리|특수] [굉장|별로|보통] [단일|전체기] [자속|비자속] [태그:소리,접촉] [위력≥150] [위력≤60] [역할:에이스] [수세|공세] [확정급소|급소없음] [N회] [이번턴] [N턴]
+위력 ×1.3 [대상] [타입:불꽃,물] [물리|특수] [굉장|별로|보통] [단일|전체기] [자속|비자속] [태그:소리,접촉] [위력≥150] [위력≤60] [역할:에이스] [수세|공세] [확정급소|급소없음] [분류최대] [N회] [이번턴] [N턴]
 완화 ×0.75 … (받는 쪽, 위력과 같은 조건) · 「견딤」을 붙이면 그 기술로 「빈사」가 되지 않는다 (예: 완화 ×1 1회 견딤)
 중첩: 효과 글에 【중첩 (3회)】 가 있으면 같은 포텐셜이 다시 걸릴 때 위력 · 완화 배율(×1.5 → ×2.25 → ×3.375)과 우선도(+1 → +2 → +3)가 그 횟수까지 쌓인다. 없으면 다시 걸 때 덮어쓴다
 상태 화상 [대상] [N턴] [강제] · 상태확률 화상 50% [대상] [1체] · 치유 [대상] [독,맹독|이상] [N%] · 상태초기화 [대상] · 효과해제 [대상] [포텐셜|특성|소지품|전부|이름:X]
@@ -897,7 +897,7 @@ const fxReady=()=>!!(window.OM_FX&&window.OM_FX_UI);
 window.OM_APP=window.OM_APP||{openModal:h=>{const l=openModal(h,{wide:true});l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))closeModal()});return l},closeModal:()=>closeModal(),toast:t=>toast(t),ST:{role:'player',state:{}},set:async()=>false};
 let fxLoadP=null,FXST='';/* '' 불러오는 중 · ok · fail */
 function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
- const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611111930gh';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
+ const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611112100bc';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
  FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');await one('itemrule.js');try{await one('moveauto.js')}catch(e){}FXST='ok';rmInit();stInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
 function fxRetry(){if(fxReady())return;fxLoadP=null;toast('구문 스크립트를 다시 불러옵니다…');loadFx();if(S.ui&&S.ui.tab)refreshAll()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fxretry]');if(!b)return;e.preventDefault();e.stopPropagation();fxRetry()},true);
