@@ -3074,7 +3074,7 @@ $('#v-char').addEventListener('click',async e=>{
   case 'bioT':{e.stopPropagation();openBio(T,rf);break}
   case 'tpk':{e.stopPropagation();if(!P)break;openPokeCard(T,P);break}
   case 'tuq':{e.stopPropagation();openUqInfo(T,j);break}
-  case 'fimgPick':{e.stopPropagation();let inp=$('#fimg-any');if(!inp){inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.id='fimg-any';inp.hidden=true;inp.addEventListener('change',()=>{const f=inp.files[0];if(f)setFormImg(inp.dataset.fimg,f)});MKROOT().appendChild(inp)}inp.dataset.fimg=`${b.dataset.i}.${b.dataset.j}.${b.dataset.k}`;inp.value='';inp.click();break}
+  case 'fimgPick':{if(b.dataset.j==='s'){toast('공유 폼 그림은 그림 칸에 주소(https://…)로 넣어 주세요');break}e.stopPropagation();let inp=$('#fimg-any');if(!inp){inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.id='fimg-any';inp.hidden=true;inp.addEventListener('change',()=>{const f=inp.files[0];if(f)setFormImg(inp.dataset.fimg,f)});MKROOT().appendChild(inp)}inp.dataset.fimg=`${b.dataset.i}.${b.dataset.j}.${b.dataset.k}`;inp.value='';inp.click();break}
   case 'fimgDel':{const fm=(FO.forms||[])[+b.dataset.k];if(fm){fm.image='';rf()}break}
   case 'pimgPick':{e.stopPropagation();let inp=$('#pimg-any');if(!inp){inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.id='pimg-any';inp.hidden=true;inp.addEventListener('change',()=>{const f=inp.files[0];if(!f)return;const [a,b]=String(inp.dataset.pimg).split('.').map(Number);setPokeImg(a,b,f)});MKROOT().appendChild(inp)}inp.dataset.pimg=`${i}.${j}`;inp.value='';inp.click();break}
   case 'pickOld':openOldFill(T,P);break;
