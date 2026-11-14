@@ -102,7 +102,7 @@ window.OM_FX=(()=>{
  function syncPairs(b,self,rolesOf){const R=rolesOf||rolesDef;const out={a:new Set(),e:new Set(),pairs:[]};if(!b||!self)return out;const tm=teamOf(b,self);const live=Object.values(b.mons||{}).filter(m=>m.entry&&alive(m));
   const al=live.filter(m=>teamOf(b,m)===tm),en=live.filter(m=>teamOf(b,m)!==tm);for(const a of al){const ra=[...new Set(R(a).flatMap(roleFams))].filter(r=>r&&r!=='바닐라');if(!ra.length)continue;for(const e of en){const hit=[...new Set(R(e).flatMap(roleFams))].find(r=>ra.includes(r));if(hit){out.a.add(a.id);out.e.add(e.id);out.pairs.push([a.id,e.id,hit])}}}return out}
  /* 11-09 대상타입: run 이 지금 줄의 op.ttype 을 RUNTT 에 두면 대상에서 그 타입만 남긴다 */let RUNTT=null;
- async function targets(b,self,tgt,ctx){const r=await targets0(b,self,tgt,ctx);const tt=RUNTT;return tt&&tt.length?(r||[]).filter(m=>m&&typesOf(m).some(t=>tt.includes(t))):r}
+ async function targets(b,self,tgt,ctx){let r=await targets0(b,self,tgt,ctx);if(ctx&&typeof ctx.tgtOk==='function')r=(r||[]).filter(m=>m&&ctx.tgtOk(m));/* 11-15 필드 전개 H: 받지 않는 포켓몬을 뺀다 */const tt=RUNTT;return tt&&tt.length?(r||[]).filter(m=>m&&typesOf(m).some(t=>tt.includes(t))):r}
  async function targets0(b,self,tgt,ctx){if(ctx&&ctx.uniq){const r=await targets(b,self,tgt,Object.assign({},ctx,{uniq:0}));return r.filter(m=>m===self||!uqHas(m,ctx.name,self))}const tm=teamOf(b,self);const live=Object.values(b.mons||{}).filter(m=>m.entry&&alive(m));const allies=live.filter(m=>teamOf(b,m)===tm),enemies=live.filter(m=>teamOf(b,m)!==tm);
   const pick=async(list,label)=>{if(!list.length)return [];if(list.length===1)return [list[0]];if(ctx.pick)return [await ctx.pick(list,label)].filter(Boolean);return [list[0]]};
   const rnd=list=>list.length?[list[Math.floor(Math.random()*list.length)]]:[];
