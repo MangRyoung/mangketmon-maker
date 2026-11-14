@@ -177,7 +177,15 @@ window.MKM_POTLINT=(()=>{
   return R}
  function clauses(text){const t=String(text||'').replace(/<br\s*\/?>/g,'\n');return t.split(/(?=[①②③④⑤⑥⑦⑧⑨])|\n/).map(s=>s.trim()).filter(Boolean)}
  const KEEPDEF_RE=/(?:「HP\s*:\s*(\d+\s*\/\s*\d+)\s*이하」\s*일\s*때\s*,?\s*)?((?:「[^」]+」\s*(?:[,·]|과|와)?\s*)+)(?:기술)?\s*(?:을|를)?\s*(?:내보낼|사용할|쓸)\s*때(?:에도|도)?\s*,?\s*【수세】\s*(?:가|이|를|도)?\s*(?:적용|발동|유지)/;   /* 11-06 수세유지 — 오레마스 battle_ui KEEPDEF_RE 와 같은 꼴 */
+ /* 11-14 망령 「지령의 효과 변경은 구문 추천기로 연동해서 여러 가지 효과 변경을 할 수 있게」: 「… 『지령』의 효과를 【X】로 변경한다 / 변경할 수 있다」 → X 를 추천기로 풀어 그 줄을 시트 구문으로.
+    오레마스는 이 포텐셜의 구문(없으면 X 를 그 자리에서 추천기로 푼 것)을 「바뀐 효과」로 지령을 받은 포켓몬에게 건다 — 「자신」 = 지령을 받은 포켓몬. 지령은 그 턴의 효과라 「추가효과 · 위력 · 완화 · 회피 · 우선도」 줄은 이번턴 */
+ const CMD_CHG_RE=/『지령』(?:\s*『성언』)?의\s*효과를\s*【\s*([\s\S]+?)\s*】\s*로\s*변경/;let CHGCTX=0;
+ function cmdChgOf(text){const m=String(text||'').match(CMD_CHG_RE);return m?m[1]:''}
+ function suggestChg(inner){CHGCTX++;let r;try{r=suggest(inner)}finally{CHGCTX--}
+  const lines=r.lines.map(l=>/^(?:추가효과|위력|완화|회피|우선도)(?:\s|$)/.test(l)&&!/(?:^|\s)이번턴(?:\s|$)/.test(l)?l+' 이번턴':l);
+  return {lines,why:r.why,chg:1,timing:'『지령』의 효과 변경 — 이 구문이 「바뀐 효과」다. 오레마스에서 지령을 걸 때 원래 효과 대신 지령을 받은 포켓몬에게 건다 (「자신」 = 받은 포켓몬)'}}
  function suggest(text){const lines=[],why=[];let DEFER=null;const F=window.OM_FX;const all=String(text||'');
+  if(!CHGCTX){const X=cmdChgOf(all);if(X)return suggestChg(X)}
   const noFaint=/①로\s*「빈사」\s*상태가 되지(?:는)? 않는다/.test(all);
   for(const c0 of clauses(all)){const tags=(c0.match(/【[^】]+】/g)||[]).join('');const c=c0.replace(/^[①-⑨]/,'').replace(/^(?:【[^】]+】)+\s*\/?/,'');
    const temp=/턴 종료 시까지|턴 종료시 까지|다음 기술을 내보낼 때/.test(c);const turns=(c.match(/(\d)턴 동안/)||[])[1];const hold=/필드 위에 있는 한|필드에 있는 한/.test(c);
@@ -330,6 +338,8 @@ window.MKM_POTLINT=(()=>{
     if((q=c.match(/「([가-힣\/]+)」\s*기술이\s*「타입\s*:\s*([^」]+)」에게도 명중/))){const fr=q[1].split('/');for(const f of fr)L.push(`명중확장 ${f} ${q[2].split(/[\/,·\s]+/).join(',')}`)}
     if((q=c.match(/「([가-힣]+)」\s*기술이\s*하늘 위에 떠있는 포켓몬에게도 명중/)))L.push(`명중확장 ${q[1]} 하늘위`);
     if((q=c.match(/(\d)할로\s*(?:「([^」]+)」(?:을|를)\s*)?(?:공격을\s*|기술을\s*)?회피/))||(q=c.match(/(?:공격|기술)을\s*(\d)할로\s*회피/))){const k=q[2]||'';L.push(`회피 ${q[1]}할${/물리기/.test(k)?' 물리':/특수기/.test(k)?' 특수':/접촉기/.test(k)?' 접촉':''}`)}
+    /* 11-14 「「단일기 : 풀」에 「10할 : 씨뿌리기」의 추가 효과를 부여한다」 · 「「불꽃」 기술에 「3할 : 화상」의 추가 효과를 부여한다」 */
+    if((q=c.match(/「\s*(?:(단일기|전체기)\s*[:：]?\s*)?([^」]*?)\s*」\s*(?:기술)?에\s*「\s*(\d+)\s*할\s*[:：]\s*([^」]+?)\s*」의\s*추가\s*효과를\s*부여/))){const k=q[2].trim();L.push(`추가효과 부여 ${q[3]}할 ${q[4].replace(/\s/g,'')}${k&&!/^(?:기술|공격기)$/.test(k)?' '+tt(k):''}${q[1]?' '+q[1]:''}${temp?' 이번턴':''}`)}
     if((q=c.match(/(?:「([가-힣]+)」\s*)?기술의 추가 효과 발생률을\s*(\d(?:\.\d+)?)배/)))L.push(`추가효과 ×${q[2]}${q[1]?' '+tt(q[1]):''}`);
     if((q=c.match(/「([^」]+)」\s*기술의 대상을 자신으로/)))L.push(`끌어오기 ${tt(q[1])}`);
     if(/「변화기」를 반사/.test(c))L.push('반사 변화기');
@@ -392,4 +402,4 @@ window.MKM_POTLINT=(()=>{
    if(bi<0)break;lines[bi]+=' '+cr;lines.splice(ci,1);why.splice(ci,1)}
   const timing=/【등장/.test(all)?'【등장】이 있어 오레마스에서 나올 때 자동으로 걸린다':/상태가\s*(?:되었을|됐을)\s*때/.test(all)?'「~ 상태가 되었을 때」라 오레마스에서 그 상태가 걸리는 순간 자동으로 걸린다 (확률은 그때 굴림)':/【상시】/.test(all)?'【상시】라 늘 켜져 있다':'배틀의 포텐셜 칸 「발동」 버튼으로 건다';
   return {lines,why,timing}}
- return {check,fixAll,fixOne,suggest,clauses}})();
+ return {check,fixAll,fixOne,suggest,clauses,cmdChgOf}})();
