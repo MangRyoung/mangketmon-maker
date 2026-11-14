@@ -6,3 +6,12 @@ window.OM_DB.states={"v":1,"groups":[{"l":"상태 이상","s":["Poison","Toxic",
 (function(){var S=window.OM_DB&&window.OM_DB.states;if(!S||!S.st||S.st.Recharge)return;S.st.Recharge={ko:'반동',min:2,max:2,roll:'',abn:0,neg:1,bat:0,prog:'turn',desc:['「반동 : 행동불능」 — 다음 턴 행동할 수 없습니다.','이 턴엔 『4식』 『6령』을 받을 수 없습니다.','「난동부리기」는 이 턴에도 줄어듭니다.'],memo:''};var g=(S.groups||[]).find(function(x){return x.l==='자신'});if(g&&g.s.indexOf('Recharge')<0)g.s.push('Recharge')})();
 /* 10-27 망령: 「드래곤옐」 상태 — 기충전처럼 급소 단계를 올린다 (C+1, 드래곤 타입이면 C+2 · 기충전과 겹치면 큰 쪽만). 오레마스 engine/battle.js critStage 가 센다. 변환기와 따로 덧붙인다 */
 (function(){var S=window.OM_DB&&window.OM_DB.states;if(!S||!S.st||S.st.DragonCheer)return;S.st.DragonCheer={ko:'드래곤옐',min:1000,max:1000,roll:'',abn:0,neg:0,bat:1,prog:'turn',desc:['자신의 기술이 상대의 급소에 맞기 쉬워집니다(C+1). 「타입 : 드래곤」이면 C+2.','「기충전」과 겹치면 큰 쪽만 셉니다.'],memo:'',img:'DragonCheer.webp'};var g=(S.groups||[]).find(function(x){return x.l==='자신'});if(g&&g.s.indexOf('DragonCheer')<0)g.s.push('DragonCheer')})();
+/* 11-14 망령 「근성 · 초근성류처럼 반감 무시 적용하는 것들은 알아서 해당 상태 되게 · 마비 스피드 감소 무시 · 혼란 자해 무시도 있어야」:
+   근성(Guts) 옆에 계산용 상태 둘을 더한다. 웹툴 엔진(OM_BATTLE.calcSt)은 토큰이 있거나 특성이 그 효과를 주면(특성 파괴면 꺼짐) 붙은 것으로 본다.
+   포텐셜 · 소지품처럼 특성이 아닌 데서 오는 경우엔 이 토큰을 손으로 붙이면 된다. 변환기와 따로 덧붙인다 */
+(function(){var S=window.OM_DB&&window.OM_DB.states;if(!S||!S.st)return;
+ var add={ParaSpeed:{ko:'마비감속무시',min:1000,max:1000,roll:'',abn:0,neg:0,bat:0,prog:'turn',desc:['「마비」 상태의 「스피드」 반감 효과를 무시합니다. (속보 · 초근성은 자동)','상태 변화가 아닌 계산을 위한 장치입니다.'],memo:''},
+  NoSelfHit:{ko:'자해무시',min:1000,max:1000,roll:'',abn:0,neg:0,bat:0,prog:'turn',desc:['「혼란」 상태여도 스스로를 공격하지 않습니다. 혼란 턴은 그대로 줄어듭니다. (초근성은 자동)','상태 변화가 아닌 계산을 위한 장치입니다.'],memo:''}};
+ for(var k in add)if(!S.st[k])S.st[k]=add[k];
+ if(S.st.Guts&&S.st.Guts.desc&&!/자동/.test(S.st.Guts.desc[0]))S.st.Guts.desc[0]+=' (근성 · 열폭주 · 초근성은 자동)';
+ var g=(S.groups||[]).find(function(x){return x.l==='자신'});if(g){var i=g.s.indexOf('Guts');['NoSelfHit','ParaSpeed'].forEach(function(k){if(g.s.indexOf(k)<0)g.s.splice(i<0?g.s.length:i+1,0,k)})}})();
