@@ -73,7 +73,9 @@ window.MK_DG=(()=>{
   for(const id of Object.keys(d.r))if(!seen.has(id))out.push(id);return out}
 
  /* ── 생성 ── */
- function generate(o){const T=TPL[o.tier]||TPL.s1;const th=TH[o.theme]||TH.폐가;const seed=+o.seed||Math.floor(Math.random()*1e6);const rng=rngOf(seed);const pick=a=>a[Math.floor(rng()*a.length)];
+ /* 11-16 망령 「테마는 선택 외에 입력도 가능하게」: 목록에 없는 테마를 적으면 어느 테마에도 맞는 방 이름 · 체크 글로 만들고(이름은 어차피 손질), 분위기(a) · 던전 이름에 적은 테마를 쓴다 */
+ const TH_FREE=t=>({a:t,name:[t+' 깊은 곳',t+'의 안쪽','잊힌 '+t,t+' 어딘가'],entry:['들머리','입구'],battle:['넓은 터','좁은 길목','갈림길','막다른 곳'],check:['막힌 길','수상한 자리','낡은 장치','갈라진 틈'],side:['숨은 구석','외진 곳','버려진 자리'],boss:['가장 깊은 곳','주인의 자리'],chk:{지시:['흩어진 단서를 차례대로 맞춘다','장치가 움직이는 규칙을 읽는다'],육성:['겁먹은 야생 포켓몬을 달랜다','해로운 것을 가려낸다'],통솔:['위험한 길을 함께 건넌다','흩어지지 않게 대열을 지킨다'],능력:['수상한 기척의 근원을 찾는다','막힌 길을 힘으로 연다']}});
+ function generate(o){const T=TPL[o.tier]||TPL.s1;const tn=String(o.theme||'').trim().slice(0,20);const th=TH[tn]||(tn?TH_FREE(tn):TH.폐가);const seed=+o.seed||Math.floor(Math.random()*1e6);const rng=rngOf(seed);const pick=a=>a[Math.floor(rng()*a.length)];
   const used=new Set();const nm=a=>{const L=a.filter(x=>!used.has(x));const v=L.length?pick(L):pick(a);used.add(v);return v};
   const stats=[...STATS].sort(()=>rng()-0.5);let si=0,ci=0;const chkT=[...T.chk].sort(()=>rng()-0.5);
   const mkCheck=(id)=>{const st=stats[si++%4];const lab=nm(th.chk[st]);const tg=chkT[ci++%chkT.length];return {n:nm(th.check),t:pick(['puzzle','trap','room']),m:'',sk:{v:4,label:lab,name:lab,stat:st,target:tg,scene:'field',auto:AUTO[tg]}}};
@@ -165,15 +167,15 @@ window.MK_DG=(()=>{
  function newDlg(){const M=me();const O=ENV().openModal;const h=`<div class="mhead"><h2>새 던전 생성</h2></div><div class="mbody dgnew">
    <label>던전 이름 <input id="dgnN" placeholder="비우면 테마에서 골라요"></label>
    <label>난이도 템플릿 <select id="dgnT">${['s1','s2','s3'].map(t=>`<option value="${t}">${TPL[t].n} — ${esc(TPL[t].sub)}</option>`).join('')}</select></label>
-   <label>테마 <select id="dgnH">${Object.keys(TH).map(k=>`<option>${k}</option>`).join('')}</select></label>
+   <label>테마 <input id="dgnH" list="dgnHL" maxlength="20" placeholder="고르거나 직접 적어요" autocomplete="off"><datalist id="dgnHL">${Object.keys(TH).map(k=>`<option value="${k}"></option>`).join('')}</datalist></label>
    <label>만든 사람 <input id="dgnO" value="${esc(M.name)}" placeholder="이름"></label>
    <label>씨앗 <input id="dgnS" inputmode="numeric" placeholder="비우면 무작위 — 같은 씨앗이면 같은 지도"></label>
    <label class="row"><input type="checkbox" id="dgnP"> 다른 사람도 볼 수 있게 공개</label>
    </div><div class="mfoot"><span class="sp"></span><button class="btn ghost" data-dg="cancel">취소</button><button class="btn pri" data-dg="mk">만들기</button></div>`;
   if(O)O(h);else toast('창을 열 수 없어요')}
  function make(){const v=id=>(document.getElementById(id)||{}).value||'';const M=me();const name=v('dgnO').trim();if(name){try{localStorage.setItem('mkdg_name',name)}catch(e){}}
-  let res;try{res=generate({tier:v('dgnT'),theme:v('dgnH'),name:v('dgnN').trim(),seed:v('dgnS'),owner:name})}catch(e){return toast(e.message)}
-  const id=uid('dg');ST.docs[id]={d:res.d,tier:v('dgnT')||'s1',theme:v('dgnH'),seed:res.seed,owner:M.key,ownerName:name||M.name||'',pub:!!(document.getElementById('dgnP')||{}).checked,at:Date.now()};
+  let res;try{res=generate({tier:v('dgnT'),theme:v('dgnH').trim()||'폐가',name:v('dgnN').trim(),seed:v('dgnS'),owner:name})}catch(e){return toast(e.message)}
+  const id=uid('dg');ST.docs[id]={d:res.d,tier:v('dgnT')||'s1',theme:v('dgnH').trim().slice(0,20)||'폐가',seed:res.seed,owner:M.key,ownerName:name||M.name||'',pub:!!(document.getElementById('dgnP')||{}).checked,at:Date.now()};
   touch(id);try{ENV().closeModal()}catch(e){}ST.view='ed';ST.id=id;ST.sel='';render();toast('던전을 만들었어요 — 방을 눌러 고치세요')}
 
  /* ── 편집 ── */
