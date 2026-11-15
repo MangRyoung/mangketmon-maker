@@ -96,7 +96,7 @@ window.MK_DG=(()=>{
    const score=(alt?2:0)+(side?1:0);if(!best||score>best.score)best={score,cells,links,alt,side};if(score===3)break}
   if(!best)throw new Error('배치를 만들지 못했어요 — 씨앗을 바꿔 다시');
   const {cells,links}=best;
-  if(best.alt){const {i,j,p}=best.alt;const ids=[];p.slice(1,-1).forEach((cell,k)=>{const id='g'+(k+1);ids.push(id);cells[id]=cell;d.r[id]=k===0?Object.assign(mkCheck(id),{m:'돌아가는 길.'}):{n:'숨은 물건이 있는 길',t:'room',m:'살피면 소지품 · 열매 하나(GM 이 정한다). 체크 없음.'}});
+  if(best.alt){const {i,j,p}=best.alt;const ids=[];p.slice(1,-1).forEach((cell,k)=>{const id='g'+(k+1);ids.push(id);cells[id]=cell;const last=k===p.length-3;d.r[id]=k===0?Object.assign(mkCheck(id),{m:'돌아가는 길.'}):last?{n:'숨은 물건이 있는 길',t:'room',m:'살피면 소지품 · 열매 하나(GM 이 정한다). 체크 없음.'}:{n:'돌아가는 통로',t:'room',m:''}});
    let prev=main[i];for(const id of ids){links[lk(prev,id)]=1;prev=id}links[lk(prev,main[j])]=1}
   if(best.side){const id='s1';cells[id]=best.side.cell;d.r[id]={n:nm(th.side),t:'treasure',m:'곁방 — 보물이나 단서 하나(GM 이 정한다).'};links[lk(best.side.h,id)]=1}
   for(const [id,c] of Object.entries(cells))if(d.r[id])Object.assign(d.r[id],xy(c));d.l=links;
