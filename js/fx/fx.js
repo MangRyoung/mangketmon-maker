@@ -418,7 +418,9 @@ window.OM_FX=(()=>{
   if(en==='LeechSeed'){if(self&&self.id!==m.id&&self.entry)m.seedFrom=self.side+'_'+self.entry;else delete m.seedFrom}
   return `${m.name} 「${stKo(en)}」${c<1000?' '+c+'턴':''}${ext}${(d.desc||[]).length?' — '+d.desc.join(' '):''}`}
  function immuneHit(m,en){for(const e of (m.fx&&m.fx.immune)||[]){if(itemOff(m,e))continue;if(hasCond(e)&&!condAll(e,m,null,null))continue;if(e.states.includes(en)||(en==='Toxic'&&e.states.includes('Poison'))||(e.states.includes('abnormal')&&ABN.includes(en)))return e.name}return ''}
- function nodropHit(m,stat,mod){const t=+(((window.OM_APP||{}).ST||{}).state||{}).battle?.turn||0;for(const e of (m.fx&&m.fx.nodrop)||[]){if(e.until>=0&&t>e.until)continue;if(mod&&!e.mod)continue;if(!e.st||e.st===stat)return e.name}if(mod)return '';
+ /* 11-15 망령 「거짓된 성녀는 일루젼이 작동할 때만 ②③ 효과가 유지되면 된다」: 「「X」의 모습일 때 자신 이외에 의한 능력 감소(저하)를 무효화」 — 일루젼으로 변장 중(m.disg)일 때만 */
+ function illuNoDrop(m){if(!m||!m.disg)return '';for(const p of [].concat(m.pots||[],m.excl?[m.excl]:[],m.exclX||[])){if(!p||p.ph)continue;if(/모습일\s*때[^①②③④]*?자신\s*이외에\s*의한\s*능력\s*감소\s*\(\s*저하\s*\)\s*(?:를|을)\s*무효/.test(String(p.eff||'')))return String(p.name||'').replace(/『|』/g,'')}return ''}
+ function nodropHit(m,stat,mod){{const ip=illuNoDrop(m);if(ip)return ip}const t=+(((window.OM_APP||{}).ST||{}).state||{}).battle?.turn||0;for(const e of (m.fx&&m.fx.nodrop)||[]){if(e.until>=0&&t>e.until)continue;if(mod&&!e.mod)continue;if(!e.st||e.st===stat)return e.name}if(mod)return '';
   /* 10-25 망령: 소지품 「클리어참」 — 자신 이외로 인해 능력이 떨어지지 않는다 (레디메이드 없이도, 매직룸이면 무효) */
   if(m&&itemNames(m).includes('클리어참')&&!itemsDead(m))return '클리어참';return ''}
  /* 11-09 감우 54-A: 조건(기술 · 상대타입 …)이 붙은 항목은 q(공격 문맥)를 줄 때만 맞춰 본다 · 확률(pc)은 판정마다 · 「1회」는 noindUse 가 깎는다 */
