@@ -96,6 +96,8 @@ window.OM_MOVEAUTO=(()=>{
     if((x=s.match(/^(?:명중 시\s*)?대상의 「소지품」을 (모두\s*)?파괴한다$/))){groups.push({n:10,label:s,who:'target',ops:[{k:'item',mode:x[1]?'breakall':'break',tgt:'target'}],when:'hit'});continue}
     if(/^대상의 「최대 HP」만큼의 대미지를 입힌다$/.test(s)){groups.push({n:10,label:'일격 — 대상의 최대 HP 만큼',who:'target',ops:[{k:'dmg',tgt:'target',basis:'max',value:'1/1'}],when:'hit'});continue}}
    const hitOnly=/^명중 후\s*/.test(s);s=s.replace(/^명중 후\s*/,'').replace(/^사용 후\s*(?=자신)/,'');
+   /* 11-15 망령 「에리어 이동 해야지」: 「명중 후 에리어를 이동한다」(흘림가지 · 물베기 · 수평차기 · 사이드와인더) — 맞혔을 때 */
+   if(/^에리어를 이동한다$/.test(s)){groups.push({n:10,label:(hitOnly?'명중 후 ':'')+'에리어 이동',who:'once',ops:[{k:'areamove',tgt:'self'}],when:hitOnly?'hit':'use'});continue}
    /* 반동 비례 대미지 */
    let m=s.match(/^(명중하지 않았을 때\s*)?「반동 비례 대미지\s*:\s*(최대\s*HP\s*)?(\d+\/\d+)」$/)||s.match(/^(명중하지 않았을 때\s*)?공격 후\s*「반동 비례 대미지\s*:\s*(최대\s*HP\s*)?(\d+\/\d+)」$/);
    if(m){recoil={frac:m[3],basis:m[2]?'max':'dealt',when:m[1]?'miss':'hit'};continue}
