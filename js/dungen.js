@@ -202,10 +202,14 @@ window.MK_DG=(()=>{
    <label>GM 메모 <textarea data-r="m" rows="2" ${dis}>${esc(r.m||'')}</textarea></label>
    ${['room','trap','puzzle'].includes(r.t)?`<div class="dgsk"><label class="row"><input type="checkbox" data-r="hassk" ${sk?'checked':''} ${dis}> 스킬 체크</label>${sk?`<label>내용 <input data-k="label" value="${esc(sk.label||'')}" ${dis}></label><div class="row"><label>자질 <select data-k="stat" ${dis}>${STATS.map(s=>`<option ${sk.stat===s?'selected':''}>${s}</option>`).join('')}</select></label><label>목표 <select data-k="target" ${dis}>${[8,10,12,15].map(v=>`<option value="${v}" ${+sk.target===v?'selected':''}>${v} (${({8:'쉬움',10:'보통',12:'어려움',15:'매우 어려움'})[v]})</option>`).join('')}</select></label></div>`:''}</div>`:''}
    ${r.w?wildHTML(r,E,T):(['battle','boss'].includes(r.t)?`<p class="small muted">야생 시트가 없어요. 「템플릿 시트 적용」을 누르면 템플릿 머릿수만큼 생겨요.</p>`:'')}</div>`}
+ /* 11-16 PL 제보 「야생 시트에 종족치 · 타입 칸이 없다」: 이름이 제작기 DB 에 있으면 자동으로 채우고, 새로 만든 몬스터는 손으로 — 타입 2칸 · 종족치 6칸 */
+ const TYK=['-','노말','불꽃','물','전기','풀','얼음','격투','독','땅','비행','에스퍼','벌레','바위','고스트','드래곤','악','강철','페어리'],BSN=['HP','공격','방어','특공','특방','스피드'];
  function wildHTML(r,E,T){const dis=E?'':'disabled';const RL={pre:'사전 몹',esc:'졸개',boss:'보스'};
   return `<div class="dgw"><div class="row"><b>야생 시트</b><span class="small muted">${r.w.mons.length}체 · 통솔점 ${Math.round(r.w.mons.reduce((a,m)=>a+pcost(m.pride),0)*100)/100}</span><span class="sp"></span>${E&&r.w.mons.length<6?'<button class="btn sm ghost" data-dg="addmon">＋ 1체</button>':''}</div>
    ${r.w.mons.map((m,i)=>{const sp=spOf(m.name);const ab=sp?[sp[5],sp[6],sp[7]].filter(a=>a&&a!=='-'):[];
-    return `<div class="dgm" data-mi="${i}"><div class="row"><span class="dgrole ${m.role}">${RL[m.role]||''}</span><input class="dgsp" data-m="name" list="dgSpList" value="${esc(m.name)}" placeholder="포켓몬 이름" ${dis}>${m.t1&&m.t1!=='-'?`<span class="small muted">${esc(m.t1)}${m.t2&&m.t2!=='-'?' · '+esc(m.t2):''}</span>`:''}<span class="sp"></span>${E?`<button class="btn sm ghost" data-dg="delmon" title="이 칸 빼기">✕</button>`:''}</div>
+    return `<div class="dgm" data-mi="${i}"><div class="row"><span class="dgrole ${m.role}">${RL[m.role]||''}</span><input class="dgsp" data-m="name" list="dgSpList" value="${esc(m.name)}" placeholder="포켓몬 이름" ${dis}><span class="sp"></span>${E?`<button class="btn sm ghost" data-dg="delmon" title="이 칸 빼기">✕</button>`:''}</div>
+     <div class="row dgm-r"><label>타입 <select data-m="t1" ${dis}>${TYK.map(t=>`<option value="${t}" ${(m.t1||'-')===t?'selected':''}>${t==='-'?'—':t}</option>`).join('')}</select><select data-m="t2" ${dis}>${TYK.map(t=>`<option value="${t}" ${(m.t2||'-')===t?'selected':''}>${t==='-'?'—':t}</option>`).join('')}</select></label></div>
+     <div class="dgbs">${BSN.map((n,bi)=>`<label>${n}<input type="number" min="1" max="255" data-m="b${bi}" value="${(m.base||[])[bi]??60}" ${dis}></label>`).join('')}<span class="small muted">합 ${(m.base||[]).slice(0,6).reduce((a,v)=>a+(+v||0),0)}</span></div>
      <div class="row dgm-r"><label>프라이드 <select data-m="pride" ${dis}>${PRIDES.map(p=>`<option ${m.pride===p?'selected':''}>${p}</option>`).join('')}</select></label><label>Lv ± <input type="number" data-m="dist" value="${+m.dist||0}" style="width:60px" ${dis}></label>
       <label>특성 ${ab.length?`<select data-m="ability" ${dis}><option value=""></option>${ab.map(a=>`<option ${m.ability===a?'selected':''}>${esc(a)}</option>`).join('')}</select>`:`<input data-m="ability" value="${esc(m.ability||'')}" ${dis}>`}</label></div>
      <label>기술 <input data-m="moves" value="${esc((m.moves||[]).join(', '))}" placeholder="쉼표로 — 몸통박치기, 전광석화" ${dis}></label>
@@ -256,6 +260,8 @@ window.MK_DG=(()=>{
   else if(t.dataset.q!=null){const q=d.mq[+t.dataset.q];if(q)q[t.dataset.qf]=t.value}
   else{const box=t.closest('[data-mi]');if(box&&r&&r.w){const m=r.w.mons[+box.dataset.mi];if(!m)return;
    if(t.dataset.m){const f=t.dataset.m;if(f==='moves')m.moves=t.value.split(/[,，]/).map(s=>s.trim()).filter(Boolean).slice(0,8);else if(f==='dist')m.dist=clamp(Math.round(+t.value||0),-30,60);else if(f==='pride'){m.pride=t.value;re=true}
+    else if(f==='t1'||f==='t2'){m[f]=TYK.includes(t.value)?t.value:'-';if(m.t1==='-'&&m.t2!=='-'){m.t1=m.t2;m.t2='-'}if(m.t1===m.t2)m.t2='-';re=true}
+    else if(/^b[0-5]$/.test(f)){if(!Array.isArray(m.base))m.base=[60,60,60,60,60,60];m.base[+f[1]]=clamp(Math.round(+t.value||1),1,255);re=e.type==='change'}
     else if(f==='name'){m.name=t.value.trim();const sp=spOf(m.name);if(sp&&e.type==='change'){m.t1=sp[3]||'-';m.t2=sp[4]&&sp[4]!==''?sp[4]:'-';m.base=sp.slice(11,17).map(v=>+v||60);if(!m.ability)m.ability=sp[5]&&sp[5]!=='-'?sp[5]:'';re=true}}
     else m[f]=t.value}
    else if(t.dataset.g!=null){const g=m.gye[+t.dataset.g];if(g)g[t.dataset.gf]=t.value}else if(t.dataset.wp&&m.wp)m.wp[t.dataset.wp]=t.value}}
