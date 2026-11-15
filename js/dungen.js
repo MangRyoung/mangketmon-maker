@@ -187,7 +187,7 @@ window.MK_DG=(()=>{
     <span class="small muted">${esc(T.sub)} · ${esc(d.a||'')} · ${esc(x.ownerName||'')}</span><span class="sp"></span>
     ${E?`<label class="small row"><input type="checkbox" data-f="pub" ${x.pub?'checked':''}> 공개</label><button class="btn sm pri" data-dg="tpl" title="템플릿대로 레벨 · 프라이드 · 『계제』 칸 · 야생/미궁 포텐셜 칸 · 머릿수를 맞춘다 (고른 포켓몬 · 기술 · 써 둔 포텐셜은 남긴다)">템플릿 시트 적용</button><button class="btn sm ghost" data-dg="regen">지도 다시 생성</button>`:''}
     <button class="btn sm ghost" data-dg="json">JSON 복사</button></div>
-   <div class="dgchk">${c.map(q=>`<span class="${q.ok?'dgok':'dgwarn'}">${q.ok?'✓':'!'} ${esc(q.t)}</span>`).join('')}${d.fe?`<span class="dgfei">⛰ ${esc(feText(d.fe))}</span>`:''}</div>
+   <div class="dgchk">${c.map(q=>`<span class="${q.ok?'dgok':'dgwarn'}">${q.ok?'✓':'!'} ${esc(q.t)}</span>`).join('')}${d.fe&&d.fe.name?`<span class="dgfei">⛰ ${esc(feText(d.fe))}</span>`:''}</div>
    <div class="dged-b"><div class="dgmap-w">${mapSVG(d)}${E?`<div class="row small muted dgmap-a"><button class="btn sm ghost" data-dg="addroom" ${ST.sel?'':'disabled'}>＋ 고른 방 옆에 방</button><button class="btn sm ${ST.linkFrom?'pri':'ghost'}" data-dg="link" ${ST.sel?'':'disabled'}>${ST.linkFrom?'이을 방을 누르세요 (취소)':'통로 잇기 · 끊기'}</button><span>방을 누르면 고친다 · 끌어서 옮긴다</span></div>`:''}</div>
     <div class="dgpanel">${ST.sel&&d.r[ST.sel]?roomHTML(x,ST.sel,E):mqHTML(x,E)}</div></div></div>`}
  function mapSVG(d){const R=d.r||{};const lines=Object.keys(d.l||{}).map(k=>{const [a,b]=k.split('~');const A=R[a],B=R[b];if(!A||!B)return '';return `<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}"/>`}).join('');
@@ -217,17 +217,22 @@ window.MK_DG=(()=>{
    <b class="small">『미궁 포텐셜』 — 조우 때 야생 쪽 고유로 붙는다</b>${(d.mq||[]).map((q,i)=>`<div class="row dgpo"><span class="dgtag mq">미궁 ${i+1}</span><input data-q="${i}" data-qf="name" value="${esc(q.name)}" placeholder="이름" ${dis}><input data-q="${i}" data-qf="eff" value="${esc(q.eff)}" placeholder="효과" ${dis}></div>`).join('')}
    ${feHTML(d,dis)}
    <label>테마 · 분위기 <input data-f="a" value="${esc(d.a||'')}" ${dis}></label></div>`}
- /* 11-16 망령 「필드 효과 칸 따로 — 필드 효과는 필드 효과지」: d.fe = {w 날씨, t 필드, rooms[], etc[], name, eff} — 미궁 포텐셜과 따로(템플릿 개수에 안 셈).
-    웹툴은 이 던전의 조우마다 배틀 시작 때 날씨 · 필드 · 룸을 깔고(계속), 이름 · 효과 글은 로그로 띄운다 */
- const FE_W=['맑음','비','모래바람','싸라기눈','눈','짙은안개','밤','별하늘','큰가뭄','폭우','난기류','극한','깊은밤'],FE_T=['그래스필드','일렉트릭필드','미스트필드','사이코필드'],FE_R=['트릭룸','매직룸','원더룸','블랙룸'],FE_E=['중력','물놀이','흙놀이'];
- const feText=fe=>fe?[fe.name&&'『'+fe.name+'』',fe.w&&'날씨 '+fe.w,fe.t,...(fe.rooms||[]),...(fe.etc||[])].filter(Boolean).join(' · '):'';
- function feHTML(d,dis){const fe=d.fe||{};const ch=(g,L)=>L.map(v=>`<label class="dgfe-c"><input type="checkbox" data-fe="${g}" value="${esc(v)}" ${(fe[g]||[]).includes(v)?'checked':''} ${dis}> ${esc(v)}</label>`).join('');
-  return `<div class="dgfe"><b class="small">⛰ 필드 효과 — 이 던전의 배틀마다 처음부터 깔린다 (미궁 포텐셜과 따로)</b>
-   <div class="row dgfe-r"><label>날씨 <select data-fe="w" ${dis}><option value="">없음</option>${FE_W.map(v=>`<option ${fe.w===v?'selected':''}>${v}</option>`).join('')}</select></label><label>필드 <select data-fe="t" ${dis}><option value="">없음</option>${FE_T.map(v=>`<option ${fe.t===v?'selected':''}>${v}</option>`).join('')}</select></label></div>
-   <div class="row dgfe-r">${ch('rooms',FE_R)}${ch('etc',FE_E)}</div>
-   <div class="row dgpo"><span class="dgtag fe">필드</span><input data-fe="name" value="${esc(fe.name||'')}" placeholder="이름 (예: 젖은 지하)" ${dis}><input data-fe="eff" value="${esc(fe.eff||'')}" placeholder="효과 글 (예: 땅 기술 위력 ×0.8) — GM 이 처리" ${dis}></div></div>`}
- function feRead(){const box=root().querySelector('.dgfe');if(!box)return null;const q=k=>box.querySelector(`[data-fe="${k}"]`);const L=g=>[...box.querySelectorAll(`input[data-fe="${g}"]:checked`)].map(x=>x.value);
-  const o={};const w=q('w').value,t=q('t').value,nm=q('name').value.trim().replace(/[『』]/g,'').slice(0,30),ef=q('eff').value.slice(0,1200);if(w)o.w=w;if(t)o.t=t;const r=L('rooms'),e=L('etc');if(r.length)o.rooms=r;if(e.length)o.etc=e;if(nm)o.name=nm;if(ef.trim())o.eff=ef;return Object.keys(o).length?o:null}
+ /* 11-16 망령 「필드 효과 칸 따로 — 필드 효과는 필드 효과지」 → 08:51 「트레이너가 전개하는 필드랑 비슷한 것」: d.fe = 필드 전개 칸 하나
+    {type 0 필드|1 스타디움|2 이계, name, loc, img, eff(한 줄에 하나), count(지속 턴 · 비우면 무한), color(타입 en), h 0|1|2} — 트레이너 시트 「필드 전개」와 같은 꼴.
+    미궁 포텐셜과 따로(템플릿 개수에 안 셈). 웹툴은 이 던전의 조우마다 배틀 시작 때 야생 쪽이 전개한 것처럼 깐다 */
+ const FE_K=['필드','스타디움','이계'],FE_TY=[['','—'],['Normal','노말'],['Fire','불꽃'],['Water','물'],['Electric','전기'],['Grass','풀'],['Ice','얼음'],['Fighting','격투'],['Poison','독'],['Ground','땅'],['Flying','비행'],['Psychic','에스퍼'],['Bug','벌레'],['Rock','바위'],['Ghost','고스트'],['Dragon','드래곤'],['Dark','악'],['Steel','강철'],['Fairy','페어리']];
+ const feText=fe=>fe&&fe.name?`《${FE_K[+fe.type||0]}/${fe.name}》${fe.count?' · '+fe.count+'턴':' · 무한'}`:'';
+ function feHTML(d,dis){const fe=d.fe||{type:0};const opt=(L,v)=>L.map(([k,n])=>`<option value="${esc(k)}" ${String(v??'')===String(k)?'selected':''}>${esc(n)}</option>`).join('');
+  return `<div class="dgfe"><b class="small">⛰ 필드 효과 — 트레이너의 필드 전개와 같은 꼴. 이 던전의 배틀마다 처음에 야생 쪽이 전개 (미궁 포텐셜과 따로 · 이름을 비우면 없음)</b>
+   <div class="row dgfe-r"><label>종류 <select data-fe="type" ${dis}>${opt(FE_K.map((k,i)=>[i,k]),fe.type||0)}</select></label><label class="grow">이름 <input data-fe="name" value="${esc(fe.name||'')}" placeholder="예: 젖은 지하 수로" ${dis}></label></div>
+   <div class="row dgfe-r"><label>지역 <input data-fe="loc" value="${esc(fe.loc||'')}" placeholder="예: 론디니움" style="width:110px" ${dis}></label><label>지속 턴 <input type="number" min="0" max="99" data-fe="count" value="${esc(fe.count||'')}" placeholder="무한" style="width:64px" ${dis}></label><label>타입 색 <select data-fe="color" ${dis}>${opt(FE_TY,fe.color||'')}</select></label></div>
+   <div class="row dgfe-r"><label class="grow">H <select data-fe="h" ${dis}>${opt([[0,'없음'],[1,'야생은 이 필드의 효과를 받지 않음'],[2,'야생의 상대가 받는 효과는 무효 (야생만 받음)']],fe.h||0)}</select></label></div>
+   <label class="dgfe-e">효과 (한 줄에 하나)<textarea data-fe="eff" rows="3" placeholder="예: 「땅」 타입 기술의 위력 ×0.8&#10;턴 종료 시 「물」 타입이 아닌 포켓몬은 HP 1/16 감소" ${dis}>${esc(fe.eff||'')}</textarea></label>
+   <label class="dgfe-e">배경 (그림 주소 · 웹툴 배경 이름 — 비워도 됨)<input data-fe="img" value="${esc(fe.img||'')}" ${dis}></label></div>`}
+ function feRead(){const box=root().querySelector('.dgfe');if(!box)return null;const q=k=>box.querySelector(`[data-fe="${k}"]`).value;
+  const nm=q('name').trim().replace(/[《》『』]/g,'').replace(/^(이계|필드|스타디움)\//,'').slice(0,30);if(!nm)return null;const o={type:+q('type')||0,name:nm};
+  const loc=q('loc').trim().slice(0,40),eff=q('eff').slice(0,1500),img=q('img').trim().slice(0,600),c=Math.round(+q('count')),col=q('color'),h=+q('h');
+  if(loc)o.loc=loc;if(eff.trim())o.eff=eff;if(img)o.img=img;if(c>0)o.count=Math.min(c,99);if(col)o.color=col;if(h===1||h===2)o.h=h;return o}
  const SPX={};function spOf(n){if(!n)return null;if(SPX[n]!==undefined)return SPX[n];const L=((ENV().data&&ENV().data())||window.MKM_DB||{}).old||[];return SPX[n]=L.find(r=>r[1]===n)||null}
  function spList(){if(document.getElementById('dgSpList'))return;const L=(window.MKM_DB||{}).old||[];const dl=document.createElement('datalist');dl.id='dgSpList';dl.innerHTML=L.map(r=>`<option value="${esc(r[1])}">`).join('');document.body.appendChild(dl)}
 
@@ -247,7 +252,7 @@ window.MK_DG=(()=>{
   else if(t.dataset.r&&r){const f=t.dataset.r;if(f==='hassk'){if(t.checked)r.sk={v:4,label:'',name:'',stat:'지시',target:10,scene:'field',auto:'normal'};else delete r.sk;re=true}
    else if(f==='t'){r.t=t.value;if(r.t!=='safe')delete r.rk;re=true}else if(f==='rk'){if(t.value)r.rk=t.value;else delete r.rk}else r[f]=t.value;if(f==='n')re=e.type==='change'}
   else if(t.dataset.k&&r&&r.sk){const f=t.dataset.k;if(f==='target'){r.sk.target=+t.value;r.sk.auto=AUTO[+t.value]}else{r.sk[f]=t.value;if(f==='label')r.sk.name=t.value}}
-  else if(t.dataset.fe){const fe=feRead();if(fe)d.fe=fe;else delete d.fe;re=t.type!=="text"}
+  else if(t.dataset.fe){const fe=feRead();if(fe)d.fe=fe;else delete d.fe;re=t.tagName==="SELECT"}
   else if(t.dataset.q!=null){const q=d.mq[+t.dataset.q];if(q)q[t.dataset.qf]=t.value}
   else{const box=t.closest('[data-mi]');if(box&&r&&r.w){const m=r.w.mons[+box.dataset.mi];if(!m)return;
    if(t.dataset.m){const f=t.dataset.m;if(f==='moves')m.moves=t.value.split(/[,，]/).map(s=>s.trim()).filter(Boolean).slice(0,8);else if(f==='dist')m.dist=clamp(Math.round(+t.value||0),-30,60);else if(f==='pride'){m.pride=t.value;re=true}
