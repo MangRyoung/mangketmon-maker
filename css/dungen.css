@@ -52,7 +52,7 @@
 #mk .dgw{display:flex;flex-direction:column;gap:6px;margin-top:4px}
 #mk .dgm{border:1px solid var(--line);border-radius:8px;padding:7px 8px;display:flex;flex-direction:column;gap:5px;background:var(--sunk)}
 #mk .dgm-r label{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
-#mk .dgsp{flex:1 1 140px;font-weight:600}
+#mk .dgsp{flex:1 1 90px;font-weight:600;min-width:80px}
 #mk .dgrole{font-size:11px;padding:1px 7px;border-radius:999px;background:var(--sunk2);color:var(--muted);white-space:nowrap}
 #mk .dgrole.boss{background:var(--warn-soft);color:var(--warn)}
 #mk .dgrole.esc{background:var(--blue-soft);color:var(--blue)}
