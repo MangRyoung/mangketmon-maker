@@ -2848,7 +2848,7 @@ function fitLog(){for(const [fi,vi] of [['#logFrame','#v-log'],['#ruleFrame','#v
 function fitFrame(f){const top=f.getBoundingClientRect().top+window.scrollY;let bot=0;const tb=$('#mk .tabs');if(tb){const r=tb.getBoundingClientRect();if(getComputedStyle(tb).position==='fixed'&&r.top>innerHeight/2)bot=r.height}f.style.height=Math.max(420,Math.floor(innerHeight-top-bot))+'px'}
 addEventListener('resize',()=>{clearTimeout(fitLog.t);fitLog.t=setTimeout(fitLog,80)});
 const LOGV='20261026g';   /* 로그 정리기 판 (캐시 깨기) */
-function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v='+LOGV;requestAnimationFrame(fitLog);return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=202611120650wx';requestAnimationFrame(fitLog);return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
+function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v='+LOGV;requestAnimationFrame(fitLog);return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=202611120650wx';requestAnimationFrame(fitLog);return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='dg'){if(window.MK_DG)MK_DG.render({soft:true});return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
 let rT=null;
 let composing=false;
 $('#v-char').addEventListener('compositionstart',()=>{composing=true;clearTimeout(rT)});
@@ -3632,7 +3632,7 @@ $('#v-type').addEventListener('click',e=>{const b=e.target.closest('[data-yact]'
 $('#v-type').addEventListener('change',e=>{const a=e.target.dataset.yact;if(a==='t3'||a==='tera'){tyOpt()[a]=e.target.checked?1:0;save();renderType()}
  if(e.target.dataset.ysel==='trainer'){tyOpt().scope=e.target.value||'';save();renderType()}});
 function showTab(tab){if(!$('#v-'+tab))tab='char';S.ui.tab=tab;$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
- $('#v-char').hidden=tab!=='char';$('#v-type').hidden=tab!=='type';$('#v-db').hidden=tab!=='db';$('#v-tbl').hidden=tab!=='tbl';{const vn=$('#v-notes');if(vn)vn.hidden=tab!=='notes'}{const vr=$('#v-rule');if(vr)vr.hidden=tab!=='rule'}{const vl=$('#v-log');if(vl)vl.hidden=tab!=='log'}refreshAll();save();MKROOT().scrollTo(0,0)}
+ $('#v-char').hidden=tab!=='char';$('#v-type').hidden=tab!=='type';$('#v-db').hidden=tab!=='db';$('#v-tbl').hidden=tab!=='tbl';{const vn=$('#v-notes');if(vn)vn.hidden=tab!=='notes'}{const vr=$('#v-rule');if(vr)vr.hidden=tab!=='rule'}{const vl=$('#v-log');if(vl)vl.hidden=tab!=='log'}{const vd=$('#v-dg');if(vd)vd.hidden=tab!=='dg'}refreshAll();save();MKROOT().scrollTo(0,0)}
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)showTab(b.dataset.tab)});
 /* 좁은 화면: 파일 메뉴(엑셀·백업)는 「파일」 버튼으로 펼친다 */
 const MTOP=()=>$('[data-toolsbtn]').closest('.top');
@@ -4040,6 +4040,8 @@ function renderAll(){if(S.ui.tab==='char')renderChar();else refreshAll()}
 const MKROOT=()=>document.getElementById('mk')||document.body;
 /* ---------- 세션 노트 연동: 같은 페이지의 세션 노트가 트레이너를 바로 읽는다 ---------- */
 let mkmT=null;function mkmChanged(){clearTimeout(mkmT);mkmT=setTimeout(()=>window.dispatchEvent(new CustomEvent('mkm-change')),120)}
+/* 11-15 던전 생성 탭(js/dungen.js)이 쓰는 것 */
+window.MKM_ENV={db:()=>SH.db,me:()=>ME,toast,openModal,closeModal,data:()=>S.db,prideCost:k=>{const r=prRow(k);return r?pnum(r[1],null):null}};
 window.MKM={bundle:()=>sessionBundle(S.trainers),
  open(id){const t=S.trainers.find(x=>x.id===id);if(!t)return false;if(S.ui.tab!=='char')showTab('char');t.open=true;save();renderChar();
   const el=document.getElementById('tr-'+id);if(el){const r=MKROOT(),hd=r.querySelector('.top');r.scrollTo({top:Math.max(0,el.getBoundingClientRect().top-r.getBoundingClientRect().top+r.scrollTop-(hd?hd.offsetHeight:0)-10)});el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600)}return true}};

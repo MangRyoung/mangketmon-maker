@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="css/maker.css?v=202612072110st">
+<link rel="stylesheet" href="css/dungen.css?v=202611151300dg">
 <link rel="stylesheet" href="css/vtheme.css?v=202611031900"><!-- VELVET 테마 P5 · P3 · P4 (오레마스와 같은 결) -->
 <link rel="stylesheet" href="css/chaldea.css?v=202611051230"><!-- 칼데아 테마 cd (세션 노트 · 웹툴과 같은 결) -->
 <link rel="stylesheet" href="css/skcard.css?v=5"><!-- 11-02 은열쇠 카드 옷 (웹툴과 같은 모양) -->
@@ -18,7 +19,7 @@
 <div id="mk">
 <header class="top">
   <div class="brand"><span class="ball" aria-hidden="true"></span><span class="bt">망켓몬 제작기</span></div>
-  <nav class="tabs" id="tabs"><button data-tab="rule">룰북</button><button data-tab="char" class="on">캐릭터<span class="wide-only"> 제작</span></button><button data-tab="type">타입<span class="wide-only"> 배분</span></button><button data-tab="db">DB<span class="wide-only"> 관리</span></button><button data-tab="tbl"><span class="wide-only">테이블·</span>계산식</button><button data-tab="log">로그<span class="wide-only"> 정리기</span></button><button data-tab="notes">업뎃<span class="wide-only"> 노트</span></button></nav>
+  <nav class="tabs" id="tabs"><button data-tab="rule">룰북</button><button data-tab="char" class="on">캐릭터<span class="wide-only"> 제작</span></button><button data-tab="type">타입<span class="wide-only"> 배분</span></button><button data-tab="db">DB<span class="wide-only"> 관리</span></button><button data-tab="dg">던전<span class="wide-only"> 생성</span></button><button data-tab="tbl"><span class="wide-only">테이블·</span>계산식</button><button data-tab="log">로그<span class="wide-only"> 정리기</span></button><button data-tab="notes">업뎃<span class="wide-only"> 노트</span></button></nav>
   <button id="shdot" class="shdot local" type="button" title="저장 · 연결 상태" aria-label="저장 · 연결 상태"><i aria-hidden="true"></i><b>…</b></button><!-- 11-03 좁은 화면에서도 보이는 저장 · 연결 상태 점 -->
   <button class="btn sm toolsbtn" type="button" data-toolsbtn aria-expanded="false" aria-controls="tools">파일 <span aria-hidden="true">▾</span></button>
   <div class="tools" id="tools">
@@ -37,6 +38,7 @@
   <section id="v-type" hidden></section>
   <section id="v-db" hidden></section>
   <section id="v-tbl" hidden></section>
+  <section id="v-dg" hidden></section>
   <section id="v-log" hidden><div class="lgbar"><b>로그 정리기</b><span class="small muted">맵툴 · 오레마스 로그를 세션 로그로 정리 · 「제작기 그림 잇기」로 캐릭터 초상 연결</span><span class="sp"></span><a class="btn sm ghost" href="logtool/index.html" target="_blank" rel="noopener">새 창으로</a></div><iframe id="logFrame" title="로그 정리기" loading="lazy"></iframe></section>
   <section id="v-notes" hidden></section>
 </main>
@@ -51,7 +53,8 @@
 <script src="js/rulebook_host.js?v=202610220630"></script>
 <script src="js/potlint.js?v=202611141905cl"></script>
 <script src="js/skcard.js?v=6"></script><!-- 11-02 은열쇠 카드 한 장 그리기 (웹툴과 같은 모양) -->
-<script src="js/maker.js?v=202611150400wx"></script>
+<script src="js/maker.js?v=202611151300dg"></script>
+<script src="js/dungen.js?v=202611151300dg"></script>
 <script src="js/verbar.js?v=202611280100"></script><!-- 새 버전 알림 (10-27) -->
 </body>
 </html>

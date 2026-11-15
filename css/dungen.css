@@ -1,0 +1,71 @@
+/* 11-15 던전 생성 탭 (js/dungen.js) */
+#mk #v-dg{padding:14px 16px 40px}
+#mk .dgwrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+#mk .dgwrap h2{margin:0;font-size:18px}
+#mk .dgwrap h3{margin:8px 0 0;font-size:15px}
+#mk .dg-top{gap:8px}
+#mk .dggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+#mk .dgc{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+#mk .dgc-h{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#mk .dgc-h b{font-size:15px}
+#mk .dgt{font-size:11px;padding:1px 7px;border-radius:999px;background:var(--sunk2);color:var(--muted)}
+#mk .dgt.s1{background:var(--ok-soft);color:var(--ok)}
+#mk .dgt.s2{background:var(--blue-soft);color:var(--blue)}
+#mk .dgt.s3{background:var(--warn-soft);color:var(--warn)}
+#mk .dgpub{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+#mk .dgok{color:var(--ok)}
+#mk .dgwarn{color:var(--warn)}
+#mk .dgc-a{margin-top:2px}
+#mk .dgtpl{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+#mk .dgtpl summary{cursor:pointer;font-weight:600;font-size:13px}
+#mk .dgtbl{overflow-x:auto;margin-top:8px}
+#mk .dgtbl table{border-collapse:collapse;font-size:12.5px;min-width:560px;width:100%}
+#mk .dgtbl th,#mk .dgtbl td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+#mk .dgtbl thead th{background:var(--sunk)}
+#mk .dgtbl tbody th{color:var(--muted);font-weight:500;white-space:nowrap}
+#mk .dgnew{display:flex;flex-direction:column;gap:8px}
+#mk .dgnew label{display:flex;flex-direction:column;gap:3px;font-size:13px}
+#mk .dgnew label.row{flex-direction:row}
+/* 편집 */
+#mk .dgname{font-size:16px;font-weight:600;min-width:160px;flex:0 1 260px}
+#mk .dgchk{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+#mk .dged-b{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);gap:10px;align-items:start}
+#mk .dgmap-w{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px;position:sticky;top:64px}
+#mk .dgmap{width:100%;height:auto;display:block;touch-action:none;user-select:none;background:var(--sunk);border-radius:8px}
+#mk .dgmap .ln line{stroke:var(--faint);stroke-width:5;stroke-linecap:round}
+#mk .dgn{cursor:pointer}
+#mk .dgn circle{stroke:var(--surface);stroke-width:3}
+#mk .dgn.on circle{stroke:var(--ink);stroke-width:5}
+#mk .dgn.lf circle{stroke:var(--blue);stroke-width:6;stroke-dasharray:6 4}
+#mk .dgn text{text-anchor:middle;pointer-events:none}
+#mk .dgn .ic{fill:#fff;font-size:20px;font-weight:700}
+#mk .dgn .nm{fill:var(--ink);font-size:15px;font-weight:600;paint-order:stroke;stroke:var(--sunk);stroke-width:4px}
+#mk .dgn .cnt{fill:var(--ink);font-size:13px;font-weight:700;paint-order:stroke;stroke:var(--sunk);stroke-width:4px}
+#mk .dgn .st{fill:var(--blue);font-size:12px;font-weight:700}
+#mk .dgmap-a{padding:6px 2px 0;gap:6px}
+#mk .dgpanel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+#mk .dgrp{display:flex;flex-direction:column;gap:7px}
+#mk .dgrp>label,#mk .dgsk label,#mk .dgm>label{display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:var(--muted)}
+#mk .dgrp input,#mk .dgrp select,#mk .dgrp textarea{color:var(--ink)}
+#mk .dgsk{border:1px dashed var(--line);border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:6px}
+#mk .dgsk .row label{flex:1}
+#mk .dgw{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+#mk .dgm{border:1px solid var(--line);border-radius:8px;padding:7px 8px;display:flex;flex-direction:column;gap:5px;background:var(--sunk)}
+#mk .dgm-r label{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
+#mk .dgsp{flex:1 1 140px;font-weight:600}
+#mk .dgrole{font-size:11px;padding:1px 7px;border-radius:999px;background:var(--sunk2);color:var(--muted);white-space:nowrap}
+#mk .dgrole.boss{background:var(--warn-soft);color:var(--warn)}
+#mk .dgrole.esc{background:var(--blue-soft);color:var(--blue)}
+#mk .dgpo{flex-wrap:nowrap}
+#mk .dgpo input{flex:1 1 0}
+#mk .dgpo input[data-gf="name"],#mk .dgpo input[data-wp="name"],#mk .dgpo input[data-qf="name"]{flex:0 1 120px}
+#mk .dgtag{font-size:11px;white-space:nowrap;padding:1px 6px;border-radius:5px;background:var(--accent-soft);color:var(--accent)}
+#mk .dgtag.wp{background:var(--ok-soft);color:var(--ok)}
+#mk .dgtag.mq{background:var(--blue-soft);color:var(--blue)}
+@media (max-width:820px){
+ #mk #v-dg{padding:10px 8px 40px}
+ #mk .dged-b{grid-template-columns:1fr}
+ #mk .dgmap-w{position:static}
+ #mk .dgpo{flex-wrap:wrap}
+ #mk .dgpo input[data-gf="name"],#mk .dgpo input[data-wp="name"],#mk .dgpo input[data-qf="name"]{flex:1 1 100%}
+}
