@@ -395,4 +395,4 @@ window.MK_DG=(()=>{
   if(k==='delmon'&&r&&r.w){const i=+b.closest('[data-mi]').dataset.mi;r.w.mons.splice(i,1);if(!r.w.mons.length)delete r.w;touch(ST.id);return render()}}
  setTimeout(()=>{const el=root();if(el&&!el.hidden)render()},0);
  document.addEventListener('input',onInput);document.addEventListener('change',onInput);document.addEventListener('click',onClick);
- return {render,generate,applyTpl,check,TPL}})();
+ return {render,generate,applyTpl,check,TPL,cardHTML,openCard}})();
