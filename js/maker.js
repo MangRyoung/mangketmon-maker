@@ -2448,6 +2448,23 @@ function pokeCardHTML(t,p,ed){const E=(k,v,tt,x)=>ed?`<button type="button" clas
 /* 11-17 망령 「던전도 한 장 요약 · 트레이너도」: 그림 파일 저장을 포켓몬 한 장 요약과 같은 길로 (html2canvas · 테마 배경 · 바깥 여백 · 각주) */
 async function h2cLoad(){if(window.html2canvas)return;await new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';sc.onload=ok;sc.onerror=()=>no(new Error('html2canvas 를 불러오지 못했다'));document.head.appendChild(sc)})}
 async function cardPng(el,file,foot){try{await h2cLoad();const bg=pngBg();const cv=await window.html2canvas(el.parentNode,pngOpts(el,bg,String(foot||''),null));const a=document.createElement('a');a.download=String(file||'한장요약').replace(/[\\/:*?"<>|]/g,'_')+'.png';a.href=cv.toDataURL('image/png');a.click()}catch(err){toast('PNG 로 저장하지 못했습니다 ('+err.message+')')}}
+/* 11-17 망령 「디코로 버튼은 다 만들고」: 트레이너 · 던전 한 장 요약도 포켓몬 요약과 같은 길로 디스코드에 (그림 webp → 저장소 oremas/dc/<방>/ → om_dc_card) */
+async function cardDc(b,el,o){if(!b||b.disabled)return;const lab=b.textContent;b.disabled=true;b.textContent='방 찾는 중…';
+ try{const tg=await dcTarget();if(!tg)throw new Error('이 브라우저가 들어간 웹툴 방이 없어요 — 웹툴 방에 한 번 들어온 뒤 다시 눌러 주세요');if(!tg.secret)throw new Error('이 브라우저는 그 웹툴 방(「'+tg.room+'」)에 앉은 적이 없어요 — 웹툴에서 GM 이나 자리로 한 번 들어와 주세요');
+  b.textContent='그리는 중…';await h2cLoad();const bg=pngBg();const cv=await window.html2canvas(el.parentNode,pngOpts(el,bg,String(o.foot||''),null));
+  const blob=await new Promise(r=>cv.toBlob(r,'image/webp',.9));if(!blob)throw new Error('그림을 만들지 못했어요');
+  b.textContent='올리는 중…';const SB=dcSb();const path='dc/'+tg.room+'/'+String(o.id||'card').replace(/[^\w-]/g,'')+'_'+Date.now().toString(36)+'.webp';
+  const up=await SB.storage.from('oremas').upload(path,blob,{upsert:false,contentType:'image/webp',cacheControl:'31536000'});if(up.error)throw new Error('그림을 올리지 못했어요: '+up.error.message);
+  const url=SB.storage.from('oremas').getPublicUrl(path).data.publicUrl;
+  b.textContent='보내는 중…';
+  const r1=await SB.rpc('om_dc_card',{p_room:tg.room,p_secret:tg.secret,p_title:o.title||'한 장 요약',p_sub:o.sub||'',p_img:url,p_who:o.who||{n:o.title||''}});
+  if(r1.error){const m=r1.error.message||'';throw new Error(/PGRST202|Could not find the function/i.test(m+(r1.error.code||''))?'디스코드 연동 함수가 아직 없어요 — Supabase 에 supabase/patch_2026-11-02_게시판_디스코드.sql 을 (다시) 실행해 주세요':m)}
+  let r=null;for(let i=0;i<12;i++){await new Promise(z=>setTimeout(z,900));const q=await SB.rpc('om_dc_card_result',{p_room:tg.room,p_secret:tg.secret,p_id:r1.data});if(q.error)break;r=q.data;if(r&&!r.wait)break}
+  if(!r||r.wait)toast('디스코드로 보냈어요 (대답은 아직 — 디스코드에서 확인해 주세요)');
+  else if(r.status>=200&&r.status<300)toast('디스코드에 올렸어요');
+  else{let c=0,m='';try{const j=JSON.parse(r.body||'{}');c=j.code;m=j.message||''}catch(e){}toast('디스코드가 거절했어요 — '+(c===10003?'스레드를 찾지 못했어요 (웹툴 설정 「디스코드」에서 스레드 링크 다시)':c===10015?'웹후크가 없어요 (웹툴 설정 「디스코드」에서 다시 이어 주세요)':(r.error||m||('오류 '+r.status))))}}
+ catch(err){toast(String((err&&err.message)||err))}
+ b.disabled=false;b.textContent=lab}
 /* 트레이너 한 장 요약 — 그림 · 이름 · 칭호 · 자질 · 통솔점 · 기술점 · 지시 체계 · 『고유 포텐셜』 · 필드 전개 · 기능 확장 · SP · 공유 폼체인지 · 파티(포켓몬마다 작은 카드). 상세(백스토리 등)는 넣지 않는다 (공개 범위가 칸마다 달라서) */
 function trainerCardHTML(t){const tn=t.name||'(이름 없음)';const use=pointUse(t);const pu=ptSockets(t),pm=ptMax(t);
  const pn=(ptItems().find(r=>r[2]==='pride')||[])[0];const pr=pn?{u:Math.round((use[pn]||0)*100)/100,m:+t.base[pn]||0}:null;
@@ -2477,9 +2494,11 @@ function trainerCardHTML(t){const tn=t.name||'(이름 없음)';const use=pointUs
   ${SF.length?`<div class="pcd-h">공유 폼체인지 <span class="faint">${SF.length}</span></div>${SF.map(f=>`<div class="pcd-x"><b>${esc(f.name)}</b>${f.kind?` <span class="faint small">${esc(f.kind)}</span>`:''}${f.cond?`<div class="pcd-e">${fxTxt(f.cond)}</div>`:''}</div>`).join('')}`:''}
   </div></div>`}
 function openTrainerCard(t){const TID=t.id;const cur=()=>S.trainers.find(x=>x.id===TID)||t;
- const l=openModal(`<div class="mhead"><h2>한 장 요약 <span class="small muted">트레이너</span></h2><span class="sp"></span><button class="btn sm" data-tcpng title="이 요약을 그림 파일로 저장">PNG 저장</button><button class="btn ghost" data-x>닫기</button></div><div class="mbody pcd-wrap">${trainerCardHTML(cur())}</div>`,{wide:true});
+ const l=openModal(`<div class="mhead"><h2>한 장 요약 <span class="small muted">트레이너</span></h2><span class="sp"></span><button class="btn sm" data-tcdc title="이 요약을 그림으로 만들어 디스코드의 정해 둔 스레드에 올린다 (웹툴 설정 「디스코드」 탭에서 이어 둔 곳)">디코로</button><button class="btn sm" data-tcpng title="이 요약을 그림 파일로 저장">PNG 저장</button><button class="btn ghost" data-x>닫기</button></div><div class="mbody pcd-wrap">${trainerCardHTML(cur())}</div>`,{wide:true});
  $('.mbox',l).classList.add('pcdbox');l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>closeModal());
  l.querySelectorAll('.tcd-m').forEach((el,j)=>{el.style.cursor='pointer';el.title='눌러서 이 포켓몬 한 장 요약';el.onclick=()=>{const T=cur();const P=T.pokemon[j];if(P)openPokeCard(T,P)}});
+ if(RO_EMB){l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{closeModal();try{window.parent.postMessage({mkm:'close'},'*')}catch(_){}})}
+ $('[data-tcdc]',l)&&($('[data-tcdc]',l).onclick=()=>{const T=cur();cardDc($('[data-tcdc]',l),$('.pcd',l),{id:'t_'+T.id,title:T.name||'트레이너',sub:'트레이너 한 장 요약',who:{n:T.name||'',img:/^https?:\/\//.test(T.image||'')?T.image:''},foot:`${T.name||'트레이너'} · 트레이너 한 장 요약`})});
  $('[data-tcpng]',l).onclick=()=>cardPng($('.pcd',l),(cur().name||'트레이너')+'_한장요약',`${cur().name||'트레이너'} · 트레이너 한 장 요약`)}
 /* 10-22 망령: 로그 탭(logtool/, 같은 출처 iframe)의 「제작기 그림 잇기」가 읽는 캐릭터 그림 목록 */
 window.MKM_CHARS=()=>S.trainers.flatMap(t=>[{name:t.name,image:safeImg(t.image)||'',kind:'trainer'},...(t.pokemon||[]).map(p=>({name:p.name,image:safeImg(p.image)||'',kind:'poke'}))]).filter(x=>x.name&&x.image);
@@ -2489,7 +2508,7 @@ function goNew(cardId,inputId){requestAnimationFrame(()=>{const el=document.getE
 function goPoke(T,P){T.open=true;P.open=true;save();refreshTrainer(T);requestAnimationFrame(()=>{const el=document.getElementById('pk-'+P.id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'})})}
 function openPokeCard(t,p){const l=openModal(`<div class="mhead"><h2>한 장 요약</h2><span class="sp"></span><button class="btn sm" data-pced title="이 요약에서 바로 고치고 더한다 (✎ · ＋ · ×)">✎ 편집</button><button class="btn sm ghost" data-pcgo title="제작기에서 이 포켓몬 시트로 이동">시트로</button><button class="btn sm" data-pcdc title="이 요약을 그림으로 만들어 디스코드의 정해 둔 스레드에 올린다 (웹툴 설정 「디스코드」 탭에서 이어 둔 곳)">디코로</button><button class="btn sm" data-pcpng title="이 요약을 그림 파일로 저장">PNG 저장</button><button class="btn sm ghost pcdelb" data-pcmore title="이 포켓몬 시트를 지운다 (5초 안 실행 취소)">삭제</button><button class="btn ghost" data-x>닫기</button></div>${pcdTabs(p,null)}<div class="mbody pcd-wrap">${pokeCardHTML(t,p)}</div>`,{wide:true});
  $('.mbox',l).classList.add('pcdbox');l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>closeModal());
- if(RO_EMB){l.querySelectorAll('[data-pced],[data-pcgo],[data-pcdc],[data-pcmore]').forEach(b=>b.remove());l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{closeModal();try{window.parent.postMessage({mkm:'close'},'*')}catch(_){}})}   /* 읽기 전용: 보기 · PNG 저장 · 닫기만, 닫으면 세션 노트 창도 닫는다 */
+ if(RO_EMB){l.querySelectorAll('[data-pced],[data-pcgo],[data-pcmore]').forEach(b=>b.remove());   /* 11-17 망령 「디코로 버튼은 다 만들고」: 보기 창에도 디코로는 남긴다 */l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{closeModal();try{window.parent.postMessage({mkm:'close'},'*')}catch(_){}})}   /* 읽기 전용: 보기 · PNG 저장 · 디코로 · 닫기만, 닫으면 세션 노트 창도 닫는다 */
  /* 10-24 망령: 「✎ 편집」 — 요약 위에서 이름 · 특성 · 도구 · 기술 · 포텐셜 · 메모를 고치고 더한다. 고르기 창은 시트와 같은 것을 쓴다 */
  let ED=false;const wrap=$('.pcd-wrap',l);const depth=layers.length;
  /* 11-06 망령 「한 장 요약 편집이 저장이 안 되고 날아간다」: 연 뒤에 공유 DB 가 시트를 새 객체로 다시 만들면(처음 연결 · 노트 안 제작기) 붙잡고 있던 t · p 가 떨어져 나가 고친 것이 어디에도 안 남았다 → 매번 id 로 지금 것을 다시 찾는다 */
@@ -4083,7 +4102,7 @@ let mkmT=null;function mkmChanged(){clearTimeout(mkmT);mkmT=setTimeout(()=>windo
 /* 11-16 망령 「세션 노트에 잘 정비해 둔 포켓몬 제작 UI 를 왜 내다 버리나」: 던전 야생 시트 = 제작기 트레이너 · 포켓몬 그대로 (던전 탭이 만들고, 고치기는 노트처럼 ?focus=&p=&embed=1 한 장 창) */
 async function flushNow(ms){const t0=Date.now();ms=ms||9000;let need;try{need=shDirtyPaths()}catch(e){return false}if(!need.length)return true;clearTimeout(shTimer);SH.pendT=false;let kicked=false;
  while(shDirtyPaths(need).length){if(!SH.flushing){shLastFlush=0;shFlush()}else if(!kicked)SH.again=true;kicked=true;await new Promise(r=>setTimeout(r,100));if(Date.now()-t0>ms)return false}return true}
-window.MKM_ENV={db:()=>SH.db,me:()=>ME,toast,openModal,closeModal,cardPng,openTrainerCard:t=>openTrainerCard(t),data:()=>S.db,prideCost:k=>{const r=prRow(k);return r?pnum(r[1],null):null},
+window.MKM_ENV={db:()=>SH.db,me:()=>ME,toast,openModal,closeModal,cardPng,cardDc,openTrainerCard:t=>openTrainerCard(t),data:()=>S.db,prideCost:k=>{const r=prRow(k);return r?pnum(r[1],null):null},
  S:()=>S,newTrainer,newPoke,fixP,save,uid,flushNow,closeLayer:l=>{const i=layers.findIndex(o=>o.l===l);if(i<0){if(l&&l.remove)l.remove();return}const [o]=layers.splice(i,1);o.l.remove();if(!layers.length)document.documentElement.classList.remove('modal-on');o.onClose&&o.onClose()},shOn:()=>!!(SH.on&&SH.ready),canWrite:()=>!!(SH.on&&SH.ready&&SH.canWrite),lvOf:(t,p)=>{try{return lv(t,p)}catch(e){return null}},prideOf:p=>{try{return prideOf(p)}catch(e){return p.pride||''}}};
 window.MKM={bundle:()=>sessionBundle(S.trainers),
  open(id){const t=S.trainers.find(x=>x.id===id);if(!t)return false;if(S.ui.tab!=='char')showTab('char');t.open=true;save();renderChar();
@@ -4122,7 +4141,7 @@ function embRender(root){const wait=embMake();if(wait){root.innerHTML=`<div clas
  if(ti<0){root.innerHTML=`<div class="empty">${SH.on&&!SH.ready?'공유 DB 에서 트레이너를 불러오는 중…':'이 트레이너를 찾지 못했습니다 (비공개라면 「서명」을 확인하세요)'}</div>`;return true}
  const t=S.trainers[ti];if(!EMB.done){t.open=true;const p=EMB.p&&t.pokemon.find(x=>x.id===EMB.p);if(p){p.open=true;if(!p.tab)p.tab='base';const es=embSec();if(es)p.tab=EMB_SECT[es.k]}}
  root.innerHTML=`<div id="trs" class="embtrs">${trainerHTML(t,ti)}</div>`;fitFlist(root);
- if(!EMB.done&&!(EMB.sec==='pcard'&&SH.on&&!SH.ready)&&!(embSec()&&EMB.p&&!t.pokemon.some(x=>x.id===EMB.p))){EMB.done=true;if(EMB.sec==='pcard'){const pp=EMB.p&&t.pokemon.find(x=>x.id===EMB.p);if(pp)setTimeout(()=>openPokeCard(t,pp),150)}else if(embSec()&&EMB.p){const pp=t.pokemon.find(x=>x.id===EMB.p);if(pp)setTimeout(()=>embGoSec(pp,embSec()),150)}else if(!EMB.one)setTimeout(()=>{const el=(EMB.sec&&document.querySelector('#tr-'+t.id+' .'+EMB.sec.replace(/[^a-z]/g,'')))||document.getElementById(EMB.p?'pk-'+EMB.p:'tr-'+t.id);if(el&&EMB.sec){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600)}if(el){const hd=document.querySelector('header.top');const off=EMB.embed||!hd?0:hd.offsetHeight;window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-off-8)})}},120)}
+ if(!EMB.done&&!((EMB.sec==='pcard'||EMB.sec==='tcard')&&SH.on&&!SH.ready)&&!(embSec()&&EMB.p&&!t.pokemon.some(x=>x.id===EMB.p))){EMB.done=true;if(EMB.sec==='tcard'){/* 11-17 세션 노트 「▤ 한 장 요약」(트레이너) */setTimeout(()=>openTrainerCard(t),150)}else if(EMB.sec==='pcard'){const pp=EMB.p&&t.pokemon.find(x=>x.id===EMB.p);if(pp)setTimeout(()=>openPokeCard(t,pp),150)}else if(embSec()&&EMB.p){const pp=t.pokemon.find(x=>x.id===EMB.p);if(pp)setTimeout(()=>embGoSec(pp,embSec()),150)}else if(!EMB.one)setTimeout(()=>{const el=(EMB.sec&&document.querySelector('#tr-'+t.id+' .'+EMB.sec.replace(/[^a-z]/g,'')))||document.getElementById(EMB.p?'pk-'+EMB.p:'tr-'+t.id);if(el&&EMB.sec){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600)}if(el){const hd=document.querySelector('header.top');const off=EMB.embed||!hd?0:hd.offsetHeight;window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-off-8)})}},120)}
  return true}
 /* 10-30 망령 「포켓몬 고치기를 누르면 제작기가 이상하게 떠 — 그 포켓몬 고치는 칸만 나오면 될 거 아니야」:
    ?p= 가 있으면 그 포켓몬 시트 한 장만 (위에 트레이너 이름 · 통솔점 · PT 기술점 한 줄). 「트레이너 전체 보기」로 예전처럼 */
