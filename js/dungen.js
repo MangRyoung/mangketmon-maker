@@ -91,8 +91,12 @@ window.MK_DG=(()=>{
   if(s.name&&!spOf(s.name)&&Array.isArray(s.base))p.base=s.base.slice(0,6).map(v=>String(v));   /* DB 에 없는 새 몬스터만 종족치를 옮긴다 */
   const keep=(s.pots||[]).filter(Boolean);p.pots=Array.from({length:20},(_,j)=>keep[j]||'');p.potEff=p.pots.map(()=>'');p.potKind=p.pots.map(()=>'');
   const ex=[...(s.gye||[]),...(s.wp?[s.wp]:[])].filter(g=>g&&(g.name||g.eff));if(ex[0])p.excl={name:ex[0].name||'',eff:ex[0].eff||''};p.exclX=ex.slice(1).map(g=>({name:g.name||'',eff:g.eff||''}));return p}
- function folderFor(id,x){const S=mS();if(!S)return '';const E=ENV();let root=S.folders.find(f=>f&&f.dgRoot);if(!root){root={id:E.uid(),name:'던전 야생',dgRoot:true,deco:{icon:'🗺',title:'제작기 「던전 생성」 탭이 만든 야생 시트 — 던전마다 폴더 하나'}};S.folders.push(root)}
-  let f=S.folders.find(f=>f&&f.dgId===id);if(!f){f={id:E.uid(),name:(x&&x.d&&x.d.n)||'던전',parent:root.id,dgId:id};S.folders.push(f)}return f.id}
+ /* 폴더: 뿌리 「던전 야생」(dgRoot) · 던전마다 하나(dgId). 11-16: 예전 표시가 안 남던 폴더도 이름 · 그 던전 트레이너의 폴더로 찾는다(겹쳐 만들지 않게) */
+ function folderFor(id,x){const S=mS();if(!S)return '';const E=ENV();
+  let f=S.folders.find(f=>f&&f.dgId===id);if(!f){const g=S.trainers.find(t=>t&&t.wild&&t.dgId===id&&t.folder);if(g)f=S.folders.find(q=>q&&q.id===g.folder);if(f)f.dgId=id}
+  if(f)return f.id;
+  let root=S.folders.find(f=>f&&f.dgRoot)||S.folders.find(f=>f&&!f.parent&&f.name==='던전 야생');if(!root){root={id:E.uid(),name:'던전 야생',deco:{icon:'🗺',title:'제작기 「던전 생성」 탭이 만든 야생 시트 — 던전마다 폴더 하나'}};S.folders.push(root)}root.dgRoot=true;
+  f={id:E.uid(),name:(x&&x.d&&x.d.n)||'던전',parent:root.id,dgId:id};S.folders.push(f);return f.id}
  function mkGroup(id,x,rid,r,mons){const E=ENV();const S=mS();if(!S)return '';const t=E.newTrainer();t.open=false;t.name=(r.t==='boss'?'야생 보스 · ':'야생 · ')+(r.n||'방');t.kind='npc';t.folder=folderFor(id,x);
   t.ranks={지시:'D',육성:'C',통솔:'D',능력:'D'};t.wild=true;t.dgId=id;t.dgRoom=rid;t.pokemon=mons||[];S.trainers.push(t);return t.id}
  /* 뼈대(r.w)를 제작기 트레이너로 옮긴다 — 편집할 수 있고 제작기가 다 불러왔을 때 */
