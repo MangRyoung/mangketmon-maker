@@ -58,6 +58,12 @@
 #mk .dgbs input{width:100%;min-width:0;padding:4px 3px;font-variant-numeric:tabular-nums}
 #mk .dgm-r select+select{margin-left:4px}
 #mk .dgsp{flex:1 1 90px;font-weight:600;min-width:80px}
+#mk .dgmk .dgmn{font-size:14px}
+#mk .dgmk-l{color:var(--muted);line-height:1.5}
+#mk .dgemb{position:relative;height:min(78vh,900px)}
+#mk .dgemb iframe,.dgemb iframe{width:100%;height:100%;border:0;border-radius:8px;background:var(--bg)}
+.dgemb{position:relative;height:min(78vh,900px)}
+.dgemb-w{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);color:#fff;font-weight:600;border-radius:8px}
 #mk .dgrole{font-size:11px;padding:1px 7px;border-radius:999px;background:var(--sunk2);color:var(--muted);white-space:nowrap}
 #mk .dgrole.boss{background:var(--warn-soft);color:var(--warn)}
 #mk .dgrole.esc{background:var(--blue-soft);color:var(--blue)}

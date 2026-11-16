@@ -4041,7 +4041,11 @@ const MKROOT=()=>document.getElementById('mk')||document.body;
 /* ---------- 세션 노트 연동: 같은 페이지의 세션 노트가 트레이너를 바로 읽는다 ---------- */
 let mkmT=null;function mkmChanged(){clearTimeout(mkmT);mkmT=setTimeout(()=>window.dispatchEvent(new CustomEvent('mkm-change')),120)}
 /* 11-15 던전 생성 탭(js/dungen.js)이 쓰는 것 */
-window.MKM_ENV={db:()=>SH.db,me:()=>ME,toast,openModal,closeModal,data:()=>S.db,prideCost:k=>{const r=prRow(k);return r?pnum(r[1],null):null}};
+/* 11-16 망령 「세션 노트에 잘 정비해 둔 포켓몬 제작 UI 를 왜 내다 버리나」: 던전 야생 시트 = 제작기 트레이너 · 포켓몬 그대로 (던전 탭이 만들고, 고치기는 노트처럼 ?focus=&p=&embed=1 한 장 창) */
+async function flushNow(ms){const t0=Date.now();ms=ms||9000;let need;try{need=shDirtyPaths()}catch(e){return false}if(!need.length)return true;clearTimeout(shTimer);SH.pendT=false;let kicked=false;
+ while(shDirtyPaths(need).length){if(!SH.flushing){shLastFlush=0;shFlush()}else if(!kicked)SH.again=true;kicked=true;await new Promise(r=>setTimeout(r,100));if(Date.now()-t0>ms)return false}return true}
+window.MKM_ENV={db:()=>SH.db,me:()=>ME,toast,openModal,closeModal,data:()=>S.db,prideCost:k=>{const r=prRow(k);return r?pnum(r[1],null):null},
+ S:()=>S,newTrainer,newPoke,fixP,save,uid,flushNow,shOn:()=>!!(SH.on&&SH.ready),canWrite:()=>!!(SH.on&&SH.ready&&SH.canWrite),lvOf:(t,p)=>{try{return lv(t,p)}catch(e){return null}},prideOf:p=>{try{return prideOf(p)}catch(e){return p.pride||''}}};
 window.MKM={bundle:()=>sessionBundle(S.trainers),
  open(id){const t=S.trainers.find(x=>x.id===id);if(!t)return false;if(S.ui.tab!=='char')showTab('char');t.open=true;save();renderChar();
   const el=document.getElementById('tr-'+id);if(el){const r=MKROOT(),hd=r.querySelector('.top');r.scrollTo({top:Math.max(0,el.getBoundingClientRect().top-r.getBoundingClientRect().top+r.scrollTop-(hd?hd.offsetHeight:0)-10)});el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),1600)}return true}};

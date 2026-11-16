@@ -4,7 +4,10 @@
    웹툴 던전 탭 「JSON 가져오기」 → 「제작기에서 만든 던전」 목록에서 그대로 가져간다 (방의 w = 야생 시트 설계).
    난이도 템플릿 = 미사그 던전 적 스펙 (노트 65 · 룰북 던전 탐색장 「미사그 대학 던전」, 11-11 확정):
      구성 · 레벨(분배레벨 dist 로) · 프라이드(통솔점 합) · 『계제』 칸 수 · 미궁 포텐셜 수 · 야생 포텐셜 수 · 레이드.
-   야생 시트는 「빈 뼈대」만 — 포켓몬 · 기술 · 포텐셜 내용은 만든 사람이 채운다. 『계제』(gye) · 야생 포텐셜(wp)은 웹툴에서 전용 칸으로 들어간다. */
+   야생 시트는 「빈 뼈대」만 — 포켓몬 · 기술 · 포텐셜 내용은 만든 사람이 채운다. 『계제』(gye) · 야생 포텐셜(wp)은 웹툴에서 전용 칸으로 들어간다.
+   11-16 망령 「세션 노트에 잘 정비해 둔 포켓몬 제작 UI 를 왜 내다 버리나」: 방의 야생 시트 = **제작기 트레이너 한 명**(r.mk = 트레이너 id, 「던전 야생 / 던전 이름」 폴더).
+     포켓몬은 제작기 포켓몬 시트 그대로 — 고치기는 노트처럼 제작기 한 장 창(?focus=&p=&embed=1). 『계제』 · 야생 포텐셜 = 그 포켓몬의 전용 칸(excl · exclX).
+     생성기가 만든 뼈대(r.w)는 편집을 열 때 제작기 트레이너로 옮긴다. 웹툴 가져오기는 r.mk 의 제작기 트레이너를 읽어 야생 시트로 만든다. */
 "use strict";
 window.MK_DG=(()=>{
  const ENV=()=>window.MKM_ENV||{};
@@ -67,6 +70,39 @@ window.MK_DG=(()=>{
   let left=T.wp;for(const m of L){const filled=m.wp&&(m.wp.name||m.wp.eff);if(left>0){if(!m.wp)m.wp={name:'',eff:''};left--}else if(!filled)delete m.wp}}
  function mqFit(d,T){const q=(d.mq||[]).filter(x=>x&&(x.name||x.eff));while(q.length<T.mq)q.push({name:'',eff:''});d.mq=q}
 
+ /* ── 제작기 트레이너 = 방의 야생 시트 ── */
+ const mS=()=>{try{return ENV().S&&ENV().S()}catch(e){return null}};
+ const TR=id=>{const S=mS();return S&&id?S.trainers.find(t=>t.id===id)||null:null};
+ const potNames=p=>(p.pots||[]).map(v=>String(v||'').trim()).filter(Boolean);
+ const isBossP=p=>potNames(p).includes('와일드 보스');
+ const exN=p=>((p.excl&&p.excl.name)?1:0)+(Array.isArray(p.exclX)?p.exclX.filter(e=>e&&e.name).length:0);
+ const prOf=p=>{if(p.pride)return p.pride;try{return ENV().prideOf(p)||'C'}catch(e){return 'C'}};
+ /* 방의 야생 → [{name, pride, boss, role, ex(이름 있는 전용 수), p(제작기 포켓몬)|m(뼈대)}] */
+ function monsOf(r){if(!r)return [];if(r.mk){const t=TR(r.mk);if(!t)return [];return t.pokemon.map(p=>{const boss=r.t==='boss'&&isBossP(p);return {name:p.nick||p.name||'',pride:prOf(p),boss,role:r.t==='boss'?(boss?'boss':'esc'):'pre',ex:exN(p),p}})}
+  if(r.w)return r.w.mons.map(m=>({name:m.name,pride:m.pride,boss:!!m.boss,role:m.role||'pre',ex:(m.gye||[]).filter(g=>g.name).length+(m.wp&&m.wp.name?1:0),m}));return []}
+ const hasWild=r=>!!(r&&(r.mk||r.w));
+ function fitP(p,role,i,T){p.pride=role==='boss'?'A':role==='esc'?(T.escP[i]||'C'):'C';p.dist=T.lv[role];
+  const keep=potNames(p).filter(v=>!/^와일드( 보스)?$|^레이드 배틀/.test(v));const L=(role==='boss'?['와일드 보스','레이드 배틀 : '+T.raid]:['와일드']).concat(keep);
+  const n=Math.max(20,(p.pots||[]).length);const pe=p.potEff||[],pk=p.potKind||[];const oldE={},oldK={};(p.pots||[]).forEach((v,j)=>{if(v){oldE[String(v).trim()]=pe[j]||'';oldK[String(v).trim()]=pk[j]||''}});
+  p.pots=Array.from({length:n},(_,j)=>L[j]||'');p.potEff=p.pots.map(v=>v?(oldE[v]||''):'');p.potKind=p.pots.map(v=>v?(oldK[v]||''):'');return p}
+ function newP(role,i,T){const E=ENV();const p=E.newPoke();p.open=false;return fitP(p,role,i,T)}
+ /* 생성기 뼈대(slot) → 제작기 포켓몬 */
+ function slotToP(s,T){const p=newP(s.role||'pre',0,T);p.name=s.name||'';p.t1=s.t1||'-';p.t2=s.t2||'-';p.ability=s.ability||'';p.moves=(s.moves||[]).map(n=>({name:n,half:false}));p.pride=s.pride||p.pride;p.dist=+s.dist||0;
+  if(s.name&&!spOf(s.name)&&Array.isArray(s.base))p.base=s.base.slice(0,6).map(v=>String(v));   /* DB 에 없는 새 몬스터만 종족치를 옮긴다 */
+  const keep=(s.pots||[]).filter(Boolean);p.pots=Array.from({length:20},(_,j)=>keep[j]||'');p.potEff=p.pots.map(()=>'');p.potKind=p.pots.map(()=>'');
+  const ex=[...(s.gye||[]),...(s.wp?[s.wp]:[])].filter(g=>g&&(g.name||g.eff));if(ex[0])p.excl={name:ex[0].name||'',eff:ex[0].eff||''};p.exclX=ex.slice(1).map(g=>({name:g.name||'',eff:g.eff||''}));return p}
+ function folderFor(id,x){const S=mS();if(!S)return '';const E=ENV();let root=S.folders.find(f=>f&&f.dgRoot);if(!root){root={id:E.uid(),name:'던전 야생',dgRoot:true,deco:{icon:'🗺',title:'제작기 「던전 생성」 탭이 만든 야생 시트 — 던전마다 폴더 하나'}};S.folders.push(root)}
+  let f=S.folders.find(f=>f&&f.dgId===id);if(!f){f={id:E.uid(),name:(x&&x.d&&x.d.n)||'던전',parent:root.id,dgId:id};S.folders.push(f)}return f.id}
+ function mkGroup(id,x,rid,r,mons){const E=ENV();const S=mS();if(!S)return '';const t=E.newTrainer();t.open=false;t.name=(r.t==='boss'?'야생 보스 · ':'야생 · ')+(r.n||'방');t.kind='npc';t.folder=folderFor(id,x);
+  t.ranks={지시:'D',육성:'C',통솔:'D',능력:'D'};t.wild=true;t.dgId=id;t.dgRoom=rid;t.pokemon=mons||[];S.trainers.push(t);return t.id}
+ /* 뼈대(r.w)를 제작기 트레이너로 옮긴다 — 편집할 수 있고 제작기가 다 불러왔을 때 */
+ const mkReady=()=>{const E=ENV();if(!mS())return false;if(!db())return true;return !!(E.shOn&&E.shOn()&&E.canWrite&&E.canWrite())};
+ function materialize(id){const x=ST.docs[id];if(!x||!canEd(x)||!mkReady())return 0;const T=TPL[x.tier]||TPL.s1;let n=0;
+  for(const [rid,r] of Object.entries(x.d.r||{})){if(!r||r.mk||!r.w)continue;const tid=mkGroup(id,x,rid,r,r.w.mons.map(s=>slotToP(s,T)));if(!tid)continue;r.mk=tid;delete r.w;n++}
+  if(n){ENV().save();touch(id)}return n}
+ const groupsOf=id=>{const S=mS();return S?S.trainers.filter(t=>t&&t.wild&&t.dgId===id):[]};
+ function dropGroups(id,only){const S=mS();if(!S)return 0;const before=S.trainers.length;S.trainers=S.trainers.filter(t=>!(t&&t.wild&&t.dgId===id&&(!only||only.includes(t.id))));const n=before-S.trainers.length;if(n)ENV().save();return n}
+
  /* 시작 방에서 가까운 순 (보스방은 맨 뒤) */
  function roomOrder(d){const adj={};for(const k of Object.keys(d.l||{})){const [a,b]=k.split('~');(adj[a]=adj[a]||[]).push(b);(adj[b]=adj[b]||[]).push(a)}
   const seen=new Set([d.st]),q=[d.st],out=[];while(q.length){const c=q.shift();if(!d.r[c])continue;out.push(c);for(const n of adj[c]||[])if(!seen.has(n)){seen.add(n);q.push(n)}}
@@ -105,21 +141,28 @@ window.MK_DG=(()=>{
   wpFit(d,T);mqFit(d,T);return {d,seed}}
 
  /* ── 템플릿 시트 적용 (빠진 것만 채움 — 고른 포켓몬 · 기술 · 써 둔 포텐셜은 남긴다) ── */
- function applyTpl(doc){const T=TPL[doc.tier]||TPL.s1;const d=doc.d;const ord=roomOrder(d);let pi=0;const log=[];
+ function applyTpl(doc,did){const T=TPL[doc.tier]||TPL.s1;const d=doc.d;const ord=roomOrder(d);let pi=0;const log=[];let mkCh=false;
   for(const id of ord){const r=d.r[id];if(!r)continue;
+   if(did&&mkReady()&&(r.t==='battle'||r.t==='boss')&&(r.mk||!r.w)){/* 제작기 트레이너 */let t=TR(r.mk);if(!t){const tid=mkGroup(did,doc,id,r,[]);r.mk=tid;t=TR(tid)}if(!t)continue;mkCh=true;
+    if(r.t==='battle'){const n=T.pre[pi]??T.pre[T.pre.length-1];pi++;while(t.pokemon.length<n)t.pokemon.push(newP('pre',t.pokemon.length,T));if(t.pokemon.length>n)log.push(`「${r.n}」 ${t.pokemon.length}체 (템플릿 ${n}체)`);t.pokemon.forEach((p,i)=>fitP(p,'pre',i,T))}
+    else{while(t.pokemon.length<T.boss)t.pokemon.push(newP(t.pokemon.length?'esc':'boss',Math.max(0,t.pokemon.length-1),T));if(t.pokemon.length>T.boss)log.push(`「${r.n}」 ${t.pokemon.length}체 (템플릿 ${T.boss}체)`);
+     let bi=t.pokemon.findIndex(isBossP);if(bi<0)bi=0;let ei=0;t.pokemon.forEach((p,i)=>{if(i===bi)fitP(p,'boss',0,T);else fitP(p,'esc',ei++,T)})}
+    continue}
+   if(r.mk){const t=TR(r.mk);if(t){mkCh=true;t.pokemon.forEach((p,i)=>fitP(p,'pre',i,T))}continue}
    if(r.t==='battle'){const n=T.pre[pi]??T.pre[T.pre.length-1];pi++;if(!r.w)r.w={name:'야생 · '+r.n,rank:'C',mons:[]};while(r.w.mons.length<n)r.w.mons.push(slot('pre',r.w.mons.length,T));if(r.w.mons.length>n)log.push(`「${r.n}」 ${r.w.mons.length}체 (템플릿 ${n}체)`);r.w.mons.forEach((m,i)=>fit(m,'pre',i,T))}
    else if(r.t==='boss'){if(!r.w)r.w={name:'야생 보스 · '+r.n,rank:'C',mons:[]};while(r.w.mons.length<T.boss)r.w.mons.push(slot(r.w.mons.length?'esc':'boss',Math.max(0,r.w.mons.length-1),T));if(r.w.mons.length>T.boss)log.push(`「${r.n}」 ${r.w.mons.length}체 (템플릿 ${T.boss}체)`);r.w.mons.forEach((m,i)=>fit(m,i===0?'boss':'esc',i-1,T))}
    else if(r.w&&r.t!=='battle'&&r.t!=='boss'){/* 다른 방에 남은 야생 → 사전 몹 */r.w.mons.forEach((m,i)=>fit(m,'pre',i,T))}}
+  if(mkCh)ENV().save();
   if(pi<T.pre.length)log.push(`조우 방 ${pi}개 (템플릿 ${T.pre.length}개)`);
   if(T.rest&&!Object.values(d.r).some(r=>r.t==='safe'&&r.rk))log.push('보스 앞 중간 휴식(세이프룸)이 없음');
   wpFit(d,T);mqFit(d,T);return log}
 
  /* ── 검사 ── */
- function check(doc){const T=TPL[doc.tier]||TPL.s1;const d=doc.d;const ms=[];for(const id of roomOrder(d)){const r=d.r[id];if(r&&r.w)r.w.mons.forEach(m=>ms.push([r,m]))}
+ function check(doc){const T=TPL[doc.tier]||TPL.s1;const d=doc.d;const ms=[];for(const id of roomOrder(d)){const r=d.r[id];monsOf(r).forEach(m=>ms.push([r,m]))}
   const noBoss=ms.filter(([,m])=>!m.boss),boss=ms.filter(([,m])=>m.boss);
   const sum=a=>Math.round(a.reduce((x,[,m])=>x+pcost(m.pride),0)*100)/100;
-  const s0=sum(noBoss),s1=sum(ms);const gyeN=ms.reduce((x,[,m])=>x+(m.gye||[]).filter(g=>g.name).length,0),gyeT=ms.reduce((x,[,m])=>x+T.gye[m.role||'pre'],0);
-  const wpN=ms.filter(([,m])=>m.wp&&m.wp.name).length;const mqN=(d.mq||[]).filter(x=>x.name).length;const empty=ms.filter(([,m])=>!m.name).length;
+  const s0=sum(noBoss),s1=sum(ms);const exN0=ms.reduce((x,[,m])=>x+m.ex,0),exT=ms.reduce((x,[,m])=>x+T.gye[m.role||'pre'],0)+T.wp;
+  const mqN=(d.mq||[]).filter(x=>x.name).length;const empty=ms.filter(([,m])=>!m.name).length;
   const nb=Object.values(d.r).filter(r=>r.t==='battle').length;
   return [
    {ok:s0===T.tgt,t:`통솔점 합 (보스 빼고) ${s0} / ${T.tgt}`},
@@ -127,8 +170,7 @@ window.MK_DG=(()=>{
    {ok:boss.length===1,t:`보스 ${boss.length}체 (1체)`},
    {ok:nb===T.pre.length,t:`조우 방 ${nb}개 (${T.pre.length}개)`},
    {ok:empty===0,t:empty?`포켓몬을 안 고른 칸 ${empty}`:'포켓몬 모두 고름'},
-   {ok:gyeN>=gyeT,t:`『계제』 ${gyeN} / ${gyeT}`},
-   {ok:wpN===T.wp,t:`야생 포텐셜 ${wpN} / ${T.wp}`},
+   {ok:exN0>=exT,t:`전용 칸(『계제』 + 야생 포텐셜) ${exN0} / ${exT}`},
    {ok:mqN===T.mq,t:`미궁 포텐셜 ${mqN} / ${T.mq}`}]}
 
  /* ── 저장소 ── */
@@ -176,10 +218,10 @@ window.MK_DG=(()=>{
  function make(){const v=id=>(document.getElementById(id)||{}).value||'';const M=me();const name=v('dgnO').trim();if(name){try{localStorage.setItem('mkdg_name',name)}catch(e){}}
   let res;try{res=generate({tier:v('dgnT'),theme:v('dgnH').trim()||'폐가',name:v('dgnN').trim(),seed:v('dgnS'),owner:name})}catch(e){return toast(e.message)}
   const id=uid('dg');ST.docs[id]={d:res.d,tier:v('dgnT')||'s1',theme:v('dgnH').trim().slice(0,20)||'폐가',seed:res.seed,owner:M.key,ownerName:name||M.name||'',pub:!!(document.getElementById('dgnP')||{}).checked,at:Date.now()};
-  touch(id);try{ENV().closeModal()}catch(e){}ST.view='ed';ST.id=id;ST.sel='';render();toast('던전을 만들었어요 — 방을 눌러 고치세요')}
+  touch(id);materialize(id);try{ENV().closeModal()}catch(e){}ST.view='ed';ST.id=id;ST.sel='';render();toast('던전을 만들었어요 — 방을 눌러 고치세요 (야생 시트는 제작기 「던전 야생」 폴더)')}
 
  /* ── 편집 ── */
- function edHTML(){const x=ST.docs[ST.id];const d=x.d;const E=canEd(x);const T=TPL[x.tier]||TPL.s1;const dis=E?'':'disabled';
+ function edHTML(){const x=ST.docs[ST.id];if(Object.values(x.d.r||{}).some(r=>r&&r.w&&!r.mk))materialize(ST.id);const d=x.d;const E=canEd(x);const T=TPL[x.tier]||TPL.s1;const dis=E?'':'disabled';
   const c=check(x);
   return `<div class="dgwrap dged"><div class="row dg-top"><button class="btn sm ghost" data-dg="back">← 목록</button>
     <input class="dgname" data-f="n" value="${esc(d.n)}" ${dis} aria-label="던전 이름">
@@ -191,7 +233,7 @@ window.MK_DG=(()=>{
    <div class="dged-b"><div class="dgmap-w">${mapSVG(d)}${E?`<div class="row small muted dgmap-a"><button class="btn sm ghost" data-dg="addroom" ${ST.sel?'':'disabled'}>＋ 고른 방 옆에 방</button><button class="btn sm ${ST.linkFrom?'pri':'ghost'}" data-dg="link" ${ST.sel?'':'disabled'}>${ST.linkFrom?'이을 방을 누르세요 (취소)':'통로 잇기 · 끊기'}</button><span>방을 누르면 고친다 · 끌어서 옮긴다</span></div>`:''}</div>
     <div class="dgpanel">${ST.sel&&d.r[ST.sel]?roomHTML(x,ST.sel,E):mqHTML(x,E)}</div></div></div>`}
  function mapSVG(d){const R=d.r||{};const lines=Object.keys(d.l||{}).map(k=>{const [a,b]=k.split('~');const A=R[a],B=R[b];if(!A||!B)return '';return `<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}"/>`}).join('');
-  const nodes=Object.entries(R).map(([id,r])=>{const t=TY[r.t]||TY.room;const n=r.w?r.w.mons.length:0;return `<g class="dgn ${ST.sel===id?'on':''} ${ST.linkFrom===id?'lf':''}" data-room="${esc(id)}" transform="translate(${r.x},${r.y})"><circle r="${r.t==='boss'?30:24}" fill="${t[2]}"/><text class="ic" y="6">${t[1]}</text><text class="nm" y="${r.t==='boss'?48:42}">${esc(String(r.n||'').slice(0,10))}</text>${n?`<text class="cnt" x="20" y="-16">${n}</text>`:''}${id===d.st?'<text class="st" x="-26" y="-20">시작</text>':''}</g>`}).join('');
+  const nodes=Object.entries(R).map(([id,r])=>{const t=TY[r.t]||TY.room;const n=monsOf(r).length;return `<g class="dgn ${ST.sel===id?'on':''} ${ST.linkFrom===id?'lf':''}" data-room="${esc(id)}" transform="translate(${r.x},${r.y})"><circle r="${r.t==='boss'?30:24}" fill="${t[2]}"/><text class="ic" y="6">${t[1]}</text><text class="nm" y="${r.t==='boss'?48:42}">${esc(String(r.n||'').slice(0,10))}</text>${n?`<text class="cnt" x="20" y="-16">${n}</text>`:''}${id===d.st?'<text class="st" x="-26" y="-20">시작</text>':''}</g>`}).join('');
   const P=Object.values(R);let vb='0 0 1000 640';if(P.length&&!ST.drag){const xs=P.map(r=>r.x),ys=P.map(r=>r.y);let x0=Math.max(0,Math.min(...xs)-80),x1=Math.min(1000,Math.max(...xs)+80),y0=Math.max(0,Math.min(...ys)-60),y1=Math.min(640,Math.max(...ys)+70);if(x1-x0<420){const c=(x0+x1)/2;x0=c-210;x1=c+210}if(y1-y0<260){const c=(y0+y1)/2;y0=c-130;y1=c+130}vb=`${Math.round(x0)} ${Math.round(y0)} ${Math.round(x1-x0)} ${Math.round(y1-y0)}`}
   return `<svg class="dgmap" viewBox="${vb}" role="img" aria-label="던전 지도"><g class="ln">${lines}</g>${nodes}</svg>`}
  function roomHTML(x,id,E){const r=x.d.r[id];const dis=E?'':'disabled';const T=TPL[x.tier]||TPL.s1;
@@ -201,7 +243,19 @@ window.MK_DG=(()=>{
    ${r.t==='safe'?`<label>휴식 <select data-r="rk" ${dis}>${RK.map(([k,v])=>`<option value="${k}" ${(r.rk||'')===k?'selected':''}>${v}</option>`).join('')}</select></label>`:''}
    <label>GM 메모 <textarea data-r="m" rows="2" ${dis}>${esc(r.m||'')}</textarea></label>
    ${['room','trap','puzzle'].includes(r.t)?`<div class="dgsk"><label class="row"><input type="checkbox" data-r="hassk" ${sk?'checked':''} ${dis}> 스킬 체크</label>${sk?`<label>내용 <input data-k="label" value="${esc(sk.label||'')}" ${dis}></label><div class="row"><label>자질 <select data-k="stat" ${dis}>${STATS.map(s=>`<option ${sk.stat===s?'selected':''}>${s}</option>`).join('')}</select></label><label>목표 <select data-k="target" ${dis}>${[8,10,12,15].map(v=>`<option value="${v}" ${+sk.target===v?'selected':''}>${v} (${({8:'쉬움',10:'보통',12:'어려움',15:'매우 어려움'})[v]})</option>`).join('')}</select></label></div>`:''}</div>`:''}
-   ${r.w?wildHTML(r,E,T):(['battle','boss'].includes(r.t)?`<p class="small muted">야생 시트가 없어요. 「템플릿 시트 적용」을 누르면 템플릿 머릿수만큼 생겨요.</p>`:'')}</div>`}
+   ${r.mk?mkWildHTML(r,E,T):r.w?wildHTML(r,E,T):(['battle','boss'].includes(r.t)?`<p class="small muted">야생 시트가 없어요. 「템플릿 시트 적용」을 누르면 템플릿 머릿수만큼 생겨요.</p>`:'')}</div>`}
+ /* 제작기 트레이너 야생 시트 — 요약 카드 + 「제작기 시트로 고치기」(노트와 같은 한 장 창) */
+ function mkWildHTML(r,E,T){const t=TR(r.mk);const RL={pre:'사전 몹',esc:'졸개',boss:'보스'};
+  if(!t)return `<div class="dgw"><b>야생 시트</b><p class="small dgwarn">제작기 트레이너(${esc(r.mk)})를 찾지 못했어요 — 지워졌거나 아직 불러오는 중이에요.${E?' 「템플릿 시트 적용」을 누르면 새로 만들어요.':''}</p></div>`;
+  const L=monsOf(r);const lvOf=p=>{try{return ENV().lvOf(t,p)}catch(e){return null}};
+  return `<div class="dgw"><div class="row"><b>야생 시트</b><span class="small muted">${L.length}체 · 통솔점 ${Math.round(L.reduce((a,m)=>a+pcost(m.pride),0)*100)/100}</span><span class="sp"></span>${E&&L.length<6?'<button class="btn sm ghost" data-dg="addmon">＋ 1체</button>':''}</div>
+   <p class="small muted" style="margin:0">제작기 트레이너 「${esc(t.name)}」 — 캐릭터 제작 탭 「던전 야생 / ${esc((ST.docs[ST.id]||{}).d?.n||'')}」 폴더에도 있어요. 포켓몬은 제작기 시트 그대로 고쳐요.</p>
+   ${L.map((m,i)=>{const p=m.p;const ty=[p.t1,p.t2].filter(v=>v&&v!=='-').join(' · ');const lv=lvOf(p);const mv=(p.moves||[]).map(x=>x&&x.name).filter(Boolean);const ex=[p.excl,...(p.exclX||[])].filter(e=>e&&e.name).map(e=>'『'+e.name+'』');const need=T.gye[m.role]||0;
+    return `<div class="dgm dgmk" data-mi="${i}"><div class="row"><span class="dgrole ${m.role}">${RL[m.role]||''}</span><b class="dgmn">${m.name?esc(m.name):'<span class="dgwarn">포켓몬 안 고름</span>'}</b>${ty?`<span class="small muted">${esc(ty)}</span>`:''}<span class="sp"></span>
+      <button class="btn sm ${E?'pri':'ghost'}" data-dg="ped" data-pid="${esc(p.id)}">${E?'✎ 제작기 시트로 고치기':'시트 보기'}</button>${E?`<button class="btn sm ghost" data-dg="delmon" title="이 포켓몬 빼기">✕</button>`:''}</div>
+     <div class="small dgmk-l">프라이드 <b>${esc(m.pride||'-')}</b> · 분배 ${(+p.dist||0)>0?'+':''}${+p.dist||0}${lv!=null?` (Lv ${lv})`:''}${p.ability?' · 특성 '+esc(p.ability):''} · 기술 ${mv.length}${mv.length?' — '+esc(mv.slice(0,4).join(', '))+(mv.length>4?' …':''):''}</div>
+     <div class="small dgmk-l">포텐셜 ${esc(potNames(p).join(' · ')||'-')}</div>
+     <div class="small dgmk-l ${m.ex>=need?'':'dgwarn'}">전용 ${ex.length?esc(ex.join(' ')):'없음'}${need?` · 『계제』 ${need}칸 권장`:''}</div></div>`}).join('')}</div>`}
  /* 11-16 PL 제보 「야생 시트에 종족치 · 타입 칸이 없다」: 이름이 제작기 DB 에 있으면 자동으로 채우고, 새로 만든 몬스터는 손으로 — 타입 2칸 · 종족치 6칸 */
  const TYK=['-','노말','불꽃','물','전기','풀','얼음','격투','독','땅','비행','에스퍼','벌레','바위','고스트','드래곤','악','강철','페어리'],BSN=['HP','공격','방어','특공','특방','스피드'];
  function wildHTML(r,E,T){const dis=E?'':'disabled';const RL={pre:'사전 몹',esc:'졸개',boss:'보스'};
@@ -240,6 +294,15 @@ window.MK_DG=(()=>{
  const SPX={};function spOf(n){if(!n)return null;if(SPX[n]!==undefined)return SPX[n];const L=((ENV().data&&ENV().data())||window.MKM_DB||{}).old||[];return SPX[n]=L.find(r=>r[1]===n)||null}
  function spList(){if(document.getElementById('dgSpList'))return;const L=(window.MKM_DB||{}).old||[];const dl=document.createElement('datalist');dl.id='dgSpList';dl.innerHTML=L.map(r=>`<option value="${esc(r[1])}">`).join('');document.body.appendChild(dl)}
 
+ /* 제작기 한 장 창 (세션 노트 「제작기로 고치기」 NT_MONED 와 같은 길: ?focus=<트레이너>&p=<포켓몬>&embed=1 · 닫을 때 {mkm:'flush'} → {mkm:'flushed'}) */
+ async function openPoke(tid,pid){const E=ENV();if(E.flushNow){toast('제작기에 올리는 중…');const ok=await E.flushNow();if(!ok)toast('아직 다 올라가지 않았어요 — 창이 비어 보이면 잠시 뒤 다시 열어 주세요')}
+  const src=location.pathname+'?'+new URLSearchParams({focus:tid,p:pid,embed:'1',t:Date.now().toString(36)}).toString();
+  E.openModal(`<div class="mhead"><h2>야생 시트 — 제작기 화면</h2><span class="sp"></span><a class="btn sm ghost" href="${esc(src.replace(/&embed=1/,''))}" target="_blank" rel="noopener">새 창 ↗</a><button class="btn sm pri" data-dg="pedx">저장하고 닫기</button></div><div class="dgemb"><iframe id="dgEmbF" title="제작기" src="${esc(src)}"></iframe><div class="dgemb-w" hidden>제작기에 저장하는 중…</div></div>`,{wide:true})}
+ let PEDBUSY=false;
+ async function closePoke(){if(PEDBUSY)return;const f=document.getElementById('dgEmbF');if(!f){try{ENV().closeModal()}catch(e){}return}PEDBUSY=true;const w=f.parentElement.querySelector('.dgemb-w');if(w)w.hidden=false;
+  const ok=await new Promise(res=>{let done=false;const on=e=>{const d=e.data;if(!d||d.mkm!=='flushed'||e.source!==f.contentWindow)return;done=true;window.removeEventListener('message',on);res(d.ok!==false)};window.addEventListener('message',on);
+   try{f.contentWindow.postMessage({mkm:'flush'},'*')}catch(e){}setTimeout(()=>{if(!done){window.removeEventListener('message',on);res(false)}},12000)});
+  PEDBUSY=false;if(!ok)toast('제작기 저장을 다 확인하지 못했어요 — 잠시 뒤 다시 열어 확인해 주세요');try{ENV().closeModal()}catch(e){}setTimeout(()=>render({soft:true}),900);setTimeout(()=>render({soft:true}),3000)}
  /* 지도: 누르기 · 끌기 */
  function bindMap(){spList();const svg=root().querySelector('.dgmap');if(!svg)return;const x=ST.docs[ST.id];const E=canEd(x);let drag=null;
   const pt=e=>{const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse())};
@@ -252,9 +315,9 @@ window.MK_DG=(()=>{
 
  /* 입력 */
  function onInput(e){const t=e.target;if(!t.closest||!t.closest('#v-dg'))return;const x=ST.docs[ST.id];if(!x||!canEd(x))return;const d=x.d;const r=ST.sel&&d.r[ST.sel];let re=false;
-  if(t.dataset.f){const f=t.dataset.f;if(f==='n'||f==='a')d[f]=t.value;else if(f==='pub')x.pub=t.checked;else if(f==='tier'){x.tier=t.value;re=true}}
+  if(t.dataset.f){const f=t.dataset.f;if(f==='n'||f==='a')d[f]=t.value;if(f==='n'&&e.type==='change'){const S=mS();const fo=S&&S.folders.find(q=>q&&q.dgId===ST.id);if(fo){fo.name=d.n||'던전';ENV().save()}}else if(f==='pub')x.pub=t.checked;else if(f==='tier'){x.tier=t.value;re=true}}
   else if(t.dataset.r&&r){const f=t.dataset.r;if(f==='hassk'){if(t.checked)r.sk={v:4,label:'',name:'',stat:'지시',target:10,scene:'field',auto:'normal'};else delete r.sk;re=true}
-   else if(f==='t'){r.t=t.value;if(r.t!=='safe')delete r.rk;re=true}else if(f==='rk'){if(t.value)r.rk=t.value;else delete r.rk}else r[f]=t.value;if(f==='n')re=e.type==='change'}
+   else if(f==='t'){r.t=t.value;if(r.t!=='safe')delete r.rk;re=true}else if(f==='rk'){if(t.value)r.rk=t.value;else delete r.rk}else r[f]=t.value;if(f==='n'){re=e.type==='change';if(re&&r.mk){const g=TR(r.mk);if(g){g.name=(r.t==='boss'?'야생 보스 · ':'야생 · ')+(r.n||'방');ENV().save()}}}}
   else if(t.dataset.k&&r&&r.sk){const f=t.dataset.k;if(f==='target'){r.sk.target=+t.value;r.sk.auto=AUTO[+t.value]}else{r.sk[f]=t.value;if(f==='label')r.sk.name=t.value}}
   else if(t.dataset.fe){const fe=feRead();if(fe)d.fe=fe;else delete d.fe;re=t.tagName==="SELECT"}
   else if(t.dataset.q!=null){const q=d.mq[+t.dataset.q];if(q)q[t.dataset.qf]=t.value}
@@ -267,22 +330,28 @@ window.MK_DG=(()=>{
    else if(t.dataset.g!=null){const g=m.gye[+t.dataset.g];if(g)g[t.dataset.gf]=t.value}else if(t.dataset.wp&&m.wp)m.wp[t.dataset.wp]=t.value}}
   touch(ST.id);if(re&&e.type==='change')render()}
  async function onClick(e){const b=e.target.closest('[data-dg]');if(!b||!b.closest('#v-dg,.mbox'))return;const k=b.dataset.dg;const x=ST.docs[ST.id];
+  if(k==='pedx')return closePoke();
   if(k==='new')return newDlg();if(k==='mk')return make();if(k==='cancel'){try{ENV().closeModal()}catch(_){}return}
   if(k==='open'){ST.view='ed';ST.id=b.dataset.id;ST.sel='';ST.linkFrom='';return render()}
   if(k==='back'){await flush();ST.view='list';return render()}
-  if(k==='dup'){const s=ST.docs[b.dataset.id];if(!s)return;const M=me();const id=uid('dg');const c=clone(s);c.owner=M.key;c.ownerName=M.name||c.ownerName;c.pub=false;c.d.n=(c.d.n||'던전')+' (복제)';c.at=Date.now();ST.docs[id]=c;touch(id);ST.view='ed';ST.id=id;ST.sel='';toast('내 던전으로 복제했어요');return render()}
-  if(k==='del'){const s=ST.docs[b.dataset.id];if(!s||!canEd(s))return;if(!confirm(`「${s.d.n||'던전'}」 을 지울까요? (30일 안에는 되살릴 수 있어요)`))return;await del(b.dataset.id);return render()}
+  if(k==='dup'){const s=ST.docs[b.dataset.id];if(!s)return;const M=me();const id=uid('dg');const c=clone(s);c.owner=M.key;c.ownerName=M.name||c.ownerName;c.pub=false;c.d.n=(c.d.n||'던전')+' (복제)';c.at=Date.now();ST.docs[id]=c;
+   /* 야생 시트(제작기 트레이너)도 새로 복사 — 원본을 같이 고치지 않게 */if(mkReady()){const E2=ENV();let n=0;for(const [rid,r] of Object.entries(c.d.r||{})){if(!r||!r.mk)continue;const src=TR(r.mk);if(!src){delete r.mk;continue}const ps=src.pokemon.map(p=>Object.assign(clone(p),{id:E2.uid()}));r.mk=mkGroup(id,c,rid,r,ps);n++}if(n)E2.save()}
+   touch(id);ST.view='ed';ST.id=id;ST.sel='';toast('내 던전으로 복제했어요');return render()}
+  if(k==='del'){const s=ST.docs[b.dataset.id];if(!s||!canEd(s))return;const g=groupsOf(b.dataset.id);if(!confirm(`「${s.d.n||'던전'}」 을 지울까요?${g.length?`\n야생 시트(제작기 트레이너) ${g.length}명도 같이 지워요.`:''} (30일 안에는 되살릴 수 있어요)`))return;dropGroups(b.dataset.id);await del(b.dataset.id);return render()}
   if(!x)return;const E=canEd(x);const d=x.d;
   if(k==='json'){const t=JSON.stringify(d,null,1);try{await navigator.clipboard.writeText(t);toast('웹툴 던전 JSON 을 복사했어요')}catch(_){prompt('복사하세요',t)}return}
+  if(k==='ped'){const r0=ST.sel&&d.r[ST.sel];if(r0&&r0.mk)openPoke(r0.mk,b.dataset.pid);return}
   if(!E)return;
-  if(k==='tpl'){const log=applyTpl(x);touch(ST.id);render();toast(log.length?'템플릿 적용 · 확인: '+log.join(' / '):'템플릿대로 맞췄어요');return}
-  if(k==='regen'){if(!confirm('지도와 방을 새로 만들어요. 지금 방 · 야생 시트는 사라져요. 계속할까요?'))return;try{const res=generate({tier:x.tier,theme:x.theme||'폐가',name:d.n,owner:x.ownerName});x.d=res.d;x.seed=res.seed;ST.sel='';touch(ST.id);render()}catch(err){toast(err.message)}return}
+  if(k==='tpl'){const log=applyTpl(x,ST.id);touch(ST.id);render();toast(log.length?'템플릿 적용 · 확인: '+log.join(' / '):'템플릿대로 맞췄어요');return}
+  if(k==='regen'){if(!confirm('지도와 방을 새로 만들어요. 지금 방 · 야생 시트(제작기 트레이너)는 사라져요. 계속할까요?'))return;try{const res=generate({tier:x.tier,theme:x.theme||'폐가',name:d.n,owner:x.ownerName});dropGroups(ST.id);x.d=res.d;x.seed=res.seed;ST.sel='';touch(ST.id);materialize(ST.id);render()}catch(err){toast(err.message)}return}
   if(k==='unsel'){ST.sel='';ST.linkFrom='';return render()}
   if(k==='link'){ST.linkFrom=ST.linkFrom?'':ST.sel;return render()}
   if(k==='start'&&ST.sel){d.st=ST.sel;touch(ST.id);return render()}
   if(k==='addroom'&&ST.sel){const a=d.r[ST.sel];const id='x'+Math.random().toString(36).slice(2,6);let px=a.x+140,py=a.y;if(px>970){px=a.x-140}d.r[id]={n:'새 방',t:'room',m:'',x:clamp(px,30,970),y:clamp(py,30,600)};d.l[lk(ST.sel,id)]=1;ST.sel=id;touch(ST.id);return render()}
-  if(k==='delroom'&&ST.sel&&ST.sel!==d.st){if(!confirm(`「${d.r[ST.sel].n}」 방을 지울까요?`))return;delete d.r[ST.sel];for(const kk of Object.keys(d.l))if(kk.split('~').includes(ST.sel))delete d.l[kk];ST.sel='';touch(ST.id);return render()}
+  if(k==='delroom'&&ST.sel&&ST.sel!==d.st){const rr=d.r[ST.sel];if(!confirm(`「${rr.n}」 방을 지울까요?${rr.mk?' 야생 시트(제작기 트레이너)도 같이 지워요.':''}`))return;if(rr.mk)dropGroups(ST.id,[rr.mk]);delete d.r[ST.sel];for(const kk of Object.keys(d.l))if(kk.split('~').includes(ST.sel))delete d.l[kk];ST.sel='';touch(ST.id);return render()}
   const r=ST.sel&&d.r[ST.sel];const T=TPL[x.tier]||TPL.s1;
+  if(k==='addmon'&&r&&r.mk){const g=TR(r.mk);if(!g)return;const role=r.t==='boss'?(g.pokemon.some(isBossP)?'esc':'boss'):'pre';const p=newP(role,g.pokemon.filter(q=>!isBossP(q)).length,T);g.pokemon.push(p);ENV().save();render();return openPoke(g.id,p.id)}
+  if(k==='delmon'&&r&&r.mk){const g=TR(r.mk);if(!g)return;const i=+b.closest('[data-mi]').dataset.mi;const p=g.pokemon[i];if(!p)return;if(!confirm(`「${p.nick||p.name||'빈 칸'}」 을 이 야생 시트에서 뺄까요?`))return;g.pokemon.splice(i,1);ENV().save();return render()}
   if(k==='addmon'&&r&&r.w){r.w.mons.push(slot(r.t==='boss'?'esc':'pre',r.w.mons.length,T));touch(ST.id);return render()}
   if(k==='delmon'&&r&&r.w){const i=+b.closest('[data-mi]').dataset.mi;r.w.mons.splice(i,1);if(!r.w.mons.length)delete r.w;touch(ST.id);return render()}}
  setTimeout(()=>{const el=root();if(el&&!el.hidden)render()},0);
