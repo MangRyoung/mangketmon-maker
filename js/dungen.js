@@ -303,7 +303,7 @@ window.MK_DG=(()=>{
  async function openPoke(tid,pid){if(PEDOPEN||document.getElementById('dgEmbF'))return;PEDOPEN=true;try{await openPoke0(tid,pid)}finally{PEDOPEN=false}}   /* 두 번 눌러 창이 겹치면 아래 창이 「저장하는 중…」으로 남던 것 */
  async function openPoke0(tid,pid){const E=ENV();if(E.flushNow){toast('제작기에 올리는 중…');const ok=await E.flushNow();if(!ok)toast('아직 다 올라가지 않았어요 — 창이 비어 보이면 잠시 뒤 다시 열어 주세요')}
   const src=location.pathname+'?'+new URLSearchParams({focus:tid,p:pid,embed:'1',t:Date.now().toString(36)}).toString();
-  E.openModal(`<div class="mhead"><h2>야생 시트 — 제작기 화면</h2><span class="sp"></span><a class="btn sm ghost" href="${esc(src.replace(/&embed=1/,''))}" target="_blank" rel="noopener">새 창 ↗</a><button class="btn sm pri" data-dg="pedx">저장하고 닫기</button></div><div class="dgemb"><iframe id="dgEmbF" title="제작기" src="${esc(src)}"></iframe><div class="dgemb-w" hidden>제작기에 저장하는 중…</div></div>`,{wide:true})}
+  E.openModal(`<div class="mhead"><h2>야생 시트 — 제작기 화면</h2><span class="sp"></span><a class="btn sm ghost" href="${esc(src.replace(/&embed=1/,''))}" target="_blank" rel="noopener">새 창 ↗</a><button class="btn sm pri" data-dg="pedx">저장하고 닫기</button></div><div class="dgemb"><iframe id="dgEmbF" title="제작기" src="${esc(src)}"></iframe></div>`,{wide:true})}
  let PEDBUSY=false;
  /* 11-16 09:21 PL 제보 「저장하는 중… 이 안 사라진다」: 창 위에 다른 창(제작기 알림 등)이 뜨면 closeModal 이 그쪽을 닫아 이 창이 남았다 → 이 창의 layer 를 콕 집어 닫는다(closeLayer).
     그리고 「저장하고 닫기」를 누르면 창은 바로 숨기고(안의 제작기는 살아 있어 저장을 마저 한다) 저장 확인이 오면(또는 12초) 치운다 */
