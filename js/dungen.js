@@ -174,7 +174,7 @@ window.MK_DG=(()=>{
    {ok:boss.length===1,t:`보스 ${boss.length}체 (1체)`},
    {ok:nb===T.pre.length,t:`조우 방 ${nb}개 (${T.pre.length}개)`},
    {ok:empty===0,t:empty?`포켓몬을 안 고른 칸 ${empty}`:'포켓몬 모두 고름'},
-   {ok:exN0>=exT,t:`전용 칸(『계제』 + 야생 포텐셜) ${exN0} / ${exT}`},
+   {ok:exN0>=exT,t:`야생 포텐셜 칸 (『계제』 포함) ${exN0} / ${exT}`},
    {ok:mqN===T.mq,t:`미궁 포텐셜 ${mqN} / ${T.mq}`}]}
 
  /* ── 저장소 ── */
@@ -259,7 +259,7 @@ window.MK_DG=(()=>{
       <button class="btn sm ${E?'pri':'ghost'}" data-dg="ped" data-pid="${esc(p.id)}">${E?'✎ 제작기 시트로 고치기':'시트 보기'}</button>${E?`<button class="btn sm ghost" data-dg="delmon" title="이 포켓몬 빼기">✕</button>`:''}</div>
      <div class="small dgmk-l">프라이드 <b>${esc(m.pride||'-')}</b> · 분배 ${(+p.dist||0)>0?'+':''}${+p.dist||0}${lv!=null?` (Lv ${lv})`:''}${p.ability?' · 특성 '+esc(p.ability):''} · 기술 ${mv.length}${mv.length?' — '+esc(mv.slice(0,4).join(', '))+(mv.length>4?' …':''):''}</div>
      <div class="small dgmk-l">포텐셜 ${esc(potNames(p).join(' · ')||'-')}</div>
-     <div class="small dgmk-l ${m.ex>=need?'':'dgwarn'}">전용 ${ex.length?esc(ex.join(' ')):'없음'}${need?` · 『계제』 ${need}칸 권장`:''}</div></div>`}).join('')}</div>`}
+     <div class="small dgmk-l ${m.ex>=need?'':'dgwarn'}">야생 포텐셜 ${ex.length?esc(ex.join(' ')):'없음'}${need?` · 『계제』 ${need}칸 권장`:''}</div></div>`}).join('')}</div>`}
  /* 11-16 PL 제보 「야생 시트에 종족치 · 타입 칸이 없다」: 이름이 제작기 DB 에 있으면 자동으로 채우고, 새로 만든 몬스터는 손으로 — 타입 2칸 · 종족치 6칸 */
  const TYK=['-','노말','불꽃','물','전기','풀','얼음','격투','독','땅','비행','에스퍼','벌레','바위','고스트','드래곤','악','강철','페어리'],BSN=['HP','공격','방어','특공','특방','스피드'];
  function wildHTML(r,E,T){const dis=E?'':'disabled';const RL={pre:'사전 몹',esc:'졸개',boss:'보스'};
