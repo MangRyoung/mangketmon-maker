@@ -199,7 +199,7 @@ window.MK_DG=(()=>{
   const card=([id,x])=>{const T=TPL[x.tier]||TPL.s1;const nr=Object.keys(x.d.r||{}).length;const c=check(x);const bad=c.filter(q=>!q.ok).length;
    return `<div class="dgc"><div class="dgc-h"><b>${esc(x.d.n||'이름 없는 던전')}</b><span class="dgt ${esc(x.tier)}">${esc(T.n)}</span>${x.pub?'<span class="dgpub">공개</span>':''}</div>
     <div class="small muted">${esc(x.d.a||'')} · 방 ${nr} · ${esc(x.ownerName||'이름 없음')} · ${bad?`<span class="dgwarn">템플릿 확인 ${bad}</span>`:'<span class="dgok">템플릿 맞음</span>'}</div>
-    <div class="row dgc-a"><button class="btn sm pri" data-dg="open" data-id="${esc(id)}">${canEd(x)?'열기 · 고치기':'보기'}</button><button class="btn sm ghost" data-dg="dup" data-id="${esc(id)}">복제</button>${canEd(x)?`<span class="sp"></span><button class="btn sm ghost" data-dg="del" data-id="${esc(id)}">지우기</button>`:''}</div></div>`};
+    <div class="row dgc-a"><button class="btn sm pri" data-dg="open" data-id="${esc(id)}">${canEd(x)?'열기 · 고치기':'보기'}</button><button class="btn sm ghost" data-dg="card" data-id="${esc(id)}" title="지도 · 방 · 야생 시트를 한 장으로 (PNG 저장)">▤ 한 장</button><button class="btn sm ghost" data-dg="dup" data-id="${esc(id)}">복제</button>${canEd(x)?`<span class="sp"></span><button class="btn sm ghost" data-dg="del" data-id="${esc(id)}">지우기</button>`:''}</div></div>`};
   return `<div class="dgwrap"><div class="row dg-top"><h2>던전 생성</h2><span class="small muted">난이도 템플릿(미사그 사건 1 · 2 · 3)으로 지도와 야생 시트 뼈대를 만들고 손으로 고친다. 웹툴 던전 탭 「JSON 가져오기 → 제작기에서 만든 던전」으로 가져간다.</span><span class="sp"></span><button class="btn sm pri" data-dg="new">＋ 새 던전 생성</button></div>
    ${db()?'':'<p class="dgwarn small">공유 DB 에 연결되지 않아 이 브라우저에만 저장돼요. 웹툴로 가져가려면 연결이 필요해요.</p>'}
    ${tplTable()}
@@ -232,7 +232,7 @@ window.MK_DG=(()=>{
     <select data-f="tier" ${dis} aria-label="난이도 템플릿">${['s1','s2','s3'].map(t=>`<option value="${t}" ${x.tier===t?'selected':''}>${TPL[t].n}</option>`).join('')}</select>
     <span class="small muted">${esc(T.sub)} · ${esc(d.a||'')} · ${esc(x.ownerName||'')}</span><span class="sp"></span>
     ${E?`<label class="small row"><input type="checkbox" data-f="pub" ${x.pub?'checked':''}> 공개</label><button class="btn sm pri" data-dg="tpl" title="템플릿대로 레벨 · 프라이드 · 『계제』 칸 · 야생/미궁 포텐셜 칸 · 머릿수를 맞춘다 (고른 포켓몬 · 기술 · 써 둔 포텐셜은 남긴다)">템플릿 시트 적용</button><button class="btn sm ghost" data-dg="regen">지도 다시 생성</button>`:''}
-    <button class="btn sm ghost" data-dg="json">JSON 복사</button></div>
+    <button class="btn sm ghost" data-dg="card" title="지도 · 방 · 야생 시트를 한 장으로 (PNG 저장)">▤ 한 장</button><button class="btn sm ghost" data-dg="json">JSON 복사</button></div>
    <div class="dgchk">${c.map(q=>`<span class="${q.ok?'dgok':'dgwarn'}">${q.ok?'✓':'!'} ${esc(q.t)}</span>`).join('')}${d.fe&&d.fe.name?`<span class="dgfei">⛰ ${esc(feText(d.fe))}</span>`:''}</div>
    <div class="dged-b"><div class="dgmap-w">${mapSVG(d)}${E?`<div class="row small muted dgmap-a"><button class="btn sm ghost" data-dg="addroom" ${ST.sel?'':'disabled'}>＋ 고른 방 옆에 방</button><button class="btn sm ${ST.linkFrom?'pri':'ghost'}" data-dg="link" ${ST.sel?'':'disabled'}>${ST.linkFrom?'이을 방을 누르세요 (취소)':'통로 잇기 · 끊기'}</button><span>방을 누르면 고친다 · 끌어서 옮긴다</span></div>`:''}</div>
     <div class="dgpanel">${ST.sel&&d.r[ST.sel]?roomHTML(x,ST.sel,E):mqHTML(x,E)}</div></div></div>`}
@@ -339,9 +339,38 @@ window.MK_DG=(()=>{
     else m[f]=t.value}
    else if(t.dataset.g!=null){const g=m.gye[+t.dataset.g];if(g)g[t.dataset.gf]=t.value}else if(t.dataset.wp&&m.wp)m.wp[t.dataset.wp]=t.value}}
   touch(ST.id);if(re&&e.type==='change')render()}
+ /* 11-17 망령 「던전도 한 장 요약」: 지도 · 던전 전체(테마 · 『미궁 포텐셜』 · 필드 효과) · 방마다(종류 · 휴식 · 스킬 체크 · 야생 시트) 를 한 장으로, PNG 저장 (제작기 cardPng).
+    GM 메모는 고칠 수 있는 사람만, 「GM 메모」 체크로 넣고 뺀다 (PL 에게 그림을 줄 때 빼기) */
+ function cardMap(d){const a=ST.sel,b=ST.linkFrom,c=ST.drag;ST.sel='';ST.linkFrom='';ST.drag=null;try{return mapSVG(d).replace('class="dgmap"','class="dgmap dgmap-s"')}finally{ST.sel=a;ST.linkFrom=b;ST.drag=c}}
+ function cardHTML(x,gm){const d=x.d;const T=TPL[x.tier]||TPL.s1;const ord=roomOrder(d);const RL={pre:'사전 몹',esc:'졸개',boss:'보스'};const lvOf=(t,p)=>{try{return ENV().lvOf(t,p)}catch(e){return null}};
+  const allM=ord.flatMap(id=>monsOf(d.r[id]));const fe=d.fe&&d.fe.name?d.fe:null;
+  const mon=(r,m)=>{const p=m.p;const t=r.mk?TR(r.mk):null;if(!p)return `<div class="dgcd-m"><span class="dgrole ${m.role}">${RL[m.role]||''}</span><b>${esc(m.name||'(안 고름)')}</b> <span class="small muted">프라이드 ${esc(m.pride||'-')}</span></div>`;
+   const ty=[p.t1,p.t2].filter(v=>v&&v!=='-');const lv=t?lvOf(t,p):null;const mv=(p.moves||[]).map(z=>z&&!z.hide&&z.name).filter(Boolean);const ex=[p.excl,...(p.exclX||[])].filter(e=>e&&e.name);
+   return `<div class="dgcd-m"><div class="row"><span class="dgrole ${m.role}">${RL[m.role]||''}</span><b>${esc(m.name||'(안 고름)')}</b>${ty.length?`<span class="small muted">${esc(ty.join(' · '))}</span>`:''}<span class="sp"></span><span class="small">프라이드 <b>${esc(m.pride||'-')}</b>${lv!=null?` · Lv ${lv}`:''}</span></div>
+    <div class="small dgcd-l">${p.ability?'특성 '+esc(p.ability):''}${p.item?' · 도구 '+esc(p.item):''}${mv.length?' · '+esc(mv.join(', ')):''}</div>
+    ${ex.map(e=>`<div class="small dgcd-l"><b>『${esc(e.name)}』</b> ${esc(String(e.eff||'').replace(/<br\s*\/?>/gi,' '))}</div>`).join('')}</div>`};
+  const room=(id,i)=>{const r=d.r[id];const ty=TY[r.t]||TY.room;const sk=r.sk;const L=monsOf(r);const rk=r.t==='safe'&&r.rk?(RK.find(z=>z[0]===r.rk)||[])[1]:'';
+   return `<div class="dgcd-r" style="--rc:${ty[2]}"><div class="row dgcd-rh"><span class="dgcd-no">${i+1}</span><span class="dgcd-ic">${ty[1]}</span><b>${esc(r.n||'(이름 없음)')}</b><span class="small muted">${esc(ty[0])}${id===d.st?' · 시작':''}${rk?' · '+esc(rk):''}</span></div>
+    ${sk?`<div class="small dgcd-l">스킬 체크 — 「${esc(sk.stat||'')}」 목표 ${esc(sk.target||'')}${sk.label?` · ${esc(sk.label)}`:''}</div>`:''}
+    ${gm&&r.m?`<div class="small dgcd-l dgcd-gm">GM 메모 · ${esc(r.m)}</div>`:''}
+    ${L.length?`<div class="dgcd-ms">${L.map(m=>mon(r,m)).join('')}</div>`:''}</div>`};
+  return `<div class="dgcd"><div class="dgcd-hd"><div><div class="dgcd-nm">${esc(d.n||'던전')}</div><div class="small muted">${esc(T.n)} · ${esc(T.sub||'')}${x.ownerName?' · '+esc(x.ownerName):''}</div></div><span class="sp"></span>
+    <div class="dgcd-st"><span><b>${ord.length}</b> 방</span><span><b>${ord.filter(id=>['battle','boss'].includes(d.r[id].t)).length}</b> 조우</span><span><b>${allM.length}</b> 야생</span><span>통솔점 <b>${Math.round(allM.reduce((a,m)=>a+pcost(m.pride),0)*100)/100}</b></span></div></div>
+   <div class="dgcd-top"><div class="dgcd-map">${cardMap(d)}</div><div class="dgcd-all">
+    ${d.a?`<div class="dgcd-h">테마 · 분위기</div><div class="small">${esc(d.a)}</div>`:''}
+    ${(d.mq||[]).some(q=>q&&q.name)?`<div class="dgcd-h">『미궁 포텐셜』</div>${d.mq.filter(q=>q&&q.name).map(q=>`<div class="small dgcd-l"><b>『${esc(q.name)}』</b> ${esc(q.eff||'')}</div>`).join('')}`:''}
+    ${fe?`<div class="dgcd-h">필드 효과</div><div class="small dgcd-l"><b>${esc(feText(fe))}</b>${fe.loc?` · ${esc(fe.loc)}`:''}</div>${String(fe.eff||'').split('\n').filter(z=>z.trim()).map(z=>`<div class="small dgcd-l">${esc(z)}</div>`).join('')}`:''}
+   </div></div>
+   <div class="dgcd-h">방 <span class="faint">${ord.length}</span></div><div class="dgcd-rs">${ord.map(room).join('')}</div></div>`}
+ function openCard(id){const x=ST.docs[id];if(!x)return;if(Object.values(x.d.r||{}).some(r=>r&&r.w&&!r.mk)&&canEd(x))materialize(id);const E=ENV();const can=canEd(x);let gm=can;
+  const l=E.openModal(`<div class="mhead"><h2>한 장 요약 <span class="small muted">던전</span></h2><span class="sp"></span>${can?'<label class="small row" title="방마다 적은 GM 메모를 요약에 넣는다 — PL 에게 줄 그림이면 끄기"><input type="checkbox" data-dgcgm checked> GM 메모</label>':''}<button class="btn sm" data-dgcpng title="이 요약을 그림 파일로 저장">PNG 저장</button><button class="btn ghost" data-x>닫기</button></div><div class="mbody pcd-wrap dgcd-wrap">${cardHTML(x,gm)}</div>`,{wide:true});
+  const box=l.querySelector('.mbox');if(box)box.classList.add('pcdbox');l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>E.closeModal());
+  const wrap=l.querySelector('.dgcd-wrap');const cb=l.querySelector('[data-dgcgm]');if(cb)cb.onchange=()=>{gm=cb.checked;wrap.innerHTML=cardHTML(ST.docs[id]||x,gm)};
+  l.querySelector('[data-dgcpng]').onclick=()=>{const el=wrap.querySelector('.dgcd');if(E.cardPng)E.cardPng(el,(x.d.n||'던전')+'_한장요약',`${x.d.n||'던전'} · 던전 한 장 요약`);else toast('제작기를 새로고침해 주세요')}}
  async function onClick(e){const b=e.target.closest('[data-dg]');if(!b||!b.closest('#v-dg,.mbox'))return;const k=b.dataset.dg;const x=ST.docs[ST.id];
   if(k==='pedx')return closePoke();
   if(k==='new')return newDlg();if(k==='mk')return make();if(k==='cancel'){try{ENV().closeModal()}catch(_){}return}
+  if(k==='card')return openCard(b.dataset.id||ST.id);
   if(k==='open'){ST.view='ed';ST.id=b.dataset.id;ST.sel='';ST.linkFrom='';return render()}
   if(k==='back'){await flush();ST.view='list';return render()}
   if(k==='dup'){const s=ST.docs[b.dataset.id];if(!s)return;const M=me();const id=uid('dg');const c=clone(s);c.owner=M.key;c.ownerName=M.name||c.ownerName;c.pub=false;c.d.n=(c.d.n||'던전')+' (복제)';c.at=Date.now();ST.docs[id]=c;

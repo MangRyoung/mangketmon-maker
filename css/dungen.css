@@ -86,3 +86,25 @@
  #mk .dgpo{flex-wrap:wrap}
  #mk .dgpo input[data-gf="name"],#mk .dgpo input[data-wp="name"],#mk .dgpo input[data-qf="name"]{flex:1 1 100%}
 }
+
+/* 11-17 던전 한 장 요약 (cardHTML) */
+#mk .dgcd{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+#mk .dgcd-hd{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+#mk .dgcd-nm{font:22px/1.15 var(--display,inherit);font-weight:700}
+#mk .dgcd-st{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}#mk .dgcd-st b{color:var(--ink);font-size:14px}
+#mk .dgcd-top{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:10px;align-items:start}
+#mk .dgcd-map .dgmap-s{touch-action:auto;pointer-events:none}
+#mk .dgcd-all{display:flex;flex-direction:column;gap:3px;padding:8px 10px;border-radius:10px;background:var(--sunk);border:1px solid var(--line)}
+#mk .dgcd-h{font-size:11.5px;font-weight:700;letter-spacing:.05em;color:var(--muted);margin:4px 0 2px;display:flex;gap:6px;align-items:center}
+#mk .dgcd-h::after{content:"";flex:1;height:1px;background:var(--line)}
+#mk .dgcd-l{line-height:1.45}
+#mk .dgcd-rs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px}
+#mk .dgcd-r{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border-radius:10px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--rc)}
+#mk .dgcd-rh{gap:6px;align-items:center}
+#mk .dgcd-no{font:700 11px/18px var(--mono,monospace);min-width:18px;text-align:center;border-radius:5px;background:var(--sunk);border:1px solid var(--line)}
+#mk .dgcd-ic{color:var(--rc);font-size:15px}
+#mk .dgcd-gm{color:var(--muted);font-style:italic}
+#mk .dgcd-ms{display:flex;flex-direction:column;gap:4px}
+#mk .dgcd-m{padding:5px 7px;border-radius:8px;background:var(--sunk);border:1px solid var(--line)}
+#mk .dgcd-m .row{gap:6px;align-items:center}
+@media (max-width:760px){#mk .dgcd-top{grid-template-columns:minmax(0,1fr)}#mk .dgcd-rs{grid-template-columns:minmax(0,1fr)}}
