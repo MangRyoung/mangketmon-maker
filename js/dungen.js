@@ -295,14 +295,20 @@ window.MK_DG=(()=>{
  function spList(){if(document.getElementById('dgSpList'))return;const L=(window.MKM_DB||{}).old||[];const dl=document.createElement('datalist');dl.id='dgSpList';dl.innerHTML=L.map(r=>`<option value="${esc(r[1])}">`).join('');document.body.appendChild(dl)}
 
  /* 제작기 한 장 창 (세션 노트 「제작기로 고치기」 NT_MONED 와 같은 길: ?focus=<트레이너>&p=<포켓몬>&embed=1 · 닫을 때 {mkm:'flush'} → {mkm:'flushed'}) */
- async function openPoke(tid,pid){const E=ENV();if(E.flushNow){toast('제작기에 올리는 중…');const ok=await E.flushNow();if(!ok)toast('아직 다 올라가지 않았어요 — 창이 비어 보이면 잠시 뒤 다시 열어 주세요')}
+ let PEDOPEN=false;
+ async function openPoke(tid,pid){if(PEDOPEN||document.getElementById('dgEmbF'))return;PEDOPEN=true;try{await openPoke0(tid,pid)}finally{PEDOPEN=false}}   /* 두 번 눌러 창이 겹치면 아래 창이 「저장하는 중…」으로 남던 것 */
+ async function openPoke0(tid,pid){const E=ENV();if(E.flushNow){toast('제작기에 올리는 중…');const ok=await E.flushNow();if(!ok)toast('아직 다 올라가지 않았어요 — 창이 비어 보이면 잠시 뒤 다시 열어 주세요')}
   const src=location.pathname+'?'+new URLSearchParams({focus:tid,p:pid,embed:'1',t:Date.now().toString(36)}).toString();
   E.openModal(`<div class="mhead"><h2>야생 시트 — 제작기 화면</h2><span class="sp"></span><a class="btn sm ghost" href="${esc(src.replace(/&embed=1/,''))}" target="_blank" rel="noopener">새 창 ↗</a><button class="btn sm pri" data-dg="pedx">저장하고 닫기</button></div><div class="dgemb"><iframe id="dgEmbF" title="제작기" src="${esc(src)}"></iframe><div class="dgemb-w" hidden>제작기에 저장하는 중…</div></div>`,{wide:true})}
  let PEDBUSY=false;
- async function closePoke(){if(PEDBUSY)return;const f=document.getElementById('dgEmbF');if(!f){try{ENV().closeModal()}catch(e){}return}PEDBUSY=true;const w=f.parentElement.querySelector('.dgemb-w');if(w)w.hidden=false;
+ /* 11-16 09:21 PL 제보 「저장하는 중… 이 안 사라진다」: 창 위에 다른 창(제작기 알림 등)이 뜨면 closeModal 이 그쪽을 닫아 이 창이 남았다 → 이 창의 layer 를 콕 집어 닫는다(closeLayer).
+    그리고 「저장하고 닫기」를 누르면 창은 바로 숨기고(안의 제작기는 살아 있어 저장을 마저 한다) 저장 확인이 오면(또는 12초) 치운다 */
+ async function closePoke(){if(PEDBUSY)return;const f=document.getElementById('dgEmbF');const E=ENV();if(!f){try{E.closeModal()}catch(e){}return}const lay=f.closest('.layer');PEDBUSY=true;
+  if(lay)lay.style.visibility='hidden';toast('제작기에 저장하는 중…');
   const ok=await new Promise(res=>{let done=false;const on=e=>{const d=e.data;if(!d||d.mkm!=='flushed'||e.source!==f.contentWindow)return;done=true;window.removeEventListener('message',on);res(d.ok!==false)};window.addEventListener('message',on);
    try{f.contentWindow.postMessage({mkm:'flush'},'*')}catch(e){}setTimeout(()=>{if(!done){window.removeEventListener('message',on);res(false)}},12000)});
-  PEDBUSY=false;if(!ok)toast('제작기 저장을 다 확인하지 못했어요 — 잠시 뒤 다시 열어 확인해 주세요');try{ENV().closeModal()}catch(e){}setTimeout(()=>render({soft:true}),900);setTimeout(()=>render({soft:true}),3000)}
+  try{if(E.closeLayer&&lay)E.closeLayer(lay);else if(lay)lay.remove();else E.closeModal()}catch(e){try{lay&&lay.remove()}catch(_){}}PEDBUSY=false;
+  toast(ok?'제작기에 저장했어요':'제작기 저장을 다 확인하지 못했어요 — 잠시 뒤 다시 열어 확인해 주세요');setTimeout(()=>render({soft:true}),900);setTimeout(()=>render({soft:true}),3000)}
  /* 지도: 누르기 · 끌기 */
  function bindMap(){spList();const svg=root().querySelector('.dgmap');if(!svg)return;const x=ST.docs[ST.id];const E=canEd(x);let drag=null;
   const pt=e=>{const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse())};
