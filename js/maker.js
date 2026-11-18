@@ -197,7 +197,19 @@ function baseLevel(rank){const r=S.db.lvl.find(x=>x[0]===rank)||S.db.lvl.find(x=
 function sockRow(rank){return S.db.sock.find(x=>x[0]===strip(rank))||S.db.sock.find(x=>x[0]==='C')}
 function grade(v){if(v===''||v==null||isNaN(+v))return '-';let g='-';for(const [b,c] of S.db.grade){if(b===''||isNaN(+b))continue;if(+b<=+v)g=c;else break}return g}
 function gcol(g){const s=strip(g);return {S:'var(--g-s)',AAA:'var(--g-aaa)',AA:'var(--g-aa)',A:'var(--g-a)',B:'var(--g-b)',C:'var(--g-c)',D:'var(--g-d)',E:'var(--g-e)',EX:'var(--g-s)'}[s]||'var(--g-e)'}
-function lv(t,p){return baseLevel(t.ranks['육성'])+(Math.round(+p.dist)||0)}
+function lv(t,p){return baseLevel(t.ranks['육성'])+(Math.round(+p.dist)||0)+lvBonus(t,p)}
+/* 11-18 망령 「【준비】/PT에 「타입 : 고스트」인 아군의 「LV : +2」 한다 — 이런 류처럼 레벨 보너스도」:
+   PT(포켓몬 포텐셜 · 전용 · 트레이너 고유)의 【준비】 줄에 「LV : +N」(「레벨 : +N」)이 있으면 대상의 레벨에 더한다.
+   대상: 「타입 : X」인 아군 / PT 전원 · 아군 전원 · 모든 아군 / 자신(그 밖은 자신). 공유 저장 때 pokemon 문서에 lvUp {n, by} 로 남겨 오레마스가 그대로 쓴다 */
+function lvBonusList(t,p){const out=[];if(!t||!p)return out;const tys=[p.t1,p.t2,p.t3].filter(x=>x&&x!=='-');const srcs=[];
+ for(const q of t.pokemon||[]){if(!q)continue;(q.pots||[]).forEach((n,i)=>{if(n)srcs.push({w:q,n,e:String(potEffOf(q,i)||'')})});if(q.excl&&q.excl.name)srcs.push({w:q,n:q.excl.name,e:String(q.excl.eff||'')})}
+ for(const u of t.unique||[])if(u&&u.name)srcs.push({w:null,n:u.name,e:String(u.eff||'')});
+ for(const x of srcs){if(!/【\s*준비\s*】/.test(x.e))continue;for(const cl of x.e.replace(/<br\s*\/?>/gi,'\n').split(/(?=[①-⑳])|\n/)){if(!/【\s*준비\s*】/.test(cl))continue;const m=cl.match(/「\s*(?:LV|Lv|lv|레벨)\s*[:：]\s*([+\-−])\s*(\d+)\s*」/);if(!m)continue;const n=(m[1]==='+'?1:-1)*(+m[2]);
+  const tm=cl.match(/「타입\s*[:：]\s*([^」]+)」\s*(?:인|의)?\s*(?:아군|포켓몬)/);let ok;
+  if(tm){const w=tm[1].split(/[,·\/]/).map(z=>z.trim());ok=tys.some(z=>w.includes(z))}else if(/PT\s*(?:의\s*)?전원|아군\s*전원|모든\s*아군|PT의\s*모든/.test(cl))ok=true;else ok=x.w===p;
+  if(ok)out.push({n,by:'『'+String(x.n).replace(/[『』]/g,'')+'』'+(x.w?'':' (고유)')})}}
+ return out}
+const lvBonus=(t,p)=>lvBonusList(t,p).reduce((a,x)=>a+x.n,0);
 /* 테이블(더블) Q198:Q203 — 개체치·노력치·성격 미사용(0 / 0 / 1.0) */
 /* 10-22 망령: 특성 · 포텐셜 · 전용에 적힌 「○○의 종족치를 N랭크 상승(감소)시킨다」 → 실수치 · 등급 · 종족치 합에 반영.
    10-27 망령 (룰북 「종족치」의 랭크 범위 개정): 1랭크 = 알파벳 등급 하나 (C → B), 칸(- · 무 · +)은 유지하고 그 칸에서 가장 낮은 값이 된다 (A- 110 · 119 → AA- 140).
@@ -2774,7 +2786,7 @@ function baseTab(t,ti,p,pi,P){const ab=idx.abil.get(p.ability),it=itemRow(p),own
   <div class="fgrid">
    <label class="lbl" for="nm-${id}" style="grid-column:span 2">이름 <span class="faint">종</span>${inp(P+'.name',p.name,{id:'nm-'+id})}</label>
    <label class="lbl" for="nk-${id}" style="grid-column:span 2">별명 <span class="faint" title="종 이름과 따로 붙이는 이름 — 노트 · 웹툴에도 이 이름으로 보여요">비우면 종 이름</span>${inp(P+'.nick',p.nick||'',{id:'nk-'+id})}</label>
-   <label class="lbl" for="dist-${id}">레벨 <span class="faint">기본 ${baseLevel(t.ranks['육성'])} + 분배</span><span class="row"><b class="num" style="font-size:15px">${lv(t,p)}</b>${inp(P+'.dist',p.dist,{id:'dist-'+id,w:'56px',num:1})}</span></label>
+   <label class="lbl" for="dist-${id}">레벨 <span class="faint">기본 ${baseLevel(t.ranks['육성'])} + 분배${(()=>{const L=lvBonusList(t,p);return L.length?` <span title="${esc(L.map(x=>x.by+' '+(x.n>0?'+':'')+x.n).join(' · '))}">+ 【준비】 ${L.reduce((a,x)=>a+x.n,0)}</span>`:''})()}</span><span class="row"><b class="num" style="font-size:15px">${lv(t,p)}</b>${inp(P+'.dist',p.dist,{id:'dist-'+id,w:'56px',num:1})}</span></label>
    ${isMisag(t)&&p.awaken==='c'&&misagSubPr(t)?`<label class="lbl" for="pr-${id}">프라이드 <span class="faint">각성 (보조) · 통솔 ${esc(strip(t.ranks['통솔'])||'-')} 로 정해짐</span><select id="pr-${id}" disabled><option>${esc(misagSubPr(t))}</option></select></label>`:`<label class="lbl" for="pr-${id}">프라이드 <span class="faint">통솔점 ${prideCost(t,p)}</span><select data-p="${P}.pride" id="pr-${id}"><option value="" ${prideIsAuto(p)?'selected':''}>자동 (${esc(prideAuto(p))})</option>${[...(isOld(p)||(isMisag(t)&&p.awaken==='c'&&misagSubPr(t)===String(PR().oldLow.lab||'D'))?[[PR().oldLow.lab]]:[]),...PR().rows].filter(r=>r&&r[0]).map(r=>`<option ${!prideIsAuto(p)&&prKey(p.pride)===r[0]?'selected':''}>${esc(r[0])}</option>`).join('')}</select></label>`}
    <label class="lbl" for="pt-${id}">파트너<span class="row small" style="min-height:30px"><input type="checkbox" id="pt-${id}" data-p="${P}.partner" ${p.partner?'checked':''}>통솔점 1 할인</span></label>
    <label class="lbl" for="bn-${id}" title="대기(벤치) — 통솔점 · 【1/시】 · PT 기술점 셈에서 뺀다 (기술 할인점 · 분배레벨 · 전용은 그대로)">대기<span class="row small" style="min-height:30px"><input type="checkbox" id="bn-${id}" data-p="${P}.bench" ${p.bench?'checked':''}>벤치 · 셈에서 뺌</span></label>
@@ -3870,7 +3882,7 @@ $('#xlsxIn').addEventListener('change',async e=>{const f=e.target.files[0];e.tar
    펼침·탭 같은 화면 상태(open, tab)는 사람마다 따로 둔다. */
 const SH={on:false,ready:false,db:null,canWrite:true,init:{},buf:{},ed:new Map(),meta:null,synced:new Map(),flushing:false,again:false,dbDirty:true,dbDocs:null,last:''};
 const SH_KINDS=['trainers','pokemon','dbedit','meta','folders'];
-const UIK=new Set(['open','tab','effTxt','baseUp','statAdd','statCp']);/* 10-26 점검: 공유에서 받은 effTxt · baseUp 이 눌러붙어 옛 값이 다시 올라가던 것 */
+const UIK=new Set(['open','tab','effTxt','baseUp','statAdd','statCp','lvUp']);/* 10-26 점검: 공유에서 받은 effTxt · baseUp 이 눌러붙어 옛 값이 다시 올라가던 것 */
 const nowHM=()=>new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
 function shStatus(t){SH.last=t;const el=$('#saved');if(el)el.innerHTML=`<span class="shpill ${SH.canWrite?'':'ro'}">공유</span> ${esc(t)}`;shDot()}
 /* 11-03: 상단 상태 점 — 「파일 ▾」 안의 #saved 는 좁은 화면에서 안 보여서. 누르면 자세히(실패한 시트 · 다시 시도 · 다시 연결) */
@@ -3942,7 +3954,7 @@ function shSettings(){return {tpl:S.db.tpl||[],tplV:S.db.tplV||0,tags:S.db.tags|
 function shWant(){const out=new Map();
  S.folders.forEach((f,i)=>{f._ord=i;const d={ord:i,name:f.name||''};if(f.parent)d.parent=f.parent;if(f.priv)d.priv=true;if(f.rule)d.rule=f.rule;if(f.deco&&Object.keys(f.deco).length)d.deco=f.deco;if(f.owner){d.owner=f.owner;d.ownerName=f.ownerName||''}if(f.dgRoot)d.dgRoot=true;if(f.dgId)d.dgId=String(f.dgId);out.set('folders/'+f.id,d)});   /* 11-16 던전 야생 폴더 표시 */
  S.trainers.forEach((t,i)=>{t._ord=i;const d=stripUI(t);d.pids=t.pokemon.map(p=>p.id);if(isMisag(t))d.misagOut=misagOut(t);else delete d.misagOut;try{d.ptUse=ptSnap(t)}catch(e){delete d.ptUse}try{d.ordOut=ordSnap(t)}catch(e){delete d.ordOut}   /* 10-29 노트 대학 시트 PT 서머리가 읽는 사본 */   /* 10-28 미사그 대학: 오레마스가 읽는 각성체 대가 요약 */out.set('trainers/'+t.id,{ord:i,data:d});
-  t.pokemon.forEach(p=>{const bu=baseUp(t,p);out.set('pokemon/'+p.id,{tid:t.id,data:Object.assign(stripUI(p),{effTxt:effSnap(p)},bu.up.length?{baseUp:{base:bu.base.map(v=>v===''?'':+v),up:bu.up.map(u=>({i:u.i,from:u.from,to:u.to,by:u.by}))}}:{},(bu.add||[]).some(v=>v)?{statAdd:bu.add.slice()}:{},(bu.cp||[]).some(v=>v!=null)?{statCp:bu.cp.slice()}:{})})})});
+  t.pokemon.forEach(p=>{const bu=baseUp(t,p);out.set('pokemon/'+p.id,{tid:t.id,data:Object.assign(stripUI(p),{effTxt:effSnap(p)},bu.up.length?{baseUp:{base:bu.base.map(v=>v===''?'':+v),up:bu.up.map(u=>({i:u.i,from:u.from,to:u.to,by:u.by}))}}:{},(bu.add||[]).some(v=>v)?{statAdd:bu.add.slice()}:{},(bu.cp||[]).some(v=>v!=null)?{statCp:bu.cp.slice()}:{},(()=>{const L=lvBonusList(t,p);return L.length?{lvUp:{n:L.reduce((a,x)=>a+x.n,0),by:L.map(x=>x.by)}}:{}})())})})});
  for(const [id,d] of SH.orph_ed||[])out.set('dbedit/'+id,d);   /* 붙을 행이 없는 수정도 지우지 않는다. 같은 이름 행이 다시 생기면 아래 줄이 덮는다 */
  for(const [p,b] of shDbDocs())out.set(p,b);
  /* 레디메이드 기본 행을 아직 못 읽었으면, 받아 둔 레디메이드 수정 행은 그대로 둔다 (지우지 않게) */
@@ -4001,7 +4013,7 @@ function shPutTrainer(id,d){let t=S.trainers.find(x=>x.id===id);const data=clone
  const all=new Map(t.pokemon.map(p=>[p.id,p]));for(const [pid,p] of SH.orph)if(p._tid===id){all.set(pid,p);SH.orph.delete(pid)}
  const list=pids.map(x=>all.get(x)).filter(Boolean);for(const p of all.values())if(!list.includes(p))list.push(p);t.pokemon=list}
 function shPutPoke(id,d){let p=null,owner=null;for(const t of S.trainers){const x=t.pokemon.find(q=>q.id===id);if(x){p=x;owner=t;break}}if(!p)p=SH.orph.get(id);
- if(!p)p={id,open:false,tab:'base'};{const dd=clone(d.data||{});delete dd.effTxt;delete dd.baseUp;delete dd.statAdd;delete dd.statCp;replaceFields(p,dd,KEEP_P)}p.id=id;p._tid=d.tid;fixP(p);
+ if(!p)p={id,open:false,tab:'base'};{const dd=clone(d.data||{});delete dd.effTxt;delete dd.baseUp;delete dd.statAdd;delete dd.statCp;delete dd.lvUp;replaceFields(p,dd,KEEP_P)}p.id=id;p._tid=d.tid;fixP(p);
  const t=S.trainers.find(x=>x.id===d.tid);
  if(owner&&owner!==t)owner.pokemon=owner.pokemon.filter(q=>q!==p);
  if(t){if(!t.pokemon.includes(p)){const pos=(t._pids||[]).indexOf(id);if(pos>=0){const after=t.pokemon.filter(q=>(t._pids||[]).indexOf(q.id)>=0&&(t._pids||[]).indexOf(q.id)<pos).length;t.pokemon.splice(after,0,p)}else t.pokemon.push(p)}SH.orph.delete(id);try{awSubSync(t)}catch(e){}}
