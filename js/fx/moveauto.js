@@ -67,7 +67,7 @@ window.OM_MOVEAUTO=(()=>{
    /* 11-08: 「상대1체」 줄은 맞은 대상마다(who target) — 순서가 걸린 구문(조건 · 선택 · 확인)이 있으면 예전처럼 한 번에 */
    const seq=R.ops.some(o=>o&&['cond','choice','confirm'].includes(o.k));const tg=seq?[]:R.ops.filter(o=>o&&o.tgt==='enemy1'),rest=seq?R.ops:R.ops.filter(o=>!(o&&o.tgt==='enemy1'));
    const groups=[...(rest.length?[{n:10,label:lab,who:'once',ops:rest,when}]:[]),...(tg.length?[{n:10,label:lab,who:'target',ops:tg.map(o=>Object.assign({},o,{tgt:'target'})),when:'hit'}]:[])];
-   const TX=parse(mv,Object.assign({},opt,{text:1}))||{};const FX0={};for(const k of ['firstOnly','failHit','failNoAtk','failLate','effVs','accNot','onlyVs','onlyVsL','mold','noRedirect','koHeal','counter','iai','stance'])if(TX[k])FX0[k]=TX[k];   /* 11-09 감우 55: 구문이 있어도 효과 글의 실패 조건 · 상성 플래그는 그대로 */
+   const TX=parse(mv,Object.assign({},opt,{text:1}))||{};const FX0={};for(const k of ['drainVs','firstOnly','failHit','failNoAtk','failLate','effVs','accNot','onlyVs','onlyVsL','mold','noRedirect','koHeal','counter','iai','stance'])if(TX[k])FX0[k]=TX[k];   /* 11-09 감우 55: 구문이 있어도 효과 글의 실패 조건 · 상성 플래그는 그대로 */
    return Object.assign({groups,recoil:null,drain:null,notes:[],src:R.own?'own':'rm'},FX0)}   /* 11-05: 필드 전체 · 자신 대상 변화기(초읽기 …)는 맞힐 상대가 없어도 쓰면 건다 */
   /* 예고 공격(「지연」 기술: 미래예지 계열): 쓸 때는 대미지 없이 대상에게 예고 상태만 걸고, 다음 턴 종료 때 터진다 */
   {const fut=FX()&&FX().FUTURE||[];const en=FX()&&FX().stEn?FX().stEn(name):'';if(en&&fut.includes(en)||(mv.tag==='지연'&&/다음 턴 가장 마지막/.test(String(mv.eff||'')))){const st=en||((String(mv.eff||'').match(/대상을 「([^」]+)」 상태로/)||[])[1]||'FutureSight');
@@ -105,6 +105,8 @@ window.OM_MOVEAUTO=(()=>{
    m=s.match(/^「최대\s*HP」의\s*(\d+\/\d+)만큼의 비례 대미지를 받는다$/);if(m){recoil={frac:m[1],basis:'max',when:'hit'};continue}
    if(recoil&&/^이 비례 대미지는 무시할 수 없다$/.test(s)){recoil.hard=true;continue}
    m=s.match(/^(\d+\/\d+)의 드레인$/);if(m){drain=m[1];continue}
+   /* 11-18 망령 「물마름 — 「타입 : 물」에게 1/2의 드레인」 (맥 콘 글린 『환상을 마시다』 = 「타입 : 페어리」에게도): 그 타입을 맞힌 몫만 드레인 */
+   m=s.match(/^「타입\s*:\s*([^」]+)」에게\s*(\d+\/\d+)의 드레인$/);if(m){drain=m[2];const tys=m[1].split(/[,·、\/]/).map(t=>t.trim()).filter(Boolean).map(t=>FX()&&FX().TYPE_KO?Object.keys(FX().TYPE_KO).find(k=>FX().TYPE_KO[k]===t):'').filter(Boolean);if(tys.length)FL.drainVs=tys;continue}
    m=s.match(/^(?:자신의\s*)?「HP」를\s*(\d+\/\d+)만큼 회복한다$/);if(m){groups.push({n:10,label:'HP '+m[1]+' 회복',who:'once',ops:[{k:'heal',tgt:'self',value:m[1]}],when:'use'});continue}
    if(/^반드시 급소에 맞는다$/.test(s)){critSure=true;continue}
    {const once=[];const fr=fieldSent(s,mv,op=>once.push(op),FL);if(fr){if(once.length)groups.push({n:10,label:s,who:'once',ops:once,when:'hit'});if(fr==='partial')notes.push(s);continue}}
@@ -149,7 +151,7 @@ window.OM_MOVEAUTO=(()=>{
    for(const who in byWho)groups.push({n,sec:!!cm,label,who:who==='target'?'target':'once',ops:byWho[who],when:'hit'})}
   if(OBJ[name]&&/^(자진|적진)$/.test(String(mv.range||''))&&!groups.some(g=>g.ops.some(o=>o.k==='object'))){const t=(txt.match(/(\d+)턴 동안/)||[])[1];groups.push({n:10,label:'「'+name+'」 설치',who:'once',ops:[{k:'object',side:mv.range==='자진'?'self':'enemy',o:name,count:+t||OBJ[name]}],when:'hit'});const i=notes.findIndex(x=>x.includes(name));if(i>=0)notes.splice(i,1);else if(notes.length===1)notes.length=0}
   if(ROOMS.includes(name)&&!groups.some(g=>g.ops.some(o=>o.k==='terrain'))){groups.push({n:10,label:'「'+name+'」',who:'once',ops:[{k:'terrain',t:name,room:true,count:5}],when:'hit'});const i=notes.findIndex(x=>x.includes(name));if(i>=0)notes.splice(i,1)}
-  return {groups,recoil,drain,critSure,selfFaint,forceSwitch:!!FL.forceSwitch,selfSwitch:FL.selfSwitch||'',notes,src:'parse',...(()=>{const o={};for(const k of ['firstOnly','failHit','failNoAtk','failLate','effVs','accNot','onlyVs','onlyVsL','mold','noRedirect','koHeal','counter','iai','stance'])if(FL[k])o[k]=FL[k];return o})()}}
+  return {groups,recoil,drain,critSure,selfFaint,forceSwitch:!!FL.forceSwitch,selfSwitch:FL.selfSwitch||'',notes,src:'parse',...(()=>{const o={};for(const k of ['drainVs','firstOnly','failHit','failNoAtk','failLate','effVs','accNot','onlyVs','onlyVsL','mold','noRedirect','koHeal','counter','iai','stance'])if(FL[k])o[k]=FL[k];return o})()}}
 
  /* 사람이 읽는 한 줄 요약 */
  function describe(a){if(!a)return '';const L=[];
