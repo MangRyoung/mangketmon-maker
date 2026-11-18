@@ -205,8 +205,9 @@ function lvBonusList(t,p){const out=[];if(!t||!p)return out;const tys=[p.t1,p.t2
  for(const q of t.pokemon||[]){if(!q)continue;(q.pots||[]).forEach((n,i)=>{if(n)srcs.push({w:q,n,e:String(potEffOf(q,i)||'')})});if(q.excl&&q.excl.name)srcs.push({w:q,n:q.excl.name,e:String(q.excl.eff||'')})}
  for(const u of t.unique||[])if(u&&u.name)srcs.push({w:null,n:u.name,e:String(u.eff||'')});
  for(const x of srcs){if(!/【\s*준비\s*】/.test(x.e))continue;for(const cl of x.e.replace(/<br\s*\/?>/gi,'\n').split(/(?=[①-⑳])|\n/)){if(!/【\s*준비\s*】/.test(cl))continue;const m=cl.match(/「\s*(?:LV|Lv|lv|레벨)\s*[:：]\s*([+\-−])\s*(\d+)\s*」/);if(!m)continue;const n=(m[1]==='+'?1:-1)*(+m[2]);
-  const tm=cl.match(/「타입\s*[:：]\s*([^」]+)」\s*(?:인|의)?\s*(?:아군|포켓몬)/);let ok;
-  if(tm){const w=tm[1].split(/[,·\/]/).map(z=>z.trim());ok=tys.some(z=>w.includes(z))}else if(/PT\s*(?:의\s*)?전원|아군\s*전원|모든\s*아군|PT의\s*모든/.test(cl))ok=true;else ok=x.w===p;
+  /* 대상 = 「LV」 앞 글: 「타입 : X」 · 『역할/분류』(여럿이면 그중 하나) 가 있으면 PT 에서 그 조건에 맞는 아군, 「전원 · 모든 아군」이면 PT 전원, 아무것도 없으면 자신 (14:38 「PT에 「타입 : 고스트」인 『어쌔신』『바운서』『닌자』에게」) */
+  const pre=cl.slice(0,cl.search(/「\s*(?:LV|Lv|lv|레벨)\s*[:：]/)).replace(/【[^】]*】\s*\/?/g,'');const tm=pre.match(/「타입\s*[:：]\s*([^」]+)」/);const rs=[...pre.matchAll(/『([^』]+)』/g)].map(z=>z[1].trim());const nk=z=>String(z||'').replace(/[『』\s]/g,'');let ok;
+  if(tm||rs.length){const w=tm?tm[1].split(/[,·\/]/).map(z=>z.trim()):[];ok=(!tm||tys.some(z=>w.includes(z)))&&(!rs.length||rs.some(r=>nk(r)===nk(roleOf(p))||nk(r)===nk(classOf(p))))}else if(/PT\s*(?:의\s*)?전원|아군\s*전원|모든\s*아군|PT의\s*모든/.test(pre))ok=true;else ok=x.w===p;
   if(ok)out.push({n,by:'『'+String(x.n).replace(/[『』]/g,'')+'』'+(x.w?'':' (고유)')})}}
  return out}
 const lvBonus=(t,p)=>lvBonusList(t,p).reduce((a,x)=>a+x.n,0);
