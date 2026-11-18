@@ -15,3 +15,5 @@ window.OM_DB.states={"v":1,"groups":[{"l":"상태 이상","s":["Poison","Toxic",
  for(var k in add)if(!S.st[k])S.st[k]=add[k];
  if(S.st.Guts&&S.st.Guts.desc&&!/자동/.test(S.st.Guts.desc[0]))S.st.Guts.desc[0]+=' (근성 · 열폭주 · 초근성은 자동)';
  var g=(S.groups||[]).find(function(x){return x.l==='자신'});if(g){var i=g.s.indexOf('Guts');['NoSelfHit','ParaSpeed'].forEach(function(k){if(g.s.indexOf(k)<0)g.s.splice(i<0?g.s.length:i+1,0,k)})}})();
+/* 11-19 망령 「에리어를 이동할 수 없게 되는 "고정" 상태변화 만들자」: 고정(AreaLock) — 에리어를 이동할 수 없다. 교대는 에리어 이동이 아니라(11-14) 그대로 된다. 웹툴 areaSwap 이 막음(고정인 포켓몬과 자리를 바꾸는 것도). 변환기와 따로 덧붙인다 */
+(function(){var S=window.OM_DB&&window.OM_DB.states;if(!S||!S.st||S.st.AreaLock)return;S.st.AreaLock={ko:'고정',min:1000,max:1000,roll:'',abn:0,neg:1,bat:0,prog:'turn',desc:['에리어를 이동할 수 없습니다. (에리어 교대로 자리를 바꾸는 것도 할 수 없습니다.)','통상 교대 · 강제 교대는 에리어 이동이 아니므로 할 수 있습니다.','교대로 필드를 떠나면 해제됩니다.'],memo:''};var g=(S.groups||[]).find(function(x){return x.l==='교대 관련'});if(g&&g.s.indexOf('AreaLock')<0)g.s.push('AreaLock')})();
