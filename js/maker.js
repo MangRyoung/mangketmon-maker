@@ -367,6 +367,7 @@ const lowStep=()=>{const L=PR().oldLow||PRIDE_DEF.oldLow;return {lab:String(L.la
 const trOfPoke=p=>(S.trainers||[]).find(t=>(t.pokemon||[]).some(x=>x===p||(p&&p.id&&x&&x.id===p.id)))||null;
 const leadDown=(p,t)=>{if(!p)return false;const tr=t||trOfPoke(p);if(!tr||strip(((tr.ranks||{})['통솔'])||'')!==DOWN_LEAD)return false;if(typeof isMisag==='function'&&isMisag(tr))return p.awaken==='free';/* 11-03 22:58 · 11-04 01:52 망령: 미사그 대학에서는 『현대종』 대신 「각성 (대가)」에 한 단계 아래 종족치 (보조는 D) */return classOf(p)===DOWN_CLASS};
 function stepCap(st,down){if(!st)return 0;if(!down)return st.v;const L=[lowStep(),...prSteps()];const i=L.findIndex(x=>x.lab===st.lab);return i>0?L[i-1].v:st.v}
+const capLab=(st,down)=>{if(!st)return '-';if(!down)return st.lab;const L=[lowStep(),...prSteps()];const i=L.findIndex(x=>x.lab===st.lab);return i>0?L[i-1].lab:st.lab};/* 11-18 한 단계 아래면 그 아래 계단 이름(C → D)으로 보인다 */
 /* 10-27 망령: 「올드 타입 전용」 기술 — 기술 DB 줄의 21번째 칸(r[20]) 'O'. 칸이 없는 줄(원본 · 예전에 고친 줄 · 엑셀/토큰 가져오기)은
    원본 시트 「기술 목록(더블)」에서 이름이 붉은 글씨인 기술(아래 목록)을 따른다. 올드 타입 계열(isOld)이 아닌 포켓몬의 기술 목록에는 안 뜬다 */
 const OLDONLY_DEF=new Set(["거대해머", "거수참", "거수탄", "더블펀처", "골드러시", "타키온커터", "액셀브레이크", "3연화살", "레이징불 (격투)", "배수의진", "섀도스틸", "분노의주먹", "성묘", "아스트랄비트", "레이징불 (노말)", "찍찍베기", "우유마시기", "작아지기", "회생의기도", "제살깎기", "껍질깨기", "꼬리자르기", "블러드문", "폭음파", "테라클러스터", "한판내기", "드래곤애로", "소울비트", "무한다이빔", "다이맥스포", "변덕레이저", "사우전드애로", "덩굴방망이 (물)", "레이징불 (물)", "아가미물기", "수류연타", "덩굴방망이 (바위)", "암석액스", "메테오빔", "반딧불", "V제너레이트", "덩굴방망이 (불꽃)", "레이징불 (불꽃)", "화염의수호", "깜짝헤드", "프리폴", "데스윙", "이차원러시", "도각참", "암흑강타", "비검천중파", "블로킹", "트집", "다크홀", "블리자드랜스", "포톤가이저 (물리)", "초승달의기도", "파워셰어", "가드셰어", "스피드스왑", "프리즘레이저", "포톤가이저 (특수)", "이차원홀", "루미나콜리전", "사이코웨이브", "실리콘번", "오라휠", "전격부리", "일렉트로빔", "라이트닝드라이브", "지오컨트롤", "덩굴방망이 (풀)", "트릭플라워", "정글힐", "버섯포자", "코튼가드", "힘흡수", "클로로블라스트", "휘적휘적포"]);
@@ -403,12 +404,14 @@ function prioInfo(p){const P=PR().prio||PRIDE_DEF.prio;const rows=P.rows||PRIDE_
  (p.pots||[]).forEach((n,i)=>{if(!n)return;const eff=String(potEffOf(p,i)||'');if(!/우선도\s*[:：]?\s*\+\s*\d/.test(eff))return;const cond=/【\s*\d+\s*\/\s*시\s*】|【\s*1\/시\s*】/.test(eff);take(cell(cond,2),'『'+n+'』',(cond?'조건부':'상시')+'·강 (포텐셜)')});
  return best}
 /* 커스텀 포켓몬 계산 종족치 — 계단마다 하한이 달라서 낮은 계단부터 맞춰 본다 */
-function customCalc(p,t){const R=PR(),b=baseNums(p),real=b.reduce((a,c)=>a+c,0),down=leadDown(p,t);const main=Math.max(b[1],b[3]);
+function customCalc(p,t){const R=PR(),b=baseNums(p),real=b.reduce((a,c)=>a+c,0);let down=leadDown(p,t);
+ /* 11-18 망령 「(통솔 D 보조) 이거 D로 감소 왜 안 돼」: 미사그 각성 (보조)의 프라이드가 통솔대로 D 면 C 계단 한 단계 아래(D 455) 하나로 고정 — 위 계단으로 넘어가지 않는다 */
+ const subD=(()=>{const tr=t||trOfPoke(p);return !!(tr&&p&&p.awaken==='c'&&typeof isMisag==='function'&&isMisag(tr)&&typeof misagSubPr==='function'&&misagSubPr(tr)===String((PR().oldLow||{}).lab||'D').toUpperCase())})();if(subD)down=true;const main=Math.max(b[1],b[3]);
  const bulk=two(Math.min(b[2],b[4]),R.bulk),hp=two(b[0],R.hp);
  const F=R.fs,fs=two(main,{lo:F.lo,hi:F.hi,k1:F.k1,k2:F.k2})*Math.max(0,Math.min(1,(Math.min(b[5],pnum(F.shi,140))-pnum(F.slo,90))/Math.max(1,pnum(F.shi,140)-pnum(F.slo,90))));
  const D=R.dual,dualOk=dualMoves(p),dualRaw=pnum(D.k,1)*Math.max(0,Math.min(Math.min(b[1],b[3]),pnum(D.hi,120))-pnum(D.lo,90)),dual=dualOk?dualRaw:0;
  const pri0=prioInfo(p),ov=String(p.prioOv??'').trim(),pri=ov===''?pri0:{floor:Math.max(0,pnum(ov,0)),src:pnum(ov,0)?'직접 지정':'직접 지정 · 없음',kind:'예외',auto:pri0,ov:true},opp=Math.round(main*pnum(R.opp,0.4)),s0=abSock(p),sb=sockBonus(p).ab,s=s0==null?null:Math.max(0,+(s0-sb).toFixed(2)),per=pnum(R.toStep,45)*2,perD=pnum(R.toDown,25)*2,toF=pnum(R.toFloor,1);
- const steps=prSteps().filter(x=>!isEX(x));let last=null;
+ const steps=prSteps().filter(x=>!isEX(x)).slice(0,subD?1:99);let last=null;
  for(const st of steps){const fa=Math.max(0,Math.max(st.floor,b[1]<main?opp:0)-b[1]),fc=Math.max(0,Math.max(st.floor,b[3]<main?opp:0)-b[3]);const sf=Math.max(st.floor,pri.floor),fsp=Math.max(0,sf-b[5]);
   const to=s==null?st.to:s;const toAdj=per*Math.max(0,to-st.to)-perD*Math.max(0,toF-Math.max(to,pnum(R.toMin,0.5)));   /* 11-01 망령 「0특 끼면 종족치뻥이 너무 많다 — 0특은 0.5랑 감소치 같게」: 되팔기는 TO 0.5 까지만 (toMin) */   /* 10-27 망령: 1보다 내릴 때(되팔기)는 0.5당 25 (올릴 때 45 와 따로) */
   const ct=real+fa+fc+fsp+bulk+hp+fs-dual+toAdj,cap=stepCap(st,down);last={real,b,fa,fc,fsp,sf,off:fa+fc+fsp,opp,bulk,hp,fs,dual,dualRaw,dualOk,pri,to,toRaw:s0,toBon:sb,toBase:st.to,toAdj,ct,step:st,cap,down,ok:ct<=cap+1e-9};if(last.ok)return last}
@@ -430,7 +433,7 @@ const prKey=v=>{const s=String(v||'').trim();return prRow(s)?s:strip(s)};
 function prideOf(p){const v=prKey(p.pride);return prRow(v)?v:prideAuto(p)}
 const prideIsAuto=p=>!prRow(prKey(p.pride));
 /* 화면용: 커스텀이면 계산 종족치 / 계단 기준 */
-function planRange(p){if(isOld(p)||!baseTot(p))return null;const c=customCalc(p);const st=prStep(prideOf(p))||c.step;const v=stepCap(st,c.down);return st?{ct:c.ct,v,lab:st.lab,ok:c.ct<=v+1e-9,down:c.down}:null}
+function planRange(p){if(isOld(p)||!baseTot(p))return null;const c=customCalc(p);const st=prStep(prideOf(p))||c.step;const v=stepCap(st,c.down);return st?{ct:c.ct,v,lab:capLab(st,c.down),ok:c.ct<=v+1e-9,down:c.down}:null}
 /* 룰북: 계단의 통솔점, 통솔 C 이상이면 파트너는 1점 할인 */
 /* 11-07 망령 「PT 에 대기 개념 — 벤치 체크 해 두면 통솔점 · 기술 할인점 · 【1/시】 범위에서 계산 안 시킨다」 · 「기술점도 빼」 · 「기술 할인점은 빼면 안 되겠다」: p.bench = 대기(벤치). 셈에서 빼는 곳은 prideCost(통솔점) · 【1/시】(autoUse once · 미사그 몫) · ptSockets(PT 기술점). 「기술 할인점」 · 분배레벨 · 전용은 그대로 센다 */
 const onBench=p=>!!(p&&p.bench);
@@ -537,9 +540,9 @@ function calcPanel(t,p,P){if(!baseTot(p))return '';const R=PR();
  const pos=items.filter(x=>x[0]!=='dl'&&x[2]>0);const W=Math.max(cap,c.ct,1);
  const bar=pos.map(x=>`<i class="${x[0]}" style="width:${x[2]/W*100}%" title="${esc(x[1]+' '+fmtN(x[2]))}"></i>`).join('');
  const auto=c.pri.ov?c.pri.auto:c.pri;const ov=String(p.prioOv??'');
- return `<div class="cpanel"><div class="cph"><b>계산 종족치</b><span class="sp"></span><span class="cpr ${c.ok?'':'warn'}">${c.step?esc(c.step.lab):'-'}</span><span class="small muted">${c.ok?`남는 점수 <b class="num">${fmtN(c.cap-c.ct)}</b>`:`<b class="warn">상한 초과 ${fmtN(c.ct-(c.cap||0))}</b>`} · 통솔점 ${prideCost(t,p)}</span></div>
+ return `<div class="cpanel"><div class="cph"><b>계산 종족치</b><span class="sp"></span><span class="cpr ${c.ok?'':'warn'}">${c.step?esc(capLab(c.step,c.down)):'-'}</span><span class="small muted">${c.ok?`남는 점수 <b class="num">${fmtN(c.cap-c.ct)}</b>`:`<b class="warn">상한 초과 ${fmtN(c.ct-(c.cap||0))}</b>`} · 통솔점 ${prideCost(t,p)}</span></div>
   <div class="cpbar" title="계산 종족치 ${fmtN(c.ct)} / ${cap}">${bar}<span class="cpcap" style="left:${Math.min(100,cap/W*100)}%"></span></div>
-  <div class="cpgrid">${items.map(([k,l,v,d])=>`<div class="cpc ${k} ${v?'':'zero'}"><span>${l}</span><b class="num">${k==='base'?v:(v>0?'+':v<0?'−':'')+fmtN(Math.abs(v))}</b><small>${esc(d)}</small></div>`).join('')}<div class="cpc tot"><span>계산 종족치</span><b class="num">${fmtN(c.ct)}</b><small>${st?`${esc(st.lab)} 계단 ${cap}${c.down?' (통솔 D · 한 단계 아래)':''}`:''}</small></div></div>
+  <div class="cpgrid">${items.map(([k,l,v,d])=>`<div class="cpc ${k} ${v?'':'zero'}"><span>${l}</span><b class="num">${k==='base'?v:(v>0?'+':v<0?'−':'')+fmtN(Math.abs(v))}</b><small>${esc(d)}</small></div>`).join('')}<div class="cpc tot"><span>계산 종족치</span><b class="num">${fmtN(c.ct)}</b><small>${st?`${esc(capLab(st,c.down))} 계단 ${cap}${c.down?' (통솔 D · 한 단계 아래)':''}`:''}</small></div></div>
   <div class="cppri"><span class="small"><b>선공 하한</b> ${auto.floor?`자동 ${auto.floor} · ${esc(auto.src)} (${esc(auto.kind)})`:'자동: 선공기 없음'}</span><label class="row small" style="gap:4px">예외<select data-p="${P}.prioOv" title="자동 판정이 맞지 않을 때 이 포켓몬만 직접 정합니다"><option value="" ${ov===''?'selected':''}>자동</option><option value="0" ${ov==='0'?'selected':''}>없음 (하한 안 올림)</option>${[...new Set([...(R.prio.rows||[]).flatMap(r=>r.slice(1)),ov].filter(x=>x!==''&&x!=='0'&&!isNaN(+x)).map(Number))].sort((a,b)=>a-b).map(v=>`<option value="${v}" ${ov===String(v)?'selected':''}>${v}</option>`).join('')}</select></label>${c.pri.ov?'<span class="kindb">예외 적용 중</span>':''}</div></div>`}
 /* 테이블·계산식 탭 · 종족치 · 프라이드 규칙 (2026-10-25 개편) */
 function prideRulePanel(){const R=PR();const f=(path,v,w,ph)=>`<input data-p="db.pride.${path}" value="${esc(v??'')}" style="width:${w||'56px'}" ${ph?`placeholder="${esc(ph)}"`:''} inputmode="decimal">`;
