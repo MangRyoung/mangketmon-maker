@@ -188,7 +188,7 @@ window.MKM_POTLINT=(()=>{
   if(!CHGCTX){const X=cmdChgOf(all);if(X)return suggestChg(X)}
   const noFaint=/①로\s*「빈사」\s*상태가 되지(?:는)? 않는다/.test(all);
   for(const c0 of clauses(all)){const tags=(c0.match(/【[^】]+】/g)||[]).join('');const c=c0.replace(/^[①-⑨]/,'').replace(/^(?:【[^】]+】)+\s*\/?/,'');
-   const temp=/턴 종료 시까지|턴 종료시 까지|다음 기술을 내보낼 때/.test(c);const turns=(c.match(/(\d)턴 동안/)||[])[1];const hold=/필드 위에 있는 한|필드에 있는 한/.test(c);
+   const temp=/턴\s*종료\s*시?\s*까지|다음 기술을 내보낼 때/.test(c);const tEnd=/턴\s*종료\s*시?\s*까지/.test(c);   /* 11-18 「턴 종료 시 까지」(띄어 씀)도 */const turns=(c.match(/(\d)턴 동안/)||[])[1];const hold=/필드 위에 있는 한|필드에 있는 한/.test(c);
    /* 11-05 망령 「동조」: 【동조 (상대)】 = 동조된 상대에게 · 【동조】 = 동조된 아군에게 */
    const syncT=t0=>{if(/【동조\s*\(상대\)】/.test(tags)&&(!t0||t0==='상대1체'||t0==='상대전체'))return '동조상대';if(/【동조】/.test(tags)&&(!t0||t0==='아군1체'||t0==='아군전체'||t0==='지정에리어'))return '동조아군';return t0};
    const tgAt=i=>{let t=tgtIn(segB(c,i),temp);if(hold&&(t==='아군1체'||t==='지정에리어')&&!/아군 1체|같은 에리어/.test(segB(c,i)))t='아군전체';return syncT(t)};const tgW=t=>t?' '+t:'';const hW=t=>hold&&t&&t!=='자신'?' 있는한':'';
@@ -261,7 +261,7 @@ window.MKM_POTLINT=(()=>{
    if((m=c.match(/((?:「[가-힣 ]+」\s*)+)\s*상태로 만든다/))&&!/할 :/.test(c)){const sts=[...m[1].matchAll(/「([가-힣 ]+)」/g)].map(y=>y[1].replace(/\s/g,''));const sg=segB(c,m.index);const self=/자신을\s*$/.test(sg)||/^자신을/.test(sg.trim())&&!/공격한/.test(sg);let t=self?'자신':syncT(tgtIn(sg,temp))||'상대1체';
     const pn=(c.match(/(\d)할로/)||[])[1];
     for(const s of sts){if(ETC_W.includes(s)){L.push(`필드상태 ${s} ${turns||5}`);continue}if(OBJ_W.includes(s)){L.push(`설치기 아군 ${objN(s)}${turns?' '+turns:''}`);continue}if(window.OM_FX&&!isSt(s))continue;
-     if(pn&&!turns)L.push(`상태확률 ${s} ${pn}0% ${t==='전원무작위'?'전체 1체':t}`);else L.push(`상태 ${s} ${t}${turns?` ${turns}턴`:''}`)}}
+     if(pn&&!turns)L.push(`상태확률 ${s} ${pn}0% ${t==='전원무작위'?'전체 1체':t}`);else L.push(`상태 ${s} ${t}${turns?` ${turns}턴`:tEnd?' 1턴':''}`)}}   /* 11-18 망령 「턴 종료 시까지 「얼음」 상태로 — 턴이 붙는 상태 이상」: 이번 턴만 = 1턴 */
    if((m=c.match(/「(죽음의카운트)\s*:\s*(\d)」(?:으로|로) 만든다/))){const sg=segB(c,m.index);if(/서로/.test(sg)){L.push(`상태 죽음의카운트 상대1체 ${m[2]}턴`);L.push(`상태 죽음의카운트 자신 ${m[2]}턴`)}else{const t=tgtIn(sg,temp)||'상대1체';L.push(`상태 죽음의카운트 ${t} ${m[2]}턴`)}}
    if((m=c.match(/(?:「HP」|HP)(?:가|이)\s*회복되지 않는다/))){const t=tgtIn(segB(c,m.index),temp)||'상대1체';L.push(`상태 회복봉인 ${t}`)}
    if(/「따라가때리기」\s*효과를 받지 않는다/.test(c)){const t=tgtIn(segB(c,c.search(/「따라가때리기」/)),temp);L.push(`추격 무시${t==='아군전체'?' 아군전체':''}`)}
