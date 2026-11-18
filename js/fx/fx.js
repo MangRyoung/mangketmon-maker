@@ -210,6 +210,16 @@ window.OM_FX=(()=>{
      case 'cure':{let ts=await targets(b,self,op.tgt,ctx);if(op.self)ts=[self];const list=op.states==='negative'||!op.states?NEG:stWide(op.states);
        for(const m of ts){if(op.chance&&+op.chance<100){const rr=rollP(self,+op.chance,ctx);if(!rr.ok){L.push(`${m.name} 치유 실패 (${rr.r}/${rr.p})${rr.adj}`);continue}}
         const cured=[];for(const k of list)if((m.states||{})[k]){delete m.states[k];cured.push(stKo(k))}const abT=abSync(m);/* 10-24 망령: 부가 치유(열탕 · 화염방사의 「얼음」 치유 …)는 걸린 게 없으면 줄을 남기지 않는다 */if(cured.length)L.push(`${m.name} 「${cured.join('」「')}」 해제`);else if(list===NEG)L.push(`${m.name} 해제할 상태가 없다`);if(abT)L.push(abT)}break}
+     /* 11-18 망령 「오호게츠히메 — 비축 카운터」: m.stock 0~3. 늘면 방어/특방 + 같은 수, 줄면 − 같은 수 (흑안개 뒤라도). 꿀꺽 = 카운터 1/2/3 → 1/4 · 1/2 · 1/1 회복 후 0 (0 이면 실패). 교대하면 0 (웹툴 퇴장 정리) */
+     /* 11-18 망령 「쌀공주의 경단 — 꽃가루경단 연속 사용 실패가 걸리지 않는다」: 이번 턴 자신이 내는 그 기술(아군 대상이면 아군 대상만)에 「연속 제한」 실패를 굴리지 않는다 — 웹툴 consecFail 앞에서 본다 */
+     case 'noconsec':{const F=fx(self);F.noConsec={mv:(op.mv||[]).slice(),ally:op.ally?1:0,t:curTurnB()};L.push(`${self.name} 「${name}」 이번 턴 ${op.ally?'아군을 향한 ':''}${(op.mv||[]).map(x=>'「'+x+'」').join('')||'기술'} — 연속 사용 실패가 걸리지 않는다`);break}
+     case 'stock':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){const cur=Math.max(0,Math.min(3,+m.stock||0));
+       if(op.mode==='swallow'){if(!cur){L.push(`${m.name} 「${name}」 비축 카운터 0 — 실패`);stop=true;continue}if((m.states||{}).HealBlock)L.push(`${m.name} 「회복봉인」이라 회복하지 못함`);else{const v=frac(m.hp.max,['1/4','1/2','1/1'][cur-1]);const h=Math.min(v,m.hp.max-m.hp.cur);m.hp.latest=m.hp.cur;m.hp.cur+=h;L.push(`${m.name} 「${name}」 비축 ${cur} → 회복 +${h} (HP ${m.hp.cur}/${m.hp.max})`)}}
+       const nv=op.mode==='swallow'||op.mode==='clear'?0:Math.max(0,Math.min(3,cur+(+op.v||0)));
+       if(!op.mode&&+op.v>0&&cur>=3){L.push(`${m.name} 비축 카운터가 이미 3 — 더 쌓이지 않는다${op.fail?' (실패)':''}`);if(op.fail)stop=true;continue}
+       if(!op.mode&&+op.v<0&&cur<=0){L.push(`${m.name} 비축 카운터가 없다 (0)`);if(op.fail)stop=true;continue}
+       const d=nv-cur;m.stock=nv;if(!nv)delete m.stock;if(d){m.rank=m.rank||{};for(const k of ['defense','specialdefense'])m.rank[k]=Math.max(-6,Math.min(6,(+m.rank[k]||0)+d))}
+       L.push(`${m.name} 비축 카운터 ${cur} → ${nv}${d?` (방어/특방 ${d>0?'+':''}${d})`:''}`)}break}
      case 'heal':{const ts=await targets(b,self,op.tgt||'self',ctx);for(const m of ts){if((m.states||{}).HealBlock){L.push(`${m.name} 「회복봉인」이라 회복하지 못함`);continue}if(op.ytype&&!typesOf(m).includes(op.ytype)){L.push(`${m.name} ${TYPE_KO[op.ytype]||op.ytype} 타입이 아니라 회복 없음`);continue}
        const v=op.value==='full'?m.hp.max-m.hp.cur:frac(m.hp.max,op.value);const h=Math.min(v,m.hp.max-m.hp.cur);m.hp.latest=m.hp.cur;m.hp.cur+=h;L.push(`${m.name} 「${name}」 회복 +${h} (HP ${m.hp.cur}/${m.hp.max})`)}break}
      case 'dmg':{const ts=await targets(b,self,op.tgt||'enemy1',ctx);for(const m of ts){if(op.st&&!hasSt(m,op.st)){L.push(`${m.name} 「${stKo(op.st)}」 상태가 아니라 대미지 없음`);continue}if(op.xtype&&typesOf(m).includes(op.xtype)){L.push(`${m.name} ${TYPE_KO[op.xtype]||op.xtype} 타입이라 대미지 없음`);continue}if(op.otype&&!typesOf(m).includes(op.otype))continue;
@@ -497,6 +507,7 @@ window.OM_FX=(()=>{
   if(w==='상대공격'){op.foe=1;return true}if(w==='지정기술'){op.dmv=1;return true}
   if((m=w.match(/^(자진|적진)설치[:：](.+)$/))){op[m[1]==='자진'?'oa':'ob']=sp(m[2]);return true}
   if((m=w.match(/^랭크[:：](급소|공격|방어|특공|특방|스피드|명중|회피)([≥>≤<])=?([+\-]?\d+)$/))){op.rk=(op.rk||[]).concat([{s:RK_KO[m[1]],lo:/[≤<]/.test(m[2])?1:0,v:+m[3]}]);return true}
+  if((m=w.match(/^비축(?:카운터)?[:：]?([≥>≤<])=?(\d+)$/))){op.stk={lo:/[≤<]/.test(m[1])?1:0,v:+m[2]};return true}   /* 11-18 비축≥2 = 자신의 비축 카운터 */
   if(w==='필중기'){op.sure=1;return true}
   if((m=w.match(/^소지품[:：](.+)$/))){op.it=sp(m[1]);return true}
   if((m=w.match(/^이계[:：](.+)$/))){op.iw=m[1].replace(/[《》]/g,'').replace(/^이계\//,'').trim();return true}
@@ -545,8 +556,8 @@ window.OM_FX=(()=>{
  function baseSync(m){if(!m||!Array.isArray(m.base))return;const L=(m.fx&&m.fx.bases)||[];if(!L.length){if(m.base0){setBase(m,m.base0);delete m.base0}return}if(!m.base0)m.base0=m.base.slice();const nb=m.base0.slice();for(const e of L)for(const i in (e.v||{}))nb[+i]=Math.max(1,+e.v[i]||1);setBase(m,nb)}
  const pmS=op=>(op.pmin?' 위력≥'+op.pmin:'')+(op.pmax?' 위력≤'+op.pmax:'');
  function condStr(op){let s='';if(op.foe)s+=' 상대공격';if(op.dmv)s+=' 지정기술';if(op.mv&&op.mv.length)s+=' 기술:'+op.mv.join(',');if(op.ft&&op.ft.length)s+=' 상대타입:'+op.ft.map(t=>TYPE_KO[t]||t).join(',');if(op.cs)s+=' 상태:'+stKoW(op.cs);if(op.os)s+=' 상대상태:'+stKoW(op.os);if(op.wx&&op.wx.length)s+=' 날씨:'+op.wx.join(',');if(op.trn)s+=' 필드:'+op.trn;if(op.hs&&op.hs.length)s+=op.hs.map(x=>' HP'+x).join('');if(op.rc)s+=' 반동기';if(op.al)s+=' 아군공격';
-  if(op.oa&&op.oa.length)s+=' 자진설치:'+op.oa.join(',');if(op.ob&&op.ob.length)s+=' 적진설치:'+op.ob.join(',');for(const r of op.rk||[])s+=' 랭크:'+RK_SK[r.s]+(r.lo?'≤':'≥')+r.v;if(op.sure)s+=' 필중기';if(op.it&&op.it.length)s+=' 소지품:'+op.it.join(',');if(op.pit)s+=' '+(op.pit.neg?'!':'')+'PT에소지품:'+(op.pit.n||[]).join(',')+(+op.pit.c>1?'≥'+op.pit.c:'');if(op.ait&&op.ait.length)s+=' 아군소지품:'+op.ait.join(',');if(op.iw)s+=' 이계:'+op.iw;if(op.tm)s+=' 턴:'+op.tm+'배수';if(op.ab)s+=' 특성:'+op.ab;if(op.dx)s+=' 해석됨';if(op.odx)s+=' 상대해석됨';if(op.mr&&op.mr.length)s+=' 자신역할:'+op.mr.join(',');if(op.ks)s+=' 자세:'+op.ks;if(op.h1)s+=' HP=1';for(const r of op.ork||[])s+=' 상대랭크:'+RK_SK[r.s]+(r.lo?'≤':'≥')+r.v;if(op.tmv)s+=' 기술머신';if(op.xmv)s+=' 기능확장';for(const r of op.br||[])s+=' '+r.raw;if(op.at&&op.at.length)s+=' 아군타입:'+op.at.map(t=>TYPE_KO[t]||t).join(',');if(op.aab&&op.aab.length)s+=' 아군특성:'+op.aab.join(',');if(op.sg&&op.sg.length)s+=' 성별:'+op.sg.join(',');if(op.og&&op.og.length)s+=' 상대성별:'+op.og.join(',');if(op.stp)s+=op.stp>0?' 같은타입':' 다른타입';for(const r of op.pr||[])s+=' '+(r.w==='a'?'아군':r.w==='o'?'상대':'')+'우선도'+(r.s<0?'-':'+')+(r.n!=null?r.n:'')+(r.c==='ge'?'이상':r.c==='le'?'이하':'');return s}
- const COND_F=['mv','ft','cs','os','wx','trn','hl','hg','hs','rc','al','oa','ob','rk','sure','it','iw','tm','ab','dx','odx','mr','ks','h1','ork','tmv','xmv','pr','pmin','pmax','tg','types','br','at','aab','sg','og','stp','pit','ait'];
+  if(op.oa&&op.oa.length)s+=' 자진설치:'+op.oa.join(',');if(op.ob&&op.ob.length)s+=' 적진설치:'+op.ob.join(',');for(const r of op.rk||[])s+=' 랭크:'+RK_SK[r.s]+(r.lo?'≤':'≥')+r.v;if(op.stk)s+=' 비축'+(op.stk.lo?'≤':'≥')+op.stk.v;if(op.sure)s+=' 필중기';if(op.it&&op.it.length)s+=' 소지품:'+op.it.join(',');if(op.pit)s+=' '+(op.pit.neg?'!':'')+'PT에소지품:'+(op.pit.n||[]).join(',')+(+op.pit.c>1?'≥'+op.pit.c:'');if(op.ait&&op.ait.length)s+=' 아군소지품:'+op.ait.join(',');if(op.iw)s+=' 이계:'+op.iw;if(op.tm)s+=' 턴:'+op.tm+'배수';if(op.ab)s+=' 특성:'+op.ab;if(op.dx)s+=' 해석됨';if(op.odx)s+=' 상대해석됨';if(op.mr&&op.mr.length)s+=' 자신역할:'+op.mr.join(',');if(op.ks)s+=' 자세:'+op.ks;if(op.h1)s+=' HP=1';for(const r of op.ork||[])s+=' 상대랭크:'+RK_SK[r.s]+(r.lo?'≤':'≥')+r.v;if(op.tmv)s+=' 기술머신';if(op.xmv)s+=' 기능확장';for(const r of op.br||[])s+=' '+r.raw;if(op.at&&op.at.length)s+=' 아군타입:'+op.at.map(t=>TYPE_KO[t]||t).join(',');if(op.aab&&op.aab.length)s+=' 아군특성:'+op.aab.join(',');if(op.sg&&op.sg.length)s+=' 성별:'+op.sg.join(',');if(op.og&&op.og.length)s+=' 상대성별:'+op.og.join(',');if(op.stp)s+=op.stp>0?' 같은타입':' 다른타입';for(const r of op.pr||[])s+=' '+(r.w==='a'?'아군':r.w==='o'?'상대':'')+'우선도'+(r.s<0?'-':'+')+(r.n!=null?r.n:'')+(r.c==='ge'?'이상':r.c==='le'?'이하':'');return s}
+ const COND_F=['stk','mv','ft','cs','os','wx','trn','hl','hg','hs','rc','al','oa','ob','rk','sure','it','iw','tm','ab','dx','odx','mr','ks','h1','ork','tmv','xmv','pr','pmin','pmax','tg','types','br','at','aab','sg','og','stp','pit','ait'];
  /* 11-10 「동안」 효과 (m.fx.whiles): 조건이 맞으면 걸고, 안 맞게 되면 원래대로 — 웹툴이 상태가 바뀔 때마다 whileSync(b) 를 부른다 */
  function whileOne(b,m){const L=[];const F=m&&m.fx;if(!F||!Array.isArray(F.whiles)||!F.whiles.length)return L;const prev=RUNB;RUNB=b;try{for(const e of F.whiles){let ok=false;try{ok=xOk(e.c||{},m,null,null)&&dynOk(e.c||{},m,null,{})}catch(_){ok=false}const cs=condStr(e.c||{}).trim();
    if(ok&&!e.on){e.on=1;if(e.kind==='trait'){setAb(m,e.to,e.name);L.push(`${m.name} 「${String(e.name).replace(/[『』]/g,'')}」 (${cs}) — 특성 → 「${e.to}」`)}
@@ -568,6 +579,7 @@ window.OM_FX=(()=>{
   if(e.oa&&e.oa.length){const O=objs(sideOf(own));if(!e.oa.some(k=>+O[k]>0||+O[String(k).replace(/\s/g,'')]>0))return false}
   if(e.ob&&e.ob.length){const sd=sideOf(oth)&&sideOf(oth)!==sideOf(own)?sideOf(oth):(sideOf(own)==='left'?'right':'left');const O=objs(sd);if(!e.ob.some(k=>+O[k]>0))return false}
   for(const r of e.rk||[]){const v=r.s==='critical'?(q&&q.crit!=null?+q.crit:+((own&&own.rank)||{}).critical||0):+(((own&&own.rank)||{})[r.s]||0);if(r.lo?v>r.v:v<r.v)return false}
+  if(e.stk){const v=+((own&&own.stock)||0);if(e.stk.lo?v>e.stk.v:v<e.stk.v)return false}
   if(e.sure&&!(q&&q.sureMv))return false;
   if(e.it&&e.it.length&&!e.it.some(n=>holds(own,n)||itemNames(own).some(x=>x.includes(n))&&!itemsDead(own)))return false;
   if(e.iw){const s=stageNow();const ns=String((s&&s.name)||'').replace(/[\s《》]/g,'').replace(/^이계\//,''),nw=String(e.iw).replace(/\s/g,'');if(!s||!ns||!(ns.includes(nw)||nw.includes(ns)))return false}
@@ -721,6 +733,9 @@ window.OM_FX=(()=>{
   const spEvade=()=>{const pi=words.findIndex(w=>/^\d+(할|%)$/.test(w));const pw=words.splice(pi,1)[0];const pct=/할$/.test(pw)?+pw.replace('할','')*10:+pw.replace('%','');return {k:'sp',sp:'evade',pct,types:types(),tg:tagW(),cat:has('물리')?'물리':has('특수')?'특수':has('접촉')?'접촉':''}};
   switch(head){
    /* 11-07 망령 「전용 · 고유 입력에 대상 지정」: 「대상지정 [상대1체|아군1체|자신포함아군1체|아무나1체]」 — 효과는 없고, 웹툴 지시 입력에서 이 포텐셜을 선행 입력할 때 대상을 찍게 한다. 발동하면 구문의 「상대 1체」 · 「아군 1체」 를 그 대상으로 */
+   /* 11-18 비축 카운터: 비축 +1 [실패] · 비축 -1 [실패] · 비축 소모 (전부 0) · 비축 꿀꺽 (카운터만큼 회복 후 0) [대상] */
+   case '연속무시':{const op={k:'noconsec',mv:[],ally:has('아군')?1:0};for(const w of words){const q=w.match(/^기술[:：](.+)$/);if(q)op.mv=q[1].split(/[,·]/).map(x=>x.trim()).filter(Boolean)}return op}
+   case '비축':{const tgt=tgtOf(words)||'self';if(has('꿀꺽'))return {k:'stock',mode:'swallow',tgt};if(has('소모')||has('전부')||has('초기화'))return {k:'stock',mode:'clear',tgt};const fail=has('실패')?1:0;const v=words.find(w=>/^[+\-]?\d+$/.test(w));return {k:'stock',v:v!=null?+v:1,tgt,fail}}
    case '소모':{const w=words.join('');const o=/4식|명령/.test(w),c=/지령|6령/.test(w);const nm=w.replace(/4식|6령/g,'').match(/(\d+)/);return {k:'spend',what:o&&c?'any':c?'command':'order',n:nm?Math.max(1,+nm[1]):1}}
    case '기술지정':{/* 11-09 감우 57: 선행 입력 때 기술 이름 하나를 고르게 한다 (웹툴이 「지정기술」 조건에 쓴다) — 상대 = 상대 필드 포켓몬의 해석된 기술을 먼저 보인다 */const w=words.join('');return {k:'msel',who:/아군/.test(w)?'ally':'enemy'}}
    case '대상지정':{const w=words.join('').replace(/\s/g,'');const t=/자신포함|본인포함/.test(w)?'ally1s':/아무나|누구나|전체1체|전원1체/.test(w)?'any1':/아군/.test(w)?'ally1':'enemy1';return {k:'tsel',tgt:t}}
@@ -873,6 +888,8 @@ window.OM_FX=(()=>{
    case 'nodrop':L.push('감소무시'+tg(op.tgt)+(op.st?' '+STAT_KO[op.st]:'')+(op.mod?' 저하':'')+(op.turns>0?' '+op.turns+'턴':'')+(op.mode==='off'?' 해제':''));break;
    case 'ignoreup':L.push('강화무시 '+(op.dir==='both'?'양방향':op.dir==='recv'?'받음':'공격시')+' '+(op.scope==='both'||!op.scope?'양쪽':String(op.scope).split(',').map(x=>SCOPE_KO[x]||x).join(' '))+(op.all?' 모두':op.dn?' 감소':'')+iuLv(op.lv)+(op.ro&&op.ro.length?' 역할:'+op.ro.join(','):'')+ty(op.types)+(op.tg&&op.tg.length?' 태그:'+op.tg.join(','):'')+condStr(op)+pmS(op)+(op.on?'':' 해제'));break;
    case 'float':L.push('하늘위'+tg(op.tgt)+(op.turns>0?' '+op.turns+'턴':'')+(op.mode==='off'?' 해제':''));break;
+   case 'noconsec':L.push('연속무시'+((op.mv||[]).length?' 기술:'+op.mv.join(','):'')+(op.ally?' 아군':''));break;
+   case 'stock':L.push('비축'+(op.mode==='swallow'?' 꿀꺽':op.mode==='clear'?' 소모':' '+(+op.v>0?'+':'')+(+op.v||0))+(op.tgt&&op.tgt!=='self'?tg(op.tgt):'')+(op.fail?' 실패':''));break;
    case 'role':L.push('역할 '+({add:'추가',remove:'제거',clear:'초기화'})[op.mode]+' '+(op.roles||[]).join(','));break;
    case 'pursuit':L.push('추격'+(op.immune?' 무시'+tg(op.tgt):'')+(op.on?'':' 해제')+(op.hide?' 숨김':''));break;
    case 'fxoff':L.push('효과해제'+tg(op.tgt)+(op.name?' 이름:'+op.name:' '+({pot:'포텐셜',trait:'특성',item:'소지품'}[op.what]||'전부')));break;
