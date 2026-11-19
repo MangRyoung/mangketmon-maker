@@ -187,6 +187,8 @@ window.MKM_POTLINT=(()=>{
   return {lines,why:r.why,chg:1,timing:'『지령』의 효과 변경 — 이 구문이 「바뀐 효과」다. 오레마스에서 지령을 걸 때 원래 효과 대신 지령을 받은 포켓몬에게 건다 (「자신」 = 받은 포켓몬)'}}
  function suggest(text){const lines=[],why=[];let DEFER=null;const F=window.OM_FX;const all=String(text||'');
   if(!CHGCTX){const X=cmdChgOf(all);if(X)return suggestChg(X)}
+  /* 11-19 망령 「특성 : 사출 같은 거 자동화 돼 있던가?」: 「필드 위에 있는 한 아군이 【등장】/다음 기술을 내보낼 때 「X」를 강화(N배)」 = 나오는 아군에게 거는 것 — 웹툴(battle_ui shootIn)이 아군이 나올 때 그 아군에게 걸고, 그 아군이 기술을 내면 푼다. 구문 줄은 없다 (예전엔 자기 등장 · 아군전체 배율로 잘못 추천) */
+  if(/아군이\s*【등장】\s*\/?\s*다음\s*기술을\s*내보낼\s*때\s*「[^」]+」\s*(?:을|를)\s*강화\s*\(\s*\d+(?:\.\d+)?\s*배\s*\)/.test(all))return {lines:[],why:[all],timing:'웹툴이 알아서 한다 — 아군이 나올 때 그 아군에게 걸고, 그 아군이 기술을 내면 풀린다 (구문 줄 없음)'};
   const noFaint=/①로\s*「빈사」\s*상태가 되지(?:는)? 않는다/.test(all);
   for(const c0 of clauses(all)){const tags=(c0.match(/【[^】]+】/g)||[]).join('');const c=c0.replace(/^[①-⑨]/,'').replace(/^(?:【[^】]+】)+\s*\/?/,'');
    const temp=/턴\s*종료\s*시?\s*까지|다음 기술을 내보낼 때/.test(c);const tEnd=/턴\s*종료\s*시?\s*까지/.test(c);   /* 11-18 「턴 종료 시 까지」(띄어 씀)도 */const turns=(c.match(/(\d)턴 동안/)||[])[1];const hold=/필드 위에 있는 한|필드에 있는 한/.test(c);
