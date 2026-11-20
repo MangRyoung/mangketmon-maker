@@ -206,7 +206,7 @@ function lvBonusList(t,p){const out=[];if(!t||!p)return out;const tys=[p.t1,p.t2
  for(const u of t.unique||[])if(u&&u.name)srcs.push({w:null,n:u.name,e:String(u.eff||'')});
  for(const x of srcs){if(!/【\s*준비\s*】/.test(x.e))continue;for(const cl of x.e.replace(/<br\s*\/?>/gi,'\n').split(/(?=[①-⑳])|\n/)){if(!/【\s*준비\s*】/.test(cl))continue;const m=cl.match(/「\s*(?:LV|Lv|lv|레벨)\s*[:：]\s*([+\-−])\s*(\d+)\s*」/);if(!m)continue;const n=(m[1]==='+'?1:-1)*(+m[2]);
   /* 대상 = 「LV」 앞 글: 「타입 : X」 · 『역할/분류』(여럿이면 그중 하나) 가 있으면 PT 에서 그 조건에 맞는 아군, 「전원 · 모든 아군」이면 PT 전원, 아무것도 없으면 자신 (14:38 「PT에 「타입 : 고스트」인 『어쌔신』『바운서』『닌자』에게」) */
-  const pre=cl.slice(0,cl.search(/「\s*(?:LV|Lv|lv|레벨)\s*[:：]/)).replace(/【[^】]*】\s*\/?/g,'');const tm=pre.match(/「타입\s*[:：]\s*([^」]+)」/);const rs=[...pre.matchAll(/『([^』]+)』/g)].map(z=>z[1].trim());const nk=z=>String(z||'').replace(/[『』\s]/g,'');let ok;
+  const pre=cl.slice(0,cl.search(/「\s*(?:LV|Lv|lv|레벨)\s*[:：]/)).replace(/【(?:[^【】]|【[^【】]*】)*】\s*\/?/g,'');const tm=pre.match(/「타입\s*[:：]\s*([^」]+)」/);const rs=[...pre.matchAll(/『([^』]+)』/g)].map(z=>z[1].trim());const nk=z=>String(z||'').replace(/[『』\s]/g,'');let ok;
   if(tm||rs.length){const w=tm?tm[1].split(/[,·\/]/).map(z=>z.trim()):[];ok=(!tm||tys.some(z=>w.includes(z)))&&(!rs.length||rs.some(r=>nk(r)===nk(roleOf(p))||nk(r)===nk(classOf(p))))}else if(/PT\s*(?:의\s*)?전원|아군\s*전원|모든\s*아군|PT의\s*모든/.test(pre))ok=true;else ok=x.w===p;
   if(ok)out.push({n,by:'『'+String(x.n).replace(/[『』]/g,'')+'』'+(x.w?'':' (고유)')})}}
  return out}
@@ -1315,7 +1315,7 @@ function tagOrderIdx(tag){const tags=S.db.tags.map(t=>t[0]);let i=tags.indexOf(t
  if(/^(\d+|N)\s*\/\s*시$/.test(tag))return tags.indexOf('N/시');
  if(/^(지시|육성|통솔|능력)\s*:/.test(tag))return tags.indexOf('자질');
  return tags.indexOf(tag.replace(/\s*\(.*$/,'').trim())}
-const LINE_RE=/^(\s*[①-⑳]?\s*)((?:【[^】]*】\s*)+)([\s\S]*)$/;
+const LINE_RE=/^(\s*[①-⑳]?\s*)((?:【(?:[^【】]|【[^【】]*】)*】\s*)+)([\s\S]*)$/;
 function lineTags(m){return [...m[2].matchAll(/【([^】]*)】/g)].map(x=>x[1].trim())}
 function tagLint(s){const msg=[];String(s||'').split('\n').forEach((ln,n)=>{const m=ln.match(LINE_RE);if(!m)return;const tags=lineTags(m);
  const ix=tags.map(tagOrderIdx);const unk=tags.filter((t,i)=>ix[i]<0);const L=(String(s).includes('\n')?(n+1)+'줄: ':'');
@@ -1343,7 +1343,7 @@ const ilockChip=n=>{const l=ilockOf(n);return l?`<span class="kindb ${l.open?'lk
 const numOf=v=>(String(v??'').match(/-?\d+(\.\d+)?/g)||[]).map(Number);
 const splitTags=v=>String(v||'').split(/[,，/]/).map(x=>x.trim()).filter(x=>x&&x!=='-');
 const hashTags=v=>String(v||'').match(/#[^\s,#]+/g)||[];
-const abTags=v=>[...new Set((String(v||'').match(/【[^】]*】/g)||[]).map(x=>x.slice(1,-1).replace(/\s*\(.*$/,'').replace(/^\d+\s*\/\s*시$/,'N/시').trim()))];
+const abTags=v=>[...new Set((String(v||'').match(/【(?:[^【】]|【[^【】]*】)*】/g)||[]).map(x=>x.slice(1,-1).replace(/\s*\(.*$/,'').replace(/^\d+\s*\/\s*시$/,'N/시').trim()))];
 const potGroup=k=>String(k||'').replace(/^\d+(\.\d+)*\.\s*/,'').trim()||'-';
 const potGroupCode=k=>{const m=String(k||'').match(/^(\d+)/);return m?+m[1]:9999};
 const FILT={
