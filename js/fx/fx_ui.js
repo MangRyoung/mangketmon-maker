@@ -17,7 +17,7 @@ window.OM_FX_UI=(()=>{
 효과해제 [대상] [포텐셜 | 특성 | 소지품 | 전부 | 이름:에이스]   (그 출처가 건 배율 · 위력 · 무시 · 우선도 · 역할 효과를 뗀다)
 소지품파괴 [대상] · 소지품모두파괴 · 소지품파괴약탈 (빈손이면 빼앗고 못 빼앗으면 파괴) · 소지품강탈 (자신이 받음) · 소지품주기 · 소지품교환 · 소지품지정 [대상] 느림보꼬리 (빈손이면 새로 지님 · 있으면 바꿈) · 소지품추가 [대상] 느림보꼬리 (지닌 것은 두고 빈 칸에 하나 더)   대상을 안 쓰면 상대1체 · 배틀 한정
 회복 1/4 [대상] [전부] [타입:독]        피해 1/8 [대상] [현재|직전|타입:바위] [제외:독] [상태:잠듦] [빈사없음] [드레인]  (드레인 = 깎은 만큼 자신이 회복 · 아군 1체에게도)  · 피해 1/3 대상 받은 (받은 대미지의 1/3 — 「공격을 받았을 때」 포텐셜 · 대상 = 공격한 상대)
-날씨 비 5 · 날씨 해제        필드 그래스필드 5 · 룸 트릭룸 5 · 필드상태 중력 5        설치기 [아군|상대] 리플렉터 5
+날씨 비 5 · 날씨 해제        필드 그래스필드 5 · 룸 트릭룸 5 · 필드상태 중력 5   (턴 0 = 그것만 걷기: 필드상태 중력 0)        설치기 [아군|상대] 리플렉터 5
 타입 [대상] 추가|변경|제거|원래 불꽃,비행        특성 [대상] 변경 X · 특성 원래        역할 추가|제거 에이스,블로커        추격 [숨김]
 비례무시 [대상] [빈사|설치기|설치기피해|반동|반동빈사] [조건] [1회] [N턴]  (반동빈사 = 반동으로는 「빈사」가 되지 않음 · 1회 = 한 번 막으면 사라짐)        우선도 +1 [대상] [타입:X] [물리|특수|변화] [태그:회복] [조건] [이번턴]
 공통 조건 (위력 · 완화 · 회피 · 비례무시 · 강화무시 · 우선도 · 추가효과 줄 뒤에): 기술:이름 · 상대타입:물 · 상태:X · 상대상태:X · 날씨:밤 · 필드:X · HP≤1/2 · 자진설치:리플렉터 · 적진설치:X · 랭크:방어≥2 · 랭크:급소≥2 (이번 기술의 C) · 필중기 · 소지품:목탄 · 이계:이름 · 턴:4배수 · 특성:배짱 · 해석됨 · 상대해석됨 · 자신역할:에이스 · 자세:날개의자세 (마지막에 쓴 「자세」 기술)        위력 =100 기술:히트스탬프 (고정 위력)
@@ -107,9 +107,9 @@ window.OM_FX_UI=(()=>{
    case 'heal':return `<div class="row">대상 ${tgSel('g_tgt')} <label>양 <input type="text" class="n" data-g="value" value="1/4" placeholder="1/4 · 30 · 전부"></label> <label>타입 한정 ${tySel('g_ytype','', '없음')}</label></div>`;
    case 'dmg':return `<div class="row">대상 ${tgSel('g_tgt','enemy1')} <label>양 <input type="text" class="n" data-g="value" value="1/8"></label> 기준 ${sel('g_basis',[['max','최대 HP'],['cur','현재 HP'],['last','직전에 입힌 대미지'],['type','타입 상성 비례']],'max')} <label>제외 타입 ${tySel('g_xtype','', '없음')}</label> <label><input type="checkbox" data-g="nofaint"> 빈사 없음</label> <label title="깎은 만큼 자신이 회복 (회복봉인이면 없음 · 대상이 해감액이면 반대로 피해)"><input type="checkbox" data-g="drain"> 드레인</label></div>
      <div class="fxg-ty"><span class="small dim">타입 상성 비례 — 누르면 타입 비례가 된다 (여럿이면 상성을 곱한다)</span>${TYPES.map(t=>`<label class="fxg-tyc"><input type="checkbox" data-g="aty_${t}"> ${esc(FX().TYPE_KO[t])}</label>`).join('')}</div>`;
-   case 'weather':return `<div class="row">날씨 ${sel('g_w',[['','해제'],['맑음','맑음'],['비','비'],['모래바람','모래바람'],['눈','눈'],['싸라기눈','싸라기눈'],['짙은안개','짙은안개'],['밤','밤'],['별하늘','별하늘'],['폭우','폭우'],['큰가뭄','큰가뭄'],['극한','극한'],['깊은밤','깊은밤'],['난기류','난기류'],['random','무작위']],'비')} <label>턴 <input type="number" class="n xs" data-g="count" value="5"> (1000 = 계속)</label></div>`;
-   case 'terrain':return `<div class="row">${sel('g_t',[['','해제'],['그래스필드','그래스필드'],['일렉트릭필드','일렉트릭필드'],['미스트필드','미스트필드'],['사이코필드','사이코필드'],['트릭룸','트릭룸'],['매직룸','매직룸'],['원더룸','원더룸'],['블랙룸','블랙룸']],'그래스필드')} <label>턴 <input type="number" class="n xs" data-g="count" value="5"></label></div>`;
-   case 'etc':return `<div class="row">${sel('g_e',[['','해제'],['중력','중력'],['물놀이','물놀이'],['흙놀이','흙놀이']],'중력')} <label>턴 <input type="number" class="n xs" data-g="count" value="5"></label></div>`;
+   case 'weather':return `<div class="row">날씨 ${sel('g_w',[['','해제'],['맑음','맑음'],['비','비'],['모래바람','모래바람'],['눈','눈'],['싸라기눈','싸라기눈'],['짙은안개','짙은안개'],['밤','밤'],['별하늘','별하늘'],['폭우','폭우'],['큰가뭄','큰가뭄'],['극한','극한'],['깊은밤','깊은밤'],['난기류','난기류'],['random','무작위']],'비')} <label>턴 <input type="number" class="n xs" data-g="count" value="5"> (1000 = 계속 · 0 = 이 날씨만 걷기)</label></div>`;
+   case 'terrain':return `<div class="row">${sel('g_t',[['','해제'],['그래스필드','그래스필드'],['일렉트릭필드','일렉트릭필드'],['미스트필드','미스트필드'],['사이코필드','사이코필드'],['트릭룸','트릭룸'],['매직룸','매직룸'],['원더룸','원더룸'],['블랙룸','블랙룸']],'그래스필드')} <label>턴 <input type="number" class="n xs" data-g="count" value="5"> (0 = 이것만 걷기)</label></div>`;
+   case 'etc':return `<div class="row">${sel('g_e',[['','전부 해제'],['중력','중력'],['물놀이','물놀이'],['흙놀이','흙놀이']],'중력')} <label>턴 <input type="number" class="n xs" data-g="count" value="5"> (0 = 이것만 걷기)</label></div>`;
    case 'object':return `<div class="row">진영 ${sel('g_side',[['ally','아군'],['enemy','상대']],'ally')} 설치기 ${sel('g_o',['리플렉터','빛의장막','오로라베일','신비의부적','흰안개','주술','검은숲','얼음의장벽','신기루','순풍','무지개','습원','불바다','돌격','희망사항','압정뿌리기','독압정','스텔스록','끈적끈적네트','기뢰','지뢰원','가시원','장미원','불기둥','아이스번','얼음꼬챙이','전기발판','트램펄린','저주의묘','악의소굴','전파탑'].map(x=>[x,x]),'리플렉터')} <label>턴 <input type="number" class="n xs" data-g="count" value="5"></label></div>`;
    case 'type':return `<div class="row">대상 ${tgSel('g_tgt')} ${sel('g_mode',[['add','타입 추가'],['set','타입 변경'],['reset','원래대로']],'add')} <label>타입 (쉼표) <input type="text" data-g="types" placeholder="불꽃,비행"></label> <label>지속 <input type="number" class="n" data-g="turns" min="0" placeholder="계속" style="width:56px">턴</label></div>`;
    case 'item':return `<div class="row">대상 ${tgSel('g_tgt','enemy1')} ${sel('g_mode',[['break','한 칸 파괴'],['rob','파괴(약탈) — 빈손이면 빼앗고 못 빼앗으면 파괴'],['breakall','모두 파괴'],['steal','강탈 (자신이 받음)'],['give','자신의 것을 건네줌'],['swap','맞바꾸기']],'break')}</div>`;
@@ -154,7 +154,7 @@ window.OM_FX_UI=(()=>{
    case 'chance':return `<div class="row">대상 ${tgSel('g_tgt')} ${sel('g_cm',[['add','발동 확률 + %p'],['sure','반드시 발동'],['off','보정 해제']],'add')} <label>% <input type="number" class="n xs" data-g="v" value="20"></label> <label>횟수 <input type="number" class="n xs" data-g="uses" value="0" title="0 = 해제 전까지"></label> <label>턴 <input type="number" class="n xs" data-g="turns" value="0"></label></div><div class="small dim">그 포켓몬의 포텐셜 · 특성 · 소지품 확률 굴림에 더해진다 (오레마스 발동 창에서도 그때그때 바꿀 수 있다)</div>`;
    case 'choice':return `<div class="row">${sel('g_chm',[['one','하나만 고른다'],['multi','여러 개 고른다']],'one')}</div><div class="small dim">「줄 추가」 뒤에 넣는 줄이 하나씩 선택지가 된다. 선택지에 이름을 붙이려면 아래 「선택지 이름」 칸에 적는다. 다 넣었으면 「선택지 끝」.</div>`;
   }return ''}
- function genLine(kind,md){const K=FX();const g=k=>{const el=md.querySelector(`[data-g="${k}"]`);return el?(el.type==='checkbox'?el.checked:el.value):''};const s=id=>{const el=$('#'+id,md);return el?el.value:''};const tg=t=>t&&t!=='self'?' '+K.TGT_KO[t].replace(/\s/g,''):'';const tga=t=>' '+K.TGT_KO[t||'enemy1'].replace(/\s/g,'');
+ function genLine(kind,md){const K=FX();const g=k=>{const el=md.querySelector(`[data-g="${k}"]`);return el?(el.type==='checkbox'?el.checked:el.value):''};const s=id=>{const el=$('#'+id,md);return el?el.value:''};const cnt0=()=>{const v=String(g('count')).trim();return v==='0'?'0':(+v>=1000?'계속':(+v||5))};   /* 11-21: 턴 0 = 그것만 걷기 */const tg=t=>t&&t!=='self'?' '+K.TGT_KO[t].replace(/\s/g,''):'';const tga=t=>' '+K.TGT_KO[t||'enemy1'].replace(/\s/g,'');
   const tyK=txt=>String(txt||'').split(/[,，\s]+/).filter(Boolean).join(',');
   switch(kind){
    case 'rank':case 'mult':{const parts=[];for(const k of STATS){const v=+g('st_'+k);if(kind==='rank'?v!==0:v!==1&&v>0)parts.push(K.STAT_KO[k]+(kind==='rank'?(v>0?'+':'')+v:'×'+v))}if(!parts.length)return '';return (kind==='rank'?'랭크':'배율')+tg(s('g_tgt'))+' '+parts.join(' ')+(g('temp')?' 임시':'')+(g('forced')?' 강제':'')}
@@ -164,9 +164,9 @@ window.OM_FX_UI=(()=>{
    case 'cure':return '치유'+tg(s('g_tgt'))+' '+(tyK(g('states'))||'이상')+(+g('chance')&&+g('chance')<100?' '+g('chance')+'%':'');
    case 'heal':return '회복 '+(g('value')||'1/4')+tg(s('g_tgt'))+(s('g_ytype')?' 타입:'+K.TYPE_KO[s('g_ytype')]:'');
    case 'dmg':{const ats=TYPES.filter(t=>g('aty_'+t));let b=s('g_basis');if(ats.length)b='type';if(b==='type'&&!ats.length)return '';return '피해 '+(g('value')||'1/8')+tga(s('g_tgt'))+(b==='cur'?' 현재':b==='last'?' 직전':b==='type'?' 타입:'+ats.map(t=>K.TYPE_KO[t]).join(','):'')+(s('g_xtype')?' 제외:'+K.TYPE_KO[s('g_xtype')]:'')+(g('nofaint')?' 빈사없음':'')+(g('drain')?' 드레인':'')}
-   case 'weather':{const w=s('g_w');return w?'날씨 '+(w==='random'?'무작위':w)+' '+(+g('count')>=1000?'계속':(+g('count')||5)):'날씨 해제'}
-   case 'terrain':{const t=s('g_t');return (/룸$/.test(t)?'룸 ':'필드 ')+(t?t+' '+(+g('count')>=1000?'계속':(+g('count')||5)):'해제')}
-   case 'etc':{const e=s('g_e');return '필드상태 '+(e?e+' '+(+g('count')>=1000?'계속':(+g('count')||5)):'해제')}
+   case 'weather':{const w=s('g_w');return w?'날씨 '+(w==='random'?'무작위':w)+' '+cnt0():'날씨 해제'}
+   case 'terrain':{const t=s('g_t');return (/룸$/.test(t)?'룸 ':'필드 ')+(t?t+' '+cnt0():'해제')}
+   case 'etc':{const e=s('g_e');return '필드상태 '+(e?e+' '+cnt0():'해제')}
    case 'object':return '설치기 '+(s('g_side')==='enemy'?'상대 ':'아군 ')+s('g_o')+' '+(+g('count')>=1000?'계속':(+g('count')||5));
    case 'type':{const m=s('g_mode');return '타입'+tg(s('g_tgt'))+' '+({add:'추가',set:'변경',reset:'원래'})[m]+(m==='reset'?'':' '+tyK(g('types'))+(+g('turns')>0?' '+(+g('turns'))+'턴':''))}
    case 'itemset':case 'itemadd':{const n=(g('name')||'').trim();return n?(kind==='itemadd'?'소지품추가':'소지품지정')+tga(s('g_tgt'))+' '+n:''}
