@@ -1263,7 +1263,7 @@ async function copyStr(s){try{await navigator.clipboard.writeText(s);toast('복�
 async function saveFile(filename,data){
  try{if(window.claude&&claude.use){const d=await claude.use('downloads');if(d){await d.save({filename,data});return}}}catch(e){if(e&&e.code==='declined')return toast('저장을 취소했습니다');}
  try{const blob=data instanceof Blob?data:new Blob([data]);const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}catch(e){toast('이 화면에서는 파일 저장을 할 수 없습니다')}}
-function rich(s){return esc(brN(s)).replace(/\\n|\n/g,'<br>').replace(/【([^】]*)】/g,'<span class="tg">$1</span>')}
+function rich(s){return esc(brN(s)).replace(/\\n|\n/g,'<br>').replace(/【((?:[^【】]|【[^【】]*】)*)】/g,'<span class="tg">$1</span>')}
 const banRe=()=>{try{return S.db.ban?new RegExp(S.db.ban):null}catch(e){return null}};
 function banHits(s){const re=banRe();if(!re||!s)return [];const g=new RegExp(re.source,'g');return [...new Set(String(s).match(g)||[])]}
 /* 금지어 목록 ↔ S.db.ban 정규식 (10-23 망령: 표 탭 「금지어」 칸에서 보기 · 추가 · 고치기 · 지우기).
@@ -1316,7 +1316,7 @@ function tagOrderIdx(tag){const tags=S.db.tags.map(t=>t[0]);let i=tags.indexOf(t
  if(/^(지시|육성|통솔|능력)\s*:/.test(tag))return tags.indexOf('자질');
  return tags.indexOf(tag.replace(/\s*\(.*$/,'').trim())}
 const LINE_RE=/^(\s*[①-⑳]?\s*)((?:【(?:[^【】]|【[^【】]*】)*】\s*)+)([\s\S]*)$/;
-function lineTags(m){return [...m[2].matchAll(/【([^】]*)】/g)].map(x=>x[1].trim())}
+function lineTags(m){return [...m[2].matchAll(/【((?:[^【】]|【[^【】]*】)*)】/g)].map(x=>x[1].trim())}
 function tagLint(s){const msg=[];String(s||'').split('\n').forEach((ln,n)=>{const m=ln.match(LINE_RE);if(!m)return;const tags=lineTags(m);
  const ix=tags.map(tagOrderIdx);const unk=tags.filter((t,i)=>ix[i]<0);const L=(String(s).includes('\n')?(n+1)+'줄: ':'');
  if(unk.length)msg.push(L+'사전에 없는 태그 '+unk.map(t=>'【'+t+'】').join(''));
@@ -1798,7 +1798,7 @@ function prCtx(t,p){
  const abr=idx.abil.get(p.ability||'');
  return {types,g,gv,stats,moves,mtypes,cats,roles,others,otherPots,eggs,ability:p.ability||'',abilEff:abr?String(abr[2]||''):'',item:p.item||'',old:isOld(p),ranks:t.ranks,name:p.name||'(이름 없음)'};
 }
-function prTags(s){return (String(s||'').match(/【([^】]*)】/g)||[]).map(x=>x.slice(1,-1).replace(/\s*\(.*$/,''))}
+function prTags(s){return (String(s||'').match(/【((?:[^【】]|【[^【】]*】)*)】/g)||[]).map(x=>x.slice(1,-1).replace(/\s*\(.*$/,''))}
 function prEffKeys(s){const k=new Set();const x=String(s||'');
  if(/강화\(|위력.*(배|강화)|대미지를 강화|2배/.test(x))k.add('위력 강화');
  if(/완화\(|반감|받을 대미지|무효화/.test(x))k.add('피해 완화');
@@ -1971,7 +1971,7 @@ const PR_CONDV=[[/「HP : 가득」/,1],[/3\/4 이상/,0.5],[/1\/2 이하/,1],[/
 function prTagVal(tag){const t=tag.trim();if(PR_TAGV[t]!=null)return PR_TAGV[t];const m=t.match(/^중첩 \((\d+)회\)$/);if(m)return 0;const b=t.replace(/\s*\(.*$/,'');return PR_TAGV[b]!=null?PR_TAGV[b]:0}
 function prStackN(tags){for(const t of tags){const m=t.match(/^중첩 \((\d+)회\)$/);if(m)return +m[1]}return 1}
 function prBalance(lines,ctx){let ev=0;const credits=[];const seenTags=new Set();let cost=0;
- for(const ln of lines){const P=Object.assign({},PB_DEF,ln.pr);const tags=(String(ln.trig||'').match(/【([^】]*)】/g)||[]).map(x=>x.slice(1,-1));
+ for(const ln of lines){const P=Object.assign({},PB_DEF,ln.pr);const tags=(String(ln.trig||'').match(/【((?:[^【】]|【[^【】]*】)*)】/g)||[]).map(x=>x.slice(1,-1));
   const n=prStackN(tags);let v=prEffVal(ln.eff,P)*n;if(ln.eff==='cost')cost+=(PR_FRV[P.fr]||3)*0.8;else ev+=v;
   for(const t of tags){const k=t.trim();if(seenTags.has(k))continue;seenTags.add(k);const tv=prTagVal(t);if(tv)credits.push(tv)}
   const c=String(ln.cond||'');for(const [re,val] of PR_CONDV)if(re.test(c)){let add=val;if(ctx&&/「날씨 : [^」]+」일 때/.test(c)&&ctx.abWt&&c.includes(ctx.abWt))add=0.7;if(ctx&&/「필드 : [^」]+」일 때/.test(c)&&ctx.abFd&&c.includes(ctx.abFd))add=0.8;if(add)credits.push(add)}}
@@ -2888,7 +2888,7 @@ function tuneTab(t,ti,p,pi){const T=tuneOf(p);const ok=fxReady();const D=`data-i
 /* 10-22 망령: 포텐셜 탭을 웹툴(오레마스 시트) 카드처럼 — 슬롯 번호 · 분류 꼬리표 · 이름 · 효과 전문 (「」【】 강조, ① ② 줄 나눔) */
 const POT_HUE={역할:'#e6b422',분류:'#8d96a8',주인:'#4fbf73',종족:'#4fbf73',속성:'#4aa3ff',속별:'#4aa3ff',유대:'#ff8ab4',선:'#38c6b4',회피:'#7aa3ee',내성:'#9b8cff',전술:'#ff8a5c',특권:'#b07cff',성격:'#ff8a5c',기술:'#ff5c8a',전용:'#ffd84a','4식':'#f0a24a','5식':'#f0a24a','6식':'#f0a24a','5계':'#5fb0ff','6령':'#e06c75','8령':'#e06c75'};
 function potKindP(k){const m=String(k||'').trim().match(/^(\d+(?:\.\d+)*)\.\s*(.+)$/);return m?{no:m[1],lab:m[2].trim()}:{no:'',lab:String(k||'').trim()}}
-function potFmtM(t){let h=esc(brN(t||'')).replace(/\\n/g,'\n');h=h.replace(/【([^】]*)】/g,'<b class="ptbk">【$1】</b>').replace(/「([^」]*)」/g,'<b class="ptqt">「$1」</b>').replace(/『([^』]*)』/g,'<b class="ptqt">『$1』</b>');
+function potFmtM(t){let h=esc(brN(t||'')).replace(/\\n/g,'\n');h=h.replace(/【((?:[^【】]|【[^【】]*】)*)】/g,'<b class="ptbk">【$1】</b>').replace(/「([^」]*)」/g,'<b class="ptqt">「$1」</b>').replace(/『([^』]*)』/g,'<b class="ptqt">『$1』</b>');
  const L=h.split('\n').map(x=>x.trim()).filter(Boolean);if(L.length<2&&!/^[①-⑳]/.test(L[0]||''))return h;
  return L.map(l=>{const m=l.match(/^([①-⑳]|\d+[.)])\s*(.*)$/);return m?`<div class="pkl"><i>${m[1]}</i><span>${m[2]}</span></div>`:`<div class="pkl"><span>${l}</span></div>`}).join('')}
 function potCardM(o){const k=potKindP(o.kind);const hue=o.ex?POT_HUE.전용:(POT_HUE[k.lab]||'#3fc7c0');
@@ -2924,7 +2924,7 @@ function fitLog(){for(const [fi,vi] of [['#logFrame','#v-log'],['#ruleFrame','#v
 function fitFrame(f){const top=f.getBoundingClientRect().top+window.scrollY;let bot=0;const tb=$('#mk .tabs');if(tb){const r=tb.getBoundingClientRect();if(getComputedStyle(tb).position==='fixed'&&r.top>innerHeight/2)bot=r.height}f.style.height=Math.max(420,Math.floor(innerHeight-top-bot))+'px'}
 addEventListener('resize',()=>{clearTimeout(fitLog.t);fitLog.t=setTimeout(fitLog,80)});
 const LOGV='20261026g';   /* 로그 정리기 판 (캐시 깨기) */
-function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v='+LOGV;requestAnimationFrame(fitLog);return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=202611191600dm';requestAnimationFrame(fitLog);return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='dg'){if(window.MK_DG)MK_DG.render({soft:true});return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
+function refreshAll(){stApply();if(S.ui.tab==='log'){const f=$('#logFrame');if(f&&!f.getAttribute('src'))f.src='logtool/index.html?v='+LOGV;requestAnimationFrame(fitLog);return}if(S.ui.tab==='rule'){const f=$('#ruleFrame');if(f&&!f.getAttribute('src'))f.src='rulebook.html?v=202611201130hl';requestAnimationFrame(fitLog);return}if(S.ui.tab==='notes'){if(window.MKM_NOTES)MKM_NOTES.render();return}if(S.ui.tab==='dg'){if(window.MK_DG)MK_DG.render({soft:true});return}if(S.ui.tab==='char')renderChar();else if(S.ui.tab==='type')renderType();else if(S.ui.tab==='db')renderDB();else renderTbl()}
 let rT=null;
 let composing=false;
 $('#v-char').addEventListener('compositionstart',()=>{composing=true;clearTimeout(rT)});
