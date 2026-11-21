@@ -225,6 +225,8 @@ function distBonusList(t){const out=[];if(!t)return out;const srcs=[];
 const distAdjOf=t=>Math.round(+((t||{}).distAdj)||0);
 const distExtra=t=>distAdjOf(t)+distBonusList(t).filter(x=>x.ok).reduce((a,x)=>a+x.n,0);
 const distItem=()=>(ptItems().find(r=>r[2]==='dist')||[])[0];
+/* 11-22 04:11 망령 「10+10 에서 20 이면 8 / 12 가 되어야」: 미사그 — 늘린 몫도 기본과 같은 비율(1인 값 / 6체 값, 육성 C·B- 는 4/10)로 각성체 몫 · PL 몫에 나눈다 (반올림) */
+function distExtraAw(t){const dx=distExtra(t);if(!dx)return 0;const r=(t&&t.ranks||{})['육성'],d1=tplSolo('육성','분배레벨',r),d6=tplSix('육성','분배레벨',r);return (d1!=null&&d6>0)?Math.round(dx*(+d1)/(+d6)):Math.round(dx/3)}
 function distExtraTip(t){const L=distBonusList(t);return [distAdjOf(t)?`조정 ${distAdjOf(t)>0?'+':''}${distAdjOf(t)}${t.distNote?' ('+t.distNote+')':''}`:'',...L.map(x=>`${x.by} ${x.n>0?'+':''}${x.n}${x.ok?'':' — 자질 조건 미달이라 안 셈'}`)].filter(Boolean).join(' · ')}
 /* 테이블(더블) Q198:Q203 — 개체치·노력치·성격 미사용(0 / 0 / 1.0) */
 /* 10-22 망령: 특성 · 포텐셜 · 전용에 적힌 「○○의 종족치를 N랭크 상승(감소)시킨다」 → 실수치 · 등급 · 종족치 합에 반영.
@@ -754,9 +756,9 @@ function misagThreeChecks(t){const out=[];if(!isMisag(t))return out;const S=subO
  if(mOn('twoRole')){const r=roleOf(sp);const hit=awList(t).filter(a=>roleOf(a)&&roleOf(a)===r&&r!=='역할 포텐셜');if(r&&hit.length)out.push(`${tag} — 서브와 각성체의 역할이 같습니다 (『${r}』) · 3체 안에서는 역할 중복 불가`)}
  return out}
 function misagTwoChecks(t){const out=[],A=awList(t);if(!A.length)return out;const tag='각성체 2체 몫';
- {const d1=tplSolo('육성','분배레벨',t.ranks['육성']),d6=tplSix('육성','분배레벨',t.ranks['육성']),pa=misagDistAw(t),pp=misagDistPl(t);const ds=A.reduce((a,p)=>a+(Math.round(+p.dist)||0),0),dx=distExtra(t);   /* 11-22: 분배레벨 조정 · 【준비】 몫은 각성체 2체 몫에 더한다 · 11-09: 각성체 2체 = 1인 값 − 육성 대가 각성체 몫, PL 4체 = (6체 − 1인) − PL 몫 */
+ {const d1=tplSolo('육성','분배레벨',t.ranks['육성']),d6=tplSix('육성','분배레벨',t.ranks['육성']),pa=misagDistAw(t),pp=misagDistPl(t);const ds=A.reduce((a,p)=>a+(Math.round(+p.dist)||0),0),dx=distExtraAw(t),dxp=distExtra(t)-dx;   /* 11-22: 분배레벨 조정 · 【준비】 몫은 기본 비율대로 각성체 · PL 에 나눈다 · 11-09: 각성체 2체 = 1인 값 − 육성 대가 각성체 몫, PL 4체 = (6체 − 1인) − PL 몫 */
   if(d1!=null&&ds>d1-pa+dx)out.push(`${tag} — 분배레벨 합 ${ds} / ${d1-pa+dx} (1인 기준 (2체) ${d1} · 육성 ${strip(t.ranks['육성'])}${pa?` · 육성 대가 각성체 몫 −${pa}`:''}${dx?` · 조정 · 【준비】 ${dx>0?'+':''}${dx}`:''})`);
-  if(d1!=null&&d6!=null){const PL=t.pokemon.filter(p=>!awOf(t,p)),pcap=d6-d1-pp,ps=PL.reduce((a,p)=>a+(Math.round(+p.dist)||0),0);if(ps>pcap)out.push(`PL 4체 — 분배레벨 합 ${ps} / ${pcap} (6체 ${d6} − 각성체 몫 ${d1}${pp?` · 육성 대가 PL 몫 −${pp}`:''})`)}}
+  if(d1!=null&&d6!=null){const PL=t.pokemon.filter(p=>!awOf(t,p)),pcap=d6-d1-pp+dxp,ps=PL.reduce((a,p)=>a+(Math.round(+p.dist)||0),0);if(ps>pcap)out.push(`PL 4체 — 분배레벨 합 ${ps} / ${pcap} (6체 ${d6} − 각성체 몫 ${d1}${pp?` · 육성 대가 PL 몫 −${pp}`:''}${dxp?` · 조정 · 【준비】 ${dxp>0?'+':''}${dxp}`:''})`)}}
  /* 10-30 망령 「전용도 기본적으로 각성체에 2개가 부여 돼 · D 는 각성체 1체만」 · 「따로 받음 (상한에 안 셈)」: 각성체는 능력 표와 따로 1체에 전용 2개(룰 상수 미사그 awExcl).
     능력 D 면 각성체 1체만 받는다. 능력 표의 전용 개수(6체 기준, 능력 대가 −n 포함)는 PL 4체 몫으로 센다 */
  {const per=mnum('awExcl'),dOne=strip(t.ranks['능력'])==='D';const has=A.map(p=>exclAll(p).length);
@@ -2682,7 +2684,7 @@ function tOrdHTML(t,ti){const o=t.orders||{};const p=o.preset||'';const rk=(t.ra
 const RP_PC=[['bg','배경 · 설정'],['goal','목표 · 동기'],['bond','인간관계'],['style','말투 · 겉모습'],['note','메모']],RP_NPC=[['bg','정체 · 설정'],['goal','원하는 것 · 동기'],['bond','인간관계'],['style','말투 · 겉모습'],['note','PL 이 아는 것']];
 /* 10-28 망령: 미사그 대학 (4+2) 「각성체 대가」 패널 — 등급은 각성 (대가)의 프라이드에서 매번 계산, 고른 것만 t.misagPen 에 */
 function misagOut(t){if(!isMisag(t))return undefined;const P=misagPen(t),e=misagEff(t);const it=[];if(e.통솔){for(const k of [...(mHasB(e.통솔)?[P.b]:[]),...(mHasA(e.통솔)?[P.a]:[])]){const r=k&&misagItem(k);if(r)it.push({key:r[0],grade:r[1],desc:r[2],need:r[3]||''})}}
- return {grade:misagGrade(t),pen:e,dist:misagDistPen(t),distAw:misagDistAw(t),distPl:misagDistPl(t),distSolo:(d=>d==null?d:+d+distExtra(t))(tplSolo('육성','분배레벨',t.ranks['육성'])),   /* 11-22 「각성체 분배는 4렙에서 안 늘어나」: 세션 노트 PT 서머리 「각성체 n/m」의 m 에도 조정 · 【준비】 몫 */excl:misagExclPen(t),uq:misagUqPen(t),ordOff:e.지시?{o:misagOrdOff(t,'o'),c:misagOrdOff(t,'c')}:{o:[],c:[]},items:it,type:P.type||'',role:String(P.role||'').trim(),note:String(P.note||'').trim(),two:misagTwoOut(t)}}
+ return {grade:misagGrade(t),pen:e,dist:misagDistPen(t),distAw:misagDistAw(t),distPl:misagDistPl(t),distSolo:(d=>d==null?d:+d+distExtraAw(t))(tplSolo('육성','분배레벨',t.ranks['육성'])),   /* 11-22 「각성체 분배는 4렙에서 안 늘어나」: 세션 노트 PT 서머리 「각성체 n/m」의 m 에도 조정 · 【준비】 몫 */excl:misagExclPen(t),uq:misagUqPen(t),ordOff:e.지시?{o:misagOrdOff(t,'o'),c:misagOrdOff(t,'c')}:{o:[],c:[]},items:it,type:P.type||'',role:String(P.role||'').trim(),note:String(P.note||'').trim(),two:misagTwoOut(t)}}
 /* 10-30 망령 「세션 노트에도 이어지게」: 2체 기준 요약 — 각성체 2체 몫 검사 글 · 2체 기준으로 고른 4식 · 6령(대가로 뺀 것 제외) · 3계제권 · 검사 켜짐 */
 function misagTwoOut(t){let O=null;try{O=ordSnap(t)}catch(e){}const pk=kind=>O&&O.preset?(O[kind]||[]).filter(x=>x.pick&&x.avail&&!x.off):[];
  return {checks:misagChecks(t).filter(x=>/^(2체 기준|각성체 2체 몫)/.test(x)),pick:{o:pk('o').map(x=>x.k),c:pk('c').map(x=>x.k)},names:{o:pk('o').map(x=>x.nm),c:pk('c').map(x=>x.nm)},need:O&&O.pickN?O.pickN:{o:soloOrdN('o',t),c:soloOrdN('c',t)},g3:misagG3(t.ranks['육성'])||null,b1:mOn('twoB1'),role:mOn('twoRole')}}
