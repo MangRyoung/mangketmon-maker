@@ -240,7 +240,7 @@ function buCondOk(t,p,txt){
 const BU_C=new Map();
 function baseUp(t,p){const src=[];const ab=p.ability&&idx.abil?idx.abil.get(p.ability):null;if(ab&&ab[2])src.push(['특성',p.ability,ab[2]]);
  (p.pots||[]).forEach((n,i)=>{if(n&&n!=='-'){const e=potEffOf(p,i);if(e)src.push(['포텐셜',String(n).replace(/『|』/g,''),e])}});
- for(const x of exclAll(p))if(x.eff)src.push(['전용',x.name,x.eff]);
+ for(const x of [p.excl,...(p.exclX||[])])if(x&&x.eff&&x.name!=='전용 포텐셜')src.push(['전용',x.name||'(이름 없는 전용)',x.eff]);   /* 11-21 망령 「존 헨리 전용 자동화 왜 안 먹혀」: 이름을 아직 안 정한(보구 이름 고르는 중) 전용도 효과가 있으면 종족치에 반영 — exclAll 은 이름 있는 것만 세서 빠졌음 */
  const key=JSON.stringify([p.base,src.map(s=>s[2]),t&&t.ranks,p.auto]);const hit=BU_C.get(key);if(hit)return hit;
  const n=[0,0,0,0,0,0],mx=[0,0,0,0,0,0],mn=[0,0,0,0,0,0],set=[null,null,null,null,null,null],by=[[],[],[],[],[],[]],miss=[];const add=[0,0,0,0,0,0],addBy=[[],[],[],[],[],[]],cp=[null,null,null,null,null,null],top=[0,0,0,0,0,0];
  for(const [kind,name,eff] of src){for(const cl of String(eff).replace(/<br\s*\/?>/g,'\n').split(/\n|(?=[①-⑳])/)){
