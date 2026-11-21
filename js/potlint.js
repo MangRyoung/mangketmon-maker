@@ -160,7 +160,9 @@ window.MKM_POTLINT=(()=>{
   if((m=c.match(/「HP\s*[:：]\s*(\d+\/\d+)\s*이상」\s*(?:일|인)\s*때/)))put('HP≥'+m[1],m[0]);
   if((m=c.match(/「성별\s*[:：]\s*(♂|♀)」\s*(?:일|인)\s*때/)))put('성별:'+m[1],m[0]);
   if((m=c.match(/「기술머신」\s*(?:으로|로)\s*내보낸/)))put('기술머신',m[0],1);
-  if((m=c.match(/(?:『데이터 해석』|데이터 해석)(?:이|을)?\s*(?:된|당한)\s*(?:상대|대상)/)))put('상대해석됨',m[0]);
+  /* 11-21 망령 「해석된 상대에게 · 적진에 해석된 상대가 있을 때」: 「데이터가 해석된 상대에게」 꼴도 · 「적진에 …있을 때」는 아래 조건 줄(적진해석됨)로 */
+  if(!/적진에\s*(?:데이터가?\s*)?해석된\s*(?:상대|포켓몬)/.test(c)&&(m=c.match(/(?:『데이터 해석』|데이터 해석)(?:이|을)?\s*(?:된|당한)\s*(?:상대|대상)|(?:데이터가\s*)?해석된\s*(?:상대|대상)/)))put('상대해석됨',m[0]);
+  if((m=c.match(/적진에\s*(?:데이터가?\s*)?해석된\s*(?:상대|포켓몬)(?:이|가)?\s*있(?:을 때|으면|는 동안|는 한)/)))put('적진해석됨',m[0]);
   if((m=c.match(/지정한\s*기술/)))put('지정기술',m[0],1);
   if((m=c.match(/「비축\s*카운터\s*[:：]\s*\+?(\d)」\s*이상(?:일|인)?\s*때/)))put('비축≥'+m[1],m[0]);   /* 11-18 오호게츠히메 「쌀공주의 풍만」 */
   for(const t of brToks(c))put(t,(t.match(/[A-Z+\-]+$/)||[''])[0],0);
@@ -331,7 +333,9 @@ window.MKM_POTLINT=(()=>{
     else if((q=c.match(/(?:모든 포켓몬의|자신의)\s*「([가-힣]+)」\s*기술을\s*「([가-힣]+)」\s*기술로 만든다/))&&!/강화\(/.test(c))L.push(`기술타입 타입:${q[1]} ${q[2]}`);
     if((q=c.match(/((?:「[^」]+」)+)의 지속 턴에\s*「?\+(\d)」?/))){const ws=[...q[1].matchAll(/「([^」]+)」/g)].map(x=>x[1].replace(/^(?:날씨|필드)\s*:\s*/,'').trim()).map(x=>x==='장벽'?'벽':x).filter(Boolean);L.push(`지속연장 ${ws.join(',')} +${q[2]}`)}
     if(/데이터 해석을 차단/.test(c))L.push('해석차단');
-    else if(/(?:상대|정면|대상)의\s*(?:데이터|정보)를\s*(?:해석|공개)한다/.test(c))L.push('해석');
+    else if(/(?:상대|정면|대상)(?:\s*전체)?의\s*(?:데이터|정보)를\s*(?:해석|공개)한다/.test(c))L.push('해석'+(/상대\s*전체의\s*(?:데이터|정보)/.test(c)?' 상대전체':''));
+    /* 11-21 망령 「소지품 해석」: 「상대 (전체)의 「소지품」을 표시 · 파악 · 해석한다」 → 소지품해석 [상대전체] */
+    if(/(?:상대|정면|대상)(?:\s*전체)?(?:의\s*포켓몬)?의\s*「?소지품」?\s*(?:을|를)\s*(?:표시|파악|해석|공개)/.test(c))L.push('소지품해석'+(/상대\s*전체의\s*「?소지품/.test(c)?' 상대전체':''));
     /* 이 포텐셜을 『어태커』『블로커』로 취급한다 → 역할 추가 (타이트엔드) */
     if((q=c.match(/((?:『[^』]+』\s*)+)(?:으로|로)\s*취급한다/))&&/이 (?:포텐셜|특성)(?:을|를|은)/.test(c)){const rs=[...q[1].matchAll(/『([^』]+)』/g)].map(y=>y[1]).filter(r=>ROLE_W().includes(r));if(rs.length)L.push(`역할 추가 ${rs.join(',')}`)}
     /* 다음 기술 (필중 · 확정 급소 · 우선도) */
@@ -388,7 +392,7 @@ window.MKM_POTLINT=(()=>{
      if(T.some(x=>x.t==='반동기')&&!L.some(x=>/^위력/.test(x))){const q=c.match(/기술의\s*(?:대미지|위력)(?:을|를)?\s*강화\s*\((\d+(?:\.\d+)?)배\)/);if(q)L.push('위력 ×'+q[1])}
      if(T.some(x=>/우선도[+\-]\d/.test(x.t))&&/(?:공격|기술)(?:을|를)\s*(?:모두\s*)?무효화/.test(c)&&!L.some(x=>/^완화/.test(x)))L.push('완화 ×0');
      /* 그 줄이 토큰을 받는지는 구문을 직접 읽어 본다 — 토큰을 붙였을 때 조건이 달라지면 받는 줄 (랭크 · 상태 · 회복처럼 토큰을 조용히 버리는 줄은 조건 줄로) */
-     const inl=(x,t)=>{if(!F||!F.parse||/^(?:확인|은열쇠|선택)/.test(x))return false;try{const A=F.parse(x),B=F.parse(x+' '+t);const a=A.ops||[],b=B.ops||[];if(!(a.length>0&&a.length===b.length)||(B.errs&&B.errs.length))return false;const CK=['stk','mv','ft','cs','os','wx','trn','hl','hg','hs','hf','h1','rc','al','oa','ob','rk','ork','sure','it','iw','tm','ab','dx','odx','mr','ks','tmv','pr','pmin','pmax','br','at','aab','sg','og','stp','foe','dmv','pit','ait'];let ch=false;for(let j=0;j<a.length;j++){const ks=new Set([...Object.keys(a[j]||{}),...Object.keys(b[j]||{})]);for(const k of ks)if(JSON.stringify((a[j]||{})[k])!==JSON.stringify((b[j]||{})[k])){if(!CK.includes(k))return false;ch=true}}return ch}catch(e){return false}};   /* 토큰을 붙여 바뀐 칸이 조건 칸뿐일 때만 (타입 · 확인 줄처럼 남는 낱말을 삼키는 줄은 아니다) */let needC=false;const left=new Set();
+     const inl=(x,t)=>{if(!F||!F.parse||/^(?:확인|은열쇠|선택)/.test(x))return false;try{const A=F.parse(x),B=F.parse(x+' '+t);const a=A.ops||[],b=B.ops||[];if(!(a.length>0&&a.length===b.length)||(B.errs&&B.errs.length))return false;const CK=['stk','mv','ft','cs','os','wx','trn','hl','hg','hs','hf','h1','rc','al','oa','ob','rk','ork','sure','it','iw','tm','ab','dx','odx','edx','mr','ks','tmv','pr','pmin','pmax','br','at','aab','sg','og','stp','foe','dmv','pit','ait'];let ch=false;for(let j=0;j<a.length;j++){const ks=new Set([...Object.keys(a[j]||{}),...Object.keys(b[j]||{})]);for(const k of ks)if(JSON.stringify((a[j]||{})[k])!==JSON.stringify((b[j]||{})[k])){if(!CK.includes(k))return false;ch=true}}return ch}catch(e){return false}};   /* 토큰을 붙여 바뀐 칸이 조건 칸뿐일 때만 (타입 · 확인 줄처럼 남는 낱말을 삼키는 줄은 아니다) */let needC=false;const left=new Set();
      /* 조건 줄은 마디 전체를 막으니 — 마디가 한 문장이고 그 문장의 조건일 때만. 여러 문장(기술 글 「…회복한다. 「날씨 : 맑음」일 때 회복량이 …」)은 줄 끝 토큰만. 「「성별 : ♂」인 상대 전체를」처럼 대상을 거르는 상대 쪽 조건도 조건 줄로 세우지 않는다 */
      const sents=c.split(/(?<=[.。])\s+/).filter(Boolean),multi=sents.length>1,first=sents[0]||c,wide=/상대 전체|적진의|모든 상대|필드에 있는|모든 포켓몬/.test(c);const used=new Set();
      const okC=x=>!x.mv&&!cond.some(y=>y.split(/\s+/).includes(x.t))&&!multi&&(!x.src||first.includes(x.src))&&!(wide&&/^(상대|같은타입|다른타입)/.test(x.t));
@@ -412,6 +416,8 @@ window.MKM_POTLINT=(()=>{
   for(let k=0;k<2;k++){const ci=lines.findIndex(s=>/^(?:위력 ×1 .*급소\+\d|랭크 급소\+\d)$/.test(s));if(ci<0)break;const cr=lines[ci].match(/급소\+\d$/)[0];const want=lines[ci].startsWith('랭크')?[]:lines[ci].replace(/^위력 ×1 /,'').replace(/\s*급소\+\d$/,'').split(/\s+/).filter(Boolean);
    const bi=lines.findIndex((s,i)=>{if(i===ci||!/^위력 ×(?!1(?:\s|$))/.test(s)||/급소\+/.test(s))return false;const ws=s.replace(/^위력 ×[\d.]+/,'').split(/\s+/).filter(w=>w&&w!=='공세');return want.length?want.every(w=>ws.includes(w))&&ws.every(w=>want.includes(w)):!ws.length});
    if(bi<0)break;lines[bi]+=' '+cr;lines.splice(ci,1);why.splice(ci,1)}
+  /* 11-21 「데이터가 해석된 상대에게 「독」 상태로…」: 맞은 대상이 없는 효과에선 조건 줄의 상대해석됨이 늘 막는다 — 상대를 고르는 줄(상대1체 · 상대전체 · 정면 · 대상)이 있으면 그 줄 끝 「대상해석됨」(해석한 상대만 고름)으로 옮긴다 */
+  {const ci=lines.findIndex(x=>/^조건 /.test(x)&&x.split(/\s+/).includes('상대해석됨'));if(ci>=0){const tg=lines.map((x,i)=>i!==ci&&!/^(?:조건|확인|선택|위력|완화|회피|배율|추가효과|우선도)/.test(x)&&/(^|\s)(상대1체|상대전체|정면|대상|상대)(?=\s|$)/.test(x)?i:-1).filter(i=>i>=0);if(tg.length){for(const i of tg)if(!/ 대상해석됨/.test(lines[i]))lines[i]+=' 대상해석됨';const rest=lines[ci].split(/\s+/).slice(1).filter(w=>w!=='상대해석됨');if(rest.length)lines[ci]='조건 '+rest.join(' ');else{lines.splice(ci,1);why.splice(ci,1)}}}}
   const timing=/【등장/.test(all)?'【등장】이 있어 오레마스에서 나올 때 자동으로 걸린다':/상태가\s*(?:되었을|됐을)\s*때/.test(all)?'「~ 상태가 되었을 때」라 오레마스에서 그 상태가 걸리는 순간 자동으로 걸린다 (확률은 그때 굴림)':/【상시】/.test(all)?'【상시】라 늘 켜져 있다':'배틀의 포텐셜 칸 「발동」 버튼으로 건다';
   return {lines,why,timing}}
  return {check,fixAll,fixOne,suggest,clauses,cmdChgOf}})();
