@@ -417,7 +417,7 @@ function prioInfo(p){const P=PR().prio||PRIDE_DEF.prio;const rows=P.rows||PRIDE_
  (p.pots||[]).forEach((n,i)=>{if(!n)return;const eff=String(potEffOf(p,i)||'');if(!/우선도\s*[:：]?\s*\+\s*\d/.test(eff))return;const cond=/【\s*\d+\s*\/\s*시\s*】|【\s*1\/시\s*】/.test(eff);take(cell(cond,2),'『'+n+'』',(cond?'조건부':'상시')+'·강 (포텐셜)')});
  return best}
 /* 커스텀 포켓몬 계산 종족치 — 계단마다 하한이 달라서 낮은 계단부터 맞춰 본다 */
-function customCalc(p,t){const R=PR(),b=baseNums(p),real=b.reduce((a,c)=>a+c,0);let down=leadDown(p,t);
+function customCalc(p,t,at){const R=PR(),b=baseNums(p),real=b.reduce((a,c)=>a+c,0);let down=leadDown(p,t);
  /* 11-18 망령 「(통솔 D 보조) 이거 D로 감소 왜 안 돼」: 미사그 각성 (보조)의 프라이드가 통솔대로 D 면 C 계단 한 단계 아래(D 455) 하나로 고정 — 위 계단으로 넘어가지 않는다 */
  const subD=(()=>{const tr=t||trOfPoke(p);return !!(tr&&p&&p.awaken==='c'&&typeof isMisag==='function'&&isMisag(tr)&&typeof misagSubPr==='function'&&misagSubPr(tr)===String((PR().oldLow||{}).lab||'D').toUpperCase())})();if(subD)down=true;const main=Math.max(b[1],b[3]);
  const bulk=two(Math.min(b[2],b[4]),R.bulk),hp=two(b[0],R.hp);
@@ -426,7 +426,8 @@ function customCalc(p,t){const R=PR(),b=baseNums(p),real=b.reduce((a,c)=>a+c,0);
  const F=R.fs,fs=two(main,{lo:F.lo,hi:F.hi,k1:F.k1,k2:F.k2})*Math.max(0,Math.min(1,(Math.min(b[5],pnum(F.shi,140))-pnum(F.slo,90))/Math.max(1,pnum(F.shi,140)-pnum(F.slo,90))));
  const D=R.dual,dualOk=dualMoves(p),dualRaw=pnum(D.k,1)*Math.max(0,Math.min(Math.min(b[1],b[3]),pnum(D.hi,120))-pnum(D.lo,90)),dual=dualOk?dualRaw:0;
  const pri0=prioInfo(p),ov=String(p.prioOv??'').trim(),pri=ov===''?pri0:{floor:Math.max(0,pnum(ov,0)),src:pnum(ov,0)?'직접 지정':'직접 지정 · 없음',kind:'예외',auto:pri0,ov:true},opp=Math.round(main*pnum(R.opp,0.4)),s0=abSock(p),sb=sockBonus(p).ab,s=s0==null?null:Math.max(0,+(s0-sb).toFixed(2)),per=pnum(R.toStep,45)*2,perD=pnum(R.toDown,25)*2,toF=pnum(R.toFloor,1);
- const steps=prSteps().filter(x=>!isEX(x)).slice(0,subD?1:99);let last=null;
+ /* 11-22 망령 「프라이드 바꿔도 적용이 안 됨」: 직접 지정한 프라이드(at)면 그 계단 하나로만 셈 — 예전엔 늘 「담을 수 있는 가장 낮은 계단」으로 셈해서, 특성 TO 처럼 계단마다 달라지는 할증이 지정한 계단 기준으로 안 보였다 (B 지정인데 머리에 A · 남는 점수 45) */
+ const all=prSteps().filter(x=>!isEX(x));const pin=at&&!subD?all.find(x=>x.lab===String(at).trim()):null;const steps=pin?[pin]:all.slice(0,subD?1:99);let last=null;
  for(const st of steps){const fa=Math.max(0,Math.max(st.floor,b[1]<main?opp:0)-b[1]),fc=Math.max(0,Math.max(st.floor,b[3]<main?opp:0)-b[3]);const sf=Math.max(st.floor,pri.floor),fsp=Math.max(0,sf-b[5]);
   const to=s==null?st.to:s;const toAdj=per*Math.max(0,to-st.to)-perD*Math.max(0,toF-Math.max(to,pnum(R.toMin,0.5)));   /* 11-01 망령 「0특 끼면 종족치뻥이 너무 많다 — 0특은 0.5랑 감소치 같게」: 되팔기는 TO 0.5 까지만 (toMin) */   /* 10-27 망령: 1보다 내릴 때(되팔기)는 0.5당 25 (올릴 때 45 와 따로) */
   const ct=real+fa+fc+fsp+fdur+bulk+hp+fs-dual+toAdj,cap=stepCap(st,down);last={real,b,fa,fc,fsp,sf,fdur,dMin,dSum,off:fa+fc+fsp+fdur,opp,bulk,hp,fs,dual,dualRaw,dualOk,pri,to,toRaw:s0,toBon:sb,toBase:st.to,toAdj,ct,step:st,cap,down,ok:ct<=cap+1e-9};if(last.ok)return last}
@@ -442,13 +443,15 @@ function oldCalc(p){const R=PR(),real=baseTot(p),steps=prSteps(),L=R.oldLow||PRI
  const st=stepOf(t);const prank=listOf(L.prank).includes(p.ability);
  if(!st){const low=steps.find(s=>!isEX(s));return prank?{real,t,lab:low?low.lab:'C',src:'prank',friendly:fr}:{real,t,lab:String(L.lab||'D'),src:'low',friendly:fr}}
  return {real,t,lab:st.lab,src:'floor',friendly:fr}}
+/* 직접 지정한 프라이드면 그 계단으로 셈한 계산 (자동 · EX · 올드는 그대로) */
+function customCalcP(p,t){return customCalc(p,t,prideIsAuto(p)?null:prideOf(p))}
 function prideAuto(p){if(!baseTot(p))return (prSteps()[0]||{lab:'C'}).lab;if(isOld(p))return oldCalc(p).lab;const c=customCalc(p);return c.step?c.step.lab:'C'}
 /* 10-26 망령: C+ · B+ 를 고르면 strip 이 + 를 지워 C · B 로 떨어지던 것 — 계단 이름 그대로 먼저 찾고, 없을 때만 예전처럼 +/- 를 뗀다 */
 const prKey=v=>{const s=String(v||'').trim();return prRow(s)?s:strip(s)};
 function prideOf(p){const v=prKey(p.pride);return prRow(v)?v:prideAuto(p)}
 const prideIsAuto=p=>!prRow(prKey(p.pride));
 /* 화면용: 커스텀이면 계산 종족치 / 계단 기준 */
-function planRange(p){if(isOld(p)||!baseTot(p))return null;const c=customCalc(p);const st=prStep(prideOf(p))||c.step;const v=stepCap(st,c.down);return st?{ct:c.ct,v,lab:capLab(st,c.down),ok:c.ct<=v+1e-9,down:c.down}:null}
+function planRange(p){if(isOld(p)||!baseTot(p))return null;const c=customCalcP(p);const st=prStep(prideOf(p))||c.step;const v=stepCap(st,c.down);return st?{ct:c.ct,v,lab:capLab(st,c.down),ok:c.ct<=v+1e-9,down:c.down}:null}
 /* 룰북: 계단의 통솔점, 통솔 C 이상이면 파트너는 1점 할인 */
 /* 11-07 망령 「PT 에 대기 개념 — 벤치 체크 해 두면 통솔점 · 기술 할인점 · 【1/시】 범위에서 계산 안 시킨다」 · 「기술점도 빼」 · 「기술 할인점은 빼면 안 되겠다」: p.bench = 대기(벤치). 셈에서 빼는 곳은 prideCost(통솔점) · 【1/시】(autoUse once · 미사그 몫) · ptSockets(PT 기술점). 「기술 할인점」 · 분배레벨 · 전용은 그대로 센다 */
 const onBench=p=>!!(p&&p.bench);
@@ -478,7 +481,7 @@ function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);
   if(pk==='EX')i('프라이드 EX · 본가 전설종이나 그에 준하는 스펙 자리입니다');
   if(p.pots.some(n=>n&&/포켓\s*파워/.test(n)))w('『포켓 파워』 속별은 금지입니다');
   return out}
- const c=customCalc(p,t);const parts=[`실제 합 ${c.real}`];if(c.off)parts.push(`하한 +${fmtN(c.off)}`);if(c.bulk)parts.push(`내구 +${fmtN(c.bulk)}`);if(c.hp)parts.push(`HP +${fmtN(c.hp)}`);if(c.fs)parts.push(`화력·스피드 +${fmtN(c.fs)}`);if(c.dual)parts.push(`쌍두 −${fmtN(c.dual)}`);if(c.toAdj)parts.push(`특성 TO ${c.to} ${c.toAdj>0?'+':'−'}${fmtN(Math.abs(c.toAdj))}`);
+ const c=customCalcP(p,t);const parts=[`실제 합 ${c.real}`];if(c.off)parts.push(`하한 +${fmtN(c.off)}`);if(c.bulk)parts.push(`내구 +${fmtN(c.bulk)}`);if(c.hp)parts.push(`HP +${fmtN(c.hp)}`);if(c.fs)parts.push(`화력·스피드 +${fmtN(c.fs)}`);if(c.dual)parts.push(`쌍두 −${fmtN(c.dual)}`);if(c.toAdj)parts.push(`특성 TO ${c.to} ${c.toAdj>0?'+':'−'}${fmtN(Math.abs(c.toAdj))}`);
  i(`계산 종족치 ${fmtN(c.ct)} (${parts.join(' · ')}) → 프라이드 ${c.step?c.step.lab:'-'}${c.ok?` (남는 점수 ${fmtN(c.cap-c.ct)})`:''}${prideIsAuto(p)?'':` · 직접 지정 ${pk}`} · 통솔점 ${prideCost(t,p)}`,'calc');
  if(c.down&&c.step)i(p.awaken==='free'?`통솔 D · 각성 (대가): 프라이드 ${c.step.lab}(대가 등급 그대로) · 종족치는 한 단계 아래 ${c.cap}까지`:`통솔 D · 『${DOWN_CLASS}』: 프라이드 ${c.step.lab}의 통솔점을 내고 종족치는 한 단계 아래 ${c.cap}까지`,'calc');
  if(!c.ok&&c.step)w(`계산 종족치 ${fmtN(c.ct)}가 커스텀 상한 ${c.step.lab}(${c.cap}${c.down?' · 통솔 D 한 단계 아래':''})를 ${fmtN(c.ct-c.cap)} 넘습니다 · 능력치를 덜거나 특성 소켓을 낮춰 주세요`);
@@ -509,7 +512,7 @@ const itemTO=n=>{const r=idx.items&&idx.items.get(n);if(!r)return[];return (Stri
 const WIDE_C4=/C\s*:?\s*\+\s*([4-9])/;
 /* 능력치 막대: 하한·할증·할인 구간 (0~200 눈금) */
 /* 10-25 망령: 능력치 막대 표시 — 줄무늬 = 지금 계산에 더해지는(쌍두는 빠지는) 부분, 옅은 칸 = 그 구간이지만 지금은 영향 없음, 빨간 선 = 하한. 오른쪽 끝 작은 글씨 = 이 칸 때문에 붙는 값 */
-function statMarks(p,i){if(isOld(p)||!baseTot(p))return '';const R=PR(),c=customCalc(p),b=c.b,main=Math.max(b[1],b[3]),v=b[i];const X=x=>Math.max(0,Math.min(100,x/2));
+function statMarks(p,i){if(isOld(p)||!baseTot(p))return '';const R=PR(),c=customCalcP(p),b=c.b,main=Math.max(b[1],b[3]),v=b[i];const X=x=>Math.max(0,Math.min(100,x/2));
  const seg=(l,r,cls,tip)=>r>l?`<span class="zn ${cls}" style="left:${X(l)}%;width:${X(r)-X(l)}%" title="${esc(tip)}"></span>`:'';
  const zone=(lo,hi,cls,on,tip)=>{hi=Math.min(hi,200);if(hi<=lo)return '';const m=on?Math.max(lo,Math.min(v,hi)):lo;return seg(lo,m,cls+' on',tip)+seg(m,hi,cls,tip)};
  const line=(x,tip)=>`<span class="fl" style="left:${X(x)}%" title="${esc(tip)}"></span>`;const chips=[];let h='';
@@ -529,7 +532,7 @@ function statMarks(p,i){if(isOld(p)||!baseTot(p))return '';const R=PR(),c=custom
 
 /* 10-25 망령: 능력치 칸에 커서를 올리면 그 칸에 걸린 규칙 · 선 · 지금 값을 보여 준다 */
 function statTip(t,p,i){const nm=STATS[i];if(!baseTot(p))return nm;if(isOld(p))return `${nm} · 『올드 타입』은 종족치를 제약하지 않음 (하한 · 할증 · 할인 없음, 실제 합을 버림한 계단)`;
- const R=PR(),c=customCalc(p),b=c.b,v=b[i],main=Math.max(b[1],b[3]),F=c.step?c.step.floor:0,L=[`${nm} ${v}`],n=fmtN;
+ const R=PR(),c=customCalcP(p),b=c.b,v=b[i],main=Math.max(b[1],b[3]),F=c.step?c.step.floor:0,L=[`${nm} ${v}`],n=fmtN;
  const sur=(lo,hi,k1,k2)=>`${lo}~${hi} 구간 초과분 ×${k1}, ${hi} 초과분 ×${k2}`;
  if(i===0){const o=R.hp;L.push(`HP 할증: ${sur(pnum(o.lo,95),pnum(o.hi,120),o.k1,o.k2)} → 지금 +${n(c.hp)}`,`HP·방어·특방 합 하한 ${c.dMin} — 하나하나 하한은 없지만 셋의 합이 이보다 낮으면 모자란 만큼 계산에 더함 · 지금 합 ${c.dSum}${c.fdur?` → 부족분 +${c.fdur}`:''} (절대 하한 ${pnum(R.absMin,31)})`)}
  if(i===2||i===4){const o=R.bulk,j=i===2?4:2,low=Math.min(b[2],b[4]);L.push(`내구 할증: 방어·특방 중 낮은 쪽 기준 ${sur(pnum(o.lo,85),pnum(o.hi,105),o.k1,o.k2)} → 지금 +${n(c.bulk)}`,v===low?`지금 이 칸이 낮은 쪽(${low})`:`지금은 ${STATS[j]}(${b[j]})가 낮은 쪽이라 이 칸 값은 할증에 안 쓰임`,`HP·방어·특방 합 하한 ${c.dMin} — 하나하나 하한은 없지만 셋의 합이 이보다 낮으면 모자란 만큼 계산에 더함 · 지금 합 ${c.dSum}${c.fdur?` → 부족분 +${c.fdur}`:''} (절대 하한 ${pnum(R.absMin,31)})`)}
@@ -551,7 +554,7 @@ function calcPanel(t,p,P){if(!baseTot(p))return '';const R=PR();
  if(isOld(p)){const o=oldCalc(p);const st=prStep(o.lab);return `<div class="cpanel old"><div class="cph"><b>프라이드 계산</b><span class="kindb">올드 타입</span><span class="sp"></span><span class="cpr">${esc(prideOf(p))}</span><span class="small muted">통솔점 ${prideCost(t,p)}</span></div>
   <div class="cprow"><span class="cpc base">실제 합 <b>${o.real}</b></span>${o.friendly?`<span class="cpc dl">『프렌들리 몬스터』 <b>−${pnum((R.friendly||{}).d,10)}</b></span>`:''}<span class="cpop">→</span><span class="cpc tot">${o.src==='db'?'DB 프라이드 칸':o.src==='cap'?'상한 초과':o.src==='low'?'최저 계단 미만 · '+esc((R.oldLow||{}).pt||'0.5')+'점':o.src==='prank'?'짓궂은마음 · 최저 계단':'버림'} <b>${esc(o.lab)}</b>${st&&o.src==='floor'?` <small>(${st.v} · 격차 ${o.t-st.v})</small>`:''}</span></div>
   <p class="small muted" style="margin:6px 0 0">올드 타입은 하한·할증·할인을 계산하지 않습니다. 예외는 DB 관리 → 올드 타입 「프라이드」 칸으로 정합니다.</p></div>`}
- const c=customCalc(p,t);const st=prStep(prideOf(p))||c.step;const cap=st?stepCap(st,c.down):c.ct;
+ const c=customCalcP(p,t);const st=prStep(prideOf(p))||c.step;const cap=st?stepCap(st,c.down):c.ct;
  const items=[['base','실제 합',c.real,''],['off','하한',c.off,[c.fa?`공격 +${c.fa}`:'',c.fc?`특공 +${c.fc}`:'',c.fsp?`스피드 +${c.fsp}`:'',c.fdur?`HP·방어·특방 +${c.fdur}`:''].filter(Boolean).join(' · ')||'없음'],['bulk','내구',c.bulk,`방어·특방 중 낮은 쪽 ${Math.min(c.b[2],c.b[4])}`],['hp','HP',c.hp,`HP ${c.b[0]}`],['fs','화력·스피드',c.fs,`주력 ${Math.max(c.b[1],c.b[3])} · 스피드 ${c.b[5]}`],['dl','쌍두',-c.dual,c.dualOk?`낮은 쪽 ${Math.min(c.b[1],c.b[3])}`:c.dualRaw?`물리·특수기 각 1개 필요 (−${fmtN(c.dualRaw)})`:'해당 없음'],['to','특성 TO',c.toAdj,`TO ${c.to}${c.toBon?` (특성 ${c.toRaw} − 보너스 ${c.toBon})`:''} / 기본 ${c.toBase}`]];
  const pos=items.filter(x=>x[0]!=='dl'&&x[2]>0);const W=Math.max(cap,c.ct,1);
  const bar=pos.map(x=>`<i class="${x[0]}" style="width:${x[2]/W*100}%" title="${esc(x[1]+' '+fmtN(x[2]))}"></i>`).join('');
