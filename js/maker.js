@@ -211,6 +211,21 @@ function lvBonusList(t,p){const out=[];if(!t||!p)return out;const tys=[p.t1,p.t2
   if(ok)out.push({n,by:'『'+String(x.n).replace(/[『』]/g,'')+'』'+(x.w?'':' (고유)')})}}
  return out}
 const lvBonus=(t,p)=>lvBonusList(t,p).reduce((a,x)=>a+x.n,0);
+/* 11-22 망령 「분배레벨 좀 임의로 조정할 수 있는 기능 — 강자 NPC 나 【육성 : B】【준비】/「분배 레벨 : +10」 한다 이런 거」:
+   PT 분배레벨 몫(보유 · 미사그 각성체 2체 몫 · 1체 상한)에 더한다 = 트레이너 「분배레벨 조정」(t.distAdj ± · 사유 t.distNote) + 【준비】 「분배 레벨 : ±N」(포켓몬 포텐셜 · 전용 · 트레이너 고유).
+   그 줄의 【육성 : B】 같은 자질 태그는 조건 — 트레이너 자질이 그 랭크 이상일 때만 (종족치 자동화 buCondOk 와 같은 읽기) */
+function distBonusList(t){const out=[];if(!t)return out;const srcs=[];
+ for(const q of t.pokemon||[]){if(!q)continue;(q.pots||[]).forEach((n,i)=>{if(n)srcs.push({w:q,n,e:String(potEffOf(q,i)||'')})});for(const x of [q.excl,...(q.exclX||[])])if(x&&x.eff)srcs.push({w:q,n:x.name||'전용',e:String(x.eff||'')})}
+ for(const u of t.unique||[])if(u&&u.name)srcs.push({w:null,n:u.name,e:String(u.eff||'')});
+ for(const x of srcs){if(!/【\s*준비\s*】/.test(x.e))continue;const hd=(x.e.match(/^\s*((?:【(?:[^【】]|【[^【】]*】)*】\s*)+)/)||['',''])[1];
+  for(const cl of x.e.replace(/<br\s*\/?>/gi,'\n').split(/(?=[①-⑳])|\n/)){const m=cl.match(/「\s*분배\s*레벨\s*[:：]\s*([+\-−])\s*(\d+)\s*」/);if(!m)continue;const tags=/【\s*준비\s*】/.test(cl)?cl:(hd+cl);if(!/【\s*준비\s*】/.test(tags))continue;
+   let ok=true;for(const r of tags.matchAll(/【(육성|지시|통솔|능력)\s*:\s*(EX|S|AAA|AA|A|B|C|D|E)[+-]?\s*(이상)?】/g)){const have=BU_L.indexOf(strip((t.ranks||{})[r[1]]||''));if(have<BU_L.indexOf(r[2]))ok=false}
+   out.push({n:(m[1]==='+'?1:-1)*(+m[2]),by:'『'+String(x.n).replace(/[『』]/g,'')+'』'+(x.w?' ('+(x.w.name||'?')+')':' (고유)'),ok})}}
+ return out}
+const distAdjOf=t=>Math.round(+((t||{}).distAdj)||0);
+const distExtra=t=>distAdjOf(t)+distBonusList(t).filter(x=>x.ok).reduce((a,x)=>a+x.n,0);
+const distItem=()=>(ptItems().find(r=>r[2]==='dist')||[])[0];
+function distExtraTip(t){const L=distBonusList(t);return [distAdjOf(t)?`조정 ${distAdjOf(t)>0?'+':''}${distAdjOf(t)}${t.distNote?' ('+t.distNote+')':''}`:'',...L.map(x=>`${x.by} ${x.n>0?'+':''}${x.n}${x.ok?'':' — 자질 조건 미달이라 안 셈'}`)].filter(Boolean).join(' · ')}
 /* 테이블(더블) Q198:Q203 — 개체치·노력치·성격 미사용(0 / 0 / 1.0) */
 /* 10-22 망령: 특성 · 포텐셜 · 전용에 적힌 「○○의 종족치를 N랭크 상승(감소)시킨다」 → 실수치 · 등급 · 종족치 합에 반영.
    10-27 망령 (룰북 「종족치」의 랭크 범위 개정): 1랭크 = 알파벳 등급 하나 (C → B), 칸(- · 무 · +)은 유지하고 그 칸에서 가장 낮은 값이 된다 (A- 110 · 119 → AA- 140).
@@ -586,7 +601,7 @@ function prideRulePanel(){const R=PR();const f=(path,v,w,ph)=>`<input data-p="db
 const rankSteps=t=>QUAL.reduce((a,q)=>a+Math.max(0,RV[strip(t.ranks[q])]??0),0);
 /* 10-30 망령 「2점 상승에 덤프하면 +1」: 「D」 이하로 내린 자질 하나마다 메인(자동 소모 rank 항목) 보유 +1 */
 const rankDump=t=>QUAL.filter(q=>(RV[strip(t.ranks[q])]??0)<0).length;
-const ptHave=(t,n,a)=>(+t.base[n]||0)+(a==='rank'?rankDump(t):0);
+const ptHave=(t,n,a)=>(+t.base[n]||0)+(a==='rank'?rankDump(t):0)+(a==='dist'?distExtra(t):0);   /* 11-22 분배레벨 조정 · 【준비】 「분배 레벨 : ±N」 */
 const discUsed=t=>t.pokemon.reduce((a,p)=>a+p.moves.filter(m=>m.name&&m.half).length,0);   /* 11-07 망령 「기술 할인점은 대기도 센다」 */
 function ptMaxDef(t){if(isMisag(t)){const r=sockRow(t.ranks['육성']);return r?Math.round(((+r[4]||0)-misagGmCap(t))*100)/100:0}if(soloN(t)===3){const r=sockRow(t.ranks['육성']);return r?s3num((+r[4]||0)*(+(RULES().solo3||SOLO3_DEF).ratio||0.5),'ptUnit'):0}if(t.solo){const v=(S.db.soloSock||{})[strip(t.ranks['육성'])];if(v!=null&&v!=='')return +v}const r=sockRow(t.ranks['육성']);return r?+r[4]:0}
 const nz=v=>v!==''&&v!=null&&!isNaN(+v);
@@ -739,8 +754,8 @@ function misagThreeChecks(t){const out=[];if(!isMisag(t))return out;const S=subO
  if(mOn('twoRole')){const r=roleOf(sp);const hit=awList(t).filter(a=>roleOf(a)&&roleOf(a)===r&&r!=='역할 포텐셜');if(r&&hit.length)out.push(`${tag} — 서브와 각성체의 역할이 같습니다 (『${r}』) · 3체 안에서는 역할 중복 불가`)}
  return out}
 function misagTwoChecks(t){const out=[],A=awList(t);if(!A.length)return out;const tag='각성체 2체 몫';
- {const d1=tplSolo('육성','분배레벨',t.ranks['육성']),d6=tplSix('육성','분배레벨',t.ranks['육성']),pa=misagDistAw(t),pp=misagDistPl(t);const ds=A.reduce((a,p)=>a+(Math.round(+p.dist)||0),0);   /* 11-09: 각성체 2체 = 1인 값 − 육성 대가 각성체 몫, PL 4체 = (6체 − 1인) − PL 몫 */
-  if(d1!=null&&ds>d1-pa)out.push(`${tag} — 분배레벨 합 ${ds} / ${d1-pa} (1인 기준 (2체) ${d1} · 육성 ${strip(t.ranks['육성'])}${pa?` · 육성 대가 각성체 몫 −${pa}`:''})`);
+ {const d1=tplSolo('육성','분배레벨',t.ranks['육성']),d6=tplSix('육성','분배레벨',t.ranks['육성']),pa=misagDistAw(t),pp=misagDistPl(t);const ds=A.reduce((a,p)=>a+(Math.round(+p.dist)||0),0),dx=distExtra(t);   /* 11-22: 분배레벨 조정 · 【준비】 몫은 각성체 2체 몫에 더한다 · 11-09: 각성체 2체 = 1인 값 − 육성 대가 각성체 몫, PL 4체 = (6체 − 1인) − PL 몫 */
+  if(d1!=null&&ds>d1-pa+dx)out.push(`${tag} — 분배레벨 합 ${ds} / ${d1-pa+dx} (1인 기준 (2체) ${d1} · 육성 ${strip(t.ranks['육성'])}${pa?` · 육성 대가 각성체 몫 −${pa}`:''}${dx?` · 조정 · 【준비】 ${dx>0?'+':''}${dx}`:''})`);
   if(d1!=null&&d6!=null){const PL=t.pokemon.filter(p=>!awOf(t,p)),pcap=d6-d1-pp,ps=PL.reduce((a,p)=>a+(Math.round(+p.dist)||0),0);if(ps>pcap)out.push(`PL 4체 — 분배레벨 합 ${ps} / ${pcap} (6체 ${d6} − 각성체 몫 ${d1}${pp?` · 육성 대가 PL 몫 −${pp}`:''})`)}}
  /* 10-30 망령 「전용도 기본적으로 각성체에 2개가 부여 돼 · D 는 각성체 1체만」 · 「따로 받음 (상한에 안 셈)」: 각성체는 능력 표와 따로 1체에 전용 2개(룰 상수 미사그 awExcl).
     능력 D 면 각성체 1체만 받는다. 능력 표의 전용 개수(6체 기준, 능력 대가 −n 포함)는 PL 4체 몫으로 센다 */
@@ -771,7 +786,7 @@ function misagChecks(t){if(!isMisag(t))return [];const out=[],R=MR(),P=misagPen(
   if(used.some(r=>r[3]==='type')&&!P.type)out.push('통솔 대가 — 특정 타입을 정해야 합니다');
   if(used.some(r=>r[3]==='role')&&!String(P.role||'').trim())out.push('통솔 대가 — 발동하지 않는 역할을 정해야 합니다');
   if(P.type&&used.some(r=>r[0]===P.b&&r[3]==='type')){const n=partyTypeN(t,P.type),need2=parseInt(R.typeN,10)||2;if(n<need2)out.push(`통솔 대가 ${P.b} — ${P.type} 타입이 ${need2}체 이상 필요합니다 (지금 ${n}체)`)}}
- const cap=mnum('distCap');if(cap>0){const L=t.pokemon.filter(p=>Math.abs(Math.round(+p.dist)||0)>cap);if(L.length)out.push(`분배레벨은 1체에 −${cap} ~ +${cap}까지입니다 (${L.map(p=>(p.name||'이름 없음')+' '+(Math.round(+p.dist)||0)).join(', ')})`)}
+ const cap0=mnum('distCap');if(cap0>0){const cap=cap0+Math.max(0,distExtra(t));const L=t.pokemon.filter(p=>Math.abs(Math.round(+p.dist)||0)>cap);   /* 11-22: 조정 · 【준비】로 늘린 몫만큼 1체 상한도 */if(L.length)out.push(`분배레벨은 1체에 −${cap} ~ +${cap}까지입니다 (${L.map(p=>(p.name||'이름 없음')+' '+(Math.round(+p.dist)||0)).join(', ')})`)}
  if(t.orders&&t.orders.preset)for(const [k,lab] of [['o','명령 (4식)'],['c','지령 (6령)']]){const L=ordAvail(t,k).filter(x=>!misagOffNow(t,k).includes(x)),n=Math.min(soloOrdN(k,t),L.length),pk=tOrdPick(t,k).filter(x=>L.includes(x));if(pk.length!==n)out.push(`2체 기준 — ${lab}에서 ${n}개를 골라야 합니다 (지금 ${pk.length}개) · 지시 체계의 「2체 기준」 줄`);else if(k==='c'&&!soloMustOk(t,pk,L))out.push('2체 기준 — 지시 A 이상은 지령 셋 중 하나가 회피나 명중이어야 합니다')}
  const gu=ptSockets(t,true),gm=misagGmCap(t);if(gu>gm)out.push(`각성체 PT 기술점 ${gu} / ${gm} 초과`);
  for(const x of misagTwoChecks(t))out.push(x);for(const x of misagThreeChecks(t))out.push(x);
@@ -808,7 +823,7 @@ function investCheck(t){const I=RULES().invest;const v=q=>RV[strip(t.ranks[q])]?
 /* 11-03: 트레이너 한 명의 ⚠ 경고 모음 (폴더 점검표 · 시트의 경고 생성 함수를 그대로 다시 쓴다) */
 function trainerWarns(t){const out=[];try{
  const iv=investCheck(t);for(const m of iv.msg)out.push({who:'',t:m});
- const use=pointUse(t);for(const k in use){const m=+t.base[k]||0;if(k&&(use[k]||0)>m)out.push({who:'',t:`${k} 초과 (${Math.round((use[k]||0)*100)/100}/${m})`})}
+ const use=pointUse(t);for(const k in use){const m=(+t.base[k]||0)+(k===distItem()?distExtra(t):0);if(k&&(use[k]||0)>m)out.push({who:'',t:`${k} 초과 (${Math.round((use[k]||0)*100)/100}/${m})`})}
  const pu=ptSockets(t),pm=ptMax(t);if(pu>pm)out.push({who:'',t:`PT 기술점 초과 (${pu}/${pm})`});
  for(const x of ptChecks(t))out.push({who:'',t:x});
  if(typeof deckChecks==='function')for(const x of deckChecks(t))out.push({who:'',t:x});if(typeof sk3Checks==='function')for(const x of sk3Checks(t))out.push({who:'',t:x});
@@ -2723,7 +2738,7 @@ function trainerHTML(t,ti){if(EMB.one&&t.id===EMB.t&&t.pokemon.some(x=>x.id===EM
    <label class="plrow"><span>PL</span>${inp(P+'.pl',t.pl,{ph:'플레이어 이름'})}</label>
    <label class="plrow" title="오레마스 방으로 가져갈 때 관계도·휴대폰에서 PC(플레이어)인지 NPC 인지"><span>구분</span><select data-p="${P}.kind"><option value="pc" ${t.kind!=='npc'?'selected':''}>PC (플레이어 캐릭터)</option><option value="npc" ${t.kind==='npc'?'selected':''}>NPC</option></select></label>${tOrdHTML(t,ti)}</div>
   <div class="panel"><h3>포인트<span class="sp"></span>${soloN(t)===3?`<span class="small muted" title="1인 기준 (3체) 파트너 수 — 테이블·계산식 「1인 기준 (3체)」">파트너 ${t.pokemon.filter(p=>p.partner).length}/${esc((RULES().solo3||SOLO3_DEF).partner)}</span>`:''}${tInMisag(t)?'<span class="kindb fmrule" title="미사그 캠퍼스 폴더 안이라 미사그 대학 (4+2) 고정 — 폴더 밖으로 옮기면 6체 기준으로 돌아간다">🎓 캠퍼스</span>':''}<select data-p="${P}.solo" class="solosel" ${tInMisag(t)?'disabled':''} title="6체 기준 / 1인 기준 — 바꾸면 포인트 기본값을 그 기준 템플릿으로 다시 맞춘다">${[['','6체 기준'],['2','1인 기준 (2체)'],['3','1인 기준 (3체)'],['m','미사그 대학 (4+2)']].map(([v,l])=>`<option value="${v}" ${(isMisag(t)?'m':String(soloN(t)||''))===v?'selected':''}>${l}</option>`).join('')}</select></h3><table><tr><th>항목</th><th class="n">기본</th><th class="n">소모</th><th class="n">잔여</th></tr>
-   ${ptItems().map(([k,d,a])=>{if(t.base[k]==null)t.base[k]=+d||0;const dm=a==='rank'?rankDump(t):0;const r=(+t.base[k]||0)+dm-(use[k]||0);return `<tr><td>${esc(k)}</td><td class="n">${inp(`${P}.base.${seg(k)}`,t.base[k],{w:'52px',num:1})}</td><td class="n">${use[k]||0}</td><td class="n ${r<0?'warn':''}">${r}</td></tr>`}).join('')}</table>
+   ${ptItems().map(([k,d,a])=>{if(t.base[k]==null)t.base[k]=+d||0;const dm=(a==='rank'?rankDump(t):0)+(a==='dist'?distExtra(t):0);const r=(+t.base[k]||0)+dm-(use[k]||0);return `<tr><td>${esc(k)}${a==='dist'?`<div class="row small" style="gap:4px;flex-wrap:nowrap" title="강자 NPC · 보상 등으로 늘리거나 줄인 분배레벨 몫 (−도 된다). 【준비】 「분배 레벨 : ±N」 포텐셜 · 고유는 저절로 더한다"><span class="muted">조정</span>${inp(P+'.distAdj',t.distAdj??'',{w:'44px',num:1,ph:'0'})}${inp(P+'.distNote',t.distNote??'',{w:'80px',ph:'사유'})}</div>${(()=>{const tip=distExtraTip(t);return tip?`<div class="small muted" title="${esc(tip)}">+ ${distExtra(t)} (${esc(tip.length>36?tip.slice(0,36)+'…':tip)})</div>`:''})()}`:''}</td><td class="n">${inp(`${P}.base.${seg(k)}`,t.base[k],{w:'52px',num:1})}</td><td class="n">${use[k]||0}</td><td class="n ${r<0?'warn':''}">${r}</td></tr>`}).join('')}</table>
    <div class="row" style="margin-top:8px"><b class="small">포인트 사용 항목</b><span class="sp"></span><button class="btn sm" data-act="addPt" data-i="${ti}">+ 항목</button></div>
    <p class="small muted" style="margin:6px 0 0">자동 소모 · ${ptItems().filter(x=>x[2]).map(([n,,a])=>`${esc(n)} ${autoUse(t,a)} (${esc(PTI_AUTO[a]||a)})`).join(' · ')||'없음'}</p>
    ${t.pts.map((n,i)=>{const r=idx.points.get(n);return `<div class="row small" style="margin-top:4px"><span style="flex:1;min-width:0"><b>${esc(n)}</b> <span class="muted">${r?esc(r[3]+' −'+r[6]):''}</span></span><button class="btn sm ghost" data-act="delPt" data-i="${ti}" data-j="${i}" aria-label="삭제">✕</button></div>`}).join('')||'<p class="small faint" style="margin:4px 0 0">사용한 항목이 없습니다.</p>'}${sk3Html(t,ti)}</div>
@@ -2957,6 +2972,7 @@ $('#v-char').addEventListener('change',e=>{const el=e.target;
  if(el.dataset.tord!=null){const t=S.trainers[+el.dataset.tord];if(!t)return;const k=el.dataset.k;const o=Object.assign({},t.orders||{});if(k==='preset'){if(!el.value){delete t.orders;save();refreshTrainer(t);return}o.preset=el.value;if(o.preset==='manual'&&o.tc==null){const tc=TORD.presetTc((t.orders||{}).preset,(t.ranks||{})['지시']);o.tc=isNaN(tc)?0:tc}}else if(k==='tc')o.tc=+el.value||0;else o.base=Math.max(0,Math.min(9,Math.round(+el.value||0)));if(o.base==null)o.base=1;t.orders=o;save();refreshTrainer(t);return}
  if(el.dataset.tmove!=null){const t=trOfRow(el.closest('section.folder'))||S.trainers[+el.dataset.tmove];if(t){t.folder=el.value;S.ui.fclosed=S.ui.fclosed||{};delete S.ui.fclosed[el.value||'_none'];save();renderChar();const f=S.folders.find(x=>x.id===el.value);toast(`「${t.name}」 → ${f?f.name:'폴더 없음'}`)}return}
  if(el.dataset.p){const t=trOf(el);const m=el.dataset.p.match(/^T\.\d+\.ranks\.(.+)$/);if(m&&t){if(el.tagName==='INPUT'){const v=el.value.trim().toUpperCase().replace(/\s+/g,'').replace(/＋/g,'+').replace(/[－−]/g,'-')||'C';el.value=v;t.ranks[m[1]]=v}applyTpl(t,m[1]);save()}
+  if(t&&/^T\.\d+\.dist(Adj|Note)$/.test(el.dataset.p)){if(/Adj$/.test(el.dataset.p)){const v=String(t.distAdj??'').trim();const n=v===''?NaN:Math.round(parseFloat(v.replace(/[＋+]/,'').replace('−','-')));if(isFinite(n)&&n!==0)t.distAdj=n;else delete t.distAdj}else if(!String(t.distNote||'').trim())delete t.distNote;save();refreshTrainer(t)}   /* 11-22 분배레벨 조정 */
   if(t&&/^T\.\d+\.isock(Adj|Note)$/.test(el.dataset.p)){if(/Adj$/.test(el.dataset.p)){const v=String(t.isockAdj??'').trim();const n=v===''?NaN:Math.round(parseFloat(v.replace(/[＋+]/,''))*2)/2;if(isFinite(n)&&n!==0)t.isockAdj=n;else delete t.isockAdj}else if(!String(t.isockNote||'').trim())delete t.isockNote;save();refreshTrainer(t)}   /* 11-04 소지품 소켓 조정 */
   if(t&&/^T\.\d+\.solo$/.test(el.dataset.p)){for(const [n,d] of ptItems())t.base[n]=+d||0;t.misag=t.solo==='m';if(t.solo===''||t.solo==='0'||t.solo==='m')t.solo=false;else if(t.solo==='2')t.solo=true;else if(t.solo==='3')t.solo=3;applyTpl(t);save();toast(isMisag(t)?'미사그 대학 (4+2) — PL 4체 통솔점을 맞췄습니다 · 포켓몬 「기본」 탭에서 각성체 2체를 고르세요':soloN(t)===3?'1인 기준 (3체) — 6체 기준의 절반으로 맞췄습니다':soloN(t)?'1인 기준 (2체) 템플릿을 적용했습니다':'6체 기준 템플릿을 적용했습니다')}{const am=el.dataset.p.match(/^T\.\d+\.pokemon\.(\d+)\.awaken$/);if(am&&t&&awClassSync(t,t.pokemon[+am[1]]))save()}if(t&&awSubSync(t))save();clearTimeout(rT);if(t)setTimeout(()=>refreshTrainer(t),0);return}
  if(el.dataset.img){const f=el.files[0];if(!f)return;const t=S.trainers[+el.dataset.img];readImg(f,640,'image/webp',u=>setImgOf(t,'t',u,t))}
