@@ -319,7 +319,7 @@ window.MKM_POTLINT=(()=>{
     for(const y of c.matchAll(/((?:「[가-힣]+」\s*)+)(?:을|를)\s*(?:\d턴 동안\s*)?(?:전개|설치)/g)){const ws=[...y[1].matchAll(/「([가-힣]+)」/g)].map(z=>z[1]);const enemy=/적진에|상대(?:의 진영|에게)/.test(segB(c,y.index)+c.slice(0,y.index));
      for(const w of ws){if(ETC_W.includes(w))L.push(`필드상태 ${w} ${T||5}`);else if(OBJ_W.includes(w))L.push(`설치기 ${enemy?'상대':'아군'} ${objN(w)}${T&&!enemy?' '+T:''}`)}}
     if(/「날씨」를 (?:해제|철거)/.test(c))L.push('날씨 해제');if(/「필드」를 (?:해제|철거)/.test(c))L.push('필드 해제');
-    if((m=c.match(/「(장벽|설치기)」(?:을|를)\s*(?:모두\s*)?철거/))){const sg=segB(c,m.index);L.push(`철거 ${/필드 전체|모든|양쪽/.test(sg)?'양쪽':/적진|상대/.test(sg)?'상대':'자신'} ${m[1]==='장벽'?'장벽':''}`.trim())}}
+    if((m=c.match(/「(장벽|설치기)」(?:을|를)\s*(?:모두\s*|전부\s*)?(?:철거|해제|파괴|부순다|부수고|없앤다|없애고)/))){   /* 11-22 망령 「물어뜯기가 명중했을 때 적진의 「장벽」을 해제한다 — 자동화 안 되냐」: 「해제」 · 「파괴」 낱말도 */const sg=segB(c,m.index);L.push(`철거 ${/필드 전체|모든|양쪽/.test(sg)?'양쪽':/적진|상대/.test(sg)?'상대':'자신'} ${m[1]==='장벽'?'장벽':''}`.trim())}}
    if(/랭크 변화를 초기화/.test(c)){const t=/모든 포켓몬|필드 전체|필드에 있는/.test(c)?' 전체':tgtIn(segB(c,c.search(/랭크 변화/)),temp)==='상대1체'?' 상대1체':'';L.push(`초기화 랭크${t}`)}
    if((m=c.match(/「(?:우선도)\s*:\s*([+-]\d(?:\.\d)?)」\s*(?!이상|이하)/))&&!/「우선도\s*:\s*[+-]\d(?:\.\d)?」\s*(?:이상|이하)/.test(c)&&!/우선도」가 같을|「우선도」/.test(c.slice(0,m.index).slice(-3))){const sg=segB(c,m.index);const ty=[...sg.matchAll(/「([가-힣]+)」/g)].map(y=>y[1]).filter(isTy);const ct=/「변화기」/.test(sg)?' 변화':/「물리기」/.test(sg)?' 물리':/「특수기」/.test(sg)?' 특수':'';L.push(`우선도 ${m[1]}${ty.length?' 타입:'+ty[0]:''}${ct}${temp?' 이번턴':''}`)}
    /* 11-03 새 구문 (추가공격 · 보호 · 특성무시 · 기술타입 · 지속연장 · 해석차단 · 기술사용 · 명중확장 · 회피 · 추가효과 · 끌어오기 · 반사 · 임의교대) */
