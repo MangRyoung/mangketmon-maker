@@ -170,7 +170,7 @@ window.OM_FX=(()=>{
     else if((op.p||op.pl)&&!ctx.noRoll){const base=op.p?+op.p:percentOf(op.pl);const rr=rollP(self,base,ctx);const lb=op.pl||(op.p%10===0?op.p/10+'할':op.p+'%');if(!rr.ok){L.push(`${lb} 판정 실패 (${rr.r}/${rr.p})${rr.adj} — ${unparse([Object.assign({},op,{p:0,pl:''})])[0]||''}`);continue}L.push(`${lb} 판정 성공 (${rr.r}/${rr.p})${rr.adj}`)}
     const hs=(op.hold||ctx.hold)&&self&&op.k!=='choice'?holdSnap(b):null;
     const prevTT=RUNTT,prevTD=RUNTDX;RUNTT=op.ttype&&op.ttype.length?op.ttype:null;RUNTDX=op.tdx?1:0;try{await runOp(op)}finally{RUNTT=prevTT;RUNTDX=prevTD}
-    if(hs)holdDiff(b,self,hs,name,ctx.uniq);
+    if(hs)holdDiff(b,self,hs,name,ctx.uniq,op.ttype&&op.ttype.length?op.ttype:null);
    }catch(e){L.push(`(${op.k} 처리 중 오류: ${e.message})`)}}
   for(const x of Object.values((b&&b.mons)||{})){const t=abSync(x);if(t)L.push(t)}
   RUNB=prevB;RUNSTK=prevS;const BL=stop?L.slice().reverse().find(x=>/발동하지 않았다/.test(x)):'';return Object.assign({lines:L,b},BL?{blocked:BL}:{});
@@ -336,7 +336,7 @@ window.OM_FX=(()=>{
  /* ===== 「필드 위에 있는 한」 (10-23 망령): 그 효과가 바꾼 것을 기억했다가, 쓴 포켓몬이 필드를 떠나면 되돌린다 ===== */
  const HL=['mods','noind','prio','immune','nodrop','mults','chance','iuL','cmults'];   /* 11-10: 조건부 배율도 (플라워기프트 · 새는비 — 나가면 풀리고 새로 들어온 포켓몬에게 옮겨 건다) */
  function holdSnap(b){const s={mons:{},f:JSON.parse(JSON.stringify(b.field||{}))};for(const id in b.mons||{}){const m=b.mons[id];const F=m.fx||{};s.mons[id]={keys:HL.map(k=>(F[k]||[]).map(e=>e.key)),st:Object.assign({},m.states||{}),rank:Object.assign({},m.rank||{}),iu:F.ignoreUp?F.ignoreUp.name:'',fl:!!F.float,ty:!!m.typesOrig,ab:m.abilityOrig!=null,ro:(F.roles||[]).slice()}}return s}
- function holdDiff(b,self,s,name,uq){const H=self.holds=self.holds||[];const push=x=>H.push(Object.assign({name},uq?{uq:1}:{},x));
+ function holdDiff(b,self,s,name,uq,tt){const H=self.holds=self.holds||[];const push=x=>H.push(Object.assign({name},uq?{uq:1}:{},tt&&x.list?{tt:tt.slice()}:{},x));   /* 11-23 tt = 그 줄의 대상타입(「대상타입:악」) — 새로 나온 포켓몬에게 옮길 때도 그 타입만 */
   for(const id in b.mons||{}){const m=b.mons[id];const o=s.mons[id];if(!o)continue;const F=m.fx||{};
    HL.forEach((k,i)=>{for(const e of (F[k]||[]))if(!o.keys[i].includes(e.key))push({mid:id,list:k,key:e.key,e:JSON.parse(JSON.stringify(e)),rel:id===self.id?'self':teamOf(b,m)===teamOf(b,self)?'ally':'enemy'})});
    for(const k in m.states||{})if(o.st[k]==null)push({mid:id,st:k});
@@ -348,7 +348,7 @@ window.OM_FX=(()=>{
   for(const sd of ['left','right'])for(const k in ((f.objects||{})[sd]||{}))if(!(((g.objects||{})[sd]||{})[k]))push({fld:'obj',sd,v:k})}
  /* 10-26 (서서 VS 마리 시험): 「필드 위에 있는 한」 효과(재앙의그릇 · 승리의별 …)는 나중에 들어온 포켓몬에게도 — 등장할 때 필드의 다른 포켓몬이 걸어 둔 효과를 같은 관계(아군/상대)로 옮겨 건다 */
  function reAura(b,nm){const L=[];if(!nm||!nm.entry)return L;for(const x of Object.values(b.mons||{})){if(!x||x.id===nm.id||!x.entry||!alive(x)||!(x.holds||[]).length)continue;const rel=teamOf(b,x)===teamOf(b,nm)?'ally':'enemy';const done=new Set();
-   for(const h of x.holds){if(!h.list||!h.e||!h.rel||h.rel==='self'||h.rel!==rel||done.has(h.list+'|'+h.key))continue;done.add(h.list+'|'+h.key);const F=fx(nm);if((F[h.list]||[]).some(e=>e.key===h.key))continue;if(h.uq&&uqHas(nm,h.name,x))continue;const e=JSON.parse(JSON.stringify(h.e));F[h.list].push(e);
+   for(const h of x.holds){if(!h.list||!h.e||!h.rel||h.rel==='self'||h.rel!==rel||done.has(h.list+'|'+h.key))continue;if(h.tt&&h.tt.length&&!typesOf(nm).some(t=>h.tt.includes(t)))continue;   /* 11-23 대상타입이 붙은 「있는 한」 효과는 그 타입이 나왔을 때만 */done.add(h.list+'|'+h.key);const F=fx(nm);if((F[h.list]||[]).some(e=>e.key===h.key))continue;if(h.uq&&uqHas(nm,h.name,x))continue;const e=JSON.parse(JSON.stringify(h.e));F[h.list].push(e);
     if(h.list==='mults'){nm.mod=nm.mod||{};for(const k in e.stats||{}){nm.mod[k]=Math.round(((+nm.mod[k]||1)*(+e.stats[k]||1))*1000)/1000;if(Math.abs(nm.mod[k]-1)<0.002)delete nm.mod[k]}}
     x.holds.push(Object.assign({},h,{mid:nm.id}));L.push(`${nm.name} 「${h.name}」 ${h.list==='mults'?Object.entries(e.stats||{}).map(([k,v])=>(STAT_KO[k]||k)+' ×'+v).join(' · '):'효과'} — ${x.name}이(가) 필드에 있는 동안`)}}
   /* 「있는한」 기록이 없는 상시 효과(특성 · 포텐셜 이름으로 걸린 것)는 같은 관계의 다른 포켓몬에게 걸린 것을 본떠 건다 — 기술 효과는 옮기지 않는다 */
