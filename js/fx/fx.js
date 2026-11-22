@@ -112,8 +112,16 @@ window.OM_FX=(()=>{
  function syncPairs(b,self,rolesOf){const R=rolesOf||rolesDef;const out={a:new Set(),e:new Set(),pairs:[]};if(!b||!self)return out;const tm=teamOf(b,self);const live=Object.values(b.mons||{}).filter(m=>m.entry&&alive(m));
   const al=live.filter(m=>teamOf(b,m)===tm),en=live.filter(m=>teamOf(b,m)!==tm);for(const a of al){const ra=[...new Set(R(a).flatMap(roleFams))].filter(r=>r&&r!=='바닐라');if(!ra.length)continue;for(const e of en){const hit=[...new Set(R(e).flatMap(roleFams))].find(r=>ra.includes(r));if(hit){out.a.add(a.id);out.e.add(e.id);out.pairs.push([a.id,e.id,hit])}}}return out}
  /* 11-09 대상타입: run 이 지금 줄의 op.ttype 을 RUNTT 에 두면 대상에서 그 타입만 남긴다 */let RUNTT=null;
+ /* 11-23 망령 「【프라이드 : X】 태그 · 상대의 프라이드를 지정하는 포텐셜」: 프라이드 순서 E < D < C < C+ < B < B+ < A < EX.
+    priSpec 「B 이하」 · 「A이상」 · 「A」 · 「A, EX」 → {set} 또는 {lo,hi}. effPride = 시트 프라이드 + 배틀 중 올린 단계(m.priUp). priOk(m,spec) */
+ const PRI_ORD=['E','D','C','C+','B','B+','A','EX'];function priRank(x){return PRI_ORD.indexOf(String(x||'').replace(/\s/g,'').toUpperCase())}
+ function priSpec(s){s=String(s||'').replace(/[「」【】『』]/g,'').replace(/^.*?프라이드\s*[:：]\s*/,'').trim();if(!s)return null;const m=s.match(/^([A-Ea-e][+]?|EX|ex)\s*(이하|이상|미만|초과)?/);if(!m)return null;
+  const set=s.split(/[,·\/]|\s+또는\s+/).map(x=>x.trim().replace(/\s*(이하|이상|미만|초과|인|일|의).*$/,'')).filter(x=>priRank(x)>=0);const r=priRank(m[1]);if(m[2]==='이하')return {lo:0,hi:r};if(m[2]==='미만')return {lo:0,hi:r-1};if(m[2]==='이상')return {lo:r,hi:99};if(m[2]==='초과')return {lo:r+1,hi:99};return {set:set.length?set.map(priRank):[r]}}
+ function effPride(m){if(!m)return -1;const r=priRank(m.pride);if(r<0)return -1;return Math.min(PRI_ORD.length-1,r+(+m.priUp||0))}
+ function priOk(m,spec){const sp=typeof spec==='string'?priSpec(spec):spec;if(!sp)return true;const r=effPride(m);if(r<0)return false;return sp.set?sp.set.includes(r):(r>=sp.lo&&r<=sp.hi)}
+ let RUNTP=null;
  /* 11-21 망령 「해석된 상대에게」: 줄 끝 「대상해석됨」 = 그 줄의 상대 대상은 우리 편이 데이터를 해석한 포켓몬만 (고르기 전에 거른다) */let RUNTDX=0;
- async function targets(b,self,tgt,ctx){let r=await targets0(b,self,tgt,ctx);if(ctx&&typeof ctx.tgtOk==='function')r=(r||[]).filter(m=>m&&ctx.tgtOk(m));/* 11-15 필드 전개 H: 받지 않는 포켓몬을 뺀다 */const tt=RUNTT;return tt&&tt.length?(r||[]).filter(m=>m&&typesOf(m).some(t=>tt.includes(t))):r}
+ async function targets(b,self,tgt,ctx){let r=await targets0(b,self,tgt,ctx);if(ctx&&typeof ctx.tgtOk==='function')r=(r||[]).filter(m=>m&&ctx.tgtOk(m));/* 11-15 필드 전개 H: 받지 않는 포켓몬을 뺀다 */const tp=RUNTP;if(tp)r=(r||[]).filter(m=>m&&priOk(m,tp));   /* 11-23 대상프라이드 */const tt=RUNTT;return tt&&tt.length?(r||[]).filter(m=>m&&typesOf(m).some(t=>tt.includes(t))):r}
  async function targets0(b,self,tgt,ctx){if(ctx&&ctx.uniq){const r=await targets(b,self,tgt,Object.assign({},ctx,{uniq:0}));return r.filter(m=>m===self||!uqHas(m,ctx.name,self))}const tm=teamOf(b,self);const live=Object.values(b.mons||{}).filter(m=>m.entry&&alive(m));const allies=live.filter(m=>teamOf(b,m)===tm),enemies=live.filter(m=>teamOf(b,m)!==tm&&(!RUNTDX||analyzedBy(m,tm)));
   const pick=async(list,label)=>{if(!list.length)return [];if(list.length===1)return [list[0]];if(ctx.pick)return [await ctx.pick(list,label)].filter(Boolean);return [list[0]]};
   const rnd=list=>list.length?[list[Math.floor(Math.random()*list.length)]]:[];
@@ -169,7 +177,7 @@ window.OM_FX=(()=>{
     if((op.p||op.pl)&&PCK.has(op.k)&&!op.remove&&op.mode!=='off'&&!op.turn&&op.dur!=='turn'){const base=op.p?+op.p:percentOf(op.pl);op=Object.assign({},op,{pc:base,pcl:op.pl||(op.p%10===0?op.p/10+'할':op.p+'%'),p:0,pl:''});if(!ctx.noRoll)L.push(`${op.pcl} — 판정할 때마다 굴린다`)}
     else if((op.p||op.pl)&&!ctx.noRoll){const base=op.p?+op.p:percentOf(op.pl);const rr=rollP(self,base,ctx);const lb=op.pl||(op.p%10===0?op.p/10+'할':op.p+'%');if(!rr.ok){L.push(`${lb} 판정 실패 (${rr.r}/${rr.p})${rr.adj} — ${unparse([Object.assign({},op,{p:0,pl:''})])[0]||''}`);continue}L.push(`${lb} 판정 성공 (${rr.r}/${rr.p})${rr.adj}`)}
     const hs=(op.hold||ctx.hold)&&self&&op.k!=='choice'?holdSnap(b):null;
-    const prevTT=RUNTT,prevTD=RUNTDX;RUNTT=op.ttype&&op.ttype.length?op.ttype:null;RUNTDX=op.tdx?1:0;try{await runOp(op)}finally{RUNTT=prevTT;RUNTDX=prevTD}
+    const prevTT=RUNTT,prevTD=RUNTDX,prevTP=RUNTP;RUNTT=op.ttype&&op.ttype.length?op.ttype:null;RUNTDX=op.tdx?1:0;RUNTP=op.tpri?priSpec(op.tpri):null;try{await runOp(op)}finally{RUNTT=prevTT;RUNTDX=prevTD;RUNTP=prevTP}
     if(hs)holdDiff(b,self,hs,name,ctx.uniq,op.ttype&&op.ttype.length?op.ttype:null);
    }catch(e){L.push(`(${op.k} 처리 중 오류: ${e.message})`)}}
   for(const x of Object.values((b&&b.mons)||{})){const t=abSync(x);if(t)L.push(t)}
@@ -740,10 +748,11 @@ window.OM_FX=(()=>{
   if(HOLD_W.test(line)){hold=1;line=line.replace(HOLD_W,' ').trim()}
   /* 11-09 망령: 줄 끝 「대상타입:벌레」 — 그 줄의 대상 중 그 타입인 포켓몬에게만 (어느 명령에나) */let tt=null;{const q=line.match(/(^|\s)대상타입[:：](\S+)/);if(q){tt=q[2].split(/[,·/]/).map(x=>x.trim()).filter(Boolean).map(x=>KO_TYPE[x]||x);line=line.replace(q[0],' ').trim()}}
   let tdx=0;{const q=line.match(/(^|\s)(대상해석됨|해석된상대)(?=\s|$)/);if(q){tdx=1;line=line.replace(q[0],' ').trim()}}   /* 11-21 */
+  /* 11-23 망령: 줄 끝 「대상프라이드:B이하」 · 「대상프라이드:A」 · 「대상프라이드:A,EX」 — 그 줄의 대상 중 그 프라이드인 포켓몬에게만 */let tpri='';{const q=line.match(/(^|\s)대상프라이드[:：](\S+(?:\s*(?:이하|이상|미만|초과))?)/);if(q&&priSpec(q[2])){tpri=q[2].replace(/\s+/g,'');line=line.replace(q[0],' ').trim()}}
   /* 11-03 특수 효과(sp) 구문 뒤의 대상 낱말(아군전체 · 상대전체 …) — 없으면 자신 */
   let spT=null;{const ws=line.split(/\s+/);if(SP_HEADS.has(ws[0])&&!(ws[0]==='회피'&&!ws.some(w=>/^\d+(할|%)$/.test(w)))){const rest=ws.slice(1);const t=tgtOf(rest);if(t){spT=t;line=[ws[0]].concat(rest).join(' ')}}}
   /* 11-09 감우 54-F: 특수 효과(끌어오기 · 회피 · 반사 …) 줄 끝 「이번턴」 = 이번 턴만 */let spTurn=0;{const h0=line.split(/\s+/)[0];if(SP_HEADS.has(h0)&&h0!=='추가효과'&&/(^|\s)이번턴(?=\s|$)/.test(line)){spTurn=1;line=line.replace(/(^|\s)이번턴(?=\s|$)/,' ').trim()}}
-  const op=parseLine0(line);if(op&&op.k==='sp'&&spTurn)op.thisTurn=1;if(op&&op.k!=='?'){if(p)op.p=p;if(pl)op.pl=pl;if(hold)op.hold=1;if(tt&&tt.length)op.ttype=tt;if(tdx)op.tdx=1;if(spT&&spT!=='self'&&op.k==='sp')op.tgt=spT}return op}
+  const op=parseLine0(line);if(op&&op.k==='sp'&&spTurn)op.thisTurn=1;if(op&&op.k!=='?'){if(p)op.p=p;if(pl)op.pl=pl;if(hold)op.hold=1;if(tt&&tt.length)op.ttype=tt;if(tdx)op.tdx=1;if(tpri)op.tpri=tpri;if(spT&&spT!=='self'&&op.k==='sp')op.tgt=spT}return op}
  const SP_HEADS=new Set(['추가효과면역','추가공격','보호','특성무시','해석차단','기술타입','지속연장','명중확장','회피','추가효과','끌어오기','끌어오기무시','반사']);
  function parseLine0(line){line=line.trim();if(!line||line.startsWith('#'))return null;line=line.replace(/^미루기(?=\s|$)/,'완화 ×1 미룸');   /* 11-09 망령 「빈사가 될 대미지를 자신의 행동 이후로 미룬다」: 미루기 = 완화 ×1 미룸 */const words=line.split(/\s+/);const head=words.shift();
   const n=s=>{const m=String(s).match(/-?\d+(\.\d+)?/);return m?+m[0]:0};const turns=()=>{const i=words.findIndex(w=>/^\d+턴$/.test(w));if(i<0)return null;const v=+words[i].replace('턴','');words.splice(i,1);return v};const has=w=>{const i=words.indexOf(w);if(i<0)return false;words.splice(i,1);return true};
@@ -879,7 +888,7 @@ window.OM_FX=(()=>{
    if(choice&&/^[-·•]/.test(line)){const t=line.replace(/^[-·•]\s*/,'');const ai=t.search(/→|->/);const label=(ai<0?t:t.slice(0,ai)).trim();const body=ai<0?'':t.slice(ai).replace(/^(→|->)/,'');const sub=[];for(const seg of body.split(/[;；]\s*|[,，]\s*(?=[가-힣]+\s)/)){const op=parseLine(seg);if(op&&op.k!=='?')sub.push(op);else if(op)errs.push(op.raw)}choice.opts.push({label,ops:sub});continue}
    choice=null;const op=parseLine(line);if(!op)continue;if(op.k==='?')errs.push(op.raw+(op.why?' — '+op.why:''));else ops.push(op)}
   return {ops,errs}}
- function unparse(ops){const L0=unparse0(ops);return L0.map((s,i)=>{const op=(ops||[])[i]||{};if(op.k==='choice')return s;return (op.p?(op.p%10===0?op.p/10+'할 ':op.p+'% '):op.pl?op.pl+' ':'')+s+(op.ttype&&op.ttype.length?' 대상타입:'+op.ttype.map(t=>TYPE_KO[t]||t).join(','):'')+(op.tdx?' 대상해석됨':'')+(op.hold?' 있는한':'')})}
+ function unparse(ops){const L0=unparse0(ops);return L0.map((s,i)=>{const op=(ops||[])[i]||{};if(op.k==='choice')return s;return (op.p?(op.p%10===0?op.p/10+'할 ':op.p+'% '):op.pl?op.pl+' ':'')+s+(op.ttype&&op.ttype.length?' 대상타입:'+op.ttype.map(t=>TYPE_KO[t]||t).join(','):'')+(op.tpri?' 대상프라이드:'+op.tpri:'')+(op.tdx?' 대상해석됨':'')+(op.hold?' 있는한':'')})}
  function unparse0(ops){const L=[];const tg=t=>t&&t!=='self'?' '+(TGT_KO[t]||t).replace(/\s/g,''):'';const ty=ts=>ts&&ts.length?' 타입:'+ts.map(t=>TYPE_KO[t]||t).join(','):'';
   const tga=t=>' '+(TGT_KO[t||'enemy1']||t).replace(/\s/g,'');
   for(const op of ops||[]){switch(op.k){
@@ -944,5 +953,5 @@ window.OM_FX=(()=>{
   return L}
  /* 사람이 읽는 설명 (미리보기·로그) */
  function describe(ops){return unparse(ops)}
- return {supTgt,noHeal,effOver,rkRedir,whileSync,cmod,prioPcNote,noindUse,noindHit,condTok,condStr,condAll,hasCond,pcPass,iuList,xOk,nodropHit,hitOk,hitDesc,syncPairs,roleFam,roleFams,ROLE_FAM,spOf,spDesc,SP_KO,reAura,effOf,rmChance,rollP,lineChance,release,nextOf,scopeKo,chanceOf,setAb,resetAb,stMod,untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,nullOf,dynOk,evaMods,accMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,weatherBlock,magicRoom,itemOff,abSync,holds,useItem,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
+ return {priRank,priSpec,priOk,effPride,PRI_ORD,supTgt,noHeal,effOver,rkRedir,whileSync,cmod,prioPcNote,noindUse,noindHit,condTok,condStr,condAll,hasCond,pcPass,iuList,xOk,nodropHit,hitOk,hitDesc,syncPairs,roleFam,roleFams,ROLE_FAM,spOf,spDesc,SP_KO,reAura,effOf,rmChance,rollP,lineChance,release,nextOf,scopeKo,chanceOf,setAb,resetAb,stMod,untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,nullOf,dynOk,evaMods,accMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,weatherBlock,magicRoom,itemOff,abSync,holds,useItem,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
 })();
