@@ -489,6 +489,12 @@ function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);
  {const its=[p.item,...(p.items2||[]).map(x=>x&&x.item)].filter(Boolean).map(x=>String(x).trim());const r=String(roleOf(p)||'').replace(/『|』/g,'').trim();
   const gb=its.filter(n=>ITEM_BAN_ALL.includes(n));if(gb.length)w(`금지 소지품 (공통 1) · ${gb.map(n=>'「'+n+'」').join('')} — 포텐셜 등으로 풀린 경우만 예외`,'item');
   for(const f of itemBanFams(r)){const rb=its.filter(n=>(ITEM_BAN_ROLE[f]||[]).includes(n));if(rb.length)w(`『${f}』 금지 소지품 (역할별 제한${f!==r?` · 『${r}』 = ${f} 계열`:''}) · ${rb.map(n=>'「'+n+'」').join('')}`,'item')}}   /* 11-06 망령 「블로커 무화열매 · 마제망토, 에이스 마제망토 안 된다 — 낄 때 경고」 */
+ /* 11-23 망령 「고유 「프라이드 : B인 아군을 1체 와일드에 임명할 수 있다」 · 「자신은 에이스를 임명할 수 없다」 자동화」: 트레이너 고유 글을 보고 역할 『와일드』 · 『에이스』 계열을 검사한다 */
+ if(t){const U=(t.unique||[]).map(u=>String((u&&u.eff)||'')).join('\n');const r=String(roleOf(p)||'').replace(/『|』/g,'').trim();const PO=['E','D','C','C+','B','B+','A','EX'];const rk=x=>PO.indexOf(String(x||'').replace(/\s/g,'').toUpperCase());
+  const pm=(pr,spec)=>{const q=String(spec).replace(/\s/g,'').match(/^([A-E]\+?|EX)(이하|이상)?$/i);if(!q)return true;const a=rk(pr),c=rk(q[1]);if(a<0)return false;return q[2]==='이하'?a<=c:q[2]==='이상'?a>=c:a===c};
+  const wq=U.match(/프라이드\s*[:：]\s*([A-Ea-e]\+?|EX)\s*((?:이하|이상)?)\s*인\s*아군을\s*(\d+)?\s*체?\s*와일드에\s*임명/);
+  if(r==='와일드'&&wq){if(!pm(pk,wq[1]+wq[2]))w(`『와일드』 임명은 고유상 「프라이드 : ${wq[1]}${wq[2]?' '+wq[2]:''}」인 아군만 — 이 포켓몬은 프라이드 ${pk||'?'}`,'pot');const n=+(wq[3]||1);const cnt=(t.pokemon||[]).filter(x=>x&&String(roleOf(x)||'').replace(/『|』/g,'').trim()==='와일드').length;if(cnt>n)w(`『와일드』 임명은 고유상 ${n}체까지 — 지금 ${cnt}체`,'pot')}
+  if(/자신은\s*에이스를\s*임명할\s*수\s*없다/.test(U)&&/에이스/.test(r))w(`고유상 이 트레이너는 에이스를 임명할 수 없다 — 이 포켓몬 역할 『${r}』`,'pot')}
  if(!tot)return out;const b=baseNums(p);
  if(t)for(const x of baseUp(t,p).miss||[])w(x,'bu');   /* 10-27: 「X : R」로 만들기 조건이 안 맞음 */
  /* 10-26 망령: 『올드 타입』은 절대 하한도 따지지 않는다 (본가 종족치 그대로) */
@@ -944,7 +950,7 @@ const fxReady=()=>!!(window.OM_FX&&window.OM_FX_UI);
 window.OM_APP=window.OM_APP||{openModal:h=>{const l=openModal(h,{wide:true});l.addEventListener('click',e=>{if(e.target.closest('[data-x]'))closeModal()});return l},closeModal:()=>closeModal(),toast:t=>toast(t),ST:{role:'player',state:{}},set:async()=>false};
 let fxLoadP=null,FXST='';/* '' 불러오는 중 · ok · fail */
 function loadFx(){if(fxReady())return Promise.resolve(true);if(fxLoadP)return fxLoadP;
- const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611230750pr';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
+ const one=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=FX_SRC+src+'?v=202611230820pp';s.onload=()=>res();s.onerror=()=>rej(new Error(src));document.head.appendChild(s)});
  FXST='';fxLoadP=(async()=>{try{await one('states.js');await one('readymade.js');await one('fx.js');await one('fx_ui.js');await one('itemrule.js');try{await one('moveauto.js')}catch(e){}FXST='ok';rmInit();stInit();if(S.ui&&S.ui.tab)refreshAll();return true}catch(e){console.warn('[구문] 자동화 스크립트를 불러오지 못함',e);FXST='fail';toast('자동화 구문 스크립트를 불러오지 못했습니다 · 「구문 ⟳」을 눌러 다시 시도');if(S.ui&&S.ui.tab)refreshAll();return false}})();return fxLoadP}
 function fxRetry(){if(fxReady())return;fxLoadP=null;toast('구문 스크립트를 다시 불러옵니다…');loadFx();if(S.ui&&S.ui.tab)refreshAll()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-fxretry]');if(!b)return;e.preventDefault();e.stopPropagation();fxRetry()},true);
