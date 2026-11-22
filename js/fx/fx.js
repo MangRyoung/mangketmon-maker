@@ -510,7 +510,7 @@ window.OM_FX=(()=>{
  function wxNow(m){const w=(fieldNow().weather||{}).type;if(!w)return '';if(m&&holds(m,'만능우산'))return '';const B0=RUNB||(((window.OM_APP||{}).ST||{}).state||{}).battle||{};if(Object.values(B0.mons||{}).some(x=>x&&x.entry&&x.hp&&x.hp.cur>0&&/에어록|날씨부정/.test(String(x.ability||''))))return '';return w}
  const WX_EQ={싸라기눈:'눈',큰가뭄:'맑음',큰비:'비',깊은밤:'밤'};const wxK=x=>{x=String(x||'').replace(/\s/g,'');return WX_EQ[x]||x};
  function trnNow(x){const f=fieldNow();const k=String(x||'').replace(/\s/g,'');const t=String((f.terrain||{}).type||'').replace(/\s/g,'');if(t&&(t===k||t===k+'필드'||t.replace(/필드$/,'')===k))return true;if(+((f.etc||{})[k]||0)>0)return true;const r=f.rooms||{};if(+(r[k]||0)>0||(r[k]&&typeof r[k]==='object'&&+(r[k].count||0)>0))return true;return false}
- function dynOk(e,own,oth,q){if(!e)return true;/* 11-23 조건 토큰 「상태:하늘위」 · 「상대상태:하늘위」 = 구문 「하늘위」로 떠 있는 동안 (말레니아 『물새 난격』 「하늘 위에 떠있을 때」) */const hs=(m,k)=>k==='하늘위'?!!(m&&floating(m)):hasSt(m,k);if(e.cs&&!hs(own,e.cs))return false;if(e.os&&!hs(oth,e.os))return false;
+ function dynOk(e,own,oth,q){if(!e)return true;/* 11-23 조건 토큰 「상태:하늘위」 · 「상대상태:하늘위」 = 구문 「하늘위」로 떠 있는 동안 (말레니아 『물새 난격』 「하늘 위에 떠있을 때」) */const hs=(m,k)=>(k==='Fly'||k==='하늘위')?!!(m&&(hasSt(m,'Fly')||floating(m))):hasSt(m,k);if(e.cs&&!hs(own,e.cs))return false;if(e.os&&!hs(oth,e.os))return false;
   if(e.wx&&e.wx.length){const w=wxK(wxNow(own));if(!w||!e.wx.some(x=>wxK(x)===w))return false}
   if(e.trn&&!trnNow(e.trn))return false;
   if(e.hl||e.hg){const h=own&&own.hp;if(!h||!(+h.max>0))return false;const r=+h.cur/+h.max;if(e.hl&&r>e.hl+1e-9)return false;if(e.hg&&r<e.hg-1e-9)return false}
