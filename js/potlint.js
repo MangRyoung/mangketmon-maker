@@ -258,7 +258,7 @@ window.MKM_POTLINT=(()=>{
   /* 11-23 추천 앞단: 「소지품 : X」: … 꼴의 소지품 설명 줄과, 웹툴이 글로 읽는 「강화(a/b→c/d)」 문장은 빼고 추천한다 */
   function suggest(text){let note='';const RE=/[「『][^」』:]+[」』](?:이|가|의)\s*(?:「타입\s*:\s*[^」]+」\s*에게\s*)?(?:위력|회복량)(?:이|을)\s*강화\s*\(\s*\d+\s*\/\s*\d+\s*(?:→|->|⇒)\s*\d+\s*\/\s*\d+\s*\)/;
    const keep=String(text||'').replace(/<br\s*\/?>/gi,'\n').split('\n').filter(l=>{if(/^\s*「소지품\s*[:：]\s*[^」]+」\s*[:：]/.test(l))return false;if(/[「『][^」』]+[」』]의\s*배율을\s*강화\s*\(\s*\d+(?:\.\d+)?배?\s*(?:→|->|⇒)\s*\d+(?:\.\d+)?배\s*\)/.test(l)&&!/아닌\s*기술에\s*대한/.test(l)){note='「배율을 강화(a배→b배)」 줄은 엔진이 글로 읽는다 — 그 특성 · 포텐셜이 거는 배율을 바꾼다 (구문 줄 없음)';return false}if(RE.test(l)){note='「강화(분수→분수)」 줄은 웹툴이 글로 읽는다 — 그 기술의 비례 대미지 · 회복 분수를 바꾼다 (구문 줄 없음)';return false}return true}).join('\n');
-   const r=suggest0(loose(keep));if(note){r.note=note;if(!r.lines.length)r.timing=note}return r}
+   const r=suggest0(loose(keep));/* 11-23 같은 줄이 위력 · 완화 둘로 나오면(「X가 내보내는 기술의 위력을 반감」) 완화만 남긴다 */for(let i=r.lines.length-1;i>=0;i--){const L=r.lines[i];if(/(?:^|: )위력 ×0?\.\d/.test(L)&&r.lines.includes(L.replace(/(^|: )위력 ×/,'$1완화 ×'))){r.lines.splice(i,1);if(Array.isArray(r.why)&&r.why.length>r.lines.length)r.why.splice(i,1)}}if(note){r.note=note;if(!r.lines.length)r.timing=note}return r}
   function suggest0(text){const lines=[],why=[];let DEFER=null;const F=window.OM_FX;const all=String(text||'');
   if(!CHGCTX){const X=cmdChgOf(all);if(X)return suggestChg(X)}
   /* 11-19 망령 「특성 : 사출 같은 거 자동화 돼 있던가?」: 「필드 위에 있는 한 아군이 【등장】/다음 기술을 내보낼 때 「X」를 강화(N배)」 = 나오는 아군에게 거는 것 — 웹툴(battle_ui shootIn)이 아군이 나올 때 그 아군에게 걸고, 그 아군이 기술을 내면 푼다. 구문 줄은 없다 (예전엔 자기 등장 · 아군전체 배율로 잘못 추천) */
@@ -312,7 +312,7 @@ window.MKM_POTLINT=(()=>{
    /* 완화 (받는 쪽) — 반감 · 완화(n배) · 강화(n배) · n배가 된다 · 무효화(×0) · 「상성 : 1/2배」가 된다 */
    {let x,v='',at=-1,NULP='';
     if((x=c.match(/(?<![을를]\s)받(?:을|는)\s*(?:기술의\s*)?(?:대미지|위력)(?:를|을|가)?\s*(?:(반감)|완화\s?\((\d?\.\d+)배\)|강화\s?\((\d+(?:\.\d+)?)배\)|(\d+(?:\.\d+)?)배가 된다)/))){v=x[1]?'0.5':(x[2]||x[3]||x[4]);at=x.index}
-    else if((x=c.match(/(?:자신에 대한|상대의|상대가 내보내는)\s*((?:「[^」]+」\s*)*)(?:한\s*)?(?:등의\s*)?(?:타입 비일치\s*)?(?:기술|공격)?의?\s*(?:대미지|위력)[를을]?\s*(?:(반감)|완화\s?\((\d?\.\d+)배\)|저하\s?\((\d?\.\d+)배\))/))){v=x[2]?'0.5':(x[3]||x[4]);at=x.index}
+    else if((x=c.match(/(?:자신에 대한|상대의|상대가 내보내는|「(?:알그룹|성별)\s*[:：][^」]*」(?:이|가) 내보내는)\s*((?:「[^」]+」\s*)*)(?:한\s*)?(?:등의\s*)?(?:타입 비일치\s*)?(?:기술|공격)?의?\s*(?:대미지|위력)[를을]?\s*(?:(반감)|완화\s?\((\d?\.\d+)배\)|저하\s?\((\d?\.\d+)배\))/))){v=x[2]?'0.5':(x[3]||x[4]);at=x.index}
     else if((x=c.match(/((?:「[^」]+」\s*)+)\s*(?:등의\s*)?기술(?:로 받는|의)\s*대미지를\s*(?:(반감)|완화\s?\((\d?\.\d+)배\))/))){v=x[2]?'0.5':x[3];at=x.index}
     else if((x=c.match(/「전체기」의 위력을 저하\((\d?\.\d+)배\)/))){v=x[1];at=x.index}
     else if((x=c.match(/((?:「[^」]+」\s*)+)\s*(?:등의\s*)?(?:대미지|기술)(?:을|를)\s*(?:(?:\d할|드물게|저확률|중확률|고확률)로?\s*)?(?:받으면\s*)?무효화/))&&!/일격기|우선도|강제 교대|교대|변화기|자세」\s*$/.test(x[1])){v='0';at=x.index;const pq=x[0].match(/(\d할|드물게|저확률|중확률|고확률)로?\s*(?:받으면\s*)?무효화/);if(pq)NULP=pq[1]}
