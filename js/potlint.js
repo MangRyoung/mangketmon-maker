@@ -242,6 +242,14 @@ window.MKM_POTLINT=(()=>{
     x=x.replace(/([일을할될])때/g,'$1 때').replace(/(상태|중|이상|이하|모습|타입) (일|인|이 아닐|이 아닌) 때/g,'$1$2 때').replace(/중 ?일 ?때/g,'중일 때');
     x=x.replace(/」 (을|를|의|에게|에게는|에게도)(?=[\s,.]|$)/g,'」$1').replace(/「 +/g,'「').replace(/ +」/g,'」').replace(/\( +/g,'(').replace(/ +\)/g,')').replace(/(\d) +배/g,'$1배').replace(/(강화|저하|완화) +\(/g,'$1(');
     {const re=new RegExp('「('+ST+'(?:/'+ST+')*)」 ?[,·、]? ?「('+ST+')」','g');for(let i=0;i<6;i++){const y=x.replace(re,'「$1/$2」');if(y===x)break;x=y}}
+    /* 11-23 2차(242): 표기 흔들림 — 콜론 띄어쓰기 · 「우선도 +0.5」 · 강화 1.5배 한다 · 무효한다 · 따옴표 없는 상태 이상 · 상태를 부여한다 · 타입 「X」 */
+    x=x.replace(/「(우선도|위력|HP|타입|특성|날씨|필드|소지품|프라이드|범위) ?[:：] ?(?=[^ 」])/g,'「$1 : ');
+    x=x.replace(/「우선도 ?([+\-][\d.]+)」/g,'「우선도 : $1」').replace(/우선도를 ([+\-][\d.]+) ?한다/g,'「우선도 : $1」 한다');
+    x=x.replace(/강화 (\d+(?:\.\d+)?)배 ?(한다|된다)/g,'강화($1배)$2').replace(/무효한다/g,'무효화한다').replace(/\((저하|감소|강화|상승)\) (하지|되지)/g,'($1)$2');
+    x=x.replace(/」(상태|기술)(?=[ 인일가를을로의에이])/g,'」 $1');
+    x=x.replace(/(^|[\s\/】,])(맹독|독|마비|화상|얼음|잠듦|혼란|풀죽음|헤롱헤롱) 상태(?=[ 인일가를을로의이])/gm,'$1「$2」 상태');
+    x=x.replace(/(자신|아군|상대|대상|정면)에게 ?(「[^」:]+」) 상태를 부여한다/g,(m,w,s)=>w+(w==='자신'||w==='아군'||w==='정면'||w==='대상'?'을':'를')+' '+s+' 상태로 만든다').replace(/(「[^」:]+」) 상태를 부여한다/g,'$1 상태로 만든다');
+    x=x.replace(/(^|[\s\/】])타입 「(노말|불꽃|물|풀|전기|얼음|격투|독|땅|비행|에스퍼|벌레|바위|고스트|드래곤|악|강철|페어리)」(?=[ 일인이의에])/gm,'$1「타입 : $2」');
     return x}catch(e){return String(t||'')}}
   /* 11-23 추천 앞단: 「소지품 : X」: … 꼴의 소지품 설명 줄과, 웹툴이 글로 읽는 「강화(a/b→c/d)」 문장은 빼고 추천한다 */
   function suggest(text){let note='';const RE=/[「『][^」』:]+[」』](?:이|가|의)\s*(?:「타입\s*:\s*[^」]+」\s*에게\s*)?(?:위력|회복량)(?:이|을)\s*강화\s*\(\s*\d+\s*\/\s*\d+\s*(?:→|->|⇒)\s*\d+\s*\/\s*\d+\s*\)/;
@@ -324,7 +332,7 @@ window.MKM_POTLINT=(()=>{
    else if((m=c.match(/((?:「[가-힣 ]+」\s*[,·]?\s*)+)\s*상태(?:를|가)?\s*치유/))&&!/치유를 실패/.test(c)){const sts=[...m[1].matchAll(/「([가-힣 ]+)」/g)].map(y=>y[1].replace(/\s/g,'')).filter(s=>!window.OM_FX||isSt(s));const t=syncT(tgtIn(segB(c,m.index),temp));if(sts.length)L.push(`치유${t&&t!=='상대1체'?' '+t:''} ${sts.join(',')}`)}
    /* 상태 */
    for(const y of c.matchAll(/「(\d)할 : ([가-힣]+)」(?:을|를) 부여/g))L.push(`상태확률 ${y[2]} ${y[1]}0% 상대1체`);
-   if((m=c.match(/((?:「[가-힣 ]+」\s*)+)\s*상태로 만든다/))&&!/할 :/.test(c)){const sts=[...m[1].matchAll(/「([가-힣 ]+)」/g)].map(y=>y[1].replace(/\s/g,''));const sg=segB(c,m.index);const self=/자신을\s*$/.test(sg)||/^자신을/.test(sg.trim())&&!/공격한/.test(sg);let t=self?'자신':syncT(tgtIn(sg,temp))||'상대1체';
+   if((m=c.match(/((?:「[가-힣 ]+」\s*)+)\s*상태로 (?:만든다|만들 수 있다(?![^.]*대신))/))&&!/할 :/.test(c)&&!(/만들 수 있다/.test(m[0])&&/대신/.test(c))){const sts=[...m[1].matchAll(/「([가-힣 ]+)」/g)].map(y=>y[1].replace(/\s/g,''));const sg=segB(c,m.index);const self=/자신을\s*$/.test(sg)||/^자신을/.test(sg.trim())&&!/공격한/.test(sg);let t=self?'자신':syncT(tgtIn(sg,temp))||'상대1체';
     const pn=(c.match(/(\d)할로/)||[])[1];
     for(const s of sts){if(ETC_W.includes(s)){L.push(`필드상태 ${s} ${turns||5}`);continue}if(OBJ_W.includes(s)){L.push(`설치기 아군 ${objN(s)}${turns?' '+turns:''}`);continue}if(window.OM_FX&&!isSt(s))continue;
      if(pn&&!turns)L.push(`상태확률 ${s} ${pn}0% ${t==='전원무작위'?'전체 1체':t}`);else L.push(`상태 ${s} ${t}${turns?` ${turns}턴`:tEnd?' 1턴':''}`)}}   /* 11-18 망령 「턴 종료 시까지 「얼음」 상태로 — 턴이 붙는 상태 이상」: 이번 턴만 = 1턴 */
