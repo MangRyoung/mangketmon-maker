@@ -219,7 +219,7 @@ window.MKM_POTLINT=(()=>{
     /* 11-23 235번 가 묶음: 기술 하나의 수치 · 판정을 바꾸는 꼴 */
     {const PCT={드물게:1,저확률:3,중확률:5,고확률:6};let q;
      q=t.match(/「타입\s*[:：]\s*([^」]+)」에\s*대해\s*「([^」:]+)」의\s*추가\s*효과\s*발생률을\s*강화\s*\(\s*\d+할\s*→\s*(\d+)할\s*\)/);if(q&&isMv(q[2])&&!lines.some(x=>/^추가효과 /.test(x)))lines.push('추가효과 ='+q[3]+'할 기술:'+q[2].trim()+' 상대타입:'+tyL(q[1]));
-     q=t.match(/「([^」:]+)」(?:이|가)\s*(드물게|저확률|중확률|고확률)(?:로)?\s*「[^」]+」\s*대신\s*(?:(\d)턴\s*동안\s*)?「([^」:]+)」\s*상태로\s*만든다/);if(q&&isMv(q[1])){for(let i=lines.length-1;i>=0;i--)if(/상태 /.test(lines[i]))lines.splice(i,1);lines.push('추가효과 바꾸기 '+PCT[q[2]]+'할 '+q[4].replace(/\s/g,'')+(q[3]?' '+q[3]+'턴':'')+' 기술:'+q[1].trim())}
+     q=t.match(/「([^」:]+)」(?:이|가)\s*(드물게|저확률|중확률|고확률)(?:로)?\s*「[^」]+」\s*대신\s*(?:(\d)턴\s*동안\s*)?「([^」:]+)」\s*상태로\s*만든다/);if(q&&isMv(q[1])){for(let i=lines.length-1;i>=0;i--)if(/상태 /.test(lines[i]))lines.splice(i,1);lines.push(q[2]+': 추가효과 바꾸기 10할 '+q[4].replace(/\s/g,'')+(q[3]?' '+q[3]+'턴':'')+' 기술:'+q[1].trim())}
      q=t.match(/「([^」:]+)」\s*상태인\s*상대에게\s*내보내는\s*「([^」:]+)」(?:이|가)\s*【?필중】?/);if(q&&isMv(q[2])&&!lines.some(x=>/필중화/.test(x))){lines.length=0;lines.push('위력 ×1 필중화 기술:'+q[2].trim()+' 상대상태:'+q[1].replace(/\s/g,''))}
      q=t.match(/「소지품\s*[:：]\s*-」인\s*대상에게\s*「([^」:]+)」(?:이|가)\s*「위력\s*[:：]\s*(\d+)」(?:이|가)\s*된다/);if(q&&isMv(q[1])){const fq=t.match(/「([^」:]+)」일\s*때\s*「소지품/);lines.length=0;lines.push('위력 ='+q[2]+' 기술:'+q[1].trim()+' 상대빈손'+(fq?' 폼:'+fq[1].replace(/\s/g,''):''))}}
     {const q=t.match(/「([^」:]+)」(?:이|가)\s*실패하지\s*않는다/);if(q&&!/연속/.test(t)&&isMv(q[1])&&!lines.some(x=>/^실패무시/.test(x)))lines.push('실패무시 기술:'+q[1].trim()+(/이번\s*턴/.test(t)?' 이번턴':''))}   /* 11-23 트림 · 추월의 실패 조건을 웹툴이 판정하게 되어 낱말이 생김 */

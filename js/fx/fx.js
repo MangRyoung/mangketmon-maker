@@ -204,7 +204,7 @@ window.OM_FX=(()=>{
   for(let op of ops||[]){if(stop)break;/* let: 「날씨 무작위」가 op 를 바꿔 끼운다 */
    try{
     /* 10-23 망령: 줄 앞의 확률(「5할」 「30%」 「저확률」) — 이 줄만 굴린다 */
-    if((op.p||op.pl)&&PCK.has(op.k)&&!op.remove&&op.mode!=='off'&&!op.turn&&op.dur!=='turn'){const base=op.p?+op.p:percentOf(op.pl);op=Object.assign({},op,{pc:base,pcl:op.pl||(op.p%10===0?op.p/10+'할':op.p+'%'),p:0,pl:''});if(!ctx.noRoll)L.push(`${op.pcl} — 판정할 때마다 굴린다`)}
+    if((op.p||op.pl)&&(PCK.has(op.k)||(op.k==='sp'&&op.sp==='secx'&&op.mode==='rep'&&op.mv&&op.mv.length))&&!op.remove&&op.mode!=='off'&&!op.turn&&op.dur!=='turn'){const base=op.p?+op.p:percentOf(op.pl);op=Object.assign({},op,{pc:base,pcl:op.pl||(op.p%10===0?op.p/10+'할':op.p+'%'),p:0,pl:''});if(!ctx.noRoll)L.push(`${op.pcl} — 판정할 때마다 굴린다`)}
     else if((op.p||op.pl)&&!ctx.noRoll){const base=op.p?+op.p:percentOf(op.pl);const rr=rollP(self,base,ctx);const lb=op.pl||(op.p%10===0?op.p/10+'할':op.p+'%');if(!rr.ok){L.push(`${lb} 판정 실패 (${rr.r}/${rr.p})${rr.adj} — ${unparse([Object.assign({},op,{p:0,pl:''})])[0]||''}`);continue}L.push(`${lb} 판정 성공 (${rr.r}/${rr.p})${rr.adj}`)}
     const hs=(op.hold||ctx.hold)&&self&&op.k!=='choice'?holdSnap(b):null;
     const prevTT=RUNTT,prevTD=RUNTDX,prevTP=RUNTP,prevTN=RUNTN,prevRS=RUNSELF;RUNTT=op.ttype&&op.ttype.length?op.ttype:null;RUNTDX=op.tdx?1:0;RUNTP=op.tpri?priSpec(op.tpri):null;RUNTN=op.tname&&op.tname.length?op.tname:null;RUNSELF=self||null;try{await runOp(op)}finally{RUNTT=prevTT;RUNTDX=prevTD;RUNTP=prevTP;RUNTN=prevTN;RUNSELF=prevRS}
