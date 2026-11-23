@@ -423,7 +423,7 @@ window.OM_FX=(()=>{
     m.fx.rkx = [{key, name, a, b, sw(서로), dir:'up'|'down'|''}] — 이 포켓몬의 랭크가 바뀔 때 a 대신 b (sw 면 b 대신 a 도). 효과 · 소지품 · 지령 · 위협 모두 이 길(rkRedir)을 지난다 */
  function rkRedir(m,k,v){const L=(m&&m.fx&&m.fx.rkx)||[];if(!L.length||!v||k==='critical'||k==='critical_buff')return k;for(const e of L){if(e.dir==='up'&&!(v>0))continue;if(e.dir==='down'&&!(v<0))continue;if(e.a===k)return e.b;if(e.sw&&e.b===k)return e.a}return k}
  const rkxTxt=e=>`${STAT_KO[e.a]||e.a}${e.sw?'↔':'→'}${STAT_KO[e.b]||e.b}${e.dir==='up'?' 상승':e.dir==='down'?' 감소':''}`;
- const RK_TO_AB_RE=/「\s*(공격|방어|특공|특방|스피드|명중|회피)\s*」\s*(?:이|가)\s*상승하는\s*대신\s*「\s*특성\s*[:：]\s*([^」]+?)\s*」\s*(?:이|가|으로|로)?\s*(?:된다|변경)/;
+ const RK_TO_AB_RE=/「\s*(공격|방어|특공|특방|스피드|명중|회피)\s*」\s*(?:이|가)\s*상승(?:하는|할\s*때)\s*대신\s*「\s*특성\s*[:：]\s*([^」]+?)\s*」\s*(?:이|가|으로|로)?\s*(?:된다|변경)/;
  function rkToAb(m,k){try{const nq=x=>String(x||'').replace(/[『』\s]/g,'');const KO={공격:'attack',방어:'defense',특공:'specialattack',특방:'specialdefense',스피드:'speed',명중:'accuracy',회피:'evasion'};for(const p of [...(m.pots||[]),m.excl,...(m.exclX||[])]){if(!p||!p.name||(p.ph&&!p.apt))continue;if(m.potOff&&m.potOff[p.name])continue;const q=String(p.eff||'').match(RK_TO_AB_RE);if(!q||KO[q[1]]!==k)continue;if(nq(m.ability)===nq(q[2]))continue;return {nm:p.name,ab:q[2]}}}catch(e){}return null}
  function applyStats(m,op,self,name){const L=[];const isMult=op.k==='mult';const parts=[];const UPS={};
   for(const k0 in op.stats){let k=k0;let v=+op.stats[k0];if(!v)continue;
