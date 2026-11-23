@@ -35,7 +35,7 @@ window.OM_FX=(()=>{
  const stDB=()=>((DB().states||{}).st)||{};
  const stKo=k=>(stDB()[k]||{}).ko||k;
  const stKoW=k=>String(stKo(k)).replace(/\s+/g,'');/* 구문에 쓸 때는 띄어쓰기를 뺀다 */
- function stEn(kor){kor=String(kor||'').trim();const st=stDB();{const kq=kor.replace(/\s+/g,'').match(/^예리:?C?\+?(\d)$/);if(kq&&st['Keen'+kq[1]])return 'Keen'+kq[1]}   /* 11-10: 「예리 : +1」 · 「예리 : C+2」 = 예리1 · 예리2 */if(st[kor])return kor;for(const k in st)if(st[k].ko===kor)return k;const nk=kor.replace(/\s+/g,'');{const AL={바인드:'Bind'};if(AL[nk]&&st[AL[nk]])return AL[nk]}   /* 11-23 글의 「바인드」 = 상태 DB 의 「조이기」(1/8 비례 대미지 · 교대 불가) */if(nk)for(const k in st)if(String(st[k].ko||'').replace(/\s+/g,'')===nk)return k;return ''}
+ function stEn(kor){kor=String(kor||'').trim();const st=stDB();{const kq=kor.replace(/\s+/g,'').match(/^예리:?C?\+?(\d)$/);if(kq&&st['Keen'+kq[1]])return 'Keen'+kq[1]}   /* 11-10: 「예리 : +1」 · 「예리 : C+2」 = 예리1 · 예리2 */if(st[kor])return kor;for(const k in st)if(st[k].ko===kor)return k;const nk=kor.replace(/\s+/g,'');{const AL={바인드:'Bind'};if(AL[nk]&&st[AL[nk]])return AL[nk]}   /* 11-23 14:06 망령 「바인드라 되어 있는 걸 다 조이기로」: DB · 시트 글을 전부 「조이기」로 바꿨다 — 이 별칭은 방에 남은 옛 글(불러온 지 오래된 포켓몬)용 */if(nk)for(const k in st)if(String(st[k].ko||'').replace(/\s+/g,'')===nk)return k;return ''}
  /* 띄어쓰기가 든 상태 이름(「구멍 안」 등)도 한 낱말로 읽도록, 앞 낱말들을 이어 붙여 가장 긴 상태 이름을 찾는다 */
  function takeState(words){for(let n=Math.min(words.length,4);n>1;n--){const j=words.slice(0,n).join('');if(stEn(j)){words.splice(0,n);return stKo(stEn(j))}}return words.shift()}
  const typesOf=m=>(m.teraActive&&m.teraEn&&m.teraEn!=='-')?[m.teraEn]:(m.types||[]).filter(t=>t&&t!=='-');
