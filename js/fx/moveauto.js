@@ -85,6 +85,10 @@ window.OM_MOVEAUTO=(()=>{
     if((x=s.match(/^「타입\s*:\s*([^」]+)」에게\s*「상성\s*:\s*(\d+(?:\/\d+)?)배」(?:가\s*된다)?$/))){const tys=x[1].split(/[,·、]/).map(t=>t.trim()).filter(Boolean).map(t=>FX()&&FX().TYPE_KO?Object.keys(FX().TYPE_KO).find(k=>FX().TYPE_KO[k]===t):'').filter(Boolean);const v=x[2].includes('/')?(+x[2].split('/')[0])/(+x[2].split('/')[1]):+x[2];if(tys.length){FL.effVs=tys.length===1?{ty:tys[0],v}:tys.map(ty=>({ty,v}));continue}}   /* 11-11 「타입 : 악, 고스트」 여럿 · 「…1배」.(가 된다 없이 — 니힐레이저) */
     if((x=s.match(/^「타입\s*:\s*([^」]+)」(?:이|가) 아니라면 「명중\s*:\s*(\d+)」(?:이|가) 된다$/))){const ty=FX()&&FX().TYPE_KO?Object.keys(FX().TYPE_KO).find(k=>FX().TYPE_KO[k]===x[1].trim()):'';if(ty){FL.accNot={ty,acc:+x[2]};continue}}
     if((x=s.match(/^「타입\s*:\s*([^」]+)」\s*이외에게 내보내면 실패한다$/))){const tys=x[1].split(/[,·、\/]/).map(t=>t.trim()).filter(Boolean).map(t=>FX()&&FX().TYPE_KO?Object.keys(FX().TYPE_KO).find(k=>FX().TYPE_KO[k]===t):'').filter(Boolean);if(tys.length){FL.onlyVs=tys[0];if(tys.length>1)FL.onlyVsL=tys;continue}}   /* 11-15 여럿(「타입 : 강철, 악」 — 파동공진파를 자기 타입으로 바꿔 쓴 글) */
+    /* 11-23 망령 「기술의 반사」: 되찌기(「벌레」 기술을 반사한다) · 천벌적면(자신에 대한 공격을 반사한다) · 매직코트(… 해로운 「변화기」를 반사한다) — 쓰면 이번 턴 자신에게 「반사」를 건다 */
+    if((x=s.match(/^「([^」:]+)」\s*기술을 반사한다$/))){const ty=FX()&&FX().TYPE_KO?Object.keys(FX().TYPE_KO).find(k=>FX().TYPE_KO[k]===x[1].trim()):'';if(ty){groups.push({n:10,label:s,who:'once',ops:[{k:'sp',sp:'bounce',cat:'',types:[ty],tg:[],thisTurn:1}],when:'use'});continue}}
+    if(/^자신에 대한 공격을 반사한다$/.test(s)){groups.push({n:10,label:s,who:'once',ops:[{k:'sp',sp:'bounce',cat:'공격',types:[],tg:[],thisTurn:1}],when:'use'});continue}
+    if(/^자신(?:\(자진\))?을 대상으로 하는 (?:대상|상대)의 (?:해로운\s*)?「변화기」를 반사한다$/.test(s)){groups.push({n:10,label:s,who:'once',ops:[{k:'sp',sp:'bounce',cat:'변화',types:[],tg:[],thisTurn:1}],when:'use'});continue}
     if(/^대상의 「특성」을 무시한다$/.test(s)){FL.mold=1;continue}
     if(/^「기술의 대상을 변경하는 효과」를 무시한다$/.test(s)){FL.noRedirect=1;continue}
     if((x=s.match(/^이 기술로 대상을 쓰러뜨렸을 때 자신의 「HP」를 (\d+\/\d+)만큼 회복한다$/))){FL.koHeal=x[1];continue}
