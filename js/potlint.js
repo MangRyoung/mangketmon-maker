@@ -188,7 +188,43 @@ window.MKM_POTLINT=(()=>{
  function suggestChg(inner){CHGCTX++;let r;try{r=suggest(inner)}finally{CHGCTX--}
   const lines=r.lines.map(l=>/^(?:추가효과|위력|완화|회피|우선도)(?:\s|$)/.test(l)&&!/(?:^|\s)이번턴(?:\s|$)/.test(l)?l+' 이번턴':l);
   return {lines,why:r.why,chg:1,timing:'『지령』의 효과 변경 — 이 구문이 「바뀐 효과」다. 오레마스에서 지령을 걸 때 원래 효과 대신 지령을 받은 포켓몬에게 건다 (「자신」 = 받은 포켓몬)'}}
- function suggest(text){const lines=[],why=[];let DEFER=null;const F=window.OM_FX;const all=String(text||'');
+   /* 11-23 망령 「그대로 둔 25칸은 제대로 추천할 수 있게 개선해야지」: 추천 줄을 글과 다시 맞춘다 —
+     ① 방어관통에 기술 이름 · 상대 타입 ② 「태그:기술이름」 → 「기술:」, 「다음에 내보내는」 → 1회 ③ 「발동한 · 내보내는 턴」 → 완화 · 회피 줄에 이번턴
+     ④ 「…한 아군이 … 대상의 HP 를 회복」 → 아군1체 ⑤ 「「타입 : X」인 아군이 「S」 상태가 된다」 → 아군전체 대상타입 ⑥ 「「기술」로 … 대신 「S」 상태로」 → 추가효과 바꾸기
+     ⑦ 연속 제한 이야기가 아닌 「실패하지 않는다」에는 연속무시를 추천하지 않는다 ⑧ 「「기술」이 (「타입 : X」에게) 위력이 강화(1/3→1/2)」 = 웹툴이 글로 읽는다 */
+  function fixUp(all,lines){let note='';try{const t=String(all||'').replace(/<br\s*\/?>/gi,'\n');
+    const MV=new Set();try{for(const k in ((window.OM_DB||{}).moves||{}))MV.add(k)}catch(e){}try{const M=(window.MKM_DB||{}).moves;if(Array.isArray(M))for(const r of M)if(r&&r[2])MV.add(r[2])}catch(e){}
+    const TYK=['노말','불꽃','물','전기','풀','얼음','격투','독','땅','비행','에스퍼','벌레','바위','고스트','드래곤','악','강철','페어리'];const isMv=n=>MV.has(String(n||'').trim());const tyL=x=>String(x).split(/[,·\/、]/).map(y=>y.trim()).filter(Boolean).join(',');const turnOnly=/(?:발동한|내보내는|내보낸)\s*턴/.test(t);let m;
+    for(let i=0;i<lines.length;i++){let L=lines[i];
+     if(/^위력 ×1 (?:.* )?방어관통/.test(L)&&!/기술:/.test(L)){m=t.match(/「([^」:]+)」(?:이|가)[^.\n]*「방어」[^.\n]*(?:무시|관통)/);if(m&&isMv(m[1]))L+=' 기술:'+m[1].trim();const q=t.match(/「타입\s*:\s*([^」]+)」의\s*「방어」/);if(q&&!/상대타입:/.test(L))L+=' 상대타입:'+tyL(q[1])}
+     L=L.replace(/태그:([^\s,]+)/g,(a0,n)=>isMv(n)?'기술:'+n:a0);
+     if(/^위력 /.test(L)&&/기술:/.test(L)&&/다음에?\s*내보내는/.test(t)&&!/(^|\s)1회(\s|$)|이번턴/.test(L))L+=' 1회';
+     if(turnOnly&&/^(?:완화|회피) /.test(L)&&!/이번턴|\d턴/.test(L))L+=' 이번턴';
+     if(/^(?:[^:]+: )?회복 \d+\/\d+$/.test(L)&&/아군이[^.\n]*대상의\s*「HP」/.test(t))L+=' 아군1체';
+     m=t.match(/「타입\s*:\s*([^」]+)」인\s*아군이\s*「([^」:]+)」\s*상태가\s*된다/);if(m&&L.replace(/\s/g,'').startsWith('상태'+m[2].replace(/\s/g,'')+'자신'))L='상태 '+m[2].replace(/\s/g,'')+' 아군전체 대상타입:'+tyL(m[1]);
+     m=t.match(/「([^」:]+)」(?:으로|로)[^.\n]*?대신\s*(?:(\d)턴\s*동안\s*)?「([^」:]+)」\s*상태로\s*만든다/);if(m&&isMv(m[1])){const st=m[3].replace(/\s/g,'');if(new RegExp('^(?:[^:]+: )?상태 '+st+' 상대1체').test(L))L='추가효과 바꾸기 10할 '+st+(m[2]?' '+m[2]+'턴':'')+' 기술:'+m[1].trim()+(/이번\s*턴/.test(t)?' 이번턴':'')}
+     if(/^비례무시 (?:.* )?빈사/.test(L)&&!/상태:/.test(L)){m=t.match(/「([^」:]+)」\s*상태의\s*비례\s*대미지로\s*「빈사」/);if(m)L+=' 상태:'+m[1].replace(/\s/g,'')}
+     if(/^비례무시 (?:.* )?설치기/.test(L)&&turnOnly&&!/\d턴|이번턴/.test(L))L+=' 1턴';
+     if(/^완화 ×1 급소방호/.test(L)){if(/같은\s*에리어의\s*아군/.test(t)&&!/아군/.test(L))L+=' 아군';if(/턴\s*종료\s*시까지/.test(t)&&!/이번턴/.test(L))L+=' 이번턴';m=t.match(/「날씨\s*[:：]\s*([^」]+)」\s*상태일\s*때/);if(m&&!/날씨:/.test(L)&&!lines.some(x=>/^조건 날씨/.test(x)))L+=' 날씨:'+m[1].trim()}
+     if(/^완화 ×0 기술:따라가때리기/.test(L)){L=L.replace('기술:따라가때리기','태그:따라가때리기');if(/해석\s*되어\s*있지\s*않을\s*때/.test(t)&&!/미해석/.test(L))L+=' 미해석';if(/【1\/시】/.test(t)&&/【자동】/.test(t)&&!/\d회/.test(L))L+=' 1회'}
+     if(/^위력 ×1 (?:.* )?방어관통/.test(L)&&!/기술:|타입:/.test(L)){m=t.match(/「단일기\s*[:：]\s*([^」]+)」/);if(m&&TYK.includes(m[1].trim()))L=L.replace('방어관통','타입:'+m[1].trim()+' 단일 방어관통')}
+     if(L==='특성무시'){m=t.match(/「단일기\s*[:：]\s*([^」]+)」[^.\n]*「특성」을\s*무시/);if(m&&TYK.includes(m[1].trim()))L='특성무시 타입:'+m[1].trim()+' 단일';else{m=t.match(/「([^」:]+)」\s*기술이\s*(?:다른\s*|상대의\s*)?「?특성」?을\s*무시/);if(m&&TYK.includes(m[1].trim()))L='특성무시 타입:'+m[1].trim()}}
+     m=L.match(/^확인 "「특성\s*:\s*([^」]+)」일\s*때"$/);if(m)L='조건 특성:'+m[1].trim();
+     if(L==='임의교대'&&/아군이[^.\n]*임의\s*교대/.test(t))L='임의교대 아군1체';
+     lines[i]=L}
+    for(let i=lines.length-1;i>=0;i--)if(/^연속무시/.test(lines[i])&&!/연속/.test(t))lines.splice(i,1);
+    {const q=t.match(/「단일기\s*[:：]\s*([^」]+)」[^.\n]*「특성」을\s*무시/);if(q&&TYK.includes(q[1].trim())&&lines.some(x=>/^위력 ×1 .*방어관통/.test(x))&&!lines.some(x=>/^특성무시/.test(x)))lines.push('특성무시 타입:'+q[1].trim()+' 단일')}
+    {const q=t.match(/행동\s*(?:후|뒤)\s*「([^」:]+)」\s*상태가\s*된다/);if(q){const st=q[1].replace(/\s/g,'');for(let i=lines.length-1;i>=0;i--)if(lines[i].replace(/\s/g,'')==='상태'+st+'자신'){lines.splice(i,1);note=note||'「행동 후 「'+q[1]+'」 상태」 줄은 손으로 (행동 뒤 계기가 없다)'}}}
+    if(/해석\s*되어\s*있지\s*않을\s*때/.test(t)&&lines.some(x=>/미해석/.test(x)))for(let i=lines.length-1;i>=0;i--)if(/^확인 "[^"]*해석/.test(lines[i]))lines.splice(i,1);
+    if(/대신/.test(t)&&lines.length&&!lines.some(x=>/^추가효과 바꾸기/.test(x))&&/(?:「[^」]+」|』)(?:이|가)\s*(?:「[^」]+」\s*)?대신/.test(t)){lines.length=0;note='「대신」 꼴 — 기술의 추가 효과를 다른 「상태」로 바꾸는 것만 구문(추가효과 바꾸기)이 있다. 이 칸은 손으로'}
+    if(lines.length&&!lines.some(x=>/^(?:확인|조건) /.test(x))){let q=t.match(/「메가진화」\s*중\s*일\s*때/);if(q)lines.unshift('확인 "「메가진화」 중일 때"');q=t.match(/「([^」:]+)」의\s*모습일\s*때/);if(q)lines.unshift('확인 "「'+q[1]+'」의 모습일 때"')}
+    
+   }catch(e){}return note}
+  /* 11-23 추천 앞단: 「소지품 : X」: … 꼴의 소지품 설명 줄과, 웹툴이 글로 읽는 「강화(a/b→c/d)」 문장은 빼고 추천한다 */
+  function suggest(text){let note='';const RE=/[「『][^」』:]+[」』](?:이|가|의)\s*(?:「타입\s*:\s*[^」]+」\s*에게\s*)?(?:위력|회복량)(?:이|을)\s*강화\s*\(\s*\d+\s*\/\s*\d+\s*(?:→|->|⇒)\s*\d+\s*\/\s*\d+\s*\)/;
+   const keep=String(text||'').replace(/<br\s*\/?>/gi,'\n').split('\n').filter(l=>{if(/^\s*「소지품\s*[:：]\s*[^」]+」\s*[:：]/.test(l))return false;if(RE.test(l)){note='「강화(분수→분수)」 줄은 웹툴이 글로 읽는다 — 그 기술의 비례 대미지 · 회복 분수를 바꾼다 (구문 줄 없음)';return false}return true}).join('\n');
+   const r=suggest0(keep);if(note){r.note=note;if(!r.lines.length)r.timing=note}return r}
+  function suggest0(text){const lines=[],why=[];let DEFER=null;const F=window.OM_FX;const all=String(text||'');
   if(!CHGCTX){const X=cmdChgOf(all);if(X)return suggestChg(X)}
   /* 11-19 망령 「특성 : 사출 같은 거 자동화 돼 있던가?」: 「필드 위에 있는 한 아군이 【등장】/다음 기술을 내보낼 때 「X」를 강화(N배)」 = 나오는 아군에게 거는 것 — 웹툴(battle_ui shootIn)이 아군이 나올 때 그 아군에게 걸고, 그 아군이 기술을 내면 푼다. 구문 줄은 없다 (예전엔 자기 등장 · 아군전체 배율로 잘못 추천) */
   if(/아군이\s*【등장】\s*\/?\s*다음\s*기술을\s*내보낼\s*때\s*「[^」]+」\s*(?:을|를)\s*강화\s*\(\s*\d+(?:\.\d+)?\s*배\s*\)/.test(all))return {lines:[],why:[all],timing:'웹툴이 알아서 한다 — 아군이 나올 때 그 아군에게 걸고, 그 아군이 기술을 내면 풀린다 (구문 줄 없음)'};
@@ -428,5 +464,5 @@ window.MKM_POTLINT=(()=>{
   {const ci=lines.findIndex(x=>/^조건 /.test(x)&&x.split(/\s+/).includes('상대해석됨'));if(ci>=0){const tg=lines.map((x,i)=>i!==ci&&!/^(?:조건|확인|선택|위력|완화|회피|배율|추가효과|우선도)/.test(x)&&/(^|\s)(상대1체|상대전체|정면|대상|상대)(?=\s|$)/.test(x)?i:-1).filter(i=>i>=0);if(tg.length){for(const i of tg)if(!/ 대상해석됨/.test(lines[i]))lines[i]+=' 대상해석됨';const rest=lines[ci].split(/\s+/).slice(1).filter(w=>w!=='상대해석됨');if(rest.length)lines[ci]='조건 '+rest.join(' ');else{lines.splice(ci,1);why.splice(ci,1)}}}}
   const timing=/【등장/.test(all)?'【등장】이 있어 오레마스에서 나올 때 자동으로 걸린다':/상태가\s*(?:되었을|됐을)\s*때/.test(all)?'「~ 상태가 되었을 때」라 오레마스에서 그 상태가 걸리는 순간 자동으로 걸린다 (확률은 그때 굴림)':/【상시】/.test(all)?'【상시】라 늘 켜져 있다':'배틀의 포텐셜 칸 「발동」 버튼으로 건다';
   /* 11-23 10:49 망령 「자진에 「순풍」이 전개되어 있을 때 상대의 「비접촉기」의 명중률을 저하(0.8배)」: 상대에게 거는 명중 줄은 조건을 상대가 본다 — 자진설치 ↔ 적진설치를 뒤집어 둔다 (상대가 보면 우리 자진 = 적진) */for(let i=0;i<lines.length;i++)if(/^위력 ×1 상대전체 .*명중×[\d.]+/.test(lines[i]))lines[i]=lines[i].replace(/(자진|적진)설치:/g,(_,w)=>(w==='자진'?'적진':'자진')+'설치:');
-  return {lines,why,timing}}
+  {const fu=fixUp(all,lines);if(fu&&!lines.length)return {lines,why:why.length?why:[all],timing:fu}}return {lines,why,timing}}
  return {check,fixAll,fixOne,suggest,clauses,cmdChgOf}})();
