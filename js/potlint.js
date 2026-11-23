@@ -214,11 +214,16 @@ window.MKM_POTLINT=(()=>{
      if(L==='임의교대'&&/아군이[^.\n]*임의\s*교대/.test(t))L='임의교대 아군1체';
      lines[i]=L}
     for(let i=lines.length-1;i>=0;i--)if(/^연속무시/.test(lines[i])&&!/연속/.test(t))lines.splice(i,1);
+    {const q=t.match(/(?:무시|관통)한다[.\s]*이\s*때\s*기술의\s*대미지는\s*(\d+\/\d+)(?:이|가)\s*된다/);if(q)for(let i=0;i<lines.length;i++)if(/방어관통/.test(lines[i])&&!/관통[×x*]/.test(lines[i]))lines[i]=lines[i].replace('방어관통','방어관통 관통×'+q[1])}
+    {const q=t.match(/대상에게\s*「소지품\s*[:：]\s*([^」]+)」(?:을|를)\s*덮어씌우/);if(q&&!lines.some(x=>/^소지품지정/.test(x))){const L2='소지품지정 '+q[1].trim()+' 상대1체';const k=lines.findIndex(x=>/^(?:[^:]+: )?상태 .*상대1체/.test(x));if(k>=0)lines.splice(k,0,L2);else lines.push(L2)}}
+    if(!lines.length&&/「[^」:]+」(?:이|가)\s*실패하지\s*않는다/.test(t)&&!/연속/.test(t))note='「실패하지 않는다」 — 그 기술의 실패 조건(나무열매 소모 · 「미래예지」 상태 …)은 웹툴이 판정하지 않는다. 구문이 필요 없다(그냥 내보내면 된다)';
     {const q=t.match(/「단일기\s*[:：]\s*([^」]+)」[^.\n]*「특성」을\s*무시/);if(q&&TYK.includes(q[1].trim())&&lines.some(x=>/^위력 ×1 .*방어관통/.test(x))&&!lines.some(x=>/^특성무시/.test(x)))lines.push('특성무시 타입:'+q[1].trim()+' 단일'+(/【선행】/.test(t)?' 이번턴':''))}
     {const q=t.match(/행동\s*(?:후|뒤)\s*「([^」:]+)」\s*상태가\s*된다/);if(q){const st=q[1].replace(/\s/g,'');for(let i=lines.length-1;i>=0;i--)if(lines[i].replace(/\s/g,'')==='상태'+st+'자신'){lines.splice(i,1);note=note||'「행동 후 「'+q[1]+'」 상태」 줄은 손으로 (행동 뒤 계기가 없다)'}}}
     if(/해석\s*되어\s*있지\s*않을\s*때/.test(t)&&lines.some(x=>/미해석/.test(x)))for(let i=lines.length-1;i>=0;i--)if(/^확인 "[^"]*해석/.test(lines[i]))lines.splice(i,1);
-    if(/대신/.test(t)&&lines.length&&!lines.some(x=>/^추가효과 바꾸기/.test(x))&&/(?:「[^」]+」|』)(?:이|가)\s*(?:「[^」]+」\s*)?대신/.test(t)){lines.length=0;note='「대신」 꼴 — 기술의 추가 효과를 다른 「상태」로 바꾸는 것만 구문(추가효과 바꾸기)이 있다. 이 칸은 손으로'}
-    if(lines.length&&!lines.some(x=>/^(?:확인|조건) /.test(x))){let q=t.match(/「메가진화」\s*중\s*일\s*때/);if(q)lines.unshift('확인 "「메가진화」 중일 때"');q=t.match(/「([^」:]+)」의\s*모습일\s*때/);if(q)lines.unshift('확인 "「'+q[1]+'」의 모습일 때"')}
+    if(/대신/.test(t)&&lines.length&&!lines.some(x=>/^추가효과 바꾸기/.test(x))&&/(?:「[^」]+」|』)(?:이|가)\s*(?:「[^」]+」\s*)?대신/.test(t)){   /* 원래 효과가 자동으로 걸리는 기술이면 둘 다 걸리므로 추천하지 않는다 · 자동이 아니면(매혹의보이스 · 특성 독조종) 바꾼 효과를 「발동」으로 거는 줄을 그대로 둔다 */
+     let au=false;try{const q=t.match(/「([^」:]+)」(?:이|가)/);const mv=q&&((window.OM_DB||{}).moves||{})[q[1].trim()];const r=mv&&window.OM_MOVEAUTO?window.OM_MOVEAUTO.parse(mv):null;au=!!(r&&(r.groups||[]).some(g=>g.who==='target'))}catch(e){}
+     if(au){lines.length=0;note='「대신」 꼴 — 그 기술의 원래 효과가 자동으로 걸려서, 상태가 아닌 것으로 바꾸는 구문은 없다. 이 칸은 손으로'}else note='「대신」 꼴 — 원래 효과는 웹툴이 자동으로 걸지 않는다. 「발동」으로 바꾼 효과만 건다'}
+    if(lines.length&&!lines.some(x=>/^(?:확인|조건) /.test(x))){let q=t.match(/「메가진화」\s*중\s*일\s*때/);if(q)lines.unshift('확인 "「메가진화」 중일 때"');q=t.match(/「([^」:]+)」의\s*모습일\s*때/);if(q){if(/일루젼/.test(t)){for(let i=0;i<lines.length;i++)if(/^(?:강화무시|감소무시)/.test(lines[i])&&!/변장중/.test(lines[i]))lines[i]+=' 변장중'}else lines.unshift('확인 "「'+q[1]+'」의 모습일 때"')}}
     
    }catch(e){}return note}
   /* 11-23 추천 앞단: 「소지품 : X」: … 꼴의 소지품 설명 줄과, 웹툴이 글로 읽는 「강화(a/b→c/d)」 문장은 빼고 추천한다 */
