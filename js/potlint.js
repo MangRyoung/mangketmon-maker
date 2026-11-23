@@ -343,6 +343,8 @@ window.MKM_POTLINT=(()=>{
     for(const s of sts){if(ETC_W.includes(s)){L.push(`필드상태 ${s} ${turns||5}`);continue}if(OBJ_W.includes(s)){L.push(`설치기 아군 ${objN(s)}${turns?' '+turns:''}`);continue}if(window.OM_FX&&!isSt(s))continue;
      if(pn&&!turns)L.push(`상태확률 ${s} ${pn}0% ${t==='전원무작위'?'전체 1체':t}`);else L.push(`상태 ${s} ${t}${turns?` ${turns}턴`:tEnd?' 1턴':''}`)}}   /* 11-18 망령 「턴 종료 시까지 「얼음」 상태로 — 턴이 붙는 상태 이상」: 이번 턴만 = 1턴 */
    if((m=c.match(/「(죽음의카운트)\s*:\s*(\d)」(?:으로|로) 만든다/))){const sg=segB(c,m.index);if(/서로/.test(sg)){L.push(`상태 죽음의카운트 상대1체 ${m[2]}턴`);L.push(`상태 죽음의카운트 자신 ${m[2]}턴`)}else{const t=tgtIn(sg,temp)||'상대1체';L.push(`상태 죽음의카운트 ${t} ${m[2]}턴`)}}
+   /* 11-23 17:19 망령 「②【등장】/「죽음의카운트 : 3」이 된다. — 왜 구문이 안 되지」: 「…이/가 된다」 꼴 = 자신 (앞에 상대 · 정면 · 대상 · 아군이 주어면 그쪽) */
+   else if((m=c.match(/「(죽음의카운트)\s*:\s*(\d)」\s*(?:이|가|으로|로)\s*(?:된다|되고|되며)/))){const sg=segB(c,m.index);const who=sg.match(/(상대 전체|아군 전체|상대|「?정면」?|대상|아군)(?:이|가|은|는|도)\s*$/);const t=who?({'상대 전체':'상대전체','아군 전체':'아군전체','상대':'상대1체','정면':'정면','대상':'상대1체','아군':'아군1체'})[who[1].replace(/[「」]/g,'')]:'자신';L.push(`상태 죽음의카운트 ${t} ${m[2]}턴`)}
    if((m=c.match(/(?:「HP」|HP)(?:가|이)\s*회복되지 않는다/))){const t=tgtIn(segB(c,m.index),temp)||'상대1체';L.push(`상태 회복봉인 ${t}`)}
    if(/「따라가때리기」\s*효과를 받지 않는다/.test(c)){const t=tgtIn(segB(c,c.search(/「따라가때리기」/)),temp);L.push(`추격 무시${t==='아군전체'?' 아군전체':''}`)}
    if((m=c.match(/「예리\s*:?\s*(?:C\s*)?\+?\s*(\d)」\s*상태(?:가 (?:된다|되고|되며)|로 만든다|(?:으)?로 한다)/))){const sg=segB(c,m.index);const t=/상태로/.test(m[0])?(tgtIn(sg,temp)||'자신'):'자신';L.push(`상태 예리${m[1]} ${t}${turns?` ${turns}턴`:''}`)}   /* 11-10 망령 「예리 : +1」 꼴도 (C 없이) */
