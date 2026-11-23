@@ -359,6 +359,7 @@ window.MKM_POTLINT=(()=>{
    if((m=c.match(/자신에게\s*「타입\s*:\s*([가-힣]+)」(?:을|를)\s*추가/))&&isTy(m[1]))L.push(`타입 추가 ${m[1]}`);
    else if((m=c.match(/「타입\s*:\s*([가-힣]+)」(?:으로|로)\s*만든다/))&&isTy(m[1])){const sg=segB(c,m.index);const t=/자신을\s*$/.test(sg)?'':tgtIn(sg,temp)||'상대1체';L.push(`타입${tgW(t)} 변경 ${m[1]}${turns?' '+turns+'턴':''}`)}
    else if((m=c.match(/「타입\s*:\s*([가-힣]+)」(?:이|가)\s*된다/))&&isTy(m[1]))L.push(`타입 변경 ${m[1]}${turns?' '+turns+'턴':''}`);
+   /* 11-23 14:21 「「특성 : 오기」가 발동한다」 → 특성발동 (자신에게 — 「~에게 발동」은 대상을 손으로 붙인다) */if((m=c.match(/「특성\s*[:：]\s*([^」]+)」\s*(?:이|가)\s*발동한다/))){const sg=segB(c,m.index).trim();if(!/(?:에게|에)$/.test(sg))L.push(`특성발동 ${m[1].trim()}`)}
    if((m=c.match(/「특성\s*:\s*([^」]+)」(?:으로|로)\s*만든다/))){const sg=segB(c,m.index);const t=/자신을\s*$/.test(sg)?'자신':tgtIn(sg,temp)||'상대1체';L.push(`특성 ${t} 변경 ${m[1].trim()}${turns?' '+turns+'턴':''}`)}
    if(/「?변신」?한다/.test(c)&&/「정면」|상대|대상/.test(c))L.push('변신 상대1체');
    if(/하늘 위에 떠오른다|하늘 위에 떠 있다/.test(c)){const t=tgtIn(segB(c,c.search(/하늘 위/)),temp);L.push(`하늘위${t==='아군1체'||t==='아군전체'?' 아군전체':''}${hold&&t?' 있는한':''}`)}
@@ -482,7 +483,7 @@ window.MKM_POTLINT=(()=>{
    if(bi<0)break;lines[bi]+=' '+cr;lines.splice(ci,1);why.splice(ci,1)}
   /* 11-21 「데이터가 해석된 상대에게 「독」 상태로…」: 맞은 대상이 없는 효과에선 조건 줄의 상대해석됨이 늘 막는다 — 상대를 고르는 줄(상대1체 · 상대전체 · 정면 · 대상)이 있으면 그 줄 끝 「대상해석됨」(해석한 상대만 고름)으로 옮긴다 */
   {const ci=lines.findIndex(x=>/^조건 /.test(x)&&x.split(/\s+/).includes('상대해석됨'));if(ci>=0){const tg=lines.map((x,i)=>i!==ci&&!/^(?:조건|확인|선택|위력|완화|회피|배율|추가효과|우선도)/.test(x)&&/(^|\s)(상대1체|상대전체|정면|대상|상대)(?=\s|$)/.test(x)?i:-1).filter(i=>i>=0);if(tg.length){for(const i of tg)if(!/ 대상해석됨/.test(lines[i]))lines[i]+=' 대상해석됨';const rest=lines[ci].split(/\s+/).slice(1).filter(w=>w!=='상대해석됨');if(rest.length)lines[ci]='조건 '+rest.join(' ');else{lines.splice(ci,1);why.splice(ci,1)}}}}
-  const timing=/【등장/.test(all)?'【등장】이 있어 오레마스에서 나올 때 자동으로 걸린다':/상태가\s*(?:되었을|됐을)\s*때/.test(all)?'「~ 상태가 되었을 때」라 오레마스에서 그 상태가 걸리는 순간 자동으로 걸린다 (확률은 그때 굴림)':/【상시】/.test(all)?'【상시】라 늘 켜져 있다':'배틀의 포텐셜 칸 「발동」 버튼으로 건다';
+  const timing=/「\s*HP\s*[:：][^」]*」\s*(?:이하)?\s*(?:가|이)\s*(?:되었을|됐을)\s*때/.test(all)?'「HP : N 이하가 되었을 때」라 오레마스에서 HP 가 그 아래로 내려간 순간 자동으로 걸린다 (【유일】 = 배틀에 한 번 · 그 밖 = 나와 있는 동안 한 번)':/【등장/.test(all)?'【등장】이 있어 오레마스에서 나올 때 자동으로 걸린다':/상태가\s*(?:되었을|됐을)\s*때/.test(all)?'「~ 상태가 되었을 때」라 오레마스에서 그 상태가 걸리는 순간 자동으로 걸린다 (확률은 그때 굴림)':/【상시】/.test(all)?'【상시】라 늘 켜져 있다':'배틀의 포텐셜 칸 「발동」 버튼으로 건다';
   /* 11-23 10:49 망령 「자진에 「순풍」이 전개되어 있을 때 상대의 「비접촉기」의 명중률을 저하(0.8배)」: 상대에게 거는 명중 줄은 조건을 상대가 본다 — 자진설치 ↔ 적진설치를 뒤집어 둔다 (상대가 보면 우리 자진 = 적진) */for(let i=0;i<lines.length;i++)if(/^위력 ×1 상대전체 .*명중×[\d.]+/.test(lines[i]))lines[i]=lines[i].replace(/(자진|적진)설치:/g,(_,w)=>(w==='자진'?'적진':'자진')+'설치:');
   {const fu=fixUp(all,lines);if(fu&&!lines.length)return {lines,why:why.length?why:[all],timing:fu}}return {lines,why,timing}}
  return {check,fixAll,fixOne,suggest,clauses,cmdChgOf}})();
