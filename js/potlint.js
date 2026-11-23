@@ -135,7 +135,7 @@ window.MKM_POTLINT=(()=>{
   if((m=c.match(/(?:필드의 상태가\s*)?「필드\s*[:：]\s*([^」]+)」\s*(?:일|인)\s*때/)))put('필드:'+m[1].trim(),m[0]);
   /* 11-23 10:40 망령 「「비단벌레의자세」일 때 … — 이런 건 왜 추천 안 해 줌?」: 「X의자세」일 때 → 자세:X */if((m=c.match(/「([^」:：]*자세)」\s*(?:일|인)\s*때/)))put('자세:'+m[1].replace(/\s/g,''),m[0]);
   /* 11-10 망령 「「이때다!」일 때 … — 이때다! 조건 없어?」: 진영 효과 · 설치물 · 장벽 (웹툴 설치물 칸 이름) → 자진설치:X / 적진설치:X */
-  for(const x of c.matchAll(/(?:(자진|아군 진영|상대 진영|적진|상대의 진영)(?:에|의)?\s*)?「([^」:：]+)」\s*(?:이|가)?\s*(?:있을|일|인|설치되어 있을|전개되어 있을|전개된|전개되어 있는)\s*때/g)){const nmo=x[2].trim();if(!SIDE_OBJ.includes(nmo))continue;put((/상대|적진/.test(x[1]||'')?'적진설치:':'자진설치:')+nmo,x[0])}
+  for(const x of c.matchAll(/(?:(자진|아군 진영|상대 진영|적진|상대의 진영)(?:에|의)?\s*)?「([^」:：]+)」\s*(?:이|가)?\s*(?:있을|일|인|설치\s*되어\s*있을|전개\s*되어\s*있을|전개\s*된|전개\s*되어\s*있는|설치\s*된)\s*때/g)){const nmo=x[2].trim();if(!SIDE_OBJ.includes(nmo))continue;   /* 11-23 망령 「전개 되어」처럼 띄어 써도 읽는다 */put((/상대|적진/.test(x[1]||'')?'적진설치:':'자진설치:')+nmo,x[0])}
   for(const x of c.matchAll(/(?:(상대|대상|정면|아군)(?:이|가)\s*)?「([가-힣 ]+)」\s*상태(?:일|인)\s*때/g)){const st=x[2].replace(/\s/g,'');if(st==='빈사'||(window.OM_FX&&!isSt(st)))continue;if(x[1]==='아군')continue;put((x[1]?'상대상태:':'상태:')+st,x[0])}
   for(const x of c.matchAll(/「([가-힣 ]+)」\s*상태인\s*(?:상대|대상|포켓몬)/g)){const st=x[1].replace(/\s/g,'');if(st!=='빈사'&&(!window.OM_FX||isSt(st)))put('상대상태:'+st,x[0])}
   if((m=c.match(/(?<!상대가\s*|상대의\s*|대상이\s*)(?:자신이\s*)?상태 이상(?:일|인)\s*때/)))put('상태:이상',m[0]);
@@ -226,10 +226,18 @@ window.MKM_POTLINT=(()=>{
     if(lines.length&&!lines.some(x=>/^(?:확인|조건) /.test(x))){let q=t.match(/「메가진화」\s*중\s*일\s*때/);if(q)lines.unshift('확인 "「메가진화」 중일 때"');q=t.match(/「([^」:]+)」의\s*모습일\s*때/);if(q){if(/일루젼/.test(t)){for(let i=0;i<lines.length;i++)if(/^(?:강화무시|감소무시)/.test(lines[i])&&!/변장중/.test(lines[i]))lines[i]+=' 변장중'}else lines.unshift('확인 "「'+q[1]+'」의 모습일 때"')}}
     
    }catch(e){}return note}
+  /* 11-23 망령 「저런 띄워쓰기 정도는 유도리 있게 매칭 해줘」: 추천하기 전에 글의 띄어쓰기를 고른다 (시트 글은 그대로 · 추천기가 읽는 사본만) —
+     「전개 되어」→「전개되어」 · 「되어있을」→「되어 있을」 · 「일때」→「일 때」 · 「상태 일 때」→「상태일 때」 · 「」 뒤 조사 앞 빈칸 · 겹친 빈칸 · 「명중」「회피」→「명중/회피」 */
+  function loose(t){try{const ST='(?:공격|방어|특공|특방|스피드|명중|회피)';let x=String(t||'').replace(/[ \t 　]+/g,' ');
+    x=x.replace(/(전개|설치|해석|부여|적용|발동|장착|착용|임명|지정|포함|해제|유지) (되어|된|되는|되지|되면|될|됐|되었)/g,'$1$2').replace(/되어있/g,'되어 있').replace(/(전개|설치|해석)되어 있지않/g,'$1되어 있지 않');
+    x=x.replace(/([일을할될])때/g,'$1 때').replace(/(상태|중|이상|이하|모습|타입) (일|인|이 아닐|이 아닌) 때/g,'$1$2 때').replace(/중 ?일 ?때/g,'중일 때');
+    x=x.replace(/」 (을|를|의|에게|에게는|에게도)(?=[\s,.]|$)/g,'」$1').replace(/「 +/g,'「').replace(/ +」/g,'」').replace(/\( +/g,'(').replace(/ +\)/g,')').replace(/(\d) +배/g,'$1배').replace(/(강화|저하|완화) +\(/g,'$1(');
+    {const re=new RegExp('「('+ST+'(?:/'+ST+')*)」 ?[,·、]? ?「('+ST+')」','g');for(let i=0;i<6;i++){const y=x.replace(re,'「$1/$2」');if(y===x)break;x=y}}
+    return x}catch(e){return String(t||'')}}
   /* 11-23 추천 앞단: 「소지품 : X」: … 꼴의 소지품 설명 줄과, 웹툴이 글로 읽는 「강화(a/b→c/d)」 문장은 빼고 추천한다 */
   function suggest(text){let note='';const RE=/[「『][^」』:]+[」』](?:이|가|의)\s*(?:「타입\s*:\s*[^」]+」\s*에게\s*)?(?:위력|회복량)(?:이|을)\s*강화\s*\(\s*\d+\s*\/\s*\d+\s*(?:→|->|⇒)\s*\d+\s*\/\s*\d+\s*\)/;
    const keep=String(text||'').replace(/<br\s*\/?>/gi,'\n').split('\n').filter(l=>{if(/^\s*「소지품\s*[:：]\s*[^」]+」\s*[:：]/.test(l))return false;if(RE.test(l)){note='「강화(분수→분수)」 줄은 웹툴이 글로 읽는다 — 그 기술의 비례 대미지 · 회복 분수를 바꾼다 (구문 줄 없음)';return false}return true}).join('\n');
-   const r=suggest0(keep);if(note){r.note=note;if(!r.lines.length)r.timing=note}return r}
+   const r=suggest0(loose(keep));if(note){r.note=note;if(!r.lines.length)r.timing=note}return r}
   function suggest0(text){const lines=[],why=[];let DEFER=null;const F=window.OM_FX;const all=String(text||'');
   if(!CHGCTX){const X=cmdChgOf(all);if(X)return suggestChg(X)}
   /* 11-19 망령 「특성 : 사출 같은 거 자동화 돼 있던가?」: 「필드 위에 있는 한 아군이 【등장】/다음 기술을 내보낼 때 「X」를 강화(N배)」 = 나오는 아군에게 거는 것 — 웹툴(battle_ui shootIn)이 아군이 나올 때 그 아군에게 걸고, 그 아군이 기술을 내면 푼다. 구문 줄은 없다 (예전엔 자기 등장 · 아군전체 배율로 잘못 추천) */
