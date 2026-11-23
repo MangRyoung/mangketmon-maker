@@ -216,7 +216,7 @@ window.MKM_POTLINT=(()=>{
     for(let i=lines.length-1;i>=0;i--)if(/^연속무시/.test(lines[i])&&!/연속/.test(t))lines.splice(i,1);
     {const q=t.match(/(?:무시|관통)한다[.\s]*이\s*때\s*기술의\s*대미지는\s*(\d+\/\d+)(?:이|가)\s*된다/);if(q)for(let i=0;i<lines.length;i++)if(/방어관통/.test(lines[i])&&!/관통[×x*]/.test(lines[i]))lines[i]=lines[i].replace('방어관통','방어관통 관통×'+q[1])}
     {const q=t.match(/대상에게\s*「소지품\s*[:：]\s*([^」]+)」(?:을|를)\s*덮어씌우/);if(q&&!lines.some(x=>/^소지품지정/.test(x))){const L2='소지품지정 '+q[1].trim()+' 상대1체';const k=lines.findIndex(x=>/^(?:[^:]+: )?상태 .*상대1체/.test(x));if(k>=0)lines.splice(k,0,L2);else lines.push(L2)}}
-    if(!lines.length&&/「[^」:]+」(?:이|가)\s*실패하지\s*않는다/.test(t)&&!/연속/.test(t))note='「실패하지 않는다」 — 그 기술의 실패 조건(나무열매 소모 · 「미래예지」 상태 …)은 웹툴이 판정하지 않는다. 구문이 필요 없다(그냥 내보내면 된다)';
+    {const q=t.match(/「([^」:]+)」(?:이|가)\s*실패하지\s*않는다/);if(q&&!/연속/.test(t)&&isMv(q[1])&&!lines.some(x=>/^실패무시/.test(x)))lines.push('실패무시 기술:'+q[1].trim()+(/이번\s*턴/.test(t)?' 이번턴':''))}   /* 11-23 트림 · 추월의 실패 조건을 웹툴이 판정하게 되어 낱말이 생김 */
     {const q=t.match(/「단일기\s*[:：]\s*([^」]+)」[^.\n]*「특성」을\s*무시/);if(q&&TYK.includes(q[1].trim())&&lines.some(x=>/^위력 ×1 .*방어관통/.test(x))&&!lines.some(x=>/^특성무시/.test(x)))lines.push('특성무시 타입:'+q[1].trim()+' 단일'+(/【선행】/.test(t)?' 이번턴':''))}
     {const q=t.match(/행동\s*(?:후|뒤)\s*「([^」:]+)」\s*상태가\s*된다/);if(q){const st=q[1].replace(/\s/g,'');for(let i=lines.length-1;i>=0;i--)if(lines[i].replace(/\s/g,'')==='상태'+st+'자신'){lines.splice(i,1);note=note||'「행동 후 「'+q[1]+'」 상태」 줄은 손으로 (행동 뒤 계기가 없다)'}}}
     if(/해석\s*되어\s*있지\s*않을\s*때/.test(t)&&lines.some(x=>/미해석/.test(x)))for(let i=lines.length-1;i>=0;i--)if(/^확인 "[^"]*해석/.test(lines[i]))lines.splice(i,1);
