@@ -216,6 +216,12 @@ window.MKM_POTLINT=(()=>{
     for(let i=lines.length-1;i>=0;i--)if(/^연속무시/.test(lines[i])&&!/연속/.test(t))lines.splice(i,1);
     {const q=t.match(/(?:무시|관통)한다[.\s]*이\s*때\s*기술의\s*대미지는\s*(\d+\/\d+)(?:이|가)\s*된다/);if(q)for(let i=0;i<lines.length;i++)if(/방어관통/.test(lines[i])&&!/관통[×x*]/.test(lines[i]))lines[i]=lines[i].replace('방어관통','방어관통 관통×'+q[1])}
     {const q=t.match(/대상에게\s*「소지품\s*[:：]\s*([^」]+)」(?:을|를)\s*덮어씌우/);if(q&&!lines.some(x=>/^소지품지정/.test(x))){const L2='소지품지정 '+q[1].trim()+' 상대1체';const k=lines.findIndex(x=>/^(?:[^:]+: )?상태 .*상대1체/.test(x));if(k>=0)lines.splice(k,0,L2);else lines.push(L2)}}
+    /* 11-23 235번 가 묶음: 기술 하나의 수치 · 판정을 바꾸는 꼴 */
+    {const PCT={드물게:1,저확률:3,중확률:5,고확률:6};let q;
+     q=t.match(/「타입\s*[:：]\s*([^」]+)」에\s*대해\s*「([^」:]+)」의\s*추가\s*효과\s*발생률을\s*강화\s*\(\s*\d+할\s*→\s*(\d+)할\s*\)/);if(q&&isMv(q[2])&&!lines.some(x=>/^추가효과 /.test(x)))lines.push('추가효과 ='+q[3]+'할 기술:'+q[2].trim()+' 상대타입:'+tyL(q[1]));
+     q=t.match(/「([^」:]+)」(?:이|가)\s*(드물게|저확률|중확률|고확률)(?:로)?\s*「[^」]+」\s*대신\s*(?:(\d)턴\s*동안\s*)?「([^」:]+)」\s*상태로\s*만든다/);if(q&&isMv(q[1])){for(let i=lines.length-1;i>=0;i--)if(/상태 /.test(lines[i]))lines.splice(i,1);lines.push('추가효과 바꾸기 '+PCT[q[2]]+'할 '+q[4].replace(/\s/g,'')+(q[3]?' '+q[3]+'턴':'')+' 기술:'+q[1].trim())}
+     q=t.match(/「([^」:]+)」\s*상태인\s*상대에게\s*내보내는\s*「([^」:]+)」(?:이|가)\s*【?필중】?/);if(q&&isMv(q[2])&&!lines.some(x=>/필중화/.test(x))){lines.length=0;lines.push('위력 ×1 필중화 기술:'+q[2].trim()+' 상대상태:'+q[1].replace(/\s/g,''))}
+     q=t.match(/「소지품\s*[:：]\s*-」인\s*대상에게\s*「([^」:]+)」(?:이|가)\s*「위력\s*[:：]\s*(\d+)」(?:이|가)\s*된다/);if(q&&isMv(q[1])){const fq=t.match(/「([^」:]+)」일\s*때\s*「소지품/);lines.length=0;lines.push('위력 ='+q[2]+' 기술:'+q[1].trim()+' 상대빈손'+(fq?' 폼:'+fq[1].replace(/\s/g,''):''))}}
     {const q=t.match(/「([^」:]+)」(?:이|가)\s*실패하지\s*않는다/);if(q&&!/연속/.test(t)&&isMv(q[1])&&!lines.some(x=>/^실패무시/.test(x)))lines.push('실패무시 기술:'+q[1].trim()+(/이번\s*턴/.test(t)?' 이번턴':''))}   /* 11-23 트림 · 추월의 실패 조건을 웹툴이 판정하게 되어 낱말이 생김 */
     {const q=t.match(/「단일기\s*[:：]\s*([^」]+)」[^.\n]*「특성」을\s*무시/);if(q&&TYK.includes(q[1].trim())&&lines.some(x=>/^위력 ×1 .*방어관통/.test(x))&&!lines.some(x=>/^특성무시/.test(x)))lines.push('특성무시 타입:'+q[1].trim()+' 단일'+(/【선행】/.test(t)?' 이번턴':''))}
     {const q=t.match(/행동\s*(?:후|뒤)\s*「([^」:]+)」\s*상태가\s*된다/);if(q){const st=q[1].replace(/\s/g,'');for(let i=lines.length-1;i>=0;i--)if(lines[i].replace(/\s/g,'')==='상태'+st+'자신'){lines.splice(i,1);note=note||'「행동 후 「'+q[1]+'」 상태」 줄은 손으로 (행동 뒤 계기가 없다)'}}}
@@ -236,7 +242,7 @@ window.MKM_POTLINT=(()=>{
     return x}catch(e){return String(t||'')}}
   /* 11-23 추천 앞단: 「소지품 : X」: … 꼴의 소지품 설명 줄과, 웹툴이 글로 읽는 「강화(a/b→c/d)」 문장은 빼고 추천한다 */
   function suggest(text){let note='';const RE=/[「『][^」』:]+[」』](?:이|가|의)\s*(?:「타입\s*:\s*[^」]+」\s*에게\s*)?(?:위력|회복량)(?:이|을)\s*강화\s*\(\s*\d+\s*\/\s*\d+\s*(?:→|->|⇒)\s*\d+\s*\/\s*\d+\s*\)/;
-   const keep=String(text||'').replace(/<br\s*\/?>/gi,'\n').split('\n').filter(l=>{if(/^\s*「소지품\s*[:：]\s*[^」]+」\s*[:：]/.test(l))return false;if(RE.test(l)){note='「강화(분수→분수)」 줄은 웹툴이 글로 읽는다 — 그 기술의 비례 대미지 · 회복 분수를 바꾼다 (구문 줄 없음)';return false}return true}).join('\n');
+   const keep=String(text||'').replace(/<br\s*\/?>/gi,'\n').split('\n').filter(l=>{if(/^\s*「소지품\s*[:：]\s*[^」]+」\s*[:：]/.test(l))return false;if(/[「『][^」』]+[」』]의\s*배율을\s*강화\s*\(\s*\d+(?:\.\d+)?배?\s*(?:→|->|⇒)\s*\d+(?:\.\d+)?배\s*\)/.test(l)&&!/아닌\s*기술에\s*대한/.test(l)){note='「배율을 강화(a배→b배)」 줄은 엔진이 글로 읽는다 — 그 특성 · 포텐셜이 거는 배율을 바꾼다 (구문 줄 없음)';return false}if(RE.test(l)){note='「강화(분수→분수)」 줄은 웹툴이 글로 읽는다 — 그 기술의 비례 대미지 · 회복 분수를 바꾼다 (구문 줄 없음)';return false}return true}).join('\n');
    const r=suggest0(loose(keep));if(note){r.note=note;if(!r.lines.length)r.timing=note}return r}
   function suggest0(text){const lines=[],why=[];let DEFER=null;const F=window.OM_FX;const all=String(text||'');
   if(!CHGCTX){const X=cmdChgOf(all);if(X)return suggestChg(X)}
