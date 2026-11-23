@@ -116,7 +116,7 @@ window.OM_MOVEAUTO=(()=>{
    if(m&&stEn(m[1])&&!COND.test(m[2].replace(/만큼 오른|비례해/g,''))){const who='self';groups.push({n:10,label:s,who:'once',ops:[{k:'state',tgt:who,state:stEn(m[1])}],when:'hit'});if(/회복|치유|올린다|내린다|입힌다/.test(m[2]))notes.push(s);continue}
    if(/^사용자와 대상의 「얼음」을 치유한다$/.test(s)){groups.push({n:10,label:s,who:'once',ops:[{k:'cure',tgt:'self',states:['Freeze']}],when:'hit'},{n:10,label:s,who:'target',ops:[{k:'cure',tgt:'target',states:['Freeze']}],when:'hit'});continue}
    /* 11-07 망령 「대타가 굴릴 때와 적용할 때 1/4 를 각각 뺀다」: 대역인형 소환은 웹툴 battle_ui 가 HP 비용 · 실패(HP 모자람 · 이미 인형)를 함께 맡는다 → 여기서는 비용을 안 만든다 */
-   m=s.match(/^「HP」를 (\d+\/\d+)만큼 소비하여\s*(.+)$/);if(m&&/「대역인형」/.test(m[2])){s=m[2];m=null}if(m){groups.push({n:10,label:'HP '+m[1]+' 소비',who:'once',ops:[{k:'dmg',tgt:'self',value:m[1],nofaint:1}],when:'use'});s=m[2]}
+   m=s.match(/^「HP」를 (\d+\/\d+)만큼 소비하여\s*(.+)$/);if(m&&/「대역인형」/.test(m[2])){s=m[2];m=null}if(m){groups.push({n:10,label:'HP '+m[1]+' 소비',who:'once',ops:[{k:'dmg',tgt:'self',value:m[1],nofaint:1,cost:1}],when:'use'});s=m[2]}
    m=s.match(/^(대상|상대 전체)의 「얼음」을 치유한다$/);if(m){groups.push({n:10,label:s,who:m[1]==='대상'?'target':'once',ops:[{k:'cure',tgt:m[1]==='대상'?'target':'enemy',states:['Freeze']}],when:'hit'});continue}
    m=s.match(/^대상에게 (\d+\/\d+)(?:만큼)?의 비례 대미지를 입힌다$/);if(m){groups.push({n:10,label:s,who:'target',ops:[{k:'dmg',tgt:'target',basis:'max',value:m[1]}],when:'hit'});continue}   /* 11-09 감우 55: 지구던지기 · 나이트헤드 · 소닉붐 · 용의분노 (최대 HP 비례) */
    m=s.match(/^대상에게 「현재 HP」의 (\d+\/\d+)만큼의 비례 대미지를 입힌다$/);if(m){groups.push({n:10,label:s,who:'target',ops:[{k:'dmg',tgt:'target',basis:'cur',value:m[1]}],when:'hit'});continue}
