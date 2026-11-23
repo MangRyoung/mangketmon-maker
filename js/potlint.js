@@ -112,7 +112,7 @@ window.MKM_POTLINT=(()=>{
  function flt(s){const ty=[],tg=[],w=[];for(const x of s.matchAll(/「([^」]+)」(\s*(?:이하|이상|상태|이외|에 대한|에게|에 대하여|인 포켓몬|이 부여된|이 내보내는|전용|(?:을|를)\s*「타입))?/g)){const k=x[1].trim(),after=x[2]||'';let q;if(/이외|에 대|에게|포켓몬|부여|내보내는|전용|타입/.test(after)||/[○?∴]/.test(k))continue;
    if((q=k.match(/^(단일기|전체기|물리기|특수기|접촉기|공격기)(?:\s*:\s*(.+))?$/))){w.push({'단일기':'단일','전체기':'전체기','물리기':'물리','특수기':'특수','접촉기':'','공격기':''}[q[1]]);if(q[1]==='접촉기')tg.push('접촉');if(q[2])for(const t of q[2].split(/[\/,·]/))if(isTy(t.trim()))ty.push(t.trim());continue}
    if((q=k.match(/^위력\s*[:：]\s*(\d+)$/))){if(/이하/.test(after))w.push('위력≤'+q[1]);else if(/이상/.test(after))w.push('위력≥'+q[1]);continue}
-   if(/^상성\s*:\s*2배?~8배$/.test(k)){w.push('굉장');continue}if(/^상성\s*:\s*1\/2배?~1\/8배$/.test(k)){w.push('별로');continue}
+   if(/^상성\s*:\s*2배?~8배$/.test(k)||/^효과가\s*굉장$/.test(k)){w.push('굉장');continue}if(/^효과가\s*별로$/.test(k)){w.push('별로');continue}if(/^상성\s*:\s*1\/2배?~1\/8배$/.test(k)){w.push('별로');continue}
    if(/[:：]|위력/.test(k)||/상태/.test(after)||STATS_W.includes(k)||!isTy(k)&&!k.split(/[\/,·]/).every(t=>isTy(t.trim()))&&isSt(k)||/^(?:타입|특성|소지품|날씨|필드|변화기|일격기|기술)$/.test(k))continue;
    const parts=k.split(/[\/,·]/).map(t=>t.trim()).filter(Boolean);if(parts.every(isTy))ty.push(...parts);else tg.push(...parts)}
   if(/(?:타입\s*)?비일치|자속이 아닌/.test(s))w.push('비자속');
@@ -243,7 +243,7 @@ window.MKM_POTLINT=(()=>{
     x=x.replace(/」 (을|를|의|에게|에게는|에게도)(?=[\s,.]|$)/g,'」$1').replace(/「 +/g,'「').replace(/ +」/g,'」').replace(/\( +/g,'(').replace(/ +\)/g,')').replace(/(\d) +배/g,'$1배').replace(/(강화|저하|완화) +\(/g,'$1(');
     {const re=new RegExp('「('+ST+'(?:/'+ST+')*)」 ?[,·、]? ?「('+ST+')」','g');for(let i=0;i<6;i++){const y=x.replace(re,'「$1/$2」');if(y===x)break;x=y}}
     /* 11-23 2차(242): 표기 흔들림 — 콜론 띄어쓰기 · 「우선도 +0.5」 · 강화 1.5배 한다 · 무효한다 · 따옴표 없는 상태 이상 · 상태를 부여한다 · 타입 「X」 */
-    x=x.replace(/「C ?([+\-]\d)」/g,'「C : $1」').replace(/「(C|우선도|위력|HP|타입|특성|날씨|필드|소지품|프라이드|범위) ?[:：] ?(?=[^ 」])/g,'「$1 : ');
+    x=x.replace(/「C ?([+\-]\d)」(?= ?(?:한다|하고|하며|된다))/g,'「C : $1」').replace(/「(C|우선도|위력|HP|타입|특성|날씨|필드|소지품|프라이드|범위) ?[:：] ?(?=[^ 」])/g,'「$1 : ');
     x=x.replace(/「우선도 ?([+\-][\d.]+)」/g,'「우선도 : $1」').replace(/우선도를 ([+\-][\d.]+) ?한다/g,'「우선도 : $1」 한다');
     x=x.replace(/강화 (\d+(?:\.\d+)?)배 ?(한다|된다)/g,'강화($1배)$2').replace(/무효한다/g,'무효화한다').replace(/\((저하|감소|강화|상승)\) (하지|되지)/g,'($1)$2');
     x=x.replace(/」(상태|기술)(?=[ 인일가를을로의에이])/g,'」 $1');
@@ -275,7 +275,7 @@ window.MKM_POTLINT=(()=>{
    /* 랭크 (「공격 : +1」 · 「공격 : +12」 · 무작위 능력 · 가장 높은/낮은 능력) */
    const rk=[...c.matchAll(/「((?:C|공격|방어|특공|특방|스피드|명중|회피)(?:\/(?:공격|방어|특공|특방|스피드|명중|회피))*) : ([+-]\d+)」(?!\s*(?:이상|이하|미만|초과))/g)];   /* 11-10: 「방어 : +1」 이상일 때 같은 조건은 랭크 변화가 아니다 (조건 토큰으로) */
    const branch=/(?:이|하)?라면|비교하여/.test(c)&&rk.length>1;   /* 업로드 · 다운로드: 「A라면 X, B라면 Y」는 어느 쪽인지 몰라 추천하지 않는다 */
-   if(rk.length&&/」\s*(?:한다|하고|하며|된다|되고|시킨다|시키고)|한다|된다/.test(c)&&!/종족치/.test(c)&&!branch){const parts=[];for(const x of rk)for(const s of x[1].split('/'))parts.push(ST_EN[s]+x[2]);const t=tgAt(rk[0].index);L.push(`랭크${tgW(t)} ${parts.join(' ')}${temp?' 임시':''}`)}
+   if(rk.length&&/」\s*(?:한다|하고|하며|된다|되고|시킨다|시키고)|한다|된다/.test(c)&&!/종족치/.test(c)&&!branch){const parts=[];for(const x of rk)for(const s of x[1].split('/'))parts.push(ST_EN[s]+x[2]);const t=tgAt(rk[0].index);if(!(parts.some(p=>/^급소/.test(p))&&/상대/.test(tgW(t))))L.push(`랭크${tgW(t)} ${parts.join(' ')}${temp?' 임시':''}`)}
    if((m=c.match(/「(?:(?:공격\/방어\/특공\/특방\/스피드) 중 무작위한 하나|무작위한 능력치?) : ([+-]\d)」/)))L.push(`랭크${tgW(tgAt(m.index))} 무작위${m[1]}${temp?' 임시':''}`);
    /* 11-05 망령 「초읽기」: 모든 턴 카운트를 「N」만큼 줄인다 → 초읽기 N */
    if((m=c.match(/(?:모든\s*)?턴\s*카운트를\s*「?(\d+)」?\s*만큼\s*줄인다/)))L.push('초읽기'+(+m[1]>1?' '+m[1]:''));
@@ -308,7 +308,7 @@ window.MKM_POTLINT=(()=>{
    /* 완화 (받는 쪽) — 반감 · 완화(n배) · 강화(n배) · n배가 된다 · 무효화(×0) · 「상성 : 1/2배」가 된다 */
    {let x,v='',at=-1,NULP='';
     if((x=c.match(/(?<![을를]\s)받(?:을|는)\s*(?:기술의\s*)?(?:대미지|위력)(?:를|을|가)?\s*(?:(반감)|완화\s?\((\d?\.\d+)배\)|강화\s?\((\d+(?:\.\d+)?)배\)|(\d+(?:\.\d+)?)배가 된다)/))){v=x[1]?'0.5':(x[2]||x[3]||x[4]);at=x.index}
-    else if((x=c.match(/(?:자신에 대한|상대의|상대가 내보내는)\s*((?:「[^」]+」\s*)*)(?:한\s*)?(?:등의\s*)?(?:타입 비일치\s*)?(?:기술|공격)?의?\s*(?:대미지|위력)[를을]?\s*(?:(반감)|완화\s?\((\d?\.\d+)배\)|저하\s?\((\d?\.\d+)배\))/))){v=x[2]?'0.5':(x[3]||x[4]);at=x.index}
+    else if((x=c.match(/(?:자신에 대한|상대의|상대가 내보내는)\s*((?:「[^」]+」\s*)*)(?:한\s*)?(?:등의\s*)?(?:타입 비일치\s*)?(?:기술|공격)?의?\s*(?:대미지|위력)[를을]?\s*(?:(반감)|완화\s?\((\d?\.\d+)배\)|저하\s?\((\d?\.\d+)배\))/))&&!/「필중기」/.test(x[1]||'')){v=x[2]?'0.5':(x[3]||x[4]);at=x.index}
     else if((x=c.match(/((?:「[^」]+」\s*)+)\s*(?:등의\s*)?기술(?:로 받는|의)\s*대미지를\s*(?:(반감)|완화\s?\((\d?\.\d+)배\))/))){v=x[2]?'0.5':x[3];at=x.index}
     else if((x=c.match(/「전체기」의 위력을 저하\((\d?\.\d+)배\)/))){v=x[1];at=x.index}
     else if((x=c.match(/((?:「[^」]+」\s*)+)\s*(?:등의\s*)?(?:대미지|기술)(?:을|를)\s*(?:(?:\d할|드물게|저확률|중확률|고확률)로?\s*)?(?:받으면\s*)?무효화/))&&!/일격기|우선도|강제 교대|교대|변화기|자세」\s*$/.test(x[1])){v='0';at=x.index;const pq=x[0].match(/(\d할|드물게|저확률|중확률|고확률)로?\s*(?:받으면\s*)?무효화/);if(pq)NULP=pq[1]}
