@@ -81,6 +81,15 @@ window.MK_DG=(()=>{
  function monsOf(r){if(!r)return [];if(r.mk){const t=TR(r.mk);if(!t)return [];return t.pokemon.map(p=>{const boss=r.t==='boss'&&isBossP(p);return {name:p.nick||p.name||'',pride:prOf(p),boss,role:r.t==='boss'?(boss?'boss':'esc'):'pre',ex:exN(p),p}})}
   if(r.w)return r.w.mons.map(m=>({name:m.name,pride:m.pride,boss:!!m.boss,role:m.role||'pre',ex:(m.gye||[]).filter(g=>g.name).length+(m.wp&&m.wp.name?1:0),m}));return []}
  const hasWild=r=>!!(r&&(r.mk||r.w));
+ /* 11-23 22:43 망령 「기록보관소 지하 서고에 만들어 둔 조우 포켓몬이 (세션 노트에) 연결 안 되어 있다」: 11-16 부터 방의 야생은 r.mk(제작기 트레이너)뿐이라
+    세션 노트(fromOm — 방의 w 만 읽는다)로 받으면 조우가 비었다. 저장할 때 r.mk 방에 그 트레이너의 사본 w(야생 시트 꼴)를 같이 적는다 —
+    제작기 화면은 받을 때 다시 떼어 r.mk 만 쓴다. 야생 시트를 고친 뒤에도 사본이 따라가도록 던전 탭을 그릴 때 견줘 다르면 다시 저장(snapSync). */
+ function pToSlot(p,r){const boss=r.t==='boss'&&isBossP(p);const ex=[p.excl,...(p.exclX||[])].filter(g=>g&&(g.name||g.eff)).map(g=>({name:g.name||'',eff:String(g.eff||'')}));
+  return {role:r.t==='boss'?(boss?'boss':'esc'):'pre',name:p.nick||p.name||'',t1:p.t1||'-',t2:p.t2||'-',base:(p.base||[]).slice(0,6).map(v=>+v||0),ability:p.ability||'',moves:(p.moves||[]).map(m=>m&&!m.hide&&(m.name||m)).filter(z=>z&&typeof z==='string'),pride:prOf(p),dist:+p.dist||0,boss,pots:potNames(p),gye:ex}}
+ function snapOf(r){const t=r&&r.mk?TR(r.mk):null;if(!t)return null;return {name:t.name||('야생 · '+(r.n||'')),rank:'C',mons:(t.pokemon||[]).map(p=>pToSlot(p,r))}}
+ function withSnap(x){try{const y=clone(x);for(const r of Object.values((y.d||{}).r||{})){const w=snapOf(r);if(w)r.w=w}return y}catch(e){return x}}
+ const snapKey=(x,live)=>{try{const o={};for(const [id,r] of Object.entries((x.d||{}).r||{}))if(r&&r.mk){const w=live?snapOf(r):r.w;if(live&&!w)continue;o[id]=w||null}return JSON.stringify(o)}catch(e){return ''}};
+ function snapSync(){try{if(!db()||!mkReady())return;for(const [id,x] of Object.entries(ST.docs||{})){if(!x||!x.d||!canEd(x)||ST.dirty.has(id))continue;{const MK=Object.values(x.d.r||{}).filter(r=>r&&r.mk);if(!MK.length||!MK.every(r=>TR(r.mk)))continue}const now=snapKey(x,1);if(now&&now!=='{}'&&now!==(ST.wsnap||{})[id]){ST.wsnap=ST.wsnap||{};ST.wsnap[id]=now;touch(id)}}}catch(e){}}
  function fitP(p,role,i,T){p.pride=role==='boss'?'A':role==='esc'?(T.escP[i]||'C'):'C';p.dist=T.lv[role];
   const keep=potNames(p).filter(v=>!/^와일드( 보스)?$|^레이드 배틀/.test(v));const L=(role==='boss'?['와일드 보스','레이드 배틀 : '+T.raid]:['와일드']).concat(keep);
   const n=Math.max(20,(p.pots||[]).length);const pe=p.potEff||[],pk=p.potKind||[];const oldE={},oldK={};(p.pots||[]).forEach((v,j)=>{if(v){oldE[String(v).trim()]=pe[j]||'';oldK[String(v).trim()]=pk[j]||''}});
@@ -183,18 +192,18 @@ window.MK_DG=(()=>{
   let n=M.name||'';if(!n){try{n=localStorage.getItem('mkdg_name')||''}catch(e){}}return {key:k,name:n,gm:!!M.gm}}
  const db=()=>ENV().db&&ENV().db();
  function subscribe(){if(ST.sub)return;const D=db();if(!D){if(!ST.local){ST.local=true;try{Object.assign(ST.docs,JSON.parse(localStorage.getItem('mkdg_local')||'{}'))}catch(e){}}return}
-  ST.sub=true;D.collection('dungeon').onSnapshot(snap=>{const next={};for(const x of snap.docs){next[x.id]=x.data()}
+  ST.sub=true;D.collection('dungeon').onSnapshot(snap=>{const next={};for(const x of snap.docs){const dd=x.data();try{ST.wsnap=ST.wsnap||{};ST.wsnap[x.id]=snapKey(dd);for(const r of Object.values((dd.d||{}).r||{}))if(r&&r.mk&&r.w)delete r.w}catch(e){}next[x.id]=dd}
    for(const [id,t] of ST.dirty)if(Date.now()-t<4000&&ST.docs[id])next[id]=ST.docs[id];   /* 막 고친 것은 내 사본 그대로 */
    ST.docs=next;if(document.getElementById('v-dg')&&!document.getElementById('v-dg').hidden&&!document.activeElement?.closest?.('#v-dg'))render()},e=>{console.warn('[던전]',e);ST.sub=false})}
  function canEd(x){const M=me();return !!x&&(M.gm||x.owner===M.key)}
  function touch(id){const x=ST.docs[id];if(!x)return;x.at=Date.now();ST.dirty.set(id,Date.now());clearTimeout(ST.saveT);ST.saveT=setTimeout(flush,700)}
  async function flush(){const D=db();const ids=[...ST.dirty.keys()];if(!D){try{localStorage.setItem('mkdg_local',JSON.stringify(ST.docs))}catch(e){}return}
-  for(const id of ids){const x=ST.docs[id];try{if(x)await D.doc('dungeon/'+id).set(x)}catch(e){toast('던전 저장 실패: '+(e.message||e));return}}}
+  for(const id of ids){const x=ST.docs[id];try{if(x)await D.doc('dungeon/'+id).set(withSnap(x))}catch(e){toast('던전 저장 실패: '+(e.message||e));return}}}
  async function del(id){const D=db();delete ST.docs[id];ST.dirty.delete(id);if(D){try{await D.doc('dungeon/'+id).delete()}catch(e){toast('지우기 실패: '+(e.message||e))}}else try{localStorage.setItem('mkdg_local',JSON.stringify(ST.docs))}catch(e){}}
 
  /* ── 화면 ── */
  const root=()=>document.getElementById('v-dg');
- function render(o){const el=root();if(!el)return;subscribe();if(!ST.sub&&db()===null&&!ST.poll){ST.poll=setTimeout(()=>{ST.poll=null;if(!el.hidden)render({soft:true})},1500)}if(o&&o.soft&&el.contains(document.activeElement)&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;el.innerHTML=ST.view==='ed'&&ST.docs[ST.id]?edHTML():listHTML();if(ST.view==='ed')bindMap()}
+ function render(o){const el=root();if(!el)return;subscribe();snapSync();if(!ST.sub&&db()===null&&!ST.poll){ST.poll=setTimeout(()=>{ST.poll=null;if(!el.hidden)render({soft:true})},1500)}if(o&&o.soft&&el.contains(document.activeElement)&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;el.innerHTML=ST.view==='ed'&&ST.docs[ST.id]?edHTML():listHTML();if(ST.view==='ed')bindMap()}
  function listHTML(){const M=me();const all=Object.entries(ST.docs).filter(([,x])=>x&&x.d);const mine=all.filter(([,x])=>x.owner===M.key),other=all.filter(([,x])=>x.owner!==M.key&&(x.pub||M.gm));
   const card=([id,x])=>{const T=TPL[x.tier]||TPL.s1;const nr=Object.keys(x.d.r||{}).length;const c=check(x);const bad=c.filter(q=>!q.ok).length;
    return `<div class="dgc"><div class="dgc-h"><b>${esc(x.d.n||'이름 없는 던전')}</b><span class="dgt ${esc(x.tier)}">${esc(T.n)}</span>${x.pub?'<span class="dgpub">공개</span>':''}</div>
