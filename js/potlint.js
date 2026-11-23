@@ -209,11 +209,12 @@ window.MKM_POTLINT=(()=>{
      if(/^완화 ×0 기술:따라가때리기/.test(L)){L=L.replace('기술:따라가때리기','태그:따라가때리기');if(/해석\s*되어\s*있지\s*않을\s*때/.test(t)&&!/미해석/.test(L))L+=' 미해석';if(/【1\/시】/.test(t)&&/【자동】/.test(t)&&!/\d회/.test(L))L+=' 1회'}
      if(/^위력 ×1 (?:.* )?방어관통/.test(L)&&!/기술:|타입:/.test(L)){m=t.match(/「단일기\s*[:：]\s*([^」]+)」/);if(m&&TYK.includes(m[1].trim()))L=L.replace('방어관통','타입:'+m[1].trim()+' 단일 방어관통')}
      if(L==='특성무시'){m=t.match(/「단일기\s*[:：]\s*([^」]+)」[^.\n]*「특성」을\s*무시/);if(m&&TYK.includes(m[1].trim()))L='특성무시 타입:'+m[1].trim()+' 단일';else{m=t.match(/「([^」:]+)」\s*기술이\s*(?:다른\s*|상대의\s*)?「?특성」?을\s*무시/);if(m&&TYK.includes(m[1].trim()))L='특성무시 타입:'+m[1].trim()}}
+     if(/【선행】/.test(t)&&/^(?:위력 ×1 .*방어관통|특성무시)/.test(L)&&!/이번턴|\d턴|\d회/.test(L))L+=' 이번턴';   /* 【선행】 = 그 턴에 내보내는 기술 몫 */
      m=L.match(/^확인 "「특성\s*:\s*([^」]+)」일\s*때"$/);if(m)L='조건 특성:'+m[1].trim();
      if(L==='임의교대'&&/아군이[^.\n]*임의\s*교대/.test(t))L='임의교대 아군1체';
      lines[i]=L}
     for(let i=lines.length-1;i>=0;i--)if(/^연속무시/.test(lines[i])&&!/연속/.test(t))lines.splice(i,1);
-    {const q=t.match(/「단일기\s*[:：]\s*([^」]+)」[^.\n]*「특성」을\s*무시/);if(q&&TYK.includes(q[1].trim())&&lines.some(x=>/^위력 ×1 .*방어관통/.test(x))&&!lines.some(x=>/^특성무시/.test(x)))lines.push('특성무시 타입:'+q[1].trim()+' 단일')}
+    {const q=t.match(/「단일기\s*[:：]\s*([^」]+)」[^.\n]*「특성」을\s*무시/);if(q&&TYK.includes(q[1].trim())&&lines.some(x=>/^위력 ×1 .*방어관통/.test(x))&&!lines.some(x=>/^특성무시/.test(x)))lines.push('특성무시 타입:'+q[1].trim()+' 단일'+(/【선행】/.test(t)?' 이번턴':''))}
     {const q=t.match(/행동\s*(?:후|뒤)\s*「([^」:]+)」\s*상태가\s*된다/);if(q){const st=q[1].replace(/\s/g,'');for(let i=lines.length-1;i>=0;i--)if(lines[i].replace(/\s/g,'')==='상태'+st+'자신'){lines.splice(i,1);note=note||'「행동 후 「'+q[1]+'」 상태」 줄은 손으로 (행동 뒤 계기가 없다)'}}}
     if(/해석\s*되어\s*있지\s*않을\s*때/.test(t)&&lines.some(x=>/미해석/.test(x)))for(let i=lines.length-1;i>=0;i--)if(/^확인 "[^"]*해석/.test(lines[i]))lines.splice(i,1);
     if(/대신/.test(t)&&lines.length&&!lines.some(x=>/^추가효과 바꾸기/.test(x))&&/(?:「[^」]+」|』)(?:이|가)\s*(?:「[^」]+」\s*)?대신/.test(t)){lines.length=0;note='「대신」 꼴 — 기술의 추가 효과를 다른 「상태」로 바꾸는 것만 구문(추가효과 바꾸기)이 있다. 이 칸은 손으로'}
