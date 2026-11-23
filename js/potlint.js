@@ -205,6 +205,8 @@ window.MKM_POTLINT=(()=>{
      ④ 「…한 아군이 … 대상의 HP 를 회복」 → 아군1체 ⑤ 「「타입 : X」인 아군이 「S」 상태가 된다」 → 아군전체 대상타입 ⑥ 「「기술」로 … 대신 「S」 상태로」 → 추가효과 바꾸기
      ⑦ 연속 제한 이야기가 아닌 「실패하지 않는다」에는 연속무시를 추천하지 않는다 ⑧ 「「기술」이 (「타입 : X」에게) 위력이 강화(1/3→1/2)」 = 웹툴이 글로 읽는다 */
   function fixUp(all,lines){let note='';try{const t=String(all||'').replace(/<br\s*\/?>/gi,'\n');
+     /* 11-23 저녁 257c: 「아군을 「X」 상태로 만들었을 때 … (대상을/대상의) …」 — 뒤 효과의 대상은 그 아군 (예전엔 상대1체) */
+     if(/(?:^|[\s\/】])아군(?:을|를)\s*[^.\n]*?만들었을\s*때/.test(t)&&!/만들었을\s*때[^.\n]*(?:상대|정면|적진)/.test(t))for(let i=0;i<lines.length;i++)lines[i]=lines[i].replace(/^((?:(?:드물게|저확률|중확률|고확률)\s*:?\s*)?(?:상태 \S+|랭크|타입|특성)) 상대1체/,'$1 아군1체');
     const MV=new Set();try{for(const k in ((window.OM_DB||{}).moves||{}))MV.add(k)}catch(e){}try{const M=(window.MKM_DB||{}).moves;if(Array.isArray(M))for(const r of M)if(r&&r[2])MV.add(r[2])}catch(e){}
     const TYK=['노말','불꽃','물','전기','풀','얼음','격투','독','땅','비행','에스퍼','벌레','바위','고스트','드래곤','악','강철','페어리'];const isMv=n=>MV.has(String(n||'').trim());const tyL=x=>String(x).split(/[,·\/、]/).map(y=>y.trim()).filter(Boolean).join(',');const turnOnly=/(?:발동한|내보내는|내보낸)\s*턴/.test(t.replace(/「타임」\s*(?:이|을|를)?\s*(?:발동|사용)(?:한|된|하는)\s*턴/g,""));let m;
     for(let i=0;i<lines.length;i++){let L=lines[i];
@@ -356,7 +358,7 @@ window.MKM_POTLINT=(()=>{
    if((m=c.match(/(?:「HP」|HP)(?:가|이)\s*회복되지 않는다/))){const t=tgtIn(segB(c,m.index),temp)||'상대1체';L.push(`상태 회복봉인 ${t}`)}
    if(/「따라가때리기」\s*효과를 받지 않는다/.test(c)){const t=tgtIn(segB(c,c.search(/「따라가때리기」/)),temp);L.push(`추격 무시${t==='아군전체'?' 아군전체':''}`)}
    if((m=c.match(/「예리\s*:?\s*(?:C\s*)?\+?\s*(\d)」\s*상태(?:가 (?:된다|되고|되며)|로 만든다|(?:으)?로 한다)/))){const sg=segB(c,m.index);const t=/상태로/.test(m[0])?(tgtIn(sg,temp)||'자신'):'자신';L.push(`상태 예리${m[1]} ${t}${turns?` ${turns}턴`:''}`)}   /* 11-10 망령 「예리 : +1」 꼴도 (C 없이) */
-   else if((m=c.match(/「([가-힣 ]+)」\s*상태가 (?:된다|되고|되며)/))&&!/빈사/.test(m[1])){const s=m[1].replace(/\s/g,'');if(!window.OM_FX||isSt(s))L.push(`상태 ${s} 자신${turns?` ${turns}턴`:/영구히/.test(c)?' 1000턴':temp?' 1턴':''}`)}
+   else if((m=c.match(/「([가-힣 ]+)」\s*상태가 (?:된다|되고|되며)/))&&!/빈사/.test(m[1])){const s=m[1].replace(/\s/g,'');/* 11-23 저녁 감우 257c 망령 「(추천기 흠) 해야지」: 「…받았을 때 상대는 「독」 상태가 된다」 · 「명중한 상대가 …」 · 「공격한 대상은 2턴 동안 …」 · 「「정면」이 드물게 …」 — 상태 이름 바로 앞의 임자를 대상으로 (예전엔 늘 자신) */const pre0=c.slice(0,m.index).replace(/\s*(?:(?:드물게|저확률로|중확률로|고확률로|반드시)\s*)?(?:\d+\s*턴\s*동안\s*)?(?:(?:드물게|저확률로|중확률로|고확률로|반드시)\s*)?$/,'');const who0=pre0.match(/(상대 전체|아군 전체|상대|「?정면」?|대상|아군)(?:이|가|은|는|도)\s*$/);const tg0=who0?({'상대 전체':'상대전체','아군 전체':'아군전체','상대':'상대1체','정면':'정면','대상':'상대1체','아군':'아군1체'})[who0[1].replace(/[「」]/g,'')]:'자신';if(!window.OM_FX||isSt(s))L.push(`상태 ${s} ${tg0}${turns?` ${turns}턴`:/영구히/.test(c)?' 1000턴':temp?' 1턴':''}`)}
    if((m=c.match(/((?:「[가-힣\/]+」\s*)+)\s*상태가 되지 않(?:는다|고)/))){const sts=[].concat(...[...m[1].matchAll(/「([가-힣\/]+)」/g)].map(y=>y[1].split('/'))).filter(y=>y!=='빈사'&&(!window.OM_FX||isSt(y)));const t=tgtIn(segB(c,m.index),temp);if(sts.length)L.push(`면역${t&&t!=='상대1체'?' '+t:''} ${sts.join(',')}`)}   /* 11-03: 「빈사」 상태가 되지 않는다(버티기)는 면역 구문이 아니다 */
    if((m=c.match(/상태 이상이 되지 않(?:는다|고)/))){const t=tgtIn(segB(c,m.index),temp);L.push(`면역${t&&t!=='상대1체'?' '+t:''} 이상`)}
    /* 비례 대미지 · 설치기 · 교대 */
