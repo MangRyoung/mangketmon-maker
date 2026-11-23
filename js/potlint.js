@@ -147,6 +147,7 @@ window.MKM_POTLINT=(()=>{
   for(const x of c.matchAll(new RegExp('(?:(자신|상대|대상|정면)의\\s*)?「('+RK_ST+')」\\s*(?:능력\\s*)?랭크가\\s*([+\\-−]?)(\\d)\\s*(이상|이하)','g'))){const opp=x[1]&&x[1]!=='자신';put((opp?'상대랭크:':'랭크:')+x[2]+(x[5]==='이상'?'≥':'≤')+(x[3]&&x[3]!=='+'?'-':'+')+x[4],x[0])}
   if((m=c.match(/아군(?:이|에|에게|중에?)\s*「타입\s*[:：]\s*([^」]+)」\s*(?:이|가|인 포켓몬이)?\s*(?:일|있을|인)\s*때/)))put('아군타입:'+nm(m[1]).join(','),m[0]);
   if((m=c.match(/아군(?:이|에|에게|중에?)\s*「특성\s*[:：]\s*([^」]+)」\s*(?:이|가|인 포켓몬이)?\s*(?:일|있을|인)\s*때/)))put('아군특성:'+nm(m[1]).join(','),m[0]);
+  /* 11-23 18시 묘지기 「필드에 「특성 : 미라」가 있으면」: 필드특성:미라 = 필드 위(양쪽 · 자신 제외)에 그 특성 */if((m=c.match(/필드(?:에|\s*위에)\s*「특성\s*[:：]\s*([^」]+)」\s*(?:이|가|인 포켓몬이)?\s*(?:있으면|있을\s*때|있는\s*(?:한|동안))/)))put('필드특성:'+nm(m[1]).join(','),m[0]);
   if((m=c.match(/「타입\s*[:：]\s*([^」]+)」\s*(?:인\s*(?:상대|대상|포켓몬)(?:에게|에 대한|의)?|에게(?!도)|에 대한)/))&&!/적진에\s*$|아군(?:이|에|에게)\s*$/.test(c.slice(Math.max(0,m.index-6),m.index)))put('상대타입:'+nm(m[1]).join(','),m[0]);
   if((m=c.match(/자신(?:이|의)\s*「성별\s*[:：]\s*(♂|♀)」/)))put('성별:'+m[1],m[0]);
   if((m=c.match(/「성별\s*[:：]\s*(♂|♀|무성)」\s*(?:에\s*대한|인\s*(?:상대|대상|포켓몬)|에게)/))&&!/자신(?:이|의)\s*$/.test(c.slice(Math.max(0,m.index-5),m.index)))put('상대성별:'+m[1],m[0]);
@@ -205,12 +206,12 @@ window.MKM_POTLINT=(()=>{
      ⑦ 연속 제한 이야기가 아닌 「실패하지 않는다」에는 연속무시를 추천하지 않는다 ⑧ 「「기술」이 (「타입 : X」에게) 위력이 강화(1/3→1/2)」 = 웹툴이 글로 읽는다 */
   function fixUp(all,lines){let note='';try{const t=String(all||'').replace(/<br\s*\/?>/gi,'\n');
     const MV=new Set();try{for(const k in ((window.OM_DB||{}).moves||{}))MV.add(k)}catch(e){}try{const M=(window.MKM_DB||{}).moves;if(Array.isArray(M))for(const r of M)if(r&&r[2])MV.add(r[2])}catch(e){}
-    const TYK=['노말','불꽃','물','전기','풀','얼음','격투','독','땅','비행','에스퍼','벌레','바위','고스트','드래곤','악','강철','페어리'];const isMv=n=>MV.has(String(n||'').trim());const tyL=x=>String(x).split(/[,·\/、]/).map(y=>y.trim()).filter(Boolean).join(',');const turnOnly=/(?:발동한|내보내는|내보낸)\s*턴/.test(t);let m;
+    const TYK=['노말','불꽃','물','전기','풀','얼음','격투','독','땅','비행','에스퍼','벌레','바위','고스트','드래곤','악','강철','페어리'];const isMv=n=>MV.has(String(n||'').trim());const tyL=x=>String(x).split(/[,·\/、]/).map(y=>y.trim()).filter(Boolean).join(',');const turnOnly=/(?:발동한|내보내는|내보낸)\s*턴/.test(t.replace(/「타임」\s*(?:이|을|를)?\s*(?:발동|사용)(?:한|된|하는)\s*턴/g,""));let m;
     for(let i=0;i<lines.length;i++){let L=lines[i];
      if(/^위력 ×1 (?:.* )?방어관통/.test(L)&&!/기술:/.test(L)){m=t.match(/「([^」:]+)」(?:이|가)[^.\n]*「방어」[^.\n]*(?:무시|관통)/);if(m&&isMv(m[1]))L+=' 기술:'+m[1].trim();const q=t.match(/「타입\s*:\s*([^」]+)」의\s*「방어」/);if(q&&!/상대타입:/.test(L))L+=' 상대타입:'+tyL(q[1])}
      L=L.replace(/태그:([^\s,]+)/g,(a0,n)=>isMv(n)?'기술:'+n:a0);
      if(/^위력 /.test(L)&&/기술:/.test(L)&&/다음에?\s*내보내는/.test(t)&&!/(^|\s)1회(\s|$)|이번턴/.test(L))L+=' 1회';
-     if(turnOnly&&/^(?:완화|회피) /.test(L)&&!/이번턴|\d턴/.test(L))L+=' 이번턴';
+     if(turnOnly&&/^(?:완화|회피) /.test(L)&&!/이번턴|\d턴/.test(L)&&!/(?:^|\s)타임(?:\s|$)/.test(L))L+=' 이번턴';   /* 11-23 18시 「타임」 줄은 늘 켜 두고 타임을 쓴 턴에만 맞는 줄 */
      if(/^(?:[^:]+: )?회복 \d+\/\d+$/.test(L)&&/아군이[^.\n]*대상의\s*「HP」/.test(t))L+=' 아군1체';
      m=t.match(/「타입\s*:\s*([^」]+)」인\s*아군이\s*「([^」:]+)」\s*상태가\s*된다/);if(m&&L.replace(/\s/g,'').startsWith('상태'+m[2].replace(/\s/g,'')+'자신'))L='상태 '+m[2].replace(/\s/g,'')+' 아군전체 대상타입:'+tyL(m[1]);
      m=t.match(/「([^」:]+)」(?:으로|로)[^.\n]*?대신\s*(?:(\d)턴\s*동안\s*)?「([^」:]+)」\s*상태로\s*만든다/);if(m&&isMv(m[1])){const st=m[3].replace(/\s/g,'');if(new RegExp('^(?:[^:]+: )?상태 '+st+' 상대1체').test(L))L='추가효과 바꾸기 10할 '+st+(m[2]?' '+m[2]+'턴':'')+' 기술:'+m[1].trim()+(/이번\s*턴/.test(t)?' 이번턴':'')}
@@ -268,7 +269,8 @@ window.MKM_POTLINT=(()=>{
   /* 11-19 망령 「특성 : 사출 같은 거 자동화 돼 있던가?」: 「필드 위에 있는 한 아군이 【등장】/다음 기술을 내보낼 때 「X」를 강화(N배)」 = 나오는 아군에게 거는 것 — 웹툴(battle_ui shootIn)이 아군이 나올 때 그 아군에게 걸고, 그 아군이 기술을 내면 푼다. 구문 줄은 없다 (예전엔 자기 등장 · 아군전체 배율로 잘못 추천) */
   if(/아군이\s*【등장】\s*\/?\s*다음\s*기술을\s*내보낼\s*때\s*「[^」]+」\s*(?:을|를)\s*강화\s*\(\s*\d+(?:\.\d+)?\s*배\s*\)/.test(all))return {lines:[],why:[all],timing:'웹툴이 알아서 한다 — 아군이 나올 때 그 아군에게 걸고, 그 아군이 기술을 내면 풀린다 (구문 줄 없음)'};
   const noFaint=/①로\s*「빈사」\s*상태가 되지(?:는)? 않는다/.test(all);
-  for(const c0 of clauses(all)){const tags=(c0.match(/【(?:[^【】]|【[^【】]*】)+】/g)||[]).join('');const c=c0.replace(/^[①-⑨]/,'').replace(/^(?:【(?:[^【】]|【[^【】]*】)+】)+\s*\/?/,'');
+  let allC=all;{const TR=/[^\n.。]*「타임」\s*(?:이|을|를)?\s*(?:발동|사용)(?:한|된|하는)\s*턴[^\n.。]*반드시\s*발동(?:한다|된다|하게\s*된다)?[.。]?/g;allC=all.replace(TR,z=>{let hit=0;const add=x=>{if(!lines.includes(x)){lines.push(x);why.push(z.trim().length>60?z.trim().slice(0,60)+'…':z.trim())}hit=1};if(/【\s*수세\s*】/.test(z))add('수세유지 타임');if(/『\s*하이\s*블로커\s*』의\s*②/.test(z))add('완화 ×0.6667 수세 타임 겹침없음:하이블로커');return hit?'':z})}
+  for(const c0 of clauses(allC)){const tags=(c0.match(/【(?:[^【】]|【[^【】]*】)+】/g)||[]).join('');const c=c0.replace(/^[①-⑨]/,'').replace(/^(?:【(?:[^【】]|【[^【】]*】)+】)+\s*\/?/,'');
    const temp=/턴\s*종료\s*시?\s*까지|다음 기술을 내보낼 때/.test(c);const tEnd=/턴\s*종료\s*시?\s*까지/.test(c);   /* 11-18 「턴 종료 시 까지」(띄어 씀)도 */const turns=(c.match(/(\d)턴 동안/)||[])[1];const hold=/필드 위에 있는 한|필드에 있는 한/.test(c);
    /* 11-05 망령 「동조」: 【동조 (상대)】 = 동조된 상대에게 · 【동조】 = 동조된 아군에게 */
    const syncT=t0=>{if(/【동조\s*\(상대\)】/.test(tags)&&(!t0||t0==='상대1체'||t0==='상대전체'))return '동조상대';if(/【동조】/.test(tags)&&(!t0||t0==='아군1체'||t0==='아군전체'||t0==='지정에리어'))return '동조아군';return t0};
@@ -278,6 +280,10 @@ window.MKM_POTLINT=(()=>{
     {const hm=c.match(/「([^」:：]+)」\s*(?:이|가|으로|로)?\s*((?:「타입\s*[:：]\s*[^」]+」\s*(?:,|·|또는|이나|나)?\s*)*)(?:에게|에)?\s*명중\s*했을\s*때/);if(hm){const ty=[...String(hm[2]||'').matchAll(/「타입\s*[:：]\s*([^」]+)」/g)].flatMap(x=>x[1].split(/[,·\/]/)).map(x=>x.trim()).filter(Boolean);for(let i=cond.length-1;i>=0;i--)if(/명중|「타입\s*[:：][^」]*」\s*에게/.test(cond[i]))cond.splice(i,1);{const k=hm[1].replace(/\s+/g,'');const cm=k.match(/^(물리|특수|변화)기?$/);const ty1=k.match(/^(?:공격기\s*[:：]\s*)?(노말|불꽃|물|풀|전기|얼음|격투|독|땅|비행|에스퍼|벌레|바위|고스트|드래곤|악|강철|페어리)$/);cond.unshift(`조건 명중 ${cm?cm[1]+'기':ty1?'타입:'+ty1[1]:'기술:'+k}${ty.length?' 상대타입:'+ty.join(','):''}`)}}   /* 11-10: 「물리기」 · 「특수기」 · 「변화기」 = 분류, 「불꽃」 = 기술 타입 */
      if(/(?:대상|상대)(?:을|를)\s*강제\s*교대\s*시(?:킨다|키고|켜)/.test(c))L.push('강제교대 대상')}
    /* 11-06 망령 「『HP : 1/2 이하』일 때 『우드혼』을 내보낼 때 【수세】가 적용된다」 → 수세유지 (늘 켜 두는 줄 — HP 조건은 줄 안에, 조건 줄로 앞에 세우지 않는다) */
+   /* 11-23 18시 망령 「「타임」이 발동한 턴 = 자기 트레이너가 타임을 쓴 턴」(하겐 — 「타임」이 발동한 턴 『하이블로커』의 ②와 【수세】가 반드시 발동한다): 【수세】 → 수세유지 타임 · 『하이블로커』의 ② → 완화 ×0.6667 수세 타임 (본디 ②가 그 턴에 이미 걸렸으면 쉰다 — 겹침없음) */
+   /* 11-23 18시 망령 「데이터가 해석된 상대에게 「스타브레이커」를 내보낼 때 「특공」을 가장 높은 종족치와 같은 랭크로 만든다 — 이것도」: 늘 켜진 줄 기술최고 특공 기술:X [상대해석됨] (「기술 「X」를 내보낸다. 이때 …」 = 기술사용 … 최고:X 와 다른 꼴 — 이쪽은 스스로 그 기술을 낼 때마다) */
+   {const tp=c.match(/(?:((?:『데이터 해석』|데이터\s*해석)(?:이|을)?\s*(?:된|당한)\s*(?:상대|대상)|(?:데이터가?\s*)?해석된\s*(?:상대|대상))(?:에게|에\s*대해|을\s*대상으로|를\s*대상으로)\s*)?((?:「[^」:]+」\s*(?:[,·]|과|와)?\s*)+)(?:기술)?(?:을|를)\s*(?:내보낼|사용할|쓸)\s*때\s*,?\s*(?:자신의\s*)?「((?:(?:공격|방어|특공|특방|스피드)\/)*(?:공격|방어|특공|특방|스피드))」(?:의\s*종족치)?(?:을|를)\s*(?:가장|제일)\s*높은\s*(?:종족치|능력치?)(?:와|과)\s*(?:같은|동일한)\s*(?:랭크|등급)/);
+    if(tp){const mvs=[...tp[2].matchAll(/「([^」]+)」/g)].map(x=>x[1].trim().replace(/\s+/g,''));const x='기술최고 '+tp[3].replace(/\//g,',')+(mvs.length?' 기술:'+mvs.join(','):'')+(tp[1]?' 상대해석됨':'');if(!lines.includes(x)){lines.push(x);why.push(c0.length>60?c0.slice(0,60)+'…':c0)}continue}}
    {const kd=c.match(KEEPDEF_RE);if(kd){const ks=[...kd[2].matchAll(/「([^」]+)」/g)].map(x=>x[1].trim());const TY=(window.OM_FX&&OM_FX.TYPE_KO)||{};const tys=ks.filter(k=>Object.values(TY).includes(k)),cat=ks.find(k=>/^(물리|특수)기?$/.test(k));const mvs=ks.filter(k=>!tys.includes(k)&&k!==cat&&!/^HP\s*:/.test(k));
      const s='수세유지'+(mvs.length?' 기술:'+mvs.join(','):'')+(tys.length?' 타입:'+tys.join(','):'')+(cat?' '+cat.replace(/기$/,''):'')+(kd[1]?' HP≤'+kd[1].replace(/\s+/g,''):'');if(!lines.includes(s)){lines.push(s);why.push(c0.length>60?c0.slice(0,60)+'…':c0)}continue}}
    /* 랭크 (「공격 : +1」 · 「공격 : +12」 · 무작위 능력 · 가장 높은/낮은 능력) */
@@ -484,7 +490,7 @@ window.MKM_POTLINT=(()=>{
      if(T.some(x=>x.t==='반동기')&&!L.some(x=>/^위력/.test(x))){const q=c.match(/기술의\s*(?:대미지|위력)(?:을|를)?\s*강화\s*\((\d+(?:\.\d+)?)배\)/);if(q)L.push('위력 ×'+q[1])}
      if(T.some(x=>/우선도[+\-]\d/.test(x.t))&&/(?:공격|기술)(?:을|를)\s*(?:모두\s*)?무효화/.test(c)&&!L.some(x=>/^완화/.test(x)))L.push('완화 ×0');
      /* 그 줄이 토큰을 받는지는 구문을 직접 읽어 본다 — 토큰을 붙였을 때 조건이 달라지면 받는 줄 (랭크 · 상태 · 회복처럼 토큰을 조용히 버리는 줄은 조건 줄로) */
-     const inl=(x,t)=>{if(!F||!F.parse||/^(?:확인|은열쇠|선택)/.test(x))return false;try{const A=F.parse(x),B=F.parse(x+' '+t);const a=A.ops||[],b=B.ops||[];if(!(a.length>0&&a.length===b.length)||(B.errs&&B.errs.length))return false;const CK=['stk','mv','ft','cs','os','wx','trn','hl','hg','hs','hf','h1','rc','al','oa','ob','rk','ork','sure','it','iw','tm','ab','dx','odx','edx','mr','ks','tmv','pr','pmin','pmax','br','at','aab','sg','og','stp','foe','dmv','pit','ait','oeg','onm','il','feg'];let ch=false;for(let j=0;j<a.length;j++){const ks=new Set([...Object.keys(a[j]||{}),...Object.keys(b[j]||{})]);for(const k of ks)if(JSON.stringify((a[j]||{})[k])!==JSON.stringify((b[j]||{})[k])){if(!CK.includes(k))return false;ch=true}}return ch}catch(e){return false}};   /* 토큰을 붙여 바뀐 칸이 조건 칸뿐일 때만 (타입 · 확인 줄처럼 남는 낱말을 삼키는 줄은 아니다) */let needC=false;const left=new Set();
+     const inl=(x,t)=>{if(!F||!F.parse||/^(?:확인|은열쇠|선택)/.test(x))return false;try{const A=F.parse(x),B=F.parse(x+' '+t);const a=A.ops||[],b=B.ops||[];if(!(a.length>0&&a.length===b.length)||(B.errs&&B.errs.length))return false;const CK=['stk','mv','ft','cs','os','wx','trn','hl','hg','hs','hf','h1','rc','al','oa','ob','rk','ork','sure','it','iw','tm','ab','dx','odx','edx','mr','ks','tmv','pr','pmin','pmax','br','at','aab','sg','og','stp','foe','dmv','pit','ait','oeg','onm','il','feg','fab','tmu','nx'];let ch=false;for(let j=0;j<a.length;j++){const ks=new Set([...Object.keys(a[j]||{}),...Object.keys(b[j]||{})]);for(const k of ks)if(JSON.stringify((a[j]||{})[k])!==JSON.stringify((b[j]||{})[k])){if(!CK.includes(k))return false;ch=true}}return ch}catch(e){return false}};   /* 토큰을 붙여 바뀐 칸이 조건 칸뿐일 때만 (타입 · 확인 줄처럼 남는 낱말을 삼키는 줄은 아니다) */let needC=false;const left=new Set();
      /* 조건 줄은 마디 전체를 막으니 — 마디가 한 문장이고 그 문장의 조건일 때만. 여러 문장(기술 글 「…회복한다. 「날씨 : 맑음」일 때 회복량이 …」)은 줄 끝 토큰만. 「「성별 : ♂」인 상대 전체를」처럼 대상을 거르는 상대 쪽 조건도 조건 줄로 세우지 않는다 */
      const sents=c.split(/(?<=[.。])\s+/).filter(Boolean),multi=sents.length>1,first=sents[0]||c,wide=/상대 전체|적진의|모든 상대|필드에 있는|모든 포켓몬/.test(c);const used=new Set();
      const okC=x=>!x.mv&&!cond.some(y=>y.split(/\s+/).includes(x.t))&&!multi&&(!x.src||first.includes(x.src))&&!(wide&&/^(상대|같은타입|다른타입)/.test(x.t));
