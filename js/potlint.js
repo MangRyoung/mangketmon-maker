@@ -127,6 +127,7 @@ window.MKM_POTLINT=(()=>{
   {const q=c.match(/자신의\s*「(HP|공격|방어|특공|특방|스피드)」\s*(?:종족치\s*)?(?:랭크\s*)?보다\s*「(HP|공격|방어|특공|특방|스피드)」\s*(?:종족치\s*)?(?:랭크\s*)?(?:가|이)\s*(낮은|높은|같은)\s*상대/);if(q)R.push('상대종족치:'+q[2]+({낮은:'<',높은:'>',같은:'='})[q[3]]+q[1])}
   /* 11-10 망령 「성별 체크 · 같은 타입」 */
   {const q=c.match(/「성별\s*[:：]\s*(♂|♀|무성)」\s*(?:에\s*대한|인\s*(?:상대|대상|포켓몬)|에게)/);if(q)R.push('상대성별:'+q[1])}
+  {const q=c.match(/「알그룹\s*[:：]\s*([^」()（）]+?)\s*(?:[(（]\s*(♂|♀)\s*[)）])?」\s*(?:에\s*대한|에게|인\s*(?:상대|대상|포켓몬)|의\s*(?:기술|공격)|(?:이|가)\s*내보내는)/);if(q&&!/자신(?:이|의)\s*$/.test(c.slice(Math.max(0,q.index-5),q.index))){R.push('상대알그룹:'+q[1].trim().replace(/\s+/g,''));if(q[2])R.push('상대성별:'+q[2])}}   /* 11-23 16:56 「알그룹 : 인간형 (♀)」 */
   if(/같은\s*「타입」\s*(?:에\s*대한|인\s*(?:상대|대상|포켓몬)|의\s*(?:상대|포켓몬)|에게)/.test(c))R.push('같은타입');
   return [...new Set(R)]}
  /* 11-10 망령 「자동화 추가 되게 많이 했으니 추천기 업뎃 한번 싹~」: 마디에서 조건 토큰을 뽑는다 — {t: 토큰, src: 글에서 잡힌 부분, mv: 기술을 쓸 때만 뜻이 있는 것(조건 줄에는 안 씀)}
@@ -149,6 +150,9 @@ window.MKM_POTLINT=(()=>{
   if((m=c.match(/「타입\s*[:：]\s*([^」]+)」\s*(?:인\s*(?:상대|대상|포켓몬)(?:에게|에 대한|의)?|에게(?!도)|에 대한)/))&&!/적진에\s*$|아군(?:이|에|에게)\s*$/.test(c.slice(Math.max(0,m.index-6),m.index)))put('상대타입:'+nm(m[1]).join(','),m[0]);
   if((m=c.match(/자신(?:이|의)\s*「성별\s*[:：]\s*(♂|♀)」/)))put('성별:'+m[1],m[0]);
   if((m=c.match(/「성별\s*[:：]\s*(♂|♀|무성)」\s*(?:에\s*대한|인\s*(?:상대|대상|포켓몬)|에게)/))&&!/자신(?:이|의)\s*$/.test(c.slice(Math.max(0,m.index-5),m.index)))put('상대성별:'+m[1],m[0]);
+  /* 11-23 16:56 망령 「인간형 여성을 지정하는 워딩 — 자동화 해줘」: 「알그룹 : 인간형 (♀)」 · 「알그룹 : 인간형」 + (에 대한 · 에게 · 인 상대 · 의 기술 · 이 내보내는) → 상대알그룹:인간형 [상대성별:♀]
+     (위력 줄에서는 맞는 쪽, 완화 줄에서는 공격한 쪽 — 엔진 xOk 의 oth) */
+  if((m=c.match(/「알그룹\s*[:：]\s*([^」()（）]+?)\s*(?:[(（]\s*(♂|♀)\s*[)）])?」\s*(?:에\s*대한|에게|인\s*(?:상대|대상|포켓몬)|의\s*(?:기술|공격)|(?:이|가)\s*내보내는)/))&&!/자신(?:이|의)\s*$/.test(c.slice(Math.max(0,m.index-5),m.index))){put('상대알그룹:'+m[1].trim().replace(/\s+/g,''),m[0],1);if(m[2])put('상대성별:'+m[2],m[0],1)}
   if((m=c.match(/같은\s*「타입」\s*(?:에\s*대한|인\s*(?:상대|대상|포켓몬)|의\s*(?:상대|포켓몬)|에게)/)))put('같은타입',m[0]);
   if((m=c.match(/다른\s*「타입」\s*(?:에\s*대한|인\s*(?:상대|대상|포켓몬)|의\s*(?:상대|포켓몬)|에게)/)))put('다른타입',m[0]);
   if((m=c.match(/《([^》]+)》\s*(?:가|이)\s*(?:발동하고|전개되어)\s*있을 때/)))put('이계:'+m[1].replace(/^이계\//,'').trim(),m[0]);
@@ -474,7 +478,7 @@ window.MKM_POTLINT=(()=>{
      if(T.some(x=>x.t==='반동기')&&!L.some(x=>/^위력/.test(x))){const q=c.match(/기술의\s*(?:대미지|위력)(?:을|를)?\s*강화\s*\((\d+(?:\.\d+)?)배\)/);if(q)L.push('위력 ×'+q[1])}
      if(T.some(x=>/우선도[+\-]\d/.test(x.t))&&/(?:공격|기술)(?:을|를)\s*(?:모두\s*)?무효화/.test(c)&&!L.some(x=>/^완화/.test(x)))L.push('완화 ×0');
      /* 그 줄이 토큰을 받는지는 구문을 직접 읽어 본다 — 토큰을 붙였을 때 조건이 달라지면 받는 줄 (랭크 · 상태 · 회복처럼 토큰을 조용히 버리는 줄은 조건 줄로) */
-     const inl=(x,t)=>{if(!F||!F.parse||/^(?:확인|은열쇠|선택)/.test(x))return false;try{const A=F.parse(x),B=F.parse(x+' '+t);const a=A.ops||[],b=B.ops||[];if(!(a.length>0&&a.length===b.length)||(B.errs&&B.errs.length))return false;const CK=['stk','mv','ft','cs','os','wx','trn','hl','hg','hs','hf','h1','rc','al','oa','ob','rk','ork','sure','it','iw','tm','ab','dx','odx','edx','mr','ks','tmv','pr','pmin','pmax','br','at','aab','sg','og','stp','foe','dmv','pit','ait'];let ch=false;for(let j=0;j<a.length;j++){const ks=new Set([...Object.keys(a[j]||{}),...Object.keys(b[j]||{})]);for(const k of ks)if(JSON.stringify((a[j]||{})[k])!==JSON.stringify((b[j]||{})[k])){if(!CK.includes(k))return false;ch=true}}return ch}catch(e){return false}};   /* 토큰을 붙여 바뀐 칸이 조건 칸뿐일 때만 (타입 · 확인 줄처럼 남는 낱말을 삼키는 줄은 아니다) */let needC=false;const left=new Set();
+     const inl=(x,t)=>{if(!F||!F.parse||/^(?:확인|은열쇠|선택)/.test(x))return false;try{const A=F.parse(x),B=F.parse(x+' '+t);const a=A.ops||[],b=B.ops||[];if(!(a.length>0&&a.length===b.length)||(B.errs&&B.errs.length))return false;const CK=['stk','mv','ft','cs','os','wx','trn','hl','hg','hs','hf','h1','rc','al','oa','ob','rk','ork','sure','it','iw','tm','ab','dx','odx','edx','mr','ks','tmv','pr','pmin','pmax','br','at','aab','sg','og','stp','foe','dmv','pit','ait','oeg','onm'];let ch=false;for(let j=0;j<a.length;j++){const ks=new Set([...Object.keys(a[j]||{}),...Object.keys(b[j]||{})]);for(const k of ks)if(JSON.stringify((a[j]||{})[k])!==JSON.stringify((b[j]||{})[k])){if(!CK.includes(k))return false;ch=true}}return ch}catch(e){return false}};   /* 토큰을 붙여 바뀐 칸이 조건 칸뿐일 때만 (타입 · 확인 줄처럼 남는 낱말을 삼키는 줄은 아니다) */let needC=false;const left=new Set();
      /* 조건 줄은 마디 전체를 막으니 — 마디가 한 문장이고 그 문장의 조건일 때만. 여러 문장(기술 글 「…회복한다. 「날씨 : 맑음」일 때 회복량이 …」)은 줄 끝 토큰만. 「「성별 : ♂」인 상대 전체를」처럼 대상을 거르는 상대 쪽 조건도 조건 줄로 세우지 않는다 */
      const sents=c.split(/(?<=[.。])\s+/).filter(Boolean),multi=sents.length>1,first=sents[0]||c,wide=/상대 전체|적진의|모든 상대|필드에 있는|모든 포켓몬/.test(c);const used=new Set();
      const okC=x=>!x.mv&&!cond.some(y=>y.split(/\s+/).includes(x.t))&&!multi&&(!x.src||first.includes(x.src))&&!(wide&&/^(상대|같은타입|다른타입)/.test(x.t));
@@ -483,7 +487,7 @@ window.MKM_POTLINT=(()=>{
      if(needC&&stT.length){const add=stT.filter(t=>!(/^상태:/.test(t)&&cond.includes('조건 '+t)));for(const t of stT)used.add(t);if(add.length)cond.push('조건 '+add.join(' '))}
      if(!needC)for(let i=cond.length-1;i>=0;i--)if(/^조건 상태:/.test(cond[i])&&T.some(x=>used.has(x.t)&&'조건 '+x.t===cond[i]))cond.splice(i,1);
      if(L.length)for(let i=cond.length-1;i>=0;i--){const q=(cond[i].match(/^확인 "(.*)"$/)||[])[1];if(q!=null){const qq=q.replace(/ 기술$/,'');if(T.some(x=>used.has(x.t)&&x.src&&(qq.includes(x.src)||x.src.includes(qq))))cond.splice(i,1)}}}}
-   {const cs=cond.filter(x=>!(/「HP\s*:\s*가득」/.test(x)&&L.length&&L.every(s=>/HP가득/.test(s)))&&!(/^확인 "[^"]*(?:「(?:HP|공격|방어|특공|특방|스피드)\s*[:：]\s*[A-Z]{1,3}[+-]?」|종족치\s*랭크)/.test(x)&&L.length&&L.every(s=>/종족치:/.test(s)))&&!(/^확인 "[^"]*(?:「성별\s*[:：]|같은\s*「타입」)/.test(x)&&L.length&&L.every(s=>/성별:|같은타입/.test(s))));
+   {const cs=cond.filter(x=>!(/「HP\s*:\s*가득」/.test(x)&&L.length&&L.every(s=>/HP가득/.test(s)))&&!(/^확인 "[^"]*(?:「(?:HP|공격|방어|특공|특방|스피드)\s*[:：]\s*[A-Z]{1,3}[+-]?」|종족치\s*랭크)/.test(x)&&L.length&&L.every(s=>/종족치:/.test(s)))&&!(/^확인 "[^"]*(?:「성별\s*[:：]|같은\s*「타입」)/.test(x)&&L.length&&L.every(s=>/성별:|같은타입/.test(s)))&&!(/^확인 "[^"]*「알그룹\s*[:：]/.test(x)&&L.length&&L.every(s=>/상대알그룹:/.test(s))));
     /* 날씨 · 필드 조건 「스피드」 배율(엽록소 · 쓱쓱 …)은 오레마스가 글을 읽어 행동 순서 때 곱한다 — 구문으로 또 걸면 두 번 */
     if(cs.some(x=>/^확인 .*「(?:날씨|필드)\s*:/.test(x)))for(let i=L.length-1;i>=0;i--)if(/^배율 스피드×[\d.]+$/.test(L[i]))L.splice(i,1);
     /* 자기 등급 조건(「공격 : B」 이하일 때 — 천하장사 · 퍼코트 …)은 레디메이드 꼴 「선택: - 조건을 만족한다 → …」로 — 오레마스가 등급을 보고 등장 때 저절로 건다(효과 한 줄일 때) */
