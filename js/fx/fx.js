@@ -423,12 +423,16 @@ window.OM_FX=(()=>{
     m.fx.rkx = [{key, name, a, b, sw(서로), dir:'up'|'down'|''}] — 이 포켓몬의 랭크가 바뀔 때 a 대신 b (sw 면 b 대신 a 도). 효과 · 소지품 · 지령 · 위협 모두 이 길(rkRedir)을 지난다 */
  function rkRedir(m,k,v){const L=(m&&m.fx&&m.fx.rkx)||[];if(!L.length||!v||k==='critical'||k==='critical_buff')return k;for(const e of L){if(e.dir==='up'&&!(v>0))continue;if(e.dir==='down'&&!(v<0))continue;if(e.a===k)return e.b;if(e.sw&&e.b===k)return e.a}return k}
  const rkxTxt=e=>`${STAT_KO[e.a]||e.a}${e.sw?'↔':'→'}${STAT_KO[e.b]||e.b}${e.dir==='up'?' 상승':e.dir==='down'?' 감소':''}`;
+ const RK_TO_AB_RE=/「\s*(공격|방어|특공|특방|스피드|명중|회피)\s*」\s*(?:이|가)\s*상승하는\s*대신\s*「\s*특성\s*[:：]\s*([^」]+?)\s*」\s*(?:이|가|으로|로)?\s*(?:된다|변경)/;
+ function rkToAb(m,k){try{const nq=x=>String(x||'').replace(/[『』\s]/g,'');const KO={공격:'attack',방어:'defense',특공:'specialattack',특방:'specialdefense',스피드:'speed',명중:'accuracy',회피:'evasion'};for(const p of [...(m.pots||[]),m.excl,...(m.exclX||[])]){if(!p||!p.name||(p.ph&&!p.apt))continue;if(m.potOff&&m.potOff[p.name])continue;const q=String(p.eff||'').match(RK_TO_AB_RE);if(!q||KO[q[1]]!==k)continue;if(nq(m.ability)===nq(q[2]))continue;return {nm:p.name,ab:q[2]}}}catch(e){}return null}
  function applyStats(m,op,self,name){const L=[];const isMult=op.k==='mult';const parts=[];const UPS={};
   for(const k0 in op.stats){let k=k0;let v=+op.stats[k0];if(!v)continue;
    if(!isMult){ /* 랭크 */
     /* 능력반전: 랭크 변화를 거꾸로 (급소·강제 설정은 그대로) */
     if((m.states||{}).reverse&&k!=='critical'&&k!=='critical_buff'&&op.mode!=='set'){v=-v;parts.push('능력반전')}
     if(op.mode!=='set'&&!op.noRx){const k2=rkRedir(m,k,v);if(k2!==k){parts.push(`${STAT_KO[k]}→${STAT_KO[k2]}`);k=k2}}   /* 11-10 랭크전환 */
+    /* 11-23 21:25 망령 「『광린룡의 변린』 — 특공이 오르는 대신 특성이 바뀌는 거야」: 포텐셜 글 「「능력」이 상승하는 대신 「특성 : X」(이|가) 된다」 — 그 능력 랭크가 오를 때 오르지 않고 특성이 X 가 된다. 이미 X 이면 그대로 오른다(대신할 것이 없다) */
+    if(v>0&&op.mode!=='set'&&!op.mirror&&k!=='critical'&&k!=='critical_buff'){const sw=rkToAb(m,k);if(sw){setAb(m,sw.ab,sw.nm);L.push(`${m.name} 『${sw.nm}』 — 「${STAT_KO[k]}」이(가) 오르는 대신 「특성 : ${sw.ab}」이(가) 되었다`);continue}}
     if(v<0&&!op.forced&&m.id!==self.id){const nd=nodropHit(m,k)||(sideObj(m,'흰안개')?'흰안개':'')||((m.states||{}).Substitute?'대타출동':'');if(nd){L.push(`${m.name} ${STAT_KO[k]} 감소 무시 (${nd})`);continue}}
     if(k==='critical_buff'){m.critBuff=(+m.critBuff||0)+v;parts.push(`급소 방호 ${v>0?'+':''}${v}`);continue}
     m.rank=m.rank||{};const lim=k==='critical'?4:6;const before=+m.rank[k]||0;const after=Math.max(-lim,Math.min(lim,before+v));m.rank[k]=after;if(after>before&&!op.mirror&&k!=='critical')UPS[k]=after-before;if(op.temp){m.tempRank=m.tempRank||{};m.tempRank[k]=(+m.tempRank[k]||0)+(after-before)}
