@@ -220,7 +220,7 @@ window.OM_FX=(()=>{
     /* 11-02 망령 「고유나 포텐셜로 미래예지를 걸면?」: 「상태 미래예지 …」처럼 상태로만 적어도 예고 공격으로 — 상태만 걸면 다음 턴 끝에 「해제」만 뜨고 대미지가 없었다 */
     if(op.k==='state'&&!op.remove&&FUTURE.includes(stEn(op.state)||op.state))op=Object.assign({},op,{k:'future',state:stEn(op.state)||op.state,tgt:op.tgt||'enemy1'});
     switch(op.k){
-     case 'none':break;case 'sk':break;case 'tsel':break;case 'msel':if(ctx&&ctx.msel)L.push(`「${name}」 지정한 기술 — 『${ctx.msel}』`);else L.push(`「${name}」 지정한 기술이 없다 (선행 입력 때 고르지 않았다)`);break;
+     case 'none':break;case 'timeuq':case 'timedecl':L.push(`「${name}」 — 묘수 창(「타임」)에서 쓴다`);break;case 'sk':break;case 'tsel':break;case 'msel':if(ctx&&ctx.msel)L.push(`「${name}」 지정한 기술 — 『${ctx.msel}』`);else L.push(`「${name}」 지정한 기술이 없다 (선행 입력 때 고르지 않았다)`);break;
      /* 11-09 망령 「4식을 소모해서 · 지령을 소모해서 — 발동했을 때 남은 것 중 무엇을 소모할지 창」: 소모 4식 | 소모 지령 | 소모 4식지령 [N] — 웹툴(ctx.spend)이 남은 것 목록을 띄우고 1 깎는다. 남은 게 없거나 그만두면 뒤 줄을 멈춘다 */
      case 'spend':{const KK={order:'『4식』',command:'『지령』',any:'『4식』 · 『지령』'};if(!ctx.spend){L.push(`${KK[op.what]||'지시'} ${op.n>1?op.n+'개 ':''}소모 — 손으로`);break}const r=await ctx.spend(op.what||'any',+op.n||1,self);if(!r){L.push(`${KK[op.what]||'지시'} 소모 안 함 — 멈춤`);stop=true;break}L.push(...[].concat(r));break}   /* 대상 지정 표시 (웹툴 지시 입력이 읽는다) */
      case 'confirm':{if(ctx.force){L.push(`(강제 발동 — 확인 「${op.q}」 건너뜀)`);break}const ok=ctx.confirm?await ctx.confirm(op.q):true;if(!ok){L.push(`「${name}」 조건을 만족하지 않아 발동하지 않았다 (${op.q})`);stop=true}break}
@@ -889,6 +889,11 @@ window.OM_FX=(()=>{
    case '효과해제':case '효과끄기':{const nm=(()=>{const i=words.findIndex(w=>/^이름[:：]/.test(w));return i<0?'':words.splice(i,1)[0].replace(/^이름[:：]/,'')})();const tgt=tgtOf(words)||'self';const what=has('포텐셜')||has('전용')||has('고유')?'pot':has('특성')?'trait':has('소지품')?'item':(has('전부'),'all');return Object.assign({k:'fxoff',what,tgt},nm?{name:nm}:{})}
    case '상태초기화':return {k:'resetstates',tgt:tgtOf(words)||'self',group:has('전부')?'negative':'condition_abnormal'};
    case '은열쇠':return {k:'sk',fx:words.join(' ')};   /* 11-05 망령 「카드 DB 에 자동화 구문 넣어서 웹툴에서 다 자동화」: 은열쇠 카드 효과 — 오레마스 js/sk3_fx.js 가 읽는다 (체크 · 던전 · 배틀 자리마다). fx.run 에서는 아무것도 안 함 */
+   /* 11-24 망령 「(구문이) 없으면 만들어서」 — 아스트라이아 고유. 둘 다 웹툴 묘수 창(「타임」)이 읽는 표시 줄(그 자체로 거는 효과는 없다):
+      타임사용 = 「트레이너가 「타임」을 사용할 수 있다」(트레이너 고유면 지시 횟수와 별도의 고유 타임 · 【탈진】 등 제한은 글대로)
+      타임선언 [기술] [교대] = 「「타임」을 사용한 턴 확인한 상대에게 … 선언」(기술 = 선언한 기술은 그 턴 실패 · 교대 = 선언한 포켓몬과 교대하려 하면 「검은눈빛」). 낱말이 없으면 둘 다 */
+   case '타임사용':return {k:'timeuq'};
+   case '타임선언':{const mv=has('기술'),sw=has('교대');return {k:'timedecl',mv:mv||!sw?1:0,sw:sw||!mv?1:0}}
    case '없음':return {k:'none'};   /* 11-03 22:40 망령 「공용 포텐셜 다 자동화」: 배틀 효과가 없는 포텐셜(바닐라 · 베테랑 · 풍작술 …) — 「자동화 확인」에 「배틀 효과 없음」으로 */
    case '확인':return {k:'confirm',q:words.join(' ').replace(/^["“]|["”]$/g,'')};
    case '상태턴':{const tgt=tgtOf(words)||'self';const vi=words.findIndex(w=>/^[+\-=]\d+$/.test(w));let v=0,mode='add';if(vi>=0){const w=words.splice(vi,1)[0];if(w[0]==='=')mode='set';v=n(w)}const rest=words.join('');const st=rest==='전부'||rest==='모두'?'all':rest==='부정'||rest==='이상'?'neg':stEn(rest)||rest;return {k:'stcount',tgt,st,v,mode}}
@@ -1010,7 +1015,7 @@ window.OM_FX=(()=>{
    case 'spend':L.push('소모 '+({order:'4식',command:'지령',any:'4식지령'}[op.what]||'4식')+(op.n>1?' '+op.n:''));break;
    case 'msel':L.push('기술지정 '+(op.who==='ally'?'아군':'상대'));break;
    case 'tsel':L.push('대상지정 '+({enemy1:'상대1체',ally1:'아군1체',ally1s:'자신포함아군1체',any1:'아무나1체'}[op.tgt]||'상대1체'));break;
-   case 'none':L.push('없음');break;case 'sk':L.push('은열쇠 '+(op.fx||''));break;
+   case 'none':L.push('없음');break;case 'timeuq':L.push('타임사용');break;case 'timedecl':L.push('타임선언'+(op.mv?' 기술':'')+(op.sw?' 교대':''));break;case 'sk':L.push('은열쇠 '+(op.fx||''));break;
    case 'cond':L.push('조건 '+(op.c==='on_hit'?'명중'+(hitDesc(op)?' '+hitDesc(op):''):op.c==='ally_fainted'?'아군빈사':op.c==='self_state'?'상태:'+stKoW(op.st):op.c==='foe_type'?'적진타입 '+(op.types||[]).map(t=>TYPE_KO[t]||t).join(','):op.c==='hazard'?(op.foe?'적진설치기:':'설치기:')+(op.v||[]).join(','):op.c==='self_type'?'타입:'+(op.types||[]).map(t=>TYPE_KO[t]||t).join(','):/^(ally|pt_any|pt_all|foe|self)_(type|egg|item)$/.test(op.c)?({ally:'아군',pt_any:'PT에',pt_all:'PT',foe:'적진',self:''})[op.c.replace(/_(type|egg|item)$/,'')]+(/_type$/.test(op.c)?'타입:'+(op.types||[]).map(t=>TYPE_KO[t]||t).join(','):/_item$/.test(op.c)?'소지품:'+(op.items||[]).join(','):'알그룹:'+(op.eggs||[]).join(',')):op.c==='used_item'?'소모:'+(op.v||[]).join(','):op.c==='stage'?'이계:'+op.v:op.c==='weather'?'날씨:'+(op.v||[]).join(','):op.c==='base'?(op.br||[]).map(r=>r.raw).join(' '):op.c==='toks'?condStr(op).trim():'HP≤'+op.frac));break;
    case 'stcount':L.push('상태턴'+tg(op.tgt)+' '+(op.st==='all'?'전부':op.st==='neg'?'부정':stKoW(op.st))+' '+(op.mode==='set'?'=':(op.v>=0?'+':''))+op.v);break;
    case 'choice':L.push((op.multi?'선택 여럿:':'선택:')+'\n'+op.opts.map(o=>'- '+o.label+' → '+unparse(o.ops).join('; ')).join('\n'));break;
