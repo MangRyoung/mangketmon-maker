@@ -1459,3 +1459,4 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 @media (max-width:600px){#mk .tcd-pt,#mk .tcd-ex{grid-template-columns:minmax(0,1fr)}}
 
 #mk .uqty1{border:0;border-radius:6px;padding:2px 8px;font-size:11.5px;font-weight:700;cursor:pointer}#mk .uqty1.on{outline:2px solid var(--ink);outline-offset:1px}
+#mk .tcd-ps>.pngsum{display:flex;align-items:center;gap:6px}#mk .tcd-ps>.pngsum::before{content:'▸';font-size:10px;color:var(--muted)}#mk .tcd-ps[data-open]>.pngsum::before{content:'▾'}#mk .tcd-ps[data-open] .tcd-pn{display:none}#mk .tcd-ps[data-open]>.pngsum{margin-bottom:4px}
