@@ -72,7 +72,7 @@ async function gemini(system,user,opt){
   if(!mem.model)throw new Error('설정 탭에서 모델 이름을 넣어 주세요.');
   const {token,sa}=await accessToken();
   const region=mem.region||'global',host=region==='global'?'aiplatform.googleapis.com':region+'-aiplatform.googleapis.com';
-  const body={contents:[{role:'user',parts:[{text:user}]}],systemInstruction:{parts:[{text:system}]},generationConfig:{temperature:opt.temperature??0.9,maxOutputTokens:opt.max??12000}};
+  const body={contents:[{role:'user',parts:opt.parts||[{text:user}]}],systemInstruction:{parts:[{text:system}]},generationConfig:{temperature:opt.temperature??0.9,maxOutputTokens:opt.max??12000}};
   if(opt.json)body.generationConfig.responseMimeType='application/json';
   if(mem.safety==='loose')body.safetySettings=['HARM_CATEGORY_HARASSMENT','HARM_CATEGORY_HATE_SPEECH','HARM_CATEGORY_SEXUALLY_EXPLICIT','HARM_CATEGORY_DANGEROUS_CONTENT'].map(c=>({category:c,threshold:'BLOCK_ONLY_HIGH'}));
   const r=await fetch('https://'+host+'/v1/projects/'+encodeURIComponent(sa.project_id)+'/locations/'+encodeURIComponent(region)+'/publishers/google/models/'+encodeURIComponent(mem.model)+':generateContent',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body),signal:opt.signal});
@@ -100,22 +100,31 @@ function chunks(lines,size){
   if(cur.length)out.push(cur);return out;
 }
 const SPLIT='===요약===';
+const NOVEL_KEY='mtl-ai-novel';
+const NOVEL_GUIDE_DEFAULT=['로그에 있는 사건 · 대사의 뜻 · 판정 결과를 바꾸지 않는다. 로그에 없는 사건 · 인물 · 설정을 지어내지 않는다.',
+  '「이름: 대사」 꼴을 그대로 옮기지 않는다. 지문과 따옴표 대사로 풀어 쓰고, 누가 말했는지는 지문으로 알린다. 대사는 뜻과 말투를 살리되 글로 읽기 좋게 다듬는다.',
+  '주사위 · 판정 · 수치가 적힌 줄(대괄호 안의 굴림, 명중 · 피해 숫자, 카드 꼴 시스템 글)은 숫자를 쓰지 않고, 성공 · 실패 · 얼마나 아슬아슬했는지를 장면으로 보여 준다.',
+  '규칙 이야기, 진행 안내, 잡담처럼 이야기 바깥의 줄은 뺀다.',
+  '문단은 짧게 끊고, 장면이 바뀌면 빈 줄 뒤에 「***」 한 줄을 둔다.',
+  '제목 · 머리말 · 해설 · 맺음말은 쓰지 않는다. 본문만 쓴다.'].join('\n');
+const novelCfg=Object.assign({guide:''},ls.get(NOVEL_KEY,{}));
+const novelGuide=()=>(novelCfg.guide&&novelCfg.guide.trim())||NOVEL_GUIDE_DEFAULT;
+/* 지침 = 머리말 + 작성 지침(고칠 수 있음) + 고른 값(시점 · 분량 · 문체) + 이어 쓰기 · 요약 규칙(고정: 구간을 잇는 데 필요) */
 function novelSystem(o){
   const pov=o.pov==='first'?'1인칭 시점으로 쓴다. 화자는 「'+(o.povWho||'주인공')+'」 이고, 그 인물이 보고 듣고 느낀 것만 쓴다.':'3인칭 시점으로 쓴다. 장면마다 중심 인물 한 명의 가까이에서 서술한다.';
   const len=o.len==='tight'?'분량은 로그보다 짧게, 군더더기 없이 압축한다.':o.len==='rich'?'분량은 넉넉하게. 로그에 드러난 행동 · 표정 · 분위기를 살려 묘사를 보탠다(없는 사건은 만들지 않는다).':'분량은 로그와 비슷하게.';
   return ['너는 TRPG 세션 로그를 한국어 웹소설 본문으로 옮기는 작가다.',
-  '지켜야 할 것:',
-  '1. 로그에 있는 사건 · 대사의 뜻 · 판정 결과를 바꾸지 않는다. 로그에 없는 사건 · 인물 · 설정을 지어내지 않는다.',
-  '2. 「이름: 대사」 꼴을 그대로 옮기지 않는다. 지문과 따옴표 대사로 풀어 쓰고, 누가 말했는지는 지문으로 알린다. 대사는 뜻과 말투를 살리되 글로 읽기 좋게 다듬는다.',
-  '3. 주사위 · 판정 · 수치가 적힌 줄(대괄호 안의 굴림, 명중 · 피해 숫자, 카드 꼴 시스템 글)은 숫자를 쓰지 않고, 성공 · 실패 · 얼마나 아슬아슬했는지를 장면으로 보여 준다.',
-  '4. 규칙 이야기, 진행 안내, 잡담처럼 이야기 바깥의 줄은 뺀다.',
-  '5. '+pov,
-  '6. '+len,
-  '7. 문단은 짧게 끊고, 장면이 바뀌면 빈 줄 뒤에 「***」 한 줄을 둔다. 제목 · 머리말 · 해설 · 맺음말은 쓰지 않는다. 본문만 쓴다.',
-  o.style?'8. 문체에 대한 주문: '+o.style:'',
+  '[작성 지침]',
+  novelGuide(),
   '',
+  '[이번 글의 설정]',
+  '- '+pov,
+  '- '+len,
+  o.style?'- 문체에 대한 주문: '+o.style:'',
+  '',
+  '[이어 쓰기]',
   '앞부분에서 이어지는 글이면, 주어진 「바로 앞 본문」 에 자연스럽게 이어 쓴다(되풀이하지 않는다).',
-  '본문을 다 쓴 다음, 맨 끝에 '+SPLIT+' 한 줄을 쓰고 그 아래에 「지금까지의 줄거리와 인물들의 현재 상태」 를 600자 안쪽으로 정리한다. 이 정리는 다음 구간을 쓸 때 참고 자료로만 쓰인다.'].filter(x=>x!=='').join('\n');
+  '본문을 다 쓴 다음, 맨 끝에 '+SPLIT+' 한 줄을 쓰고 그 아래에 「지금까지의 줄거리와 인물들의 현재 상태」 를 600자 안쪽으로 정리한다. 이 정리는 다음 구간을 쓸 때 참고 자료로만 쓰인다.'].filter((x,k,a)=>!(x===''&&a[k-1]==='')).join('\n');
 }
 function novelUser(o,ctx,part,i,n){
   return ['[작품] '+o.title,
@@ -201,6 +210,33 @@ function insertIllust(l,afterId,src,caption){
   l.messages.splice(i<0?l.messages.length:i+1,0,msg);touch(l);renderLog();return msg.id;
 }
 
+/* 외모 태그 자동 채우기: 화자의 초상(토큰 그림)을 글 AI 에 보여 주고 태그를 받는다. 그림이 없는 인물은 로그 글만으로. */
+function portraitOf(l,rawName){
+  for(const m of l.messages)if(m.name===rawName&&m.asset&&img(m.asset))return img(m.asset);
+  return img(rawName)||null;
+}
+function looksSystem(){
+  return ['You write appearance tags for the NovelAI anime image model (Danbooru-style English tags, lowercase, comma separated).',
+  'For each listed character give 8 to 20 tags in this order: subject tag (1girl, 1boy, 1other; for a creature or object use fitting tags such as "no humans, wolf"), apparent age group, hair length / style / color, eye color, skin tone, notable features (horns, animal ears, scars, glasses, beard), build, then the usual outfit.',
+  'Use the picture when one is given. A picture may be a small round token: describe only what is visible and do not guess hidden parts. Without a picture, use only what the log excerpt states. If nothing is known, return an empty string for that character.',
+  'Do not include pose, expression, background, camera, quality or artist tags. Treat characters as adults unless the log clearly says otherwise, and never add sexual tags.',
+  'Return JSON only: {"characters":[{"name":"<name exactly as listed>","tags":"<tags>"}]}'].join('\n');
+}
+async function autoLooks(l,rawNames,signal,onStep){
+  const out={};const items=logItems(l).map(x=>x.text).join('\n').slice(0,9000);
+  for(let k=0;k<rawNames.length;k+=10){
+    const part=rawNames.slice(k,k+10);onStep&&onStep(k,rawNames.length);
+    const parts=[{text:'[Log excerpt]\n'+items+'\n\n[Characters]'}];
+    for(const rn of part){const disp=cfg(rn).name,src=portraitOf(l,rn);parts.push({text:'\nCharacter: '+disp+(src?' (picture follows)':' (no picture)')});
+      const m=src&&/^data:(image\/[\w.+-]+);base64,(.+)$/i.exec(src);if(m)parts.push({inlineData:{mimeType:m[1],data:m[2]}})}
+    const r=await gemini(looksSystem(),'',{parts,signal,json:true,temperature:0.3,max:4000});
+    let t=String(r.text).trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();const a=t.indexOf('{'),b=t.lastIndexOf('}');
+    const o=JSON.parse(t.slice(a,b+1));
+    for(const c of (o.characters||[])){const nm=String(c.name||'').trim(),tg=String(c.tags||'').trim();if(nm&&tg)out[nm]=tg}
+  }
+  return out;
+}
+
 /* ---------- 화면 ---------- */
 let run=null;
 function open(){
@@ -214,6 +250,10 @@ function open(){
  <label>분량<select id="aiLen"><option value="same">로그와 비슷하게</option><option value="tight">압축</option><option value="rich">묘사를 넉넉히</option></select></label>
  <label>한 번에 보낼 양<select id="aiSize"><option value="6000">적게 (꼼꼼)</option><option value="9000" selected>보통</option><option value="14000">많이 (빠름)</option></select></label></div>
  <div class="ai-row"><label>문체 주문 (비워도 됨)<input type="text" id="aiStyle" placeholder="예: 담백한 문장, 전투는 속도감 있게"></label></div>
+ <details><summary style="cursor:pointer;font-size:.85rem;margin:6px 0">작성 지침 (고칠 수 있어요)</summary>
+ <div class="ai-row"><label>글 AI 에게 주는 규칙 — 한 줄에 하나씩<textarea id="aiGuide" rows="8"></textarea></label></div>
+ <div class="ai-foot" style="margin-top:0"><button class="btn" id="aiGuideSave" type="button">지침 저장</button><button class="btn" id="aiGuideReset" type="button">기본값으로</button><span class="ai-stat" id="aiGuideStat"></span></div>
+ <div class="ai-note">위에서 고른 시점 · 분량 · 문체 주문은 이 지침 뒤에 자동으로 붙습니다. 구간을 이어 쓰기 위한 규칙(앞 본문에 이어 쓰기 · 끝에 줄거리 정리)도 항상 붙고, 이 둘은 여기서 바꿀 수 없습니다. 지침은 이 브라우저에 저장됩니다.</div></details>
  <div class="ai-row"><label>설정 메모 (비워도 됨 · 세계관이나 인물 관계처럼 로그만으로는 알기 어려운 것)<textarea id="aiMemo" rows="2"></textarea></label></div>
  <div class="ai-stat" id="aiStat"></div><div class="ai-prog"><i id="aiBar"></i></div>
  <textarea id="aiOut" rows="16" placeholder="여기에 소설 본문이 구간마다 이어서 채워집니다. 다 된 뒤에는 바로 고칠 수 있어요."></textarea>
@@ -226,7 +266,10 @@ function open(){
  <label>스텝 (28 이하)<input type="text" id="aiSt" inputmode="numeric"></label></div>
  <div class="ai-row"><label>그림체 태그 (모든 그림 앞에 붙음)<textarea id="aiArt" rows="2" class="ai-mono"></textarea></label></div>
  <div class="ai-row"><label>제외 태그<textarea id="aiNeg" rows="2" class="ai-mono"></textarea></label></div>
- <details><summary style="cursor:pointer;font-size:.85rem;margin:6px 0">인물 외모 태그 (영어 태그 · 넣어 둘수록 같은 얼굴로 나와요)</summary><div id="aiLooks"></div></details>
+ <details><summary style="cursor:pointer;font-size:.85rem;margin:6px 0">인물 외모 태그 (영어 태그 · 넣어 둘수록 같은 얼굴로 나와요)</summary>
+ <div class="ai-foot" style="margin-top:4px"><button class="btn" id="aiLookAuto" type="button">빈 칸 자동으로 채우기</button><span class="ai-stat" id="aiLookStat"></span></div>
+ <div class="ai-note">글 AI 가 각 인물의 초상(토큰 그림)과 로그를 보고 외모 태그를 적습니다. 이미 적어 둔 칸은 건드리지 않아요. 결과는 꼭 한 번 읽고 고쳐 주세요.</div>
+ <div id="aiLooks"></div></details>
  <div class="ai-foot"><button class="btn primary" id="aiPlan" type="button">삽화 장면 고르기</button><button class="btn" id="aiDrawAll" type="button" hidden>모두 그리기</button><button class="btn" id="aiIllStop" type="button" hidden>멈추기</button><span class="ai-stat" id="aiIllStat"></span></div>
  <div class="ai-note">글 AI 가 로그를 장수만큼 나눠 구간마다 한 장면을 고르고, NovelAI 가 그립니다. 그림은 1장 · 100만 화소 이하 · 28스텝 이하로만 요청합니다(Opus 무료 생성 조건). 그래도 계정 상태에 따라 Anlas 가 쓰일 수 있어요.</div>
  <div id="aiCards"></div>
@@ -264,11 +307,22 @@ function open(){
   if(!mem.sa||!mem.model)tab('set');
   /* 삽화 */
   (function(){
-    const names=[...new Set((l?l.messages:[]).filter(m=>m.name&&!cfg(m.name).hide).map(m=>cfg(m.name).name))];
+    const rawOf={};(l?l.messages:[]).forEach(m=>{if(m.name&&!cfg(m.name).hide){const d=cfg(m.name).name;if(!rawOf[d])rawOf[d]=m.name}});
+    const names=Object.keys(rawOf);
     q('aiN').value=String(art.count);q('aiNm').value=art.model;q('aiSt').value=String(art.steps);q('aiArt').value=art.style;q('aiNeg').value=art.neg;
     q('aiLooks').innerHTML=names.map((n,i)=>`<div class="ai-row"><label>${esc(n)}<input type="text" class="ai-mono" data-look="${i}" value="${esc(art.looks[n]||'')}" placeholder="예: 1girl, long silver hair, red eyes, black coat"></label></div>`).join('')||'<div class="ai-note">로그를 먼저 골라 주세요.</div>';
     const takeArt=()=>{art.count=Number(q('aiN').value)||3;art.model=q('aiNm').value;art.steps=Math.max(1,Math.min(28,parseInt(q('aiSt').value,10)||28));q('aiSt').value=String(art.steps);art.style=q('aiArt').value.trim();art.neg=q('aiNeg').value.trim();
       box.querySelectorAll('[data-look]').forEach(el=>{const n=names[Number(el.dataset.look)];if(el.value.trim())art.looks[n]=el.value.trim();else delete art.looks[n]});saveArt()};
+    q('aiLookAuto').onclick=async()=>{
+      if(!l)return;if(!mem.sa||!mem.model){tab('set');return}
+      takeArt();const todo=names.filter(n=>!art.looks[n]);const ls2=t=>q('aiLookStat').textContent=t;
+      if(!todo.length){ls2('빈 칸이 없어요.');return}
+      q('aiLookAuto').disabled=true;ls2('보는 중…');
+      try{const got=await autoLooks(l,todo.map(n=>rawOf[n]),null,(k,n)=>ls2('보는 중… '+k+' / '+n));let c=0;
+        box.querySelectorAll('[data-look]').forEach(el=>{const n=names[Number(el.dataset.look)];if(!el.value.trim()&&got[n]){el.value=got[n];c++}});
+        takeArt();ls2(c+'명을 채웠어요'+(c<todo.length?' · '+(todo.length-c)+'명은 알 수 있는 것이 없어 비워 뒀어요':''));
+      }catch(e){ls2('멈춤: '+String(e.message||e))}finally{q('aiLookAuto').disabled=false}
+    };
     q('aiNm').onchange=()=>{q('aiSt').value=q('aiNm').value.startsWith('nai-diffusion-5-')?'18':'28'};
     const ist=t=>q('aiIllStat').textContent=t;
     let orders=[],irun=null;
@@ -320,6 +374,10 @@ ${o.characters.map((c,k)=>`<div class="ai-row"><label>${esc(c.name||'인물 '+(k
   /* 웹소설 */
   const names=[...new Set((l?l.messages:[]).filter(m=>m.name&&!cfg(m.name).hide).map(m=>cfg(m.name).name))];
   q('aiWho').innerHTML=names.map(n=>`<option>${esc(n)}</option>`).join('');
+  q('aiGuide').value=novelGuide();
+  const takeGuide=()=>{const v=q('aiGuide').value.trim();novelCfg.guide=(v===NOVEL_GUIDE_DEFAULT.trim())?'':v;ls.set(NOVEL_KEY,novelCfg)};
+  q('aiGuideSave').onclick=()=>{takeGuide();q('aiGuideStat').textContent=novelCfg.guide?'저장했어요 (고친 지침)':'저장했어요 (기본 지침)'};
+  q('aiGuideReset').onclick=()=>{novelCfg.guide='';ls.set(NOVEL_KEY,novelCfg);q('aiGuide').value=NOVEL_GUIDE_DEFAULT;q('aiGuideStat').textContent='기본값으로 돌렸어요'};
   const st=(t)=>q('aiStat').textContent=t;const bar=p=>q('aiBar').style.width=Math.round(p*100)+'%';
   let state=null;
   const nkey=l?'ai-novel:'+l.id:null;
@@ -329,6 +387,7 @@ ${o.characters.map((c,k)=>`<div class="ai-row"><label>${esc(c.name||'인물 '+(k
   async function go(resume){
     if(!l){st('먼저 로그를 골라 주세요.');return}
     if(!mem.sa||!mem.model){tab('set');return}
+    takeGuide();
     const o={title:l.title,pov:q('aiPov').value,povWho:q('aiWho').value,len:q('aiLen').value,style:q('aiStyle').value.trim(),memo:q('aiMemo').value.trim()};
     const parts=chunks(logLines(l),Number(q('aiSize').value)||9000);
     if(!parts.length){st('옮길 줄이 없어요.');return}
@@ -369,6 +428,6 @@ ${o.characters.map((c,k)=>`<div class="ai-row"><label>${esc(c.name||'인물 '+(k
 /* 단추 */
 const anchor=$('copyText');
 if(anchor){const b=E('button',{class:'btn',id:'aiBtn',type:'button',title:'로그를 웹소설로 (글 AI)'},'AI');anchor.parentNode.insertBefore(b,anchor);b.onclick=open}
-window.MTL_AI={gemini,logLines,chunks,novelSystem,novelUser,mem,logItems,illustSystem,illustUser,parseOrder,naiBody,naiGenerate,art};
+window.MTL_AI={gemini,logLines,chunks,novelSystem,novelUser,mem,logItems,illustSystem,illustUser,parseOrder,naiBody,naiGenerate,art,autoLooks,portraitOf,novelGuide,novelCfg};
 })();
 </script>
