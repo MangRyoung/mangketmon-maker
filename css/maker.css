@@ -1444,9 +1444,18 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 #mk .tcd-s.tcd-x{border-left:4px solid var(--c1)}
 #mk .tcd-sh{display:flex;align-items:center;gap:6px;flex-wrap:wrap}#mk .tcd-sh>b{font-size:13px}
 #mk .tcd-e{font-size:12px;line-height:1.5;color:var(--ink)}#mk .tcd-s>.tcd-e{margin-top:2px}
-#mk .tcd-ps{display:flex;flex-direction:column;gap:4px}
-#mk .tcd-p{font-size:12px;line-height:1.5;padding-top:4px;border-top:1px dashed color-mix(in srgb,var(--line) 80%,transparent)}#mk .tcd-sh+.tcd-p{border-top:0;padding-top:0}
+#mk .tcd-ps{display:block}
+#mk .tcd-ps>summary{cursor:pointer;list-style:none;user-select:none}#mk .tcd-ps>summary::-webkit-details-marker{display:none}
+#mk .tcd-ps>summary::before{content:'▸';font-size:10px;color:var(--muted);transition:transform .15s;display:inline-block}#mk .tcd-ps[open]>summary::before{transform:rotate(90deg)}
+#mk .tcd-pn{flex:1 1 0;min-width:0;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#mk .tcd-ps[open] .tcd-pn{display:none}
+#mk .tcd-ps[open]>summary{margin-bottom:4px}#mk .tcd-ps>.tcd-p:first-of-type{border-top:0;padding-top:0}
+#mk .tcd-mvs{display:flex;flex-wrap:wrap;gap:4px}
+#mk .tcd-mv{display:inline-flex;align-items:center;gap:0;font-size:11.5px;font-weight:600;line-height:20px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--mb) 22%,var(--surface));border:1px solid color-mix(in srgb,var(--mb) 70%,transparent);color:var(--ink);padding-right:8px;box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--mb) 40%,transparent)}
+#mk .tcd-mv>i{font-style:normal;font-size:9.5px;font-weight:800;align-self:stretch;display:grid;place-items:center;min-width:22px;padding:0 5px;margin-right:6px;background:var(--mb);color:var(--mf)}
+#mk .tcd-p{font-size:12px;line-height:1.5;padding:4px 0 0;margin-top:4px;border-top:1px dashed color-mix(in srgb,var(--line) 80%,transparent)}
 #mk .tcd-p>b{font-size:12.5px}
 #mk .tcd-pk{display:inline-block;font-size:9.5px;font-weight:700;padding:0 5px;margin-right:4px;border-radius:5px;background:color-mix(in srgb,var(--c1) 22%,var(--sunk));color:var(--ink);vertical-align:1px}
 #mk .tcd-ex{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px}
 @media (max-width:600px){#mk .tcd-pt,#mk .tcd-ex{grid-template-columns:minmax(0,1fr)}}
+
+#mk .uqty1{border:0;border-radius:6px;padding:2px 8px;font-size:11.5px;font-weight:700;cursor:pointer}#mk .uqty1.on{outline:2px solid var(--ink);outline-offset:1px}
