@@ -2575,12 +2575,14 @@ function trainerCardHTML(t){const tn=t.name||'(이름 없음)';const use=pointUs
   ${SF.length?`<div class="pcd-h">공유 폼체인지 <span class="faint">${SF.length}</span></div>${SF.map(f=>`<div class="pcd-x"><b>${esc(f.name)}</b>${f.kind?` <span class="faint small">${esc(f.kind)}</span>`:''}${f.cond?`<div class="pcd-e">${fxTxt(f.cond)}</div>`:''}</div>`).join('')}`:''}
   </div></div>`}
 function openTrainerCard(t){const TID=t.id;const cur=()=>S.trainers.find(x=>x.id===TID)||t;
- const l=openModal(`<div class="mhead"><h2>한 장 요약 <span class="small muted">트레이너</span></h2><span class="sp"></span><button class="btn sm" data-tcdc title="이 요약을 그림으로 만들어 디스코드의 정해 둔 스레드에 올린다 (웹툴 설정 「디스코드」 탭에서 이어 둔 곳)">디코로</button><button class="btn sm" data-tcpng title="이 요약을 그림 파일로 저장">PNG 저장</button><button class="btn ghost" data-x>닫기</button></div><div class="mbody pcd-wrap">${trainerCardHTML(cur())}</div>`,{wide:true});
+ const l=openModal(`<div class="mhead"><h2>한 장 요약 <span class="small muted">트레이너</span></h2><span class="sp"></span><button class="btn sm ghost" data-tcexp title="모든 포켓몬의 포텐셜 효과를 펼치거나 접는다 (PNG · 디코로 그림에도 펼친 그대로)">포텐셜 펼치기</button><button class="btn sm" data-tcdc title="이 요약을 그림으로 만들어 디스코드의 정해 둔 스레드에 올린다 (웹툴 설정 「디스코드」 탭에서 이어 둔 곳)">디코로</button><button class="btn sm" data-tcpng title="이 요약을 그림 파일로 저장">PNG 저장</button><button class="btn ghost" data-x>닫기</button></div><div class="mbody pcd-wrap">${trainerCardHTML(cur())}</div>`,{wide:true});
  $('.mbox',l).classList.add('pcdbox');l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>closeModal());
  l.querySelectorAll('.tcd-m').forEach((el,j)=>{el.style.cursor='pointer';el.title='눌러서 이 포켓몬 한 장 요약';el.onclick=e=>{if(e&&e.target&&e.target.closest&&e.target.closest('details'))return;const T=cur();const P=T.pokemon[j];if(P)openPokeCard(T,P)}});
  if(RO_EMB){l.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{closeModal();try{window.parent.postMessage({mkm:'close'},'*')}catch(_){}})}
  $('[data-tcdc]',l)&&($('[data-tcdc]',l).onclick=()=>{const T=cur();cardDc($('[data-tcdc]',l),$('.pcd',l),{id:'t_'+T.id,title:T.name||'트레이너',sub:'트레이너 한 장 요약',who:{n:T.name||'',img:/^https?:\/\//.test(T.image||'')?T.image:''},foot:`${T.name||'트레이너'} · 트레이너 한 장 요약`})});
- $('[data-tcpng]',l).onclick=()=>cardPng($('.pcd',l),(cur().name||'트레이너')+'_한장요약',`${cur().name||'트레이너'} · 트레이너 한 장 요약`)}
+ $('[data-tcpng]',l).onclick=()=>cardPng($('.pcd',l),(cur().name||'트레이너')+'_한장요약',`${cur().name||'트레이너'} · 트레이너 한 장 요약`);
+ /* 11-26 망령 「포텐셜 보이게 한장 요약 해서 디코로」: 포텐셜 접힘 상자를 한꺼번에 펼치기 · 접기 */
+ {const xb=$('[data-tcexp]',l);if(xb)xb.onclick=()=>{const D=[...l.querySelectorAll('details.tcd-ps')];const open=!D.every(d=>d.open);D.forEach(d=>d.open=open);xb.textContent=open?'포텐셜 접기':'포텐셜 펼치기'}}}
 /* 10-22 망령: 로그 탭(logtool/, 같은 출처 iframe)의 「제작기 그림 잇기」가 읽는 캐릭터 그림 목록 */
 window.MKM_CHARS=()=>S.trainers.flatMap(t=>[{name:t.name,image:safeImg(t.image)||'',kind:'trainer'},...(t.pokemon||[]).map(p=>({name:p.name,image:safeImg(p.image)||'',kind:'poke'}))]).filter(x=>x.name&&x.image);
 /* 11-03 감우 (20번 검토 편의 1): 새 트레이너 · 포켓몬 카드로 스크롤하고 이름 칸에 커서 (터치 화면에선 자판이 튀어 오르지 않게 초점만 안 준다) */
