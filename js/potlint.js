@@ -537,5 +537,12 @@ window.MKM_POTLINT=(()=>{
   /* 11-23 호환성: 「상대에 대한 「명중」을 강화」는 자신의 명중 — 상대에게 거는 배율 줄로 잘못 읽힌 것은 뺀다 (틀린 추천보다 빈 칸) */{const bi=lines.findIndex((x,i)=>/^배율 상대\S* 명중×/.test(x)&&/상대에\s*대한\s*「?명중」?(?:을|를)\s*강화/.test(String(why[i]||all)));if(bi>=0){lines.splice(bi,1);why.splice(bi,1)}}
   const timing=/「\s*HP\s*[:：][^」]*」\s*(?:이하)?\s*(?:가|이)\s*(?:되었을|됐을)\s*때/.test(all)?'「HP : N 이하가 되었을 때」라 오레마스에서 HP 가 그 아래로 내려간 순간 자동으로 걸린다 (【유일】 = 배틀에 한 번 · 그 밖 = 나와 있는 동안 한 번)':/【등장/.test(all)?'【등장】이 있어 오레마스에서 나올 때 자동으로 걸린다':/상태가\s*(?:되었을|됐을)\s*때/.test(all)?'「~ 상태가 되었을 때」라 오레마스에서 그 상태가 걸리는 순간 자동으로 걸린다 (확률은 그때 굴림)':/【상시】/.test(all)?'【상시】라 늘 켜져 있다':'배틀의 포텐셜 칸 「발동」 버튼으로 건다';
   /* 11-23 10:49 망령 「자진에 「순풍」이 전개되어 있을 때 상대의 「비접촉기」의 명중률을 저하(0.8배)」: 상대에게 거는 명중 줄은 조건을 상대가 본다 — 자진설치 ↔ 적진설치를 뒤집어 둔다 (상대가 보면 우리 자진 = 적진) */for(let i=0;i<lines.length;i++)if(/^위력 ×1 상대전체 .*명중×[\d.]+/.test(lines[i]))lines[i]=lines[i].replace(/(자진|적진)설치:/g,(_,w)=>(w==='자진'?'적진':'자진')+'설치:');
+  /* 11-26 07:04 망령 「상대가 특정 타입 · 소지품 · 특성이 되었을 때 · 아군에게 이 기술을 내보냈을 때 — 추천기에 잘 잡히도록」: 웹툴 계기(typed · itemed · abiled · used)에 맞춰 대상을 고친다 */
+  try{const BEC=/「\s*(타입|소지품|특성)\s*:\s*[^」]+」\s*(?:(?:이|가|으로|로)?\s*(?:되었을|됐을|바뀌었을|변했을)\s*때|(?:이|가)\s*된\s*(?:상대|대상|아군|적))/;const USED=/아군(?:\s*포켓몬)?에게\s*「[^」:]+」\s*(?:을|를)\s*(?:내보냈을|사용했을|내보낼|사용할)\s*때/;const TG=/(?:^|\s)(?:자신|아군\S*|상대\S*|대상|전체|정면|자신이외\S*)(?:\s|$)/;
+   const nx=all.match(/된\s*(?:상대|대상)(?:가|이)\s*다음에?\s*내보내는\s*기술(?:에|의)\s*「\s*우선도\s*:\s*([+\-−]\s*\d+)\s*」/);
+   if(nx&&BEC.test(all)){lines.length=0;lines.push('다음기술 상대1체 우선도'+nx[1].replace(/\s/g,'').replace('−','-'));why.length=0;why.push(all)}
+   if(USED.test(all)){const rest=all.slice(all.search(USED));const self=/자신(?:의|에게|이|을)/.test(rest)&&!/대상/.test(rest);if(!self)for(let i=0;i<lines.length;i++)if(/^(?:회복|우선도|랭크|배율|상태|치유|다음기술|위력|완화)\s/.test(lines[i])&&!TG.test(lines[i]))lines[i]+=' 아군1체';
+    if(!timing)timing='웹툴 계기 — 그 기술이 아군에게 들어가면 저절로 묻는다(【자동】이면 바로). 대상 「아군1체」 = 기술을 받은 아군'}
+   else if(BEC.test(all)&&!timing)timing='웹툴 계기 — 필드 포켓몬의 타입 · 소지품 · 특성이 그렇게 바뀌면 저절로 묻는다(【자동】이면 바로). 「상대1체」 = 바뀐 그 포켓몬 (처음 나올 때부터 그런 것은 계기 아님)'}catch(e){}
   {const fu=fixUp(all,lines);if(fu&&!lines.length)return {lines,why:why.length?why:[all],timing:fu}}return {lines,why,timing}}
  return {check,fixAll,fixOne,suggest,clauses,cmdChgOf}})();
