@@ -48,3 +48,11 @@ MapTool 채팅 로그(HTML · 텍스트)와 오레마스 방 로그를 읽기 �
 
 ## 올리기
 GitHub Desktop 에서 커밋 → Push. 주소: https://mangryoung.github.io/maptool-log/
+
+## AI 도구 (2026-11-25 ~)
+- `ai-addon.html` — 위쪽 줄의 「AI」 단추. build.py 가 oremas-addon 뒤에 이어 붙인다.
+- **웹소설로**: 지금 고른 로그를 구간(글자 수 기준)으로 잘라 글 AI 에 차례로 보내 소설 본문으로 옮긴다. 구간마다 「지금까지의 줄거리」 요약과 바로 앞 본문 끝을 같이 보내 이어 쓴다. 중간에 멈추면 「이어서 하기」. 결과는 이 브라우저(IndexedDB `ai-novel:<로그 id>`)에 남고 TXT · HTML 로 저장한다.
+- 글 AI = Vertex AI 의 Gemini. 서비스 계정 JSON 을 브라우저에서 서명(RS256)해 접근 토큰을 받고 `generateContent` 를 부른다. 지역 · 모델 이름은 설정 탭.
+- 키(서비스 계정 JSON · NovelAI 토큰)는 「이 브라우저에 기억하기」 를 켰을 때만 localStorage `mtl-ai` 에 남는다. 공유 DB · 저장 파일에는 넣지 않는다.
+- `apitest.html` — NovelAI · Vertex 에 브라우저에서 직접 닿는지 보는 시험 쪽.
+

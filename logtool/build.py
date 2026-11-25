@@ -10,6 +10,10 @@ import pathlib, re
 root = pathlib.Path(__file__).parent
 base = (root / 'src' / 'original.html').read_text(encoding='utf-8')
 addon = (root / 'oremas-addon.html').read_text(encoding='utf-8')
+# AI 덧붙임(웹소설화 등)은 따로 둔 파일을 뒤에 잇는다
+_ai = root / 'ai-addon.html'
+if _ai.exists():
+    addon = addon + '\n' + _ai.read_text(encoding='utf-8')
 
 # 1) 덧붙임은 </body> 바로 앞에
 i = base.lower().rfind('</body>')
