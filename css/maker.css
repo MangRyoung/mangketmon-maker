@@ -1433,6 +1433,13 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 #mk .tcd-r{display:flex;flex-direction:column;gap:6px;min-width:0}
 #mk .tcd-rk{padding:7px 9px;border-radius:10px;background:var(--sunk);border:1px solid var(--line)}
 #mk .tcd-rr{display:grid;grid-template-columns:56px auto minmax(0,1fr);gap:6px;align-items:center;padding:2px 0}
+/* 11-26 트레이너 한 장 요약 4식 · 6령 칩 */
+#mk .tcd-rr.tcd-or{grid-template-columns:56px minmax(0,1fr);align-items:start}
+#mk .tcd-ocs{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+#mk .tcd-oc{display:inline-flex;align-items:center;gap:4px;font-size:12px;line-height:1.3;padding:2px 4px 2px 8px;border-radius:999px;background:color-mix(in srgb,var(--c1,#7b4fd6) 14%,var(--sunk2,#eee));border:1px solid color-mix(in srgb,var(--c1,#7b4fd6) 35%,transparent)}
+#mk .tcd-oc b{min-width:16px;text-align:center;font-size:11px;padding:0 4px;border-radius:999px;background:var(--c1,#7b4fd6);color:#fff}
+#mk .tcd-oc.z{opacity:.45}
+#mk .tcd-oc.z b{background:var(--sunk2,#ccc);color:var(--ink,#333)}
 #mk .tcd-pt{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:10px;align-items:start}
 #mk .tcd-m{display:flex;flex-direction:column;gap:7px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--c1) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--c1) 35%,var(--line));min-width:0}
 #mk .tcd-m.ptn{box-shadow:0 0 0 1px var(--c1)}
