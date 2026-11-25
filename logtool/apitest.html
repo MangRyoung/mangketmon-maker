@@ -16,6 +16,18 @@ button:disabled{opacity:.5}.box{margin-top:14px;padding:12px 14px;border-radius:
 <input id="tk" type="password" autocomplete="off" spellcheck="false" placeholder="여기에 붙여 넣기">
 <button id="go">시험하기</button>
 <div id="out" class="box">아직 시험하지 않았습니다.</div>
+<hr style="margin:28px 0;border:0;border-top:1px solid #ddd">
+<h1>연결 시험 — Vertex AI 의 Gemini (서비스 계정 JSON)</h1>
+<p class="note">리수에 넣는 것과 같은 서비스 계정 JSON 글을 통째로 붙여 넣습니다. 이 브라우저 안에서 서명해 Google 에서 접근 토큰을 받고, 모델에 아주 짧은 글 한 번을 보내 봅니다(몇 글자 분량의 요금).<br>
+JSON 은 이 화면에서 Google 로만 쓰이고, 어디에도 저장하지 않습니다.</p>
+<label for="sa">서비스 계정 JSON (전체 붙여 넣기)</label>
+<textarea id="sa" rows="5" spellcheck="false" autocomplete="off" placeholder='{ "type": "service_account", "project_id": "...", "private_key": "-----BEGIN PRIVATE KEY-----...", "client_email": "..." }' style="width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #bbb;border-radius:8px;font-family:monospace;font-size:12px"></textarea>
+<label for="rg">지역 (리수에 넣은 값과 같게. 예: global, us-central1)</label>
+<input id="rg" value="global" autocomplete="off" spellcheck="false">
+<label for="md">모델 이름 (리수에서 쓰는 이름 그대로)</label>
+<input id="md" placeholder="예: gemini-…" autocomplete="off" spellcheck="false">
+<button id="go2">시험하기</button>
+<div id="out2" class="box">아직 시험하지 않았습니다.</div>
 <script>
 const $=id=>document.getElementById(id);
 function show(cls,text){const o=$('out');o.className='box '+cls;o.textContent=text}
@@ -39,5 +51,42 @@ $('go').onclick=async()=>{
   }catch(e){
     show('bad','결과: 브라우저에서 직접은 막혀 있습니다\n('+(e&&e.name||'오류')+': '+String(e&&e.message||e).slice(0,160)+')\n이 경우 중계 기능이 필요합니다.\n\n이 글을 그대로 복사해 감우에게 알려 주세요.');
   }finally{$('go').disabled=false}
+};
+
+function show2(cls,text){const o=$('out2');o.className='box '+cls;o.textContent=text}
+const b64u=bytes=>{let t='';for(const x of bytes)t+=String.fromCharCode(x);return btoa(t).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
+const enc=o=>b64u(new TextEncoder().encode(JSON.stringify(o)));
+async function vertexToken(sa){
+  const pem=String(sa.private_key||'').replace(/-----[^-]+-----/g,'').replace(/\s+/g,'');
+  const der=Uint8Array.from(atob(pem),c=>c.charCodeAt(0));
+  const key=await crypto.subtle.importKey('pkcs8',der,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['sign']);
+  const now=Math.floor(Date.now()/1000);
+  const head=enc({alg:'RS256',typ:'JWT'}),body=enc({iss:sa.client_email,scope:'https://www.googleapis.com/auth/cloud-platform',aud:'https://oauth2.googleapis.com/token',iat:now,exp:now+3000});
+  const sig=new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',key,new TextEncoder().encode(head+'.'+body)));
+  return head+'.'+body+'.'+b64u(sig);
+}
+$('go2').onclick=async()=>{
+  let sa;try{sa=JSON.parse($('sa').value.trim())}catch(e){show2('bad','JSON 을 읽지 못했습니다. 파일 내용을 처음부터 끝까지 그대로 붙여 넣어 주세요.');return}
+  const region=$('rg').value.trim()||'global',model=$('md').value.trim();
+  if(!sa.private_key||!sa.client_email||!sa.project_id){show2('bad','JSON 에 private_key · client_email · project_id 가 있어야 합니다.');return}
+  if(!model){show2('bad','모델 이름을 넣어 주세요.');return}
+  $('go2').disabled=true;let stage='1 서명';show2('','확인하는 중…');
+  try{
+    const jwt=await vertexToken(sa);
+    stage='2 접근 토큰 받기';
+    const tr=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type='+encodeURIComponent('urn:ietf:params:oauth:grant-type:jwt-bearer')+'&assertion='+jwt});
+    if(!tr.ok){let d='';try{d=(await tr.json()).error_description||''}catch(e){}show2('bad','결과: Google 에는 닿았지만 토큰을 받지 못했습니다 (2단계, HTTP '+tr.status+')\n'+String(d).slice(0,200)+'\n\n이 글을 그대로 복사해 감우에게 알려 주세요.');return}
+    const token=(await tr.json()).access_token;
+    stage='3 모델 부르기';
+    const host=region==='global'?'aiplatform.googleapis.com':region+'-aiplatform.googleapis.com';
+    const t0=Date.now();
+    const mr=await fetch('https://'+host+'/v1/projects/'+encodeURIComponent(sa.project_id)+'/locations/'+encodeURIComponent(region)+'/publishers/google/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:'한 단어로만 답해 주세요: 안녕'}]}],generationConfig:{maxOutputTokens:64}})});
+    const ms=Date.now()-t0;
+    if(!mr.ok){let d='';try{d=((await mr.json()).error||{}).message||''}catch(e){}show2('bad','결과: 토큰은 받았지만 모델 호출이 거절됐습니다 (3단계, HTTP '+mr.status+')\n'+String(d).slice(0,300)+'\n지역: '+region+' · 모델: '+model+'\n\n이 글을 그대로 복사해 감우에게 알려 주세요.');return}
+    let text='';try{const j=await mr.json();text=(((j.candidates||[])[0]||{}).content||{}).parts?.map(p=>p.text||'').join('')||''}catch(e){}
+    show2('ok','결과: 닿습니다 (직접 연결 가능)\n3단계 모두 통과 · '+ms+'ms\n지역: '+region+' · 모델: '+model+'\n답: '+String(text).slice(0,60)+'\n\n이 글을 그대로 복사해 감우에게 알려 주세요.');
+  }catch(e){
+    show2('bad','결과: '+stage+' 단계에서 막혔습니다\n('+(e&&e.name||'오류')+': '+String(e&&e.message||e).slice(0,160)+')\n지역: '+region+' · 모델: '+model+'\n\n이 글을 그대로 복사해 감우에게 알려 주세요.');
+  }finally{$('go2').disabled=false}
 };
 </script></body></html>
