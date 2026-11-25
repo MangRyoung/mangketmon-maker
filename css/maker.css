@@ -566,11 +566,11 @@ html.modal-on #mk{overflow:hidden}
 #mk .uqc:hover{box-shadow:0 0 0 2px color-mix(in srgb,var(--uc) 55%,transparent)}
 #mk .uqc.vac{background:var(--sunk);border-style:dashed}
 #mk .uqh{display:flex;align-items:center;gap:10px;min-width:0}
-#mk .uqs{font-size:10px;font-weight:800;letter-spacing:.12em;color:#fff;background:var(--uc);padding:2px 7px;border-radius:4px;flex:none}
+#mk .uqs{font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--ucf,#fff);background:var(--uc);padding:2px 7px;border-radius:4px;flex:none}
 #mk .uqi{font-size:24px;line-height:1;width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--uc) 22%,var(--surface));border:2px solid var(--uc)}
 #mk .uqt{display:flex;flex-direction:column;min-width:0}
-#mk .uqn{font-size:18px;line-height:1.25;color:color-mix(in srgb,var(--uc) 70%,var(--ink));overflow-wrap:anywhere}
-#mk .uqc.vac .uqn{font-size:14px;font-weight:400;color:var(--faint)}
+#mk .uqn{font-size:18px;line-height:1.25;color:var(--ucf,#fff);background:var(--uc);padding:1px 10px;border-radius:6px;align-self:flex-start;overflow-wrap:anywhere}
+#mk .uqc.vac .uqn{font-size:14px;font-weight:400;color:var(--faint);background:none;padding:0}
 #mk .uqsub{font-size:12px;color:var(--muted);font-style:italic}
 #mk .uqe{margin-top:8px;font-size:13px;line-height:1.65;color:var(--ink);white-space:normal}
 #mk .uqe .tg{background:color-mix(in srgb,var(--uc) 18%,transparent);color:color-mix(in srgb,var(--uc) 75%,var(--ink))}
@@ -1461,4 +1461,4 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 #mk .uqty1{border:0;border-radius:6px;padding:2px 8px;font-size:11.5px;font-weight:700;cursor:pointer}#mk .uqty1.on{outline:2px solid var(--ink);outline-offset:1px}
 #mk .tcd-ps>.pngsum{display:flex;align-items:center;gap:6px}#mk .tcd-ps>.pngsum::before{content:'▸';font-size:10px;color:var(--muted)}#mk .tcd-ps[data-open]>.pngsum::before{content:'▾'}#mk .tcd-ps[data-open] .tcd-pn{display:none}#mk .tcd-ps[data-open]>.pngsum{margin-bottom:4px}
 /* 11-25 망령 「고유 꾸미기는 제목 색도 맞춰서」: 트레이너 한 장 요약의 고유 칸 — 테두리 · 바탕 · 제목 · 아이콘이 고유 색 */
-#mk .tcd-uq>b{color:color-mix(in srgb,var(--uc) 72%,var(--ink));font-size:15px}#mk .tcd-uqi{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-right:4px;border-radius:6px;background:var(--uc);color:#fff;font-size:12px;vertical-align:1px}
+#mk .tcd-uq>b{display:inline-block;color:var(--ucf,#fff);background:var(--uc);padding:1px 9px;border-radius:6px;font-size:15px}#mk .tcd-uqi{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-right:4px;border-radius:6px;background:var(--uc);color:var(--ucf,#fff);font-size:12px;vertical-align:1px}
