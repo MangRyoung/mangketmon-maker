@@ -286,15 +286,19 @@ function open(){
  <div id="aiCards"></div>
 </section>
 <section data-p="set" hidden>
+ <div id="aiLockRow" hidden style="border:2px solid var(--accent,#36c);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+  <div style="font-weight:600;font-size:.9rem">기억해 둔 키가 잠겨 있어요</div>
+  <div class="ai-note">키는 암호로 잠가서 저장돼요. 그래서 새로 열면 칸이 비어 보여요. 잠금 암호를 넣으면 다시 채워집니다.</div>
+  <div class="ai-row"><label>잠금 암호<input type="password" id="aiUnlockPw" autocomplete="off"></label><label style="flex:0 0 auto;justify-content:flex-end"><button class="btn primary" id="aiUnlock" type="button">잠금 풀기</button></label><label style="flex:0 0 auto;justify-content:flex-end"><button class="btn" id="aiForget" type="button">잠긴 키 지우기</button></label></div>
+ </div>
  <h3>글 AI — Vertex AI (Gemini)</h3>
  <div class="ai-row"><label>서비스 계정 JSON (리수에 넣는 것과 같은 글 전체)<textarea id="aiSa" class="ai-mono" rows="5" spellcheck="false" autocomplete="off"></textarea></label></div>
  <div class="ai-row"><label>지역<input type="text" id="aiRegion" spellcheck="false" autocomplete="off"></label><label>모델 이름<input type="text" id="aiModel" spellcheck="false" autocomplete="off"></label>
  <label>안전 필터<select id="aiSafe"><option value="default">기본</option><option value="loose">느슨하게 (전투 · 유혈 묘사가 막힐 때)</option></select></label></div>
  <h3>그림 AI — NovelAI (삽화 기능에 쓸 예정)</h3>
  <div class="ai-row"><label>NovelAI 토큰<input type="password" id="aiNai" spellcheck="false" autocomplete="off"></label></div>
- <div class="ai-row" id="aiLockRow" hidden><label>잠긴 키가 있어요 — 잠금 암호<input type="password" id="aiUnlockPw" autocomplete="off"></label><label style="flex:0 0 auto;justify-content:flex-end"><button class="btn primary" id="aiUnlock" type="button">잠금 풀기</button></label><label style="flex:0 0 auto;justify-content:flex-end"><button class="btn" id="aiForget" type="button">잠긴 키 지우기</button></label></div>
  <div class="ai-row"><label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="aiKeep" style="width:auto"> 이 브라우저에 기억하기 (끄면 창을 닫을 때 잊습니다)</label>
- <label>잠금 암호 (기억할 때 필요 · 8자 이상)<input type="password" id="aiPw" autocomplete="new-password"></label></div>
+ <label id="aiPwWrap" hidden>잠금 암호 — 꼭 넣어야 기억돼요 (8자 이상)<input type="password" id="aiPw" autocomplete="new-password"></label></div>
  <div class="ai-note">기억하기를 켜면 키를 잠금 암호로 잠가서 저장합니다. 저장 공간에는 암호문만 남고, 다음에 쓸 때 암호를 한 번 넣어 풉니다. 암호를 잊으면 키를 다시 붙여 넣어야 합니다.</div>
  <div class="ai-foot"><button class="btn primary" id="aiSave" type="button">적용</button><button class="btn" id="aiTest" type="button">연결 확인</button><span class="ai-stat" id="aiSetStat"></span></div>
 </section>`;
@@ -310,13 +314,19 @@ function open(){
   const fillSet=()=>{q('aiSa').value=mem.sa;q('aiNai').value=mem.nai;q('aiLockRow').hidden=!locked;q('aiPw').value=pass};
   fillSet();
   const take=async()=>{mem.sa=q('aiSa').value.trim();mem.region=q('aiRegion').value.trim()||'global';mem.model=q('aiModel').value.trim();mem.nai=q('aiNai').value.trim().replace(/^Bearer\s+/i,'');mem.keep=q('aiKeep').checked;mem.safety=q('aiSafe').value;tok.exp=0;
-    if(mem.keep){const pw=q('aiPw').value;if(pw.length<8){q('aiSetStat').textContent='기억하려면 잠금 암호를 8자 이상 넣어 주세요. (이번에는 기억하지 않고 적용했어요)';pass='';await persist();return false}pass=pw;locked=null}else{pass='';locked=null}
+    if(mem.keep){const pw=q('aiPw').value;if(pw.length<8){q('aiSetStat').style.color='#b3402f';q('aiSetStat').textContent='아직 기억되지 않았어요 — 잠금 암호를 8자 이상 넣고 「적용」 을 다시 눌러 주세요. (키는 이번 창에서만 쓸 수 있어요)';q('aiPw').focus();pass='';mem.keep=false;await persist();mem.keep=true;return false}pass=pw;locked=null}else{pass='';locked=null}
+    q('aiSetStat').style.color='';
     await persist();q('aiLockRow').hidden=true;return true};
-  q('aiSave').onclick=async()=>{if(await take())q('aiSetStat').textContent='적용했어요'+(mem.keep?' (암호로 잠가서 기억)':' (이번에만)')};
-  q('aiUnlock').onclick=async()=>{try{await unlock(q('aiUnlockPw').value);fillSet();q('aiSetStat').textContent='잠금을 풀었어요'}catch(e){q('aiSetStat').textContent='암호가 맞지 않아요'}};
+  q('aiSave').onclick=async()=>{if(await take())q('aiSetStat').textContent='적용했어요'+(mem.keep?' · 암호로 잠가서 이 브라우저에 기억했어요. 다음에 열면 잠금 암호를 넣어 풀어요.':' · 이번 창에서만 써요 (기억하지 않음)')};
+  const syncPw=()=>{q('aiPwWrap').hidden=!q('aiKeep').checked};q('aiKeep').addEventListener('change',()=>{syncPw();if(q('aiKeep').checked)q('aiPw').focus()});
+  q('aiUnlock').onclick=async()=>{try{await unlock(q('aiUnlockPw').value);fillSet();syncPw();q('aiSetStat').style.color='';q('aiSetStat').textContent='잠금을 풀었어요 · 키가 채워졌어요'}catch(e){q('aiSetStat').style.color='#b3402f';q('aiSetStat').textContent='암호가 맞지 않아요'}};
+  q('aiUnlockPw').addEventListener('keydown',e=>{if(e.key==='Enter')q('aiUnlock').click()});
+  q('aiPw').addEventListener('keydown',e=>{if(e.key==='Enter')q('aiSave').click()});
   q('aiForget').onclick=async()=>{locked=null;pass='';mem.keep=false;q('aiKeep').checked=false;await persist();fillSet();q('aiSetStat').textContent='잠긴 키를 지웠어요'};
   q('aiTest').onclick=async()=>{await take();q('aiSetStat').textContent='확인하는 중…';try{const r=await gemini('한 단어로만 답한다.','안녕',{max:64,temperature:0});q('aiSetStat').textContent='연결됐어요 · 답: '+r.text.trim().slice(0,30)}catch(e){q('aiSetStat').textContent=String(e.message||e)}};
+  syncPw();
   if(!mem.sa||!mem.model)tab('set');
+  if(locked)setTimeout(()=>{try{q('aiUnlockPw').focus()}catch(e){}},50);
   /* 삽화 */
   (function(){
     const rawOf={};(l?l.messages:[]).forEach(m=>{if(m.name&&!cfg(m.name).hide){const d=cfg(m.name).name;if(!rawOf[d])rawOf[d]=m.name}});
