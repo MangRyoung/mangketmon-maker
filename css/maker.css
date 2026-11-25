@@ -1469,6 +1469,9 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 #mk .tcd-b b,#mk .tcd-bt b{font-size:13px;font-weight:800}
 #mk .tcd-b em{font:700 9px/13px var(--mono,monospace);font-style:normal;color:#fff;background:var(--gc);border-radius:3px;padding:0 3px;margin-top:1px}
 #mk .tcd-bt{background:var(--sunk);border-color:var(--line)}
+/* 11-26 트레이너 한 장 요약 요소 보이기 · 숨기기 */
+#mk .tcd-vt{display:inline-flex;flex-wrap:wrap;gap:3px;margin-right:6px}
+#mk .pcd.tcv-ty .tcd-m .chips>:not(.pcd-v),#mk .pcd.tcv-bs .tcd-bs,#mk .pcd.tcv-ab .tcd-ab,#mk .pcd.tcv-mv .tcd-mvs,#mk .pcd.tcv-ex .tcd-x,#mk .pcd.tcv-pt .tcd-ps{display:none}
 #mk .tcd-mv{display:inline-flex;align-items:center;gap:0;font-size:11.5px;font-weight:600;line-height:20px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--mb) 22%,var(--surface));border:1px solid color-mix(in srgb,var(--mb) 70%,transparent);color:var(--ink);padding-right:8px;box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--mb) 40%,transparent)}
 #mk .tcd-mv>i{font-style:normal;font-size:9.5px;font-weight:800;align-self:stretch;display:grid;place-items:center;min-width:22px;padding:0 5px;margin-right:6px;background:var(--mb);color:var(--mf)}
 #mk .tcd-p{font-size:12px;line-height:1.5;padding:4px 0 0;margin-top:4px;border-top:1px dashed color-mix(in srgb,var(--line) 80%,transparent)}
