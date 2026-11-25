@@ -1,4 +1,4 @@
-<!doctype html><html lang="ko"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>맵툴 로그 정리기</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap"><script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script></head><body>
+<!doctype html><html lang="ko"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>맵툴 로그 정리기</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap"><script src="vendor/jszip.min.js"></script></head><body>
 <style id="logcss">
 /* Layout: control rail on the left, the cleaned session log as a reading column on the right */
 :root{
@@ -1975,9 +1975,28 @@ dialog.mtdlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
 (function(){
 'use strict';
 const KEY='mtl-ai';
+/* 비밀 값(sa · nai)은 기억할 때 암호로 잠가서만 저장한다(AES-GCM, 키는 PBKDF2 31만 번). 저장 공간에는 암호문만 남는다.
+   같은 주소(mangryoung.github.io)의 다른 도구가 저장 공간을 같이 쓰기 때문. */
 const mem={sa:'',region:'global',model:'',nai:'',keep:false,safety:'default'};
-try{const s=ls.get(KEY,null);if(s&&s.keep)Object.assign(mem,s)}catch(e){}
-const persist=()=>{if(mem.keep)ls.set(KEY,mem);else{try{localStorage.removeItem(KEY)}catch(e){}}};
+let locked=null,pass='';
+try{const s=ls.get(KEY,null);if(s){
+  for(const k of ['region','model','safety'])if(s[k])mem[k]=s[k];
+  if(s.enc){locked=s.enc;mem.keep=true}
+  else if(s.sa||s.nai){mem.sa=s.sa||'';mem.nai=s.nai||'';ls.set(KEY,{region:mem.region,model:mem.model,safety:mem.safety})}  /* 옛 방식(그대로 저장)은 읽고 바로 지운다 */
+}}catch(e){}
+const hex=b=>Array.from(b,x=>x.toString(16).padStart(2,'0')).join(''),unhex=h=>Uint8Array.from(h.match(/../g)||[],x=>parseInt(x,16));
+async function passKey(pw,salt){const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+async function lockUp(pw){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await passKey(pw,salt),new TextEncoder().encode(JSON.stringify({sa:mem.sa,nai:mem.nai}))));
+  return{salt:hex(salt),iv:hex(iv),ct:hex(ct)}}
+async function unlock(pw){const d=await crypto.subtle.decrypt({name:'AES-GCM',iv:unhex(locked.iv)},await passKey(pw,unhex(locked.salt)),unhex(locked.ct));
+  const o=JSON.parse(new TextDecoder().decode(d));mem.sa=o.sa||'';mem.nai=o.nai||'';pass=pw;locked=null}
+async function persist(){
+  const plainPart={region:mem.region,model:mem.model,safety:mem.safety};
+  if(mem.keep&&pass&&(mem.sa||mem.nai)){plainPart.enc=await lockUp(pass)}
+  ls.set(KEY,plainPart);
+}
 const E=(tag,attrs,html)=>{const el=document.createElement(tag);for(const k in attrs||{})el.setAttribute(k,attrs[k]);if(html!=null)el.innerHTML=html;return el};
 
 /* ---------- Vertex AI ---------- */
@@ -2010,6 +2029,7 @@ async function gemini(system,user,opt){
   const {token,sa}=await accessToken();
   const region=mem.region||'global',host=region==='global'?'aiplatform.googleapis.com':region+'-aiplatform.googleapis.com';
   const body={contents:[{role:'user',parts:[{text:user}]}],systemInstruction:{parts:[{text:system}]},generationConfig:{temperature:opt.temperature??0.9,maxOutputTokens:opt.max??12000}};
+  if(opt.json)body.generationConfig.responseMimeType='application/json';
   if(mem.safety==='loose')body.safetySettings=['HARM_CATEGORY_HARASSMENT','HARM_CATEGORY_HATE_SPEECH','HARM_CATEGORY_SEXUALLY_EXPLICIT','HARM_CATEGORY_DANGEROUS_CONTENT'].map(c=>({category:c,threshold:'BLOCK_ONLY_HIGH'}));
   const r=await fetch('https://'+host+'/v1/projects/'+encodeURIComponent(sa.project_id)+'/locations/'+encodeURIComponent(region)+'/publishers/google/models/'+encodeURIComponent(mem.model)+':generateContent',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body),signal:opt.signal});
   if(!r.ok){let d='';try{d=((await r.json()).error||{}).message||''}catch(e){}if(r.status===401)tok.exp=0;throw new Error('모델 호출이 거절됐어요 (HTTP '+r.status+') '+String(d).slice(0,240))}
@@ -2063,13 +2083,87 @@ function novelUser(o,ctx,part,i,n){
   part.join('\n')].filter(Boolean).join('\n\n');
 }
 
+/* ---------- 삽화: 주문서(글 AI) → NovelAI ---------- */
+const ART_KEY='mtl-ai-art';
+const art=Object.assign({model:'nai-diffusion-4-5-full',steps:28,count:3,style:'masterpiece, best quality, very aesthetic, absurdres, detailed background',neg:'lowres, worst quality, bad quality, bad anatomy, bad hands, extra digits, text, watermark, signature, logo, jpeg artifacts, blurry',looks:{}},ls.get(ART_KEY,{}));
+const saveArt=()=>ls.set(ART_KEY,art);
+const NAI_SIZE={portrait:[832,1216],landscape:[1216,832],square:[1024,1024]};
+function logItems(l){
+  const o=opts();
+  return l.messages.filter(m=>m.type!=='bgm'&&!(m.name&&cfg(m.name).hide)&&m.type!=='ooc'&&!(m.type==='whisper'&&!o.optWhisper)).map(m=>{
+    const n=m.name?cfg(m.name).name:'';const t=plain(m.tokens).replace(/\s+\n/g,'\n').trim();
+    if(!t||t==='[그림]')return null;
+    return{id:m.id,text:m.type==='emote'?('* '+n+' '+t).trim():n?n+': '+t:'[지문] '+t};
+  }).filter(Boolean);
+}
+function illustSystem(){
+  return ['You are an illustration director for a Korean tabletop RPG session log.',
+  'From the numbered log segment, choose the ONE moment that would make the most striking illustration, and write a prompt for the NovelAI anime image model (Danbooru-style English tags, comma separated).',
+  'Return JSON only, with exactly these keys:',
+  '{"after": <number of the log line the picture belongs right after>, "caption": "<one short Korean sentence describing the moment, 40 characters or fewer>", "orientation": "portrait" | "landscape" | "square", "scene": "<tags: subject count such as 1girl / 2boys / no humans, shot and camera angle, the action at that instant, place, time of day, lighting, mood>", "negative": "<tags to avoid for this picture, or empty>", "characters": [{"name": "<name as in the log>", "tags": "<appearance tags, then current outfit, pose and expression>"}]}',
+  'Rules:',
+  '- Show only what the log supports. Do not invent events.',
+  '- "characters" lists only the people visible in the picture, at most 4. For a scenery or object shot use an empty list and "no humans" in "scene".',
+  '- When an appearance sheet is given for a character, copy those tags unchanged at the start of that character\'s "tags". Without a sheet, use only what the log states and keep the rest neutral.',
+  '- Do not write artist names or quality tags; they are added later.',
+  '- Keep every picture suitable for a general audience: no nudity or sexual content, and show violence without gore.',
+  '- Tags are English. Only "caption" and "name" are Korean.'].join('\n');
+}
+function illustUser(title,items,from,looks,memo){
+  const sheet=Object.entries(looks).filter(([,v])=>v&&v.trim()).map(([k,v])=>'- '+k+': '+v.trim()).join('\n');
+  return ['[Work] '+title,memo?'[Setting notes] '+memo:'',sheet?'[Appearance sheet]\n'+sheet:'[Appearance sheet] (none)','[Log segment]',items.map((it,i)=>'['+(from+i+1)+'] '+it.text.replace(/\n/g,' / ')).join('\n')].filter(Boolean).join('\n\n');
+}
+function parseOrder(text){
+  let t=String(text).trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
+  const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a<0||b<a)throw new Error('주문서를 읽지 못했어요.');
+  const o=JSON.parse(t.slice(a,b+1));
+  return{after:Number(o.after)||0,caption:String(o.caption||'').slice(0,80),orientation:NAI_SIZE[o.orientation]?o.orientation:'landscape',scene:String(o.scene||''),negative:String(o.negative||''),
+    characters:(Array.isArray(o.characters)?o.characters:[]).slice(0,4).map(c=>({name:String(c.name||''),tags:String(c.tags||'')})).filter(c=>c.tags)};
+}
+/* 요청 꼴은 NovelAI 이미지 API(V4.5 · V5). 무료 조건(1장 · 100만 화소 이하 · 28스텝 이하) 안쪽으로만 보낸다. */
+function naiBody(order,seed){
+  const v5=art.model.startsWith('nai-diffusion-5-');const [width,height]=NAI_SIZE[order.orientation]||NAI_SIZE.landscape;
+  const base=[order.scene,art.style].filter(x=>x&&x.trim()).join(', '),neg=[art.neg,order.negative].filter(x=>x&&x.trim()).join(', ');
+  const c={x:.5,y:.5},chars=order.characters;
+  const parameters={params_version:v5?4:3,width,height,seed,n_samples:1,sampler:'k_euler_ancestral',steps:Math.max(1,Math.min(28,Number(art.steps)||28)),scale:5,cfg_rescale:0,noise_schedule:'karras',image_format:'webp',negative_prompt:neg,
+    use_coords:false,characterPrompts:chars.map(ch=>({prompt:ch.tags,uc:'',center:c})),
+    v4_prompt:{caption:{base_caption:base,char_captions:chars.map(ch=>({char_caption:ch.tags,centers:[c]}))},use_coords:false,use_order:true},
+    v4_negative_prompt:{caption:{base_caption:neg,char_captions:chars.map(()=>({char_caption:'',centers:[c]}))}},
+    prefer_brownian:true,deliberate_euler_ancestral_bug:false,skip_cfg_above_sigma:null};
+  return Object.assign({input:base,model:art.model,action:'generate'},v5?{use_new_shared_trial:true}:{},{parameters});
+}
+const bytesToDataUrl=(bytes,mime)=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(new Blob([bytes],{type:mime}))});
+const sniff=b=>b[0]===0x89&&b[1]===0x50?'image/png':b[0]===0x52&&b[1]===0x49?'image/webp':b[0]===0xFF&&b[1]===0xD8?'image/jpeg':'';
+async function naiGenerate(order,signal){
+  if(!mem.nai)throw new Error('설정 탭에서 NovelAI 토큰을 넣어 주세요.');
+  const seed=crypto.getRandomValues(new Uint32Array(1))[0]||1;
+  let r;
+  try{r=await fetch('https://image.novelai.net/ai/generate-image',{method:'POST',headers:{Authorization:'Bearer '+mem.nai,'Content-Type':'application/json',Accept:'*/*'},body:JSON.stringify(naiBody(order,seed)),signal})}
+  catch(e){if(e&&e.name==='AbortError')throw e;throw new Error('NovelAI 에 닿지 못했어요. (브라우저에서 그림 요청이 막혔을 수 있어요: '+String(e.message||e).slice(0,80)+')')}
+  if(!r.ok){const k=r.status;throw new Error(k===401||k===403?'NovelAI 토큰이 거절됐어요 (HTTP '+k+')':k===402?'NovelAI 할당량이 모자라요 (HTTP 402)':k===429?'NovelAI 가 잠시 요청을 제한하고 있어요. 조금 뒤에 다시 해 주세요 (HTTP 429)':'NovelAI 가 그림을 만들지 못했어요 (HTTP '+k+')')}
+  if((r.headers.get('content-type')||'').includes('json')){const j=await r.json();const im=(j.images||[])[0];if(!im||!im.image)throw new Error('NovelAI 응답에 그림이 없어요.');const s=String(im.image);return{src:s.startsWith('data:')?s:'data:image/webp;base64,'+s,seed}}
+  let bytes=new Uint8Array(await r.arrayBuffer());
+  if(bytes[0]===0x50&&bytes[1]===0x4B){const z=await JSZip.loadAsync(bytes);const f=Object.values(z.files).find(f=>/\.(webp|png|jpe?g)$/i.test(f.name));if(!f)throw new Error('NovelAI 응답에서 그림을 찾지 못했어요.');bytes=await f.async('uint8array')}
+  const mime=sniff(bytes);if(!mime)throw new Error('NovelAI 응답을 그림으로 읽지 못했어요.');
+  return{src:await bytesToDataUrl(bytes,mime),seed};
+}
+/* 큰 그림 표시: 본문 그림(mi)은 작게 나오므로 삽화는 ill 을 붙여 크게 */
+if(typeof tokHTML==='function'){const prevTok=tokHTML;tokHTML=function(tk){return tk.map(t=>t.t==='img'&&t.ill&&/^data:image\//i.test(t.src||'')?`<img class="mi ill" src="${esc(t.src)}" alt="삽화" loading="lazy">`:prevTok([t])).join('')};
+  const illCss='\n.line img.mi.ill{max-width:min(760px,100%);max-height:none;margin:8px auto;border-radius:10px}\n';try{$('logcss').textContent+=illCss}catch(e){}
+  document.head.appendChild(E('style',{},illCss));}
+function insertIllust(l,afterId,src,caption){
+  const i=l.messages.findIndex(m=>m.id===afterId);const tk=[{t:'img',src,ill:1}];if(caption){tk.push({t:'br'});tk.push({t:'text',v:caption})}
+  const msg={id:uid(),type:'sys',tokens:tk,ill:1};
+  l.messages.splice(i<0?l.messages.length:i+1,0,msg);touch(l);renderLog();return msg.id;
+}
+
 /* ---------- 화면 ---------- */
 let run=null;
 function open(){
   const l=curLog();
   const bg=E('div',{class:'ai-bg'});const box=E('div',{class:'ai-box',role:'dialog','aria-label':'AI 도구'});bg.appendChild(box);
   box.innerHTML=`<h2>AI 도구</h2><div class="ai-note">글 AI 는 Vertex AI 의 Gemini 를 이 브라우저에서 바로 부릅니다. 키는 공유 DB 나 저장 파일에 들어가지 않습니다.</div>
-<div class="ai-tabs" role="tablist"><button type="button" data-t="novel" aria-selected="true">웹소설로</button><button type="button" data-t="set" aria-selected="false">설정</button></div>
+<div class="ai-tabs" role="tablist"><button type="button" data-t="novel" aria-selected="true">웹소설로</button><button type="button" data-t="ill" aria-selected="false">삽화</button><button type="button" data-t="set" aria-selected="false">설정</button></div>
 <section data-p="novel">
  <div class="ai-row"><label>시점<select id="aiPov"><option value="third">3인칭</option><option value="first">1인칭</option></select></label>
  <label>1인칭일 때 화자<select id="aiWho"></select></label>
@@ -2082,6 +2176,17 @@ function open(){
  <div class="ai-foot"><button class="btn primary" id="aiGo" type="button">웹소설로 바꾸기</button><button class="btn" id="aiMore" type="button" hidden>이어서 하기</button><button class="btn" id="aiStop" type="button" hidden>멈추기</button>
  <span class="sp"></span><button class="btn" id="aiCopy" type="button">복사</button><button class="btn" id="aiTxt" type="button">TXT 저장</button><button class="btn" id="aiHtml" type="button">HTML 저장</button><button class="btn" id="aiClose" type="button">닫기</button></div>
 </section>
+<section data-p="ill" hidden>
+ <div class="ai-row"><label>장수<select id="aiN"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option></select></label>
+ <label>그림 모델<select id="aiNm"><option value="nai-diffusion-4-5-full">V4.5 Full</option><option value="nai-diffusion-4-5-curated">V4.5 Curated</option><option value="nai-diffusion-5-full">V5 Full</option><option value="nai-diffusion-5-curated">V5 Curated</option></select></label>
+ <label>스텝 (28 이하)<input type="text" id="aiSt" inputmode="numeric"></label></div>
+ <div class="ai-row"><label>그림체 태그 (모든 그림 앞에 붙음)<textarea id="aiArt" rows="2" class="ai-mono"></textarea></label></div>
+ <div class="ai-row"><label>제외 태그<textarea id="aiNeg" rows="2" class="ai-mono"></textarea></label></div>
+ <details><summary style="cursor:pointer;font-size:.85rem;margin:6px 0">인물 외모 태그 (영어 태그 · 넣어 둘수록 같은 얼굴로 나와요)</summary><div id="aiLooks"></div></details>
+ <div class="ai-foot"><button class="btn primary" id="aiPlan" type="button">삽화 장면 고르기</button><button class="btn" id="aiDrawAll" type="button" hidden>모두 그리기</button><button class="btn" id="aiIllStop" type="button" hidden>멈추기</button><span class="ai-stat" id="aiIllStat"></span></div>
+ <div class="ai-note">글 AI 가 로그를 장수만큼 나눠 구간마다 한 장면을 고르고, NovelAI 가 그립니다. 그림은 1장 · 100만 화소 이하 · 28스텝 이하로만 요청합니다(Opus 무료 생성 조건). 그래도 계정 상태에 따라 Anlas 가 쓰일 수 있어요.</div>
+ <div id="aiCards"></div>
+</section>
 <section data-p="set" hidden>
  <h3>글 AI — Vertex AI (Gemini)</h3>
  <div class="ai-row"><label>서비스 계정 JSON (리수에 넣는 것과 같은 글 전체)<textarea id="aiSa" class="ai-mono" rows="5" spellcheck="false" autocomplete="off"></textarea></label></div>
@@ -2089,8 +2194,10 @@ function open(){
  <label>안전 필터<select id="aiSafe"><option value="default">기본</option><option value="loose">느슨하게 (전투 · 유혈 묘사가 막힐 때)</option></select></label></div>
  <h3>그림 AI — NovelAI (삽화 기능에 쓸 예정)</h3>
  <div class="ai-row"><label>NovelAI 토큰<input type="password" id="aiNai" spellcheck="false" autocomplete="off"></label></div>
- <div class="ai-row"><label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="aiKeep" style="width:auto"> 이 브라우저에 기억하기 (끄면 창을 닫을 때 잊습니다)</label></div>
- <div class="ai-warn">기억하기를 켜면 키가 이 브라우저의 저장 공간에 그대로 남습니다. 혼자 쓰는 컴퓨터에서만 켜 주세요.</div>
+ <div class="ai-row" id="aiLockRow" hidden><label>잠긴 키가 있어요 — 잠금 암호<input type="password" id="aiUnlockPw" autocomplete="off"></label><label style="flex:0 0 auto;justify-content:flex-end"><button class="btn primary" id="aiUnlock" type="button">잠금 풀기</button></label><label style="flex:0 0 auto;justify-content:flex-end"><button class="btn" id="aiForget" type="button">잠긴 키 지우기</button></label></div>
+ <div class="ai-row"><label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="aiKeep" style="width:auto"> 이 브라우저에 기억하기 (끄면 창을 닫을 때 잊습니다)</label>
+ <label>잠금 암호 (기억할 때 필요 · 8자 이상)<input type="password" id="aiPw" autocomplete="new-password"></label></div>
+ <div class="ai-note">기억하기를 켜면 키를 잠금 암호로 잠가서 저장합니다. 저장 공간에는 암호문만 남고, 다음에 쓸 때 암호를 한 번 넣어 풉니다. 암호를 잊으면 키를 다시 붙여 넣어야 합니다.</div>
  <div class="ai-foot"><button class="btn primary" id="aiSave" type="button">적용</button><button class="btn" id="aiTest" type="button">연결 확인</button><span class="ai-stat" id="aiSetStat"></span></div>
 </section>`;
   document.body.appendChild(bg);
@@ -2100,11 +2207,72 @@ function open(){
   const close=()=>{if(run)run.abort();bg.remove()};
   q('aiClose').onclick=close;bg.addEventListener('mousedown',e=>{if(e.target===bg&&!run)close()});
   /* 설정 */
-  q('aiSa').value=mem.sa;q('aiRegion').value=mem.region;q('aiModel').value=mem.model;q('aiNai').value=mem.nai;q('aiKeep').checked=!!mem.keep;q('aiSafe').value=mem.safety;
-  const take=()=>{mem.sa=q('aiSa').value.trim();mem.region=q('aiRegion').value.trim()||'global';mem.model=q('aiModel').value.trim();mem.nai=q('aiNai').value.trim().replace(/^Bearer\s+/i,'');mem.keep=q('aiKeep').checked;mem.safety=q('aiSafe').value;tok.exp=0;persist()};
-  q('aiSave').onclick=()=>{take();q('aiSetStat').textContent='적용했어요'+(mem.keep?' (이 브라우저에 기억)':' (이번에만)')};
-  q('aiTest').onclick=async()=>{take();q('aiSetStat').textContent='확인하는 중…';try{const r=await gemini('한 단어로만 답한다.','안녕',{max:64,temperature:0});q('aiSetStat').textContent='연결됐어요 · 답: '+r.text.trim().slice(0,30)}catch(e){q('aiSetStat').textContent=String(e.message||e)}};
+  q('aiRegion').value=mem.region;q('aiModel').value=mem.model;q('aiKeep').checked=!!mem.keep;q('aiSafe').value=mem.safety;
+  const fillSet=()=>{q('aiSa').value=mem.sa;q('aiNai').value=mem.nai;q('aiLockRow').hidden=!locked;q('aiPw').value=pass};
+  fillSet();
+  const take=async()=>{mem.sa=q('aiSa').value.trim();mem.region=q('aiRegion').value.trim()||'global';mem.model=q('aiModel').value.trim();mem.nai=q('aiNai').value.trim().replace(/^Bearer\s+/i,'');mem.keep=q('aiKeep').checked;mem.safety=q('aiSafe').value;tok.exp=0;
+    if(mem.keep){const pw=q('aiPw').value;if(pw.length<8){q('aiSetStat').textContent='기억하려면 잠금 암호를 8자 이상 넣어 주세요. (이번에는 기억하지 않고 적용했어요)';pass='';await persist();return false}pass=pw;locked=null}else{pass='';locked=null}
+    await persist();q('aiLockRow').hidden=true;return true};
+  q('aiSave').onclick=async()=>{if(await take())q('aiSetStat').textContent='적용했어요'+(mem.keep?' (암호로 잠가서 기억)':' (이번에만)')};
+  q('aiUnlock').onclick=async()=>{try{await unlock(q('aiUnlockPw').value);fillSet();q('aiSetStat').textContent='잠금을 풀었어요'}catch(e){q('aiSetStat').textContent='암호가 맞지 않아요'}};
+  q('aiForget').onclick=async()=>{locked=null;pass='';mem.keep=false;q('aiKeep').checked=false;await persist();fillSet();q('aiSetStat').textContent='잠긴 키를 지웠어요'};
+  q('aiTest').onclick=async()=>{await take();q('aiSetStat').textContent='확인하는 중…';try{const r=await gemini('한 단어로만 답한다.','안녕',{max:64,temperature:0});q('aiSetStat').textContent='연결됐어요 · 답: '+r.text.trim().slice(0,30)}catch(e){q('aiSetStat').textContent=String(e.message||e)}};
   if(!mem.sa||!mem.model)tab('set');
+  /* 삽화 */
+  (function(){
+    const names=[...new Set((l?l.messages:[]).filter(m=>m.name&&!cfg(m.name).hide).map(m=>cfg(m.name).name))];
+    q('aiN').value=String(art.count);q('aiNm').value=art.model;q('aiSt').value=String(art.steps);q('aiArt').value=art.style;q('aiNeg').value=art.neg;
+    q('aiLooks').innerHTML=names.map((n,i)=>`<div class="ai-row"><label>${esc(n)}<input type="text" class="ai-mono" data-look="${i}" value="${esc(art.looks[n]||'')}" placeholder="예: 1girl, long silver hair, red eyes, black coat"></label></div>`).join('')||'<div class="ai-note">로그를 먼저 골라 주세요.</div>';
+    const takeArt=()=>{art.count=Number(q('aiN').value)||3;art.model=q('aiNm').value;art.steps=Math.max(1,Math.min(28,parseInt(q('aiSt').value,10)||28));q('aiSt').value=String(art.steps);art.style=q('aiArt').value.trim();art.neg=q('aiNeg').value.trim();
+      box.querySelectorAll('[data-look]').forEach(el=>{const n=names[Number(el.dataset.look)];if(el.value.trim())art.looks[n]=el.value.trim();else delete art.looks[n]});saveArt()};
+    q('aiNm').onchange=()=>{q('aiSt').value=q('aiNm').value.startsWith('nai-diffusion-5-')?'18':'28'};
+    const ist=t=>q('aiIllStat').textContent=t;
+    let orders=[],irun=null;
+    const busy=b=>{q('aiPlan').hidden=b;q('aiIllStop').hidden=!b;q('aiDrawAll').hidden=b||!orders.length};
+    function card(o,i){
+      const d=E('div',{class:'ai-card','data-i':i,style:'border:1px solid var(--line,#ccc);border-radius:10px;padding:10px 12px;margin:10px 0'});
+      d.innerHTML=`<div style="font-size:.8rem;opacity:.75;margin-bottom:4px">${i+1}번 · 「${esc((o.afterText||'').slice(0,60))}」 뒤에</div>
+<div class="ai-row"><label>설명<input type="text" data-f="caption" value="${esc(o.caption)}"></label><label style="flex:0 0 130px">방향<select data-f="orientation"><option value="landscape">가로</option><option value="portrait">세로</option><option value="square">정사각</option></select></label></div>
+<div class="ai-row"><label>장면 태그<textarea data-f="scene" rows="2" class="ai-mono">${esc(o.scene)}</textarea></label></div>
+${o.characters.map((c,k)=>`<div class="ai-row"><label>${esc(c.name||'인물 '+(k+1))}<textarea data-c="${k}" rows="2" class="ai-mono">${esc(c.tags)}</textarea></label></div>`).join('')}
+<div data-img></div>
+<div class="ai-foot"><button class="btn primary" data-a="draw" type="button">그리기</button><button class="btn" data-a="put" type="button" hidden>로그에 넣기</button><button class="btn" data-a="drop" type="button">버리기</button><span class="ai-stat" data-s></span></div>`;
+      d.querySelector('[data-f=orientation]').value=o.orientation;
+      const read=()=>{o.caption=d.querySelector('[data-f=caption]').value.trim();o.orientation=d.querySelector('[data-f=orientation]').value;o.scene=d.querySelector('[data-f=scene]').value.trim();d.querySelectorAll('[data-c]').forEach(el=>{o.characters[Number(el.dataset.c)].tags=el.value.trim()});o.characters=o.characters.filter(c=>c.tags)};
+      const cs=t=>d.querySelector('[data-s]').textContent=t;
+      o.draw=async(signal)=>{read();cs('그리는 중… (보통 10~30초)');d.querySelector('[data-a=draw]').disabled=true;
+        try{const r=await naiGenerate(o,signal);o.src=r.src;d.querySelector('[data-img]').innerHTML=`<img src="${esc(r.src)}" alt="" style="max-width:100%;border-radius:8px;margin:6px 0">`;d.querySelector('[data-a=put]').hidden=false;d.querySelector('[data-a=draw]').textContent='다시 그리기';cs('다 그렸어요 · 약 '+Math.round(r.src.length*.75/1024)+'KB');return true}
+        catch(e){cs(e&&e.name==='AbortError'?'멈췄어요':String(e.message||e));return false}
+        finally{d.querySelector('[data-a=draw]').disabled=false}};
+      d.querySelector('[data-a=draw]').onclick=()=>o.draw();
+      d.querySelector('[data-a=put]').onclick=()=>{read();if(!o.src)return;if(o.putId){const k=l.messages.findIndex(m=>m.id===o.putId);if(k>=0)l.messages.splice(k,1)}o.putId=insertIllust(l,o.afterId,o.src,o.caption);cs('로그에 넣었어요 (HTML 로 저장하면 같이 들어가요)');d.querySelector('[data-a=put]').textContent='바꿔 넣기'};
+      d.querySelector('[data-a=drop]').onclick=()=>{orders=orders.filter(x=>x!==o);d.remove();q('aiDrawAll').hidden=!orders.length};
+      return d;
+    }
+    q('aiPlan').onclick=async()=>{
+      if(!l){ist('먼저 로그를 골라 주세요.');return}
+      if(!mem.sa||!mem.model){tab('set');return}
+      takeArt();const items=logItems(l);if(!items.length){ist('옮길 줄이 없어요.');return}
+      const n=Math.min(art.count,items.length),per=Math.ceil(items.length/n);
+      orders=[];q('aiCards').innerHTML='';irun=new AbortController();busy(true);
+      try{
+        for(let k=0;k<n;k++){
+          ist((k+1)+' / '+n+' 장면을 고르는 중…');
+          const from=k*per,seg=items.slice(from,from+per);if(!seg.length)break;
+          const r=await gemini(illustSystem(),illustUser(l.title,seg,from,art.looks,''),{signal:irun.signal,json:true,temperature:0.7,max:4000});
+          const o=parseOrder(r.text);const at=Math.max(from,Math.min(from+seg.length-1,(o.after||from+1)-1));
+          o.afterId=items[at].id;o.afterText=items[at].text;orders.push(o);q('aiCards').appendChild(card(o,orders.length-1));
+        }
+        ist(orders.length+'장면을 골랐어요. 태그를 고친 뒤 그리면 돼요.');
+      }catch(e){ist(e&&e.name==='AbortError'?'멈췄어요.':'멈춤: '+String(e.message||e))}
+      finally{irun=null;busy(false)}
+    };
+    q('aiDrawAll').onclick=async()=>{takeArt();irun=new AbortController();busy(true);let ok=0;
+      try{for(const o of orders.slice()){if(irun.signal.aborted)break;if(o.src)continue;ist('그리는 중… '+(ok+1));if(await o.draw(irun.signal))ok++;else if(irun.signal.aborted)break}ist(ok+'장을 그렸어요.')}
+      finally{irun=null;busy(false)}};
+    q('aiIllStop').onclick=()=>{if(irun)irun.abort()};
+    ['aiN','aiNm','aiSt','aiArt','aiNeg'].forEach(id=>q(id).addEventListener('change',takeArt));
+  })();
   /* 웹소설 */
   const names=[...new Set((l?l.messages:[]).filter(m=>m.name&&!cfg(m.name).hide).map(m=>cfg(m.name).name))];
   q('aiWho').innerHTML=names.map(n=>`<option>${esc(n)}</option>`).join('');
@@ -2157,7 +2325,7 @@ function open(){
 /* 단추 */
 const anchor=$('copyText');
 if(anchor){const b=E('button',{class:'btn',id:'aiBtn',type:'button',title:'로그를 웹소설로 (글 AI)'},'AI');anchor.parentNode.insertBefore(b,anchor);b.onclick=open}
-window.MTL_AI={gemini,logLines,chunks,novelSystem,novelUser,mem};
+window.MTL_AI={gemini,logLines,chunks,novelSystem,novelUser,mem,logItems,illustSystem,illustUser,parseOrder,naiBody,naiGenerate,art};
 })();
 </script>
 

@@ -15,6 +15,11 @@ _ai = root / 'ai-addon.html'
 if _ai.exists():
     addon = addon + '\n' + _ai.read_text(encoding='utf-8')
 
+# 0) 바깥 CDN 스크립트(jszip)는 저장소 안 사본으로 바꾼다 — 배포처가 바뀌어도 키를 다루는 쪽에 남의 코드가 들어오지 않게 (2026-11-25)
+_cdn = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'
+assert _cdn in base, 'jszip CDN 주소가 원본에서 바뀜'
+base = base.replace(_cdn, 'vendor/jszip.min.js')
+
 # 1) 덧붙임은 </body> 바로 앞에
 i = base.lower().rfind('</body>')
 out = base[:i] + '\n' + addon + '\n' + base[i:] if i >= 0 else base + '\n' + addon

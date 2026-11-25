@@ -54,5 +54,8 @@ GitHub Desktop 에서 커밋 → Push. 주소: https://mangryoung.github.io/mapt
 - **웹소설로**: 지금 고른 로그를 구간(글자 수 기준)으로 잘라 글 AI 에 차례로 보내 소설 본문으로 옮긴다. 구간마다 「지금까지의 줄거리」 요약과 바로 앞 본문 끝을 같이 보내 이어 쓴다. 중간에 멈추면 「이어서 하기」. 결과는 이 브라우저(IndexedDB `ai-novel:<로그 id>`)에 남고 TXT · HTML 로 저장한다.
 - 글 AI = Vertex AI 의 Gemini. 서비스 계정 JSON 을 브라우저에서 서명(RS256)해 접근 토큰을 받고 `generateContent` 를 부른다. 지역 · 모델 이름은 설정 탭.
 - 키(서비스 계정 JSON · NovelAI 토큰)는 「이 브라우저에 기억하기」 를 켰을 때만 localStorage `mtl-ai` 에 남는다. 공유 DB · 저장 파일에는 넣지 않는다.
+- **삽화**: 로그를 장수만큼 나눠 구간마다 글 AI 가 한 장면을 골라 주문서(JSON: 어느 줄 뒤 · 설명 · 방향 · 장면 태그 · 인물별 태그)를 쓰고, NovelAI(`/ai/generate-image`, V4.5 · V5)가 그린다. 주문서는 카드에서 고칠 수 있고, 그린 그림은 「로그에 넣기」 로 그 줄 뒤에 삽화 줄(`type:'sys'`, 토큰 `{t:'img',ill:1}`)로 들어가 HTML 저장에 같이 담긴다. 그림체 · 제외 태그 · 인물 외모 태그는 localStorage `mtl-ai-art`(비밀 아님). 요청은 1장 · 100만 화소 이하 · 28스텝 이하로만.
+- 키 보관: 기억할 때는 잠금 암호로 잠가서(AES-GCM, PBKDF2 31만 번) 암호문만 저장한다. 같은 주소의 다른 도구가 저장 공간을 같이 쓰기 때문.
+- jszip 은 CDN 대신 `vendor/jszip.min.js`(npm jszip 3.10.1 의 dist 그대로)를 쓴다(build.py 가 주소를 바꿈).
 - `apitest.html` — NovelAI · Vertex 에 브라우저에서 직접 닿는지 보는 시험 쪽.
 
