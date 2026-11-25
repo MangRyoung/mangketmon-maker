@@ -294,7 +294,7 @@ function open(){
  </div>
  <h3>글 AI — Vertex AI (Gemini)</h3>
  <div class="ai-row"><label>서비스 계정 JSON (리수에 넣는 것과 같은 글 전체)<textarea id="aiSa" class="ai-mono" rows="5" spellcheck="false" autocomplete="off"></textarea></label></div>
- <div class="ai-row"><label>지역<input type="text" id="aiRegion" spellcheck="false" autocomplete="off"></label><label>모델 이름<input type="text" id="aiModel" spellcheck="false" autocomplete="off"></label>
+ <div class="ai-row"><label>지역<input type="text" id="aiRegion" spellcheck="false" autocomplete="off"></label><label>모델<select id="aiModelPick"><option value="gemini-4-carbon">gemini-4-carbon</option><option value="gemini-4-neon">gemini-4-neon</option><option value="gemini-4-argon">gemini-4-argon</option><option value="">직접 입력</option></select></label><label>모델 이름<input type="text" id="aiModel" spellcheck="false" autocomplete="off" placeholder="직접 적어도 돼요"></label>
  <label>안전 필터<select id="aiSafe"><option value="default">기본</option><option value="loose">느슨하게 (전투 · 유혈 묘사가 막힐 때)</option></select></label></div>
  <h3>그림 AI — NovelAI (삽화 기능에 쓸 예정)</h3>
  <div class="ai-row"><label>NovelAI 토큰<input type="password" id="aiNai" spellcheck="false" autocomplete="off"></label></div>
@@ -311,7 +311,11 @@ function open(){
   const close=()=>{if(run)run.abort();bg.remove()};
   q('aiClose').onclick=close;bg.addEventListener('mousedown',e=>{if(e.target===bg&&!run)close()});
   /* 설정 */
-  q('aiRegion').value=mem.region;q('aiModel').value=mem.model;q('aiKeep').checked=!!mem.keep;q('aiSafe').value=mem.safety;
+  const MODELS=['gemini-4-carbon','gemini-4-neon','gemini-4-argon'];
+  function syncModelPick(){const v=q('aiModel').value.trim();q('aiModelPick').value=MODELS.includes(v)?v:''}
+  q('aiModelPick').onchange=()=>{const v=q('aiModelPick').value;if(v)q('aiModel').value=v;else{q('aiModel').focus();q('aiModel').select()}};
+  q('aiModel').addEventListener('input',syncModelPick);
+  q('aiRegion').value=mem.region;q('aiModel').value=mem.model;syncModelPick();q('aiKeep').checked=!!mem.keep;q('aiSafe').value=mem.safety;
   const fillSet=()=>{q('aiSa').value=mem.sa;q('aiNai').value=mem.nai;q('aiLockRow').hidden=!locked;q('aiPw').value=pass};
   fillSet();
   const take=async()=>{mem.sa=q('aiSa').value.trim();mem.region=q('aiRegion').value.trim()||'global';mem.model=q('aiModel').value.trim();mem.nai=q('aiNai').value.trim().replace(/^Bearer\s+/i,'');mem.keep=q('aiKeep').checked;mem.safety=q('aiSafe').value;tok.exp=0;
