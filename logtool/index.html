@@ -1538,8 +1538,23 @@ async function seedSample(){
   const h=doc.querySelector('h1');const title=h?h.childNodes[0].textContent.trim():'오레마스';return{title:`${title} · 오레마스`,msgs,por}}
 
  /* addLog 를 감싼다: 파일 추가 · 붙여넣기 · 끌어 놓기가 모두 여기를 지난다 */
+ /* ===== 맵툴 팀 패치로 저장한 로그(그림이 파일 안에 든 것, 2026-11-25) =====
+    저장 파일 끝의 <script id="mt-assets"> 에 md5 → 그림이 한 번씩 들어 있고, 본문 img 는 data-mta="md5" 로 가리킨다.
+    그림을 이 브라우저의 그림 보관(S.imgs)에 넣고 img 를 다시 asset://md5 로 돌려, 캠페인 파일 없이도 토큰 그림이 이어지게 한다. */
+ async function takeMtAssets(raw){
+  const doc=new DOMParser().parseFromString(raw,'text/html');const el=doc.getElementById('mt-assets');if(!el)return raw;
+  let map=null;try{map=JSON.parse(el.textContent)}catch(e){return raw}
+  let n=0;
+  for(const [k0,u] of Object.entries(map||{})){const k=String(k0).toLowerCase();
+   if(!/^[0-9a-f]{32}$/.test(k)||!/^data:image\/[\w.+-]+;base64,/i.test(u))continue;
+   if(S.imgs[k]||S.lib[k])continue;
+   try{const d=await shrink(dataToBlob(u));if(d){S.imgs[k]=d;n++}}catch(e){}}
+  if(n)await idb.set('imgs',S.imgs);
+  return raw.replace(/<script\b[^>]*\bid=["']mt-assets["'][^>]*>[\s\S]*?<\/script>/i,'')
+   .replace(/\bsrc=(["'])data:image\/gif;base64,[A-Za-z0-9+\/=]+\1(\s+)data-mta=(["'])([0-9a-fA-F]{32})\3/g,(m,q,sp,q2,k)=>'src="asset://'+k.toLowerCase()+'"')};
  const origAddLog=addLog;
  addLog=async function(raw,title){
+  if(raw&&/\bid=["']mt-assets["']/.test(raw)){try{raw=await takeMtAssets(raw)}catch(e){}}
   if(raw&&isOmHtml(raw)){const doc=new DOMParser().parseFromString(raw,'text/html');const pk=doc.getElementById('oremas-log');let r=null;
    if(pk){try{r=fromPack(JSON.parse(pk.textContent))}catch(e){r=null}}if(!r)r=fromDom(doc);
    if(!r.msgs.length){toast((title||'파일')+'에서 옮길 로그를 찾지 못했어요');return null}
