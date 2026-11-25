@@ -550,6 +550,7 @@ window.MKM_POTLINT=(()=>{
    if(/「정면」(?:의|을|에게|에\s*있는)/.test(all))for(let i=0;i<lines.length;i++)lines[i]=lines[i].replace(/(^|\s)상대1체(\s|$)/,'$1정면$2');
    if(!lines.length&&/PT\s*(?:의\s*아군\s*)?전원이\s*「기능\s*확장/.test(all))timing='웹툴이 알아서 한다 — 글의 「기능 확장 : X」를 PT 전원의 기술 목록에 넣는다 (구문 줄 없음 · X 가 기술 DB 에 있어야)';
    {const q=all.match(/이\s*포텐셜을\s*[『「]\s*([^』」\/]+?)\s*[』」]\s*(?:으로|로)\s*취급/);if(q&&!lines.length)timing='웹툴이 알아서 한다 — 『'+q[1]+'』 레디메이드가 있으면 그대로 쓴다 (조건절 · 「임의의」가 붙으면 손으로)'}
+   /* 363-4 추가 행동 변형 */{const q=all.match(/가장\s*마지막에\s*「\s*(?:기능\s*확장\s*[:：]\s*)?([^」]+?)\s*」\s*(변화기|물리기|특수기|기술)?\s*에?\s*의한\s*추가\s*행동/);if(q&&!/배수\s*턴/.test(all)&&!/』\s*(?:이|가)\s*발동했을\s*때/.test(all)&&!/아군이\s*「/.test(all)&&!has(/추가행동/)){const isTy=F&&F.parse&&q[2]&&!(F.parse('위력 ×1 타입:'+q[1]).errs||[]).length&&/^(노말|불꽃|물|풀|전기|얼음|격투|독|땅|비행|에스퍼|벌레|바위|고스트|드래곤|악|강철|페어리)$/.test(q[1].trim());lines.push('추가행동 '+(isTy?'타입:'+q[1].trim()+(q[2]&&q[2]!=='기술'?' '+q[2]:''):q[1].trim().replace(/\s/g,'')))}}
    if(nx&&BEC.test(all)){lines.length=0;lines.push('다음기술 상대1체 우선도'+nx[1].replace(/\s/g,'').replace('−','-'));why.length=0;why.push(all)}
    if(USED.test(all)){const rest=all.slice(all.search(USED));const self=/자신(?:의|에게|이|을)/.test(rest)&&!/대상/.test(rest);if(!self)for(let i=0;i<lines.length;i++)if(/^(?:회복|우선도|랭크|배율|상태|치유|다음기술|위력|완화)\s/.test(lines[i])&&!TG.test(lines[i]))lines[i]+=' 아군1체';
     if(!timing||/「발동」 버튼/.test(timing))timing='웹툴 계기 — 그 기술이 아군에게 들어가면 저절로 묻는다(【자동】이면 바로). 대상 「아군1체」 = 기술을 받은 아군'}
