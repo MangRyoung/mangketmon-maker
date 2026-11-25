@@ -2537,12 +2537,16 @@ function trainerCardHTML(t){const tn=t.name||'(이름 없음)';const use=pointUs
  const U=(t.unique||[]).filter(u=>u&&u.name&&u.name.trim());const FL=fieldsFix(t.fields);const EX=(t.ext||[]).filter(e=>e&&e.mv);const SP=(t.sps||[]).filter(e=>e&&e.name);const SF=(t.sforms||[]).filter(f=>f&&f.name);
  const sub=[(t.deco||{}).title,t.kind==='npc'?'NPC':'PC',(t.pl||'').trim()?'PL '+t.pl.trim():'',isMisag(t)?'미사그 대학 (4+2)':t.solo?`1인 기준 (${soloN(t)}체)`:''].filter(Boolean).join(' · ');
  const mon=p=>{const tys=[p.t1,p.t2,p.t3].filter(x=>x&&x!=='-');const mv=(p.moves||[]).filter(m=>m&&m.name&&!m.hide).map(m=>m.name);const XL=exclAll(p);const aw=awOf(t,p);
-  return `<div class="tcd-m${p.partner?' ptn':''}" style="${pkVars(p)}"><div class="tcd-mi">${safeImg(p.image)?`<img src="${safeImg(p.image)}" alt="">`:'<span class="pav ph0"></span>'}</div><div class="tcd-mb">
+  /* 11-25 망령 「한장 요약 여백이 많이 남는다 — 포켓몬 카드를 큼직하게 꽉 채우고 특성 · 포텐셜 효과 · 전용 효과도」: 카드 2열, 특성 효과 · 전용 효과 · 포텐셜(이름 + 효과) */
+  const ab=idx.abil&&idx.abil.get(p.ability);const pots=(p.pots||[]).map((n,i)=>({n,i,k:String(potKindOf(p,i)||SLOTS[i]||'').replace(/^[\d.]+\s*/,''),e:potEffOf(p,i)})).filter(x=>x.n&&x.n!=='-');
+  return `<div class="tcd-m${p.partner?' ptn':''}" style="${pkVars(p)}"><div class="tcd-mh"><div class="tcd-mi">${safeImg(p.image)?`<img src="${safeImg(p.image)}" alt="">`:'<span class="pav ph0"></span>'}</div><div class="tcd-mb">
    <div class="tcd-mn">${p.partner?'<span class="pstar">★</span>':''}<b>${esc(p.name||'(이름 없음)')}</b>${genderGlyph(p.gender)}<span class="lvb">Lv.${lv(t,p)}</span>${prideOf(p)?`<span class="tcd-pr">${esc(prideOf(p))}</span>`:''}${aw?`<span class="tpaw ${aw}">${esc(AW_LAB[aw])}</span>`:''}${onBench(p)?'<span class="kindb">대기</span>':''}${p.sub?'<span class="kindb">서브</span>':''}</div>
    <div class="chips">${tys.map(x=>tchip(x)).join('')}${roleOf(p)?`<span class="pcd-v small">${esc(roleOf(p))}</span>`:''}</div>
-   <div class="tcd-ml"><span class="pcd-k">특성</span>${esc(p.ability||'-')}${p.item?` <span class="pcd-k">도구</span>${esc(p.item)}`:''}</div>
    ${mv.length?`<div class="tcd-ml"><span class="pcd-k">기술</span>${esc(mv.join(' · '))}</div>`:''}
-   ${XL.length?`<div class="tcd-ml"><span class="pcd-k">${esc(exLab(t))}</span>${XL.map(x=>'『'+esc(x.name)+'』').join(' ')}</div>`:''}</div></div>`};
+   ${p.item?`<div class="tcd-ml"><span class="pcd-k">도구</span>${esc(p.item)}</div>`:''}</div></div>
+   <div class="tcd-s"><div class="tcd-sh"><span class="pcd-k">특성</span><b>${esc(p.ability||'-')}</b></div>${ab&&ab[2]?`<div class="tcd-e">${fxTxt(ab[2])}</div>`:''}</div>
+   ${XL.map(x=>`<div class="tcd-s tcd-x"><div class="tcd-sh"><span class="pcd-k">${esc(exLab(t))}</span><b>『${esc(x.name)}』</b></div>${x.eff?`<div class="tcd-e">${fxTxt(x.eff)}</div>`:''}</div>`).join('')}
+   ${pots.length?`<div class="tcd-s tcd-ps"><div class="tcd-sh"><span class="pcd-k">포텐셜</span><span class="faint small">${pots.length}</span></div>${pots.map(x=>`<div class="tcd-p"><span class="tcd-pk">${esc(x.k)}</span><b>『${esc(x.n)}』</b>${x.e?` <span class="tcd-e">${fxTxt(x.e)}</span>`:''}</div>`).join('')}</div>`:''}</div>`};
  const c1=safeCss((t.deco||{}).color)||'#7b4fd6';return `<div class="pcd tcd" style="--c1:${c1};--c2:${c1}">
  <div class="pcd-l">
   <div class="pcd-hd"><div class="pcd-img">${safeImg(t.image)?`<img src="${safeImg(t.image)}" alt="">`:'<span class="pav ph0"></span>'}</div>
