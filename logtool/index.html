@@ -2003,6 +2003,7 @@ const E=(tag,attrs,html)=>{const el=document.createElement(tag);for(const k in a
 const b64u=bytes=>{let t='';for(const x of bytes)t+=String.fromCharCode(x);return btoa(t).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
 const enc=o=>b64u(new TextEncoder().encode(JSON.stringify(o)));
 let tok={v:'',exp:0,who:''};
+let waitNote=null;
 function readSA(){
   let sa;try{sa=JSON.parse(mem.sa.trim())}catch(e){throw new Error('서비스 계정 JSON 을 읽지 못했어요. 설정 탭에서 다시 붙여 넣어 주세요.')}
   if(!sa.private_key||!sa.client_email||!sa.project_id)throw new Error('서비스 계정 JSON 에 private_key · client_email · project_id 가 있어야 해요.');
@@ -2031,8 +2032,18 @@ async function gemini(system,user,opt){
   const body={contents:[{role:'user',parts:opt.parts||[{text:user}]}],systemInstruction:{parts:[{text:system}]},generationConfig:{temperature:opt.temperature??0.9,maxOutputTokens:opt.max??12000}};
   if(opt.json)body.generationConfig.responseMimeType='application/json';
   if(mem.safety==='loose')body.safetySettings=['HARM_CATEGORY_HARASSMENT','HARM_CATEGORY_HATE_SPEECH','HARM_CATEGORY_SEXUALLY_EXPLICIT','HARM_CATEGORY_DANGEROUS_CONTENT'].map(c=>({category:c,threshold:'BLOCK_ONLY_HIGH'}));
-  const r=await fetch('https://'+host+'/v1/projects/'+encodeURIComponent(sa.project_id)+'/locations/'+encodeURIComponent(region)+'/publishers/google/models/'+encodeURIComponent(mem.model)+':generateContent',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body),signal:opt.signal});
-  if(!r.ok){let d='';try{d=((await r.json()).error||{}).message||''}catch(e){}if(r.status===401)tok.exp=0;throw new Error('모델 호출이 거절됐어요 (HTTP '+r.status+') '+String(d).slice(0,240))}
+  const url='https://'+host+'/v1/projects/'+encodeURIComponent(sa.project_id)+'/locations/'+encodeURIComponent(region)+'/publishers/google/models/'+encodeURIComponent(mem.model)+':generateContent';
+  /* 429(할당량 · 혼잡) · 500 · 503 은 잠깐 기다렸다가 다시 — 5초, 15초, 40초. 그래도 안 되면 멈춘다. */
+  const waits=[5,15,40];let r;
+  for(let n=0;;n++){
+    r=await fetch(url,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body),signal:opt.signal});
+    if(r.ok||![429,500,503].includes(r.status)||n>=waits.length)break;
+    const sec=waits[n];if(waitNote)waitNote('Google 쪽이 붐벼서(HTTP '+r.status+') '+sec+'초 기다렸다가 다시 해 볼게요… ('+(n+1)+'/'+waits.length+')');
+    await new Promise((res,rej)=>{const t=setTimeout(res,sec*1000);if(opt.signal)opt.signal.addEventListener('abort',()=>{clearTimeout(t);rej(new DOMException('aborted','AbortError'))},{once:true})});
+  }
+  if(!r.ok){let d='';try{d=((await r.json()).error||{}).message||''}catch(e){}if(r.status===401)tok.exp=0;
+    if(r.status===429)throw new Error('Google 쪽 할당량이 잠시 찼어요 (HTTP 429). 세 번 다시 해 봤지만 안 됐어요. 1~2분 뒤에 「이어서 하기」 나 다시 눌러 주세요. '+String(d).slice(0,120));
+    throw new Error('모델 호출이 거절됐어요 (HTTP '+r.status+') '+String(d).slice(0,240))}
   const j=await r.json();const c=(j.candidates||[])[0]||{};
   const text=((c.content||{}).parts||[]).map(p=>p.text||'').join('');
   if(!text){const why=(j.promptFeedback||{}).blockReason||c.finishReason||'알 수 없음';throw new Error('모델이 글을 돌려주지 않았어요 (사유: '+why+'). 안전 필터에 걸렸을 수 있어요.')}
@@ -2245,6 +2256,7 @@ function open(){
 </section>`;
   document.body.appendChild(bg);
   const q=id=>box.querySelector('#'+id);
+  waitNote=t=>{const sec=[...box.querySelectorAll('section')].find(x=>!x.hidden);if(!sec)return;const id=sec.dataset.p==='novel'?'aiStat':sec.dataset.p==='set'?'aiSetStat':(sec.querySelector('#aiLookAuto:disabled')?'aiLookStat':'aiIllStat');const el=box.querySelector('#'+id);if(el)el.textContent=t};
   const tab=t=>{box.querySelectorAll('.ai-tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===t));box.querySelectorAll('section').forEach(s=>s.hidden=s.dataset.p!==t)};
   box.querySelectorAll('.ai-tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
   const close=()=>{if(run)run.abort();bg.remove()};
