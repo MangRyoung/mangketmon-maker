@@ -443,6 +443,11 @@ html.modal-on #mk{overflow:hidden}
 #mk .fmpots{display:flex;flex-direction:column;gap:5px;border-top:1px dashed var(--line);padding-top:6px}
 #mk .fmpot{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1.2fr) auto;gap:5px;align-items:center}
 #mk .fmpot select{min-width:0}
+/* 11-26 폼 기술 전부 교체: 켜면 「원래 기술 →」 고르는 칸을 숨긴다 */
+#mk .fmmvs .fmmv-r{display:none}
+#mk .fmmvs:has(.fmmvrep:checked) .fmmv-r{display:inline}
+#mk .fmmvs:has(.fmmvrep:checked) .fmmv-n,#mk .fmmvs:has(.fmmvrep:checked) .fmmvfrom{display:none}
+#mk .fmmvs:has(.fmmvrep:checked) .fmpot{grid-template-columns:minmax(0,1fr) auto}
 #mk .fmpeff{grid-column:1/-1;padding-left:4px}
 @media (max-width:560px){#mk .fmpot{grid-template-columns:minmax(0,1fr) auto}#mk .fmpot .faint{display:none}}
 /* 업뎃 노트 */
