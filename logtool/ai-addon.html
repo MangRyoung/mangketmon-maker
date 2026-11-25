@@ -98,7 +98,7 @@ async function gemini(system,user,opt){
 function logLines(l){
   const o=opts();
   return l.messages.filter(m=>m.type!=='bgm'&&!(m.name&&cfg(m.name).hide)&&m.type!=='ooc'&&!(m.type==='whisper'&&!o.optWhisper)).map(m=>{
-    const n=m.name?cfg(m.name).name:'';const t=plain(m.tokens).replace(/\s+\n/g,'\n').trim();
+    const n=m.name?cfg(m.name).name:'';const t=(window.OM_PLAIN||plain)(m.tokens).replace(/\s+\n/g,'\n').trim();
     if(!t)return'';
     if(m.type==='emote')return('* '+n+' '+t).trim();
     if(m.type==='whisper')return n+' (귓속말'+(m.to?' → '+cfg(m.to).name:'')+'): '+t;
@@ -155,7 +155,7 @@ const NAI_SIZE={portrait:[832,1216],landscape:[1216,832],square:[1024,1024]};
 function logItems(l){
   const o=opts();
   return l.messages.filter(m=>m.type!=='bgm'&&!(m.name&&cfg(m.name).hide)&&m.type!=='ooc'&&!(m.type==='whisper'&&!o.optWhisper)).map(m=>{
-    const n=m.name?cfg(m.name).name:'';const t=plain(m.tokens).replace(/\s+\n/g,'\n').trim();
+    const n=m.name?cfg(m.name).name:'';const t=(window.OM_PLAIN||plain)(m.tokens).replace(/\s+\n/g,'\n').trim();
     if(!t||t==='[그림]')return null;
     return{id:m.id,text:m.type==='emote'?('* '+n+' '+t).trim():n?n+': '+t:'[지문] '+t};
   }).filter(Boolean);

@@ -14,6 +14,10 @@ addon = (root / 'oremas-addon.html').read_text(encoding='utf-8')
 _ai = root / 'ai-addon.html'
 if _ai.exists():
     addon = addon + '\n' + _ai.read_text(encoding='utf-8')
+# 화면 다듬기 · 읽기 도구(찾기 · 통계 · 인쇄)는 맨 뒤에 (2026-11-26)
+_ui = root / 'ui-addon.html'
+if _ui.exists():
+    addon = addon + '\n' + _ui.read_text(encoding='utf-8')
 
 # 0) 바깥 CDN 스크립트(jszip)는 저장소 안 사본으로 바꾼다 — 배포처가 바뀌어도 키를 다루는 쪽에 남의 코드가 들어오지 않게 (2026-11-25)
 _cdn = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'

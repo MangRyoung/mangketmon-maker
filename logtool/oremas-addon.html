@@ -12,9 +12,11 @@
       <label><input type="checkbox" id="omBattle" checked> 배틀 · 시스템</label>
       <label><input type="checkbox" id="omSms"> 휴대폰 문자</label>
       <label><input type="checkbox" id="omCut"> 비운 로그도</label>
+      <label title="끄면 배틀 줄을 예전처럼 글자로만 옮겨요"><input type="checkbox" id="omCard" checked> 배틀 카드 모양</label>
+      <label title="오레마스에서 GM · 플레이어가 「가림」으로 접어 둔 구간"><input type="checkbox" id="omHid"> 가린 구간도</label>
     </div>
     <div class="row"><button class="btn primary" type="button" id="omGo">불러오기</button><span class="hint" id="omMsg"></span></div>
-    <p class="hint">대사 · 지문 · 주사위 · 배틀 카드(효과 본문 포함) · 올린 그림을 옮기고, 화자 초상을 방의 시트 그림으로 이어 줘요. 귓속말은 서버가 공개하지 않아 빠져요. 오레마스에서 내려받은 HTML · TXT 는 「로그 파일 추가」나 끌어 놓기로 넣으면 돼요.</p>
+    <p class="hint">대사 · 지문 · 주사위 · 올린 그림을 옮기고, 배틀 줄은 오레마스처럼 카드(HP 막대 · 상태 · 행동 순서 · 지시 공개)로 그려요. 화자 초상과 이름 색도 방에서 이어 와요. 귓속말은 서버가 내주지 않아서, 오레마스 「로그 저장」으로 받은 HTML 에 든 것만 들어와요. 오레마스에서 내려받은 HTML · TXT 는 「로그 파일 추가」나 끌어 놓기로 넣으면 돼요.</p>
   </section>
 </template>
 <style>
@@ -42,10 +44,171 @@
     원본 토큰은 글 · 줄바꿈 · 주사위뿐이라 본문 그림과 링크가 사라졌다. {t:'img',src} · {t:'link',href,v} 를 더한다 */
  const origTok=tokHTML;
  tokHTML=function(tk){return tk.map(t=>{
+  if(t.t==='card'){try{return cardHTML(t)}catch(e){return esc(t.x||'')}}
   if(t.t==='img')return SAFE_SRC.test(t.src||'')?`<img class="mi" src="${esc(t.src)}" alt="그림" loading="lazy">`:'';
   if(t.t==='link')return /^https?:/i.test(t.href||'')?`<a class="lk" href="${esc(t.href)}" target="_blank" rel="noopener">${esc(t.v||t.href)}</a>`:esc(t.v||'');
   return origTok([t])}).join('')};
- const plain2=tk=>tk.map(t=>t.t==='text'?t.v:t.t==='roll'?`[${t.expr?t.expr+' = ':''}${t.res}]`:t.t==='img'?'[그림]':t.t==='link'?(t.v||t.href):'\n').join('');
+ const plain2=tk=>tk.map(t=>t.t==='text'?t.v:t.t==='roll'?`[${t.expr?t.expr+' = ':''}${t.res}]`:t.t==='img'?'[그림]':t.t==='link'?(t.v||t.href):t.t==='card'?String(t.x||''):'\n').join('');
+ window.OM_PLAIN=plain2;
+ /* ================= 배틀 카드 토큰 (2026-11-26) =================
+    오레마스 배틀 줄은 글자(【태그】 제목 …)와 함께 구조(data.hp · sc · fc · ord · rv · img)를 싣는다.
+    글자로만 옮기면 HP 막대 · 상태 칩 · 행동 순서 표 · 포켓몬 그림이 다 사라지므로 {t:'card',…} 토큰으로 담아 카드로 그린다.
+    - 카드는 <span class="bc" data-bc="…JSON…"> 로 그려서, 편집 모드에서 줄을 고치거나 저장한 HTML 을 다시 넣어도 walk 가 되살린다
+    - 그림은 S.imgs 의 키(ik)로만 잇는다 → buildLog 가 쓴 키만 CSS 한 번으로 싣는다 (카드마다 그림을 되풀이해 넣지 않는다)
+    - 토큰의 x 는 원래 글자(텍스트 복사 · 웹소설화가 쓴다) */
+ const HEXC=v=>/^#[0-9a-f]{6}$/i.test(String(v||''))?String(v):'';
+ const TAGCOL={'공격':'#c8553d','기술':'#3f7fb5','특성':'#8a62b8','포텐셜':'#c08a1e','고유':'#b8860b','전용':'#2f8f83','전달':'#7a8799','피해':'#d23a3a','회복':'#2f9a5b','공개':'#d6a23b','묘수':'#2b8fa8','커버':'#2b8fa8','스킬 체크':'#2b8fa8','자유 판정':'#2b8fa8','폼체인지':'#b05aa6','무효':'#8a8f9c','지연':'#8a8f9c','상태 변화':'#5f86b8','상태 이상':'#b0563f','상태 회복':'#2f9a5b'};
+ const PHASES=[[/^시합 개시!\s*—\s*(TURN \d+)\s*\n?([\s\S]*)$/,'시합 개시'],[/^턴 개시\s*—\s*(TURN \d+)\s*\n?([\s\S]*)$/,'턴 개시'],[/^턴 개시\s*—\s*()([\s\S]*)$/,'턴 개시'],[/^페이즈: 지시 준비\s*—\s*()([\s\S]*)$/,'지시 준비'],[/^행동 처리\s*—\s*()([\s\S]*)$/,'행동 처리'],[/^행동 순서 끝\s*—\s*()([\s\S]*)$/,'행동 순서 끝'],[/^동시 내밀기!\s*()([\s\S]*)$/,'동시 내밀기!']];
+ const SIDEKO={left:'좌측',right:'우측'};
+ const U=v=>SAFE_SRC.test(String(v||''))?String(v):'';
+ const S_=(v,n)=>String(v==null?'':v).slice(0,n||400);
+ /* 오레마스 줄(data) → 카드 토큰. 카드로 만들 것이 없으면 null (그러면 예전처럼 글자 줄) */
+ function cardOf(d){const t=String(d.t||'');const base={t:'card',x:t};const img=U(d.img);
+  if(d.hp&&+d.hp.max>0){const h=d.hp;const why=String(h.why||'');
+   const more=t.split('\n').slice(2).filter(l=>l&&!/쓰러졌다!$/.test(l)&&!why.split('\n').includes(l));
+   return{...base,k:'hp',_u:img,n:S_(h.name,80),cur:+h.cur||0,max:+h.max,prev:+h.prev||0,why:S_(why,1200),more:more.map(l=>S_(l)).slice(0,12),faint:h.faint?1:0}}
+  if(d.fc&&d.fc.n){const x=d.fc;const tag=(t.match(/^【([^】]+)】/)||[])[1]||({w:'날씨',o:'설치물'}[x.k]||'필드');
+   return{...base,k:'fc',tag:S_(tag,20),n:S_(x.n,80),col:HEXC(x.col),side:SIDEKO[x.side]||'',end:x.end?1:0,note:S_(x.note,80),L:(Array.isArray(x.L)?x.L:[]).map(l=>S_(l)).slice(0,12)}}
+  if(d.sc&&d.sc.n){const x=d.sc;const add=Array.isArray(x.add)?x.add:[],off=Array.isArray(x.off)?x.off:[];
+   return{...base,k:'sc',_u:U(x.img)||img,tag:add.length?(add.some(a=>a&&a.abn)?'상태 이상':'상태 변화'):'상태 회복',n:S_(x.n,80),at:S_(x.at,30),col:HEXC(x.col),
+    add:add.slice(0,12).map(a=>({ko:S_(a.ko,40),g:S_(a.g,30),col:HEXC(a.col),L:(Array.isArray(a.L)?a.L:[]).map(l=>S_(l)).slice(0,8)})),
+    off:off.slice(0,12).map(o=>S_(o&&o.ko,40)).filter(Boolean),by:x.by&&x.by.n?{n:S_(x.by.n,80),s:S_(x.by.s,80)}:null}}
+  if(/^행동 순서\n/.test(t)||(Array.isArray(d.ord)&&d.ord.length&&/^행동 순서/.test(t))){
+   const rows=(Array.isArray(d.ord)&&d.ord.length)?d.ord.map(r=>({n:S_(r.n,80),s:r.s==null?'':S_(r.s,10),cap:S_(r.cap,60),side:r.side==='left'||r.side==='right'?r.side:'',_u:U(r.img)}))
+    :t.split('\n').slice(1).map(l=>{const m=l.match(/^(\d+)\.\s*(.+?)\s*\((.*)\)\s*$/);if(!m)return null;return{n:S_(m[2],80),s:(m[3].match(/스피드\s*(\d+)/)||[])[1]||'',cap:S_(m[3].replace(/\s*·?\s*스피드\s*\d+/,'').trim(),60),side:''}}).filter(Boolean);
+   if(rows.length)return{...base,k:'ord',rows:rows.slice(0,40)}}
+  if(Array.isArray(d.rv)&&d.rv.length){const tag=(t.match(/^【([^】]+)】/)||[])[1]||'공개';
+   return{...base,k:'rv',tag:S_(tag,20),rows:d.rv.slice(0,24).map(r=>{const mv=r.mv||{};
+    const meta=[mv.cat,mv.pow&&mv.pow!=='-'?'위력 '+mv.pow:'',mv.acc&&mv.acc!=='-'?'명중 '+mv.acc:'',mv.range&&mv.range!=='-'?'범위 '+mv.range:'',mv.ct?'접촉':'',mv.prio?'우선도 '+(mv.prio>0?'+':'')+mv.prio:''].filter(Boolean).join(' · ');
+    return{n:S_(r.name,80),tr:S_(r.tr,80),pos:[SIDEKO[r.side]||'',S_(r.area,10)].filter(Boolean).join(' '),_u:U(r.img),none:r.none?1:0,
+     sw:r.sw?{n:S_(r.sw.name,80),done:r.sw.done?1:0,_u:U(r.sw.img)}:null,mv:mv.name?{n:S_(mv.name,80),ty:S_(mv.type,12),meta:S_(meta,160)}:null,
+     tg:(Array.isArray(r.tg)?r.tg:[]).slice(0,8).map(x=>({n:S_(x.name||'빈 자리',80),pos:[SIDEKO[x.side]||'',S_(x.area,10)].filter(Boolean).join(' '),foe:x.side!==r.side?1:0}))}}),
+    more:(Array.isArray(d.rvx)?d.rvx:[]).filter(Boolean).map(l=>S_(l)).slice(0,8)}}
+  for(const [re,label] of PHASES){const m=t.match(re);if(m)return{...base,k:'ph',n:label,turn:S_(m[1],20),note:S_(m[2].trim(),600)}}
+  {const m=t.match(/^▶\s*(.+)의 행동$/);if(m)return{...base,k:'now',n:S_(m[1],80)}}
+  const m=t.match(/^【([^】]+)】\s*([^\n]*)\n?([\s\S]*)$/);if(!m)return null;
+  return{...base,k:'gen',_u:img,tag:S_(m[1],24),title:S_(m[2],300),eff:S_(String(d.eff||'').trim(),2000),body:m[3].trim().split('\n').filter(Boolean).map(l=>S_(l,600)).slice(0,60)}}
+ /* 스킬 체크 · 자유 판정 · 묘수 · 커버 굴림 줄 → 카드 (오레마스 skill_ui rollCard 와 같은 꼴) */
+ function rollCardOf(d){const t=String(d.t||'');const L=t.split('\n');let x;
+  if((x=t.match(/^(.+) 묘수! 다시 굴려 합계 (\d+) \/ (\d+) → (\S+)$/)))return{t:'card',x:t,k:'sk',tag:'묘수',n:S_(x[1],80),sub:'다시 굴림',tot:x[2],goal:x[3],res:S_(x[4],20)};
+  if((x=t.match(/^(.*)의 (.+) 커버! HP −(\d+) · (.+) 「(.+)」 → 「(.+)」$/)))return{t:'card',x:t,k:'sk',tag:'커버',n:S_(x[2],80),sub:`HP −${x[3]}`,note:S_(`${x[4]} 「${x[5]}」 막음 · 「${x[6]}」 유지`,300)};
+  if(!(x=L[0].match(/^(스킬 체크|자유 판정) · (.+?) · (.+? \+ .+?|\S+ \(트레이너만\))(?: · (.+))?$/)))return null;
+  const dl=L[2]||'',bl=L[3]||'',sl=L.find(l=>/^합계 /.test(l))||'',rl=L.find(l=>/^→ /.test(l))||'';const sx=sl.match(/^합계 (\d+) \/ 목표 (\d+)(.*)$/)||[];
+  const dk=(dl.match(/^2d6 → (\d)\+(\d)/)||[]).slice(1);
+  return{t:'card',x:t,k:'sk',tag:x[1],n:S_(x[2],80),sub:S_(x[3]+(x[4]?' · '+x[4]:''),160),how:S_(L[1]||'',120),dice:dk,droll:dk.length?'':S_(dl,120),
+   bon:bl.replace(/^보정\s*/,'').split(' · ').filter(Boolean).map(p=>S_(p,60)).slice(0,12),tot:sx[1]||'',goal:sx[2]||'',res:S_(rl.slice(2).trim(),20),
+   note:S_([dl.replace(/^2d6 → \d\+\d\s*/,'').replace(/^—\s*/,'').trim(),(sx[3]||'').trim()].filter(Boolean).join(' · '),300)}}
+ const RESCOL={'대성공':'#b8860b','성공':'#2f9a5b','부분':'#c08a1e','실패':'#c8553d','대실패':'#8a2f2f'};
+ const resCol=r=>{for(const k in RESCOL)if(String(r||'').includes(k))return RESCOL[k];return'#2b8fa8'};
+ const IK=k=>/^[\w-]{1,80}$/.test(String(k||''))?String(k):'';
+ const cav=(o,cls)=>{const k=IK(o&&o.ik);return k?`<span class="bc-av ${cls||''}" data-ik="${k}"></span>`:(cls==='need'?`<span class="bc-av nil"></span>`:'')};
+ const lineCls=l=>/실패|차단|없|않|무효/.test(l)?'neg':/\+\d|회복|성공/.test(l)?'pos':'';
+ const bl=(l)=>/^▸ /.test(l)?`<span class="bc-sec">${esc(l.slice(2))}</span>`:/^→\s*[^:\n]+:/.test(l)?(()=>{const m=l.match(/^→\s*([^:]+):\s*(.*)$/);return`<span class="bc-hit"><b>→ ${esc(m[1])}</b>${m[2].split(/ · (?![^(]*\))/).map(p=>`<i class="${/✗|빗나|실패|무효/.test(p)?'neg':/대미지|급소 ✓|✓/.test(p)?'pos':''}">${esc(p)}</i>`).join('')}</span>`})():`<span class="bc-l ${lineCls(l)}">${esc(l)}</span>`;
+ function cardHTML(c){
+  const wrap=(cls,col,inner)=>`<span class="bc bc-${cls}" contenteditable="false" data-bc="${esc(JSON.stringify(c))}"${HEXC(col)?` style="--tc:${HEXC(col)}"`:''}>${inner}</span>`;
+  const tag=(s)=>`<span class="bc-tag">${esc(s)}</span>`;
+  if(c.k==='hp'){const P=v=>v>0?Math.max(1,Math.round(v/c.max*100)):0;const a=P(c.prev),b=P(c.cur);const dmg=c.cur<c.prev;const lo=Math.min(a,b),hi=Math.min(100,Math.max(a,b));
+   return wrap('hp'+(c.faint?' faint':''),dmg?'#d23a3a':'#2f9a5b',`<span class="bc-h">${cav(c)}<span class="bc-hm"><span class="bc-ht"><b>${esc(c.n)}</b><span class="bc-n">${dmg?'−':'+'}${Math.abs(c.cur-c.prev)}</span></span>
+<span class="bc-bar ${b<=25?'low':b<=50?'mid':''}"><i style="width:${lo}%"></i><em class="${dmg?'cut':'gain'}" style="left:${lo}%;width:${hi-lo}%"></em></span>
+<span class="bc-hs"><span>HP ${esc(c.prev)} → <b>${esc(c.cur)}</b> / ${esc(c.max)}</span><span>${b}%</span></span></span></span>${String(c.why||'').split('\n').filter(Boolean).map(l=>`<span class="bc-l dim">${esc(l)}</span>`).join('')}${(c.more||[]).map(l=>`<span class="bc-l dim">${esc(l)}</span>`).join('')}${c.faint?`<span class="bc-faint">${esc(c.n)}은(는) 쓰러졌다!</span>`:''}`)}
+  if(c.k==='fc')return wrap('fc'+(c.end?' end':''),c.col||'#777777',`<span class="bc-h">${tag(c.tag)}${c.side?`<span class="bc-pos">${esc(c.side)}</span>`:''}<b>${esc(c.n)}</b><span class="bc-sp"></span><span class="bc-st">${c.end?'끝':esc(c.note||'전개')}</span></span>${(c.L||[]).map(l=>`<span class="bc-l">${esc(l)}</span>`).join('')}`);
+  if(c.k==='sc')return wrap('sc',c.col||TAGCOL[c.tag],`<span class="bc-h">${cav(c)}${tag(c.tag)}<b>${esc(c.n)}</b>${c.at?`<span class="bc-pos">${esc(c.at)}</span>`:''}</span>
+${(c.add||[]).map(a=>`<span class="bc-chiprow"><span class="bc-chip"${HEXC(a.col)?` style="--tc:${HEXC(a.col)}"`:''}>${esc(a.ko)}</span>${a.g?`<small>${esc(a.g)}</small>`:''}</span>${(a.L||[]).map(l=>`<span class="bc-l dim">${esc(l)}</span>`).join('')}`).join('')}${(c.off||[]).length?`<span class="bc-chiprow"><small>풀림</small>${c.off.map(o=>`<s class="bc-chip off">${esc(o)}</s>`).join('')}</span>`:''}${c.by?`<span class="bc-l dim">원인: ${esc(c.by.n)}${c.by.s?` 『${esc(c.by.s)}』`:''}</span>`:''}`);
+  if(c.k==='ord')return wrap('ord','#6c7bbd',`<span class="bc-h">${tag('행동 순서')}</span>${(c.rows||[]).map((r,i)=>`<span class="bc-or ${r.side||''}"><em>${i+1}</em>${cav(r,'need')}<b>${esc(r.n)}</b><span class="bc-sp"></span>${r.cap?`<small>${esc(r.cap)}</small>`:''}${r.s!==''?`<span class="bc-spd">${esc(r.s)}</span>`:''}</span>`).join('')}`);
+  if(c.k==='rv')return wrap('rv',TAGCOL[c.tag]||'#d6a23b',`<span class="bc-h">${tag(c.tag)}</span>${(c.rows||[]).map(r=>`<span class="bc-rr">${cav(r,'need')}<span class="bc-who"><b>${esc(r.n)}</b><small>${esc([r.tr,r.pos].filter(Boolean).join(' · '))}</small></span>${r.none?'<span class="bc-none">행동 없음</span>':r.sw?`<span class="bc-arr">⇄ 교대</span>${cav(r.sw,'need')}<span class="bc-who"><b>${esc(r.sw.n)}</b><small>${r.sw.done?'나왔다':'나올 포켓몬'}</small></span>`:`${r.mv?`<span class="bc-mv">${r.mv.ty?`<i class="bc-ty">${esc(r.mv.ty)}</i>`:''}<b>「${esc(r.mv.n)}」</b>${r.mv.meta?`<small>${esc(r.mv.meta)}</small>`:''}</span>`:''}${(r.tg||[]).length?`<span class="bc-arr">→</span><span class="bc-tgs">${r.tg.map(x=>`<span class="bc-tg ${x.foe?'foe':'ally'}"><b>${esc(x.n)}</b><small>${esc(x.pos)}</small></span>`).join('')}</span>`:''}`}</span>`).join('')}${(c.more||[]).map(l=>`<span class="bc-l">${esc(l)}</span>`).join('')}`);
+  if(c.k==='ph')return wrap('ph','',`<span class="bc-phl"><b>${esc(c.n)}</b>${c.turn?`<em>${esc(c.turn)}</em>`:''}</span>${c.note?`<span class="bc-l dim">${esc(c.note)}</span>`:''}`);
+  if(c.k==='now')return wrap('now','',`<span class="bc-nowl">▶ <b>${esc(c.n)}</b>의 행동</span>`);
+  if(c.k==='sk'){const col=c.res?resCol(c.res):'#2b8fa8';
+   return wrap('sk',col,`<span class="bc-h">${tag(c.tag)}<b>${esc(c.n)}</b>${c.sub?`<small>${esc(c.sub)}</small>`:''}<span class="bc-sp"></span>${c.res?`<span class="bc-res">${esc(c.res)}</span>`:''}</span>
+${c.how||c.tot||(c.dice||[]).length?`<span class="bc-calc">${c.how?`<small>${esc(c.how)}</small>`:''}${(c.dice||[]).map(v=>`<i class="bc-die">${esc(v)}</i>`).join('')}${c.droll?`<small>${esc(c.droll)}</small>`:''}${(c.bon||[]).map(p=>`<span class="bc-bon">${esc(p)}</span>`).join('')}${c.tot?`<span class="bc-tot">= <b>${esc(c.tot)}</b>${c.goal?` <small>/ ${esc(c.goal)}</small>`:''}</span>`:''}</span>`:''}${c.note?`<span class="bc-l dim">${esc(c.note)}</span>`:''}`)}
+  const sp=c.tag==='고유'?' uq':c.tag==='전용'?' ex':'';
+  return wrap('gen'+sp,TAGCOL[c.tag]||(/종료|개시/.test(c.tag||'')?'#6c7bbd':'#7a8799'),`<span class="bc-h">${cav(c)}${tag((sp===' uq'?'♛ ':sp===' ex'?'◆ ':'')+(c.tag||''))}<b>${esc(c.title||'')}</b></span>${c.eff?`<span class="bc-eff">${esc(c.eff)}</span>`:''}${(c.body||[]).map(bl).join('')}`)}
+ const BC_CSS=`
+.sys:has(.bc){text-align:left;font-size:.92em;color:var(--fg)}
+.sys:has(.bc) .line{position:relative}
+.sys:has(.bc) .ts{position:absolute;right:0;top:4px}
+@media (max-width:900px){.sys:has(.bc) .ts{position:static;display:block;text-align:right;margin-bottom:2px}}
+.bc{--tc:#7a8799;display:flex;flex-direction:column;gap:5px;border:1px solid color-mix(in srgb,var(--tc) 38%,var(--line));border-left:4px solid var(--tc);border-radius:8px;padding:9px 12px;background:color-mix(in srgb,var(--tc) 6%,var(--surface));max-width:620px;margin:2px auto;box-sizing:border-box;font-family:var(--f-log);font-style:normal;line-height:1.5;text-align:left;clear:both}
+.bc b{font-weight:600}.bc small{font-size:.8em;color:var(--muted);font-weight:400}
+.bc-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.bc-sp{flex:1}
+.bc-tag{font-size:.72em;font-weight:600;letter-spacing:.03em;padding:1px 8px;border-radius:99px;background:var(--tc);color:#fff;white-space:nowrap}
+.bc-av{width:34px;height:34px;flex:none;border-radius:8px;background:color-mix(in srgb,var(--tc) 14%,var(--surface)) center/contain no-repeat;display:inline-block}
+.bc-av.nil{opacity:.5}
+.bc-l{display:block;font-size:.9em;overflow-wrap:anywhere;white-space:pre-wrap}
+.bc-l.dim{color:var(--muted);font-size:.84em}
+.bc-l.pos{color:color-mix(in srgb,#2f9a5b 70%,var(--fg))}.bc-l.neg{color:color-mix(in srgb,#c8553d 70%,var(--fg))}
+.bc-sec{display:block;font-size:.76em;font-weight:600;letter-spacing:.05em;color:var(--tc);margin-top:3px}
+.bc-eff{display:block;font-size:.86em;color:var(--muted);border-left:2px solid color-mix(in srgb,var(--tc) 45%,transparent);padding-left:9px;white-space:pre-wrap;overflow-wrap:anywhere}
+.bc-hit{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:.88em}
+.bc-hit i{font-style:normal;font-size:.9em;padding:0 7px;border-radius:99px;border:1px solid var(--line);color:var(--muted);background:var(--surface)}
+.bc-hit i.pos{color:color-mix(in srgb,#c8553d 75%,var(--fg));border-color:color-mix(in srgb,#c8553d 40%,var(--line))}
+.bc-hit i.neg{opacity:.75}
+.bc-gen.uq,.bc-gen.ex{background:linear-gradient(135deg,color-mix(in srgb,var(--tc) 16%,var(--surface)),color-mix(in srgb,var(--tc) 4%,var(--surface)));border-color:color-mix(in srgb,var(--tc) 60%,var(--line))}
+.bc-hm{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.bc-ht{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.bc-n{font-family:var(--f-mono);font-weight:600;color:var(--tc)}
+.bc-bar{position:relative;height:8px;border-radius:99px;background:color-mix(in srgb,var(--fg) 12%,var(--surface));overflow:hidden;display:block}
+.bc-bar i{position:absolute;inset:0 auto 0 0;background:#2f9a5b;border-radius:99px}
+.bc-bar.mid i{background:#d9a441}.bc-bar.low i{background:#d23a3a}
+.bc-bar em{position:absolute;top:0;bottom:0}
+.bc-bar em.cut{background:repeating-linear-gradient(135deg,#d23a3a 0 3px,color-mix(in srgb,#d23a3a 45%,transparent) 3px 6px)}
+.bc-bar em.gain{background:color-mix(in srgb,#2f9a5b 55%,#fff)}
+.bc-hs{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:.76em;color:var(--muted)}
+.bc-faint{display:block;text-align:center;font-weight:600;font-size:.88em;color:#fff;background:#8a2f2f;border-radius:6px;padding:2px 8px}
+.bc-pos{font-size:.74em;padding:0 7px;border-radius:4px;border:1px solid var(--line);color:var(--muted)}
+.bc-st{font-size:.78em;color:var(--muted)}
+.bc-fc.end{opacity:.72}
+.bc-chiprow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.bc-chip{font-size:.82em;font-weight:600;padding:1px 9px;border-radius:6px;background:color-mix(in srgb,var(--tc) 18%,var(--surface));color:color-mix(in srgb,var(--tc) 70%,var(--fg));border:1px solid color-mix(in srgb,var(--tc) 45%,var(--line))}
+.bc-chip.off{--tc:#8a8f9c;font-weight:400}
+.bc-or{display:flex;align-items:center;gap:8px;padding:3px 6px;border-radius:6px;min-width:0}
+.bc-or.left{background:color-mix(in srgb,#3f7fb5 9%,transparent)}.bc-or.right{background:color-mix(in srgb,#c8553d 9%,transparent)}
+.bc-or em{font-style:normal;font-family:var(--f-mono);font-size:.8em;color:var(--muted);width:1.4em;text-align:right}
+.bc-or .bc-av,.bc-rr .bc-av{width:28px;height:28px}
+.bc-spd{font-family:var(--f-mono);font-size:.82em;font-weight:600}
+.bc-rr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:3px 0}
+.bc-rr + .bc-rr{border-top:1px dashed var(--line)}
+.bc-who{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.bc-none{color:var(--muted);font-size:.86em}.bc-arr{color:var(--muted);font-size:.86em}
+.bc-mv{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.bc-ty{font-style:normal;font-size:.72em;padding:0 7px;border-radius:99px;background:color-mix(in srgb,var(--tc) 20%,var(--surface));border:1px solid color-mix(in srgb,var(--tc) 45%,var(--line))}
+.bc-tgs{display:flex;gap:6px;flex-wrap:wrap}
+.bc-tg{display:flex;flex-direction:column;line-height:1.2;font-size:.86em;padding:1px 8px;border-radius:6px;border:1px solid var(--line)}
+.bc-tg.foe{border-color:color-mix(in srgb,#c8553d 45%,var(--line))}.bc-tg.ally{border-color:color-mix(in srgb,#3f7fb5 45%,var(--line))}
+.bc-ph,.bc-now{border:none;background:none;padding:2px 0;align-items:center;text-align:center;max-width:none}
+.bc-phl{display:flex;align-items:center;gap:10px;width:100%;font-family:var(--f-gm);font-size:1.02em;letter-spacing:.08em}
+.bc-phl::before,.bc-phl::after{content:'';flex:1;height:1px;background:var(--line)}
+.bc-phl em{font-style:normal;font-family:var(--f-mono);font-size:.74em;padding:1px 8px;border-radius:99px;background:var(--accent);color:var(--accent-ink);letter-spacing:.04em}
+.bc-ph .bc-l{text-align:center}
+.bc-nowl{font-size:.9em;color:var(--muted)}.bc-nowl b{color:var(--fg)}
+.bc-res{font-size:.8em;font-weight:600;padding:1px 10px;border-radius:99px;background:var(--tc);color:#fff}
+.bc-calc{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.bc-die{font-style:normal;font-family:var(--f-mono);font-weight:600;width:1.7em;height:1.7em;display:inline-grid;place-items:center;border-radius:5px;border:1px solid var(--roll-line);background:var(--roll-bg);color:var(--roll-fg)}
+.bc-bon{font-size:.82em;padding:0 7px;border-radius:99px;border:1px solid var(--line)}
+.bc-tot{font-family:var(--f-mono);margin-left:auto}.bc-tot b{font-size:1.15em}
+.hide-expr .bc-calc .bc-bon,.hide-expr .bc-hit i:not(.pos){display:none}
+.editing .bc{cursor:default;user-select:none}
+@media (max-width:560px){.bc{padding:8px 10px}.bc-av{width:30px;height:30px}}
+@media print{.bc{break-inside:avoid}}`;
+ $('logcss').textContent+=BC_CSS;
+ /* 카드가 쓴 그림만 CSS 로 싣는다 (화면 #tokcss · 저장한 HTML 둘 다 buildLog 의 css 를 쓴다) */
+ {const prevBuild=buildLog;buildLog=function(){const r=prevBuild.apply(this,arguments);try{if(r&&r.html&&r.html.includes('data-ik="')){const ks=new Set();r.html.replace(/data-ik="([\w-]{1,80})"/g,(m,k)=>{ks.add(k);return m});
+   r.css=(r.css||'')+'\n'+[...ks].map(k=>{const u=img(k);return u&&/^data:image\//i.test(u)?`.bc-av[data-ik="${k}"]{background-image:url("${u}")}`:''}).filter(Boolean).join('\n')}}catch(e){}return r}}
+ /* 카드 속 그림 주소(_u)를 S.imgs 키(ik)로 바꾼다 */
+ async function assetKey(u,cache){if(!u||!SAFE_SRC.test(u))return'';if(cache.has(u))return cache.get(u);const key='o'+hashStr(u);let ok=true;
+  try{if(!S.imgs[key]){let d=null;if(/^data:image\//i.test(u))d=await shrink(dataToBlob(u));else{const r=await fetch(u);if(!r.ok)throw 0;d=await shrink(await r.blob())}if(!d)throw 0;S.imgs[key]=d}}catch(e){ok=false}
+  cache.set(u,ok?key:'');return ok?key:''}
+ async function linkCardImgs(msgs){const cache=new Map();
+  const each=async o=>{if(!o||typeof o!=='object')return;if(Array.isArray(o)){for(const x of o)await each(x);return}
+   if(typeof o._u==='string'){const k=await assetKey(o._u,cache);delete o._u;if(k)o.ik=k}
+   for(const k in o)if(o[k]&&typeof o[k]==='object')await each(o[k])};
+  for(const m of msgs)for(const t of m.tokens||[])if(t.t==='card')await each(t)}
+ /* 오레마스 채팅 설정의 이름 색(data.sty.nc) → 화자 색. 이미 색을 정한 화자는 건드리지 않는다 */
+ function hueOf(hex){const n=parseInt(hex.slice(1),16);const r=(n>>16)/255,g=((n>>8)&255)/255,b=(n&255)/255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;if(d<.06)return null;
+  let h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;h=Math.round(h*60);return(h+360)%360}
+ function applyNameColors(msgs){const seen=new Set();for(const m of msgs){if(!m.name||!m._nc||seen.has(m.name))continue;seen.add(m.name);if(S.speakers[m.name])continue;const h=hueOf(m._nc);if(h!=null)cfg(m.name).h=h}}
+
 
  /* ================= 본문 읽기 (walk) =================
     - 본문 속 그림(http(s) · data:image)은 그림 토큰으로 남긴다. 초상으로 쓴 그림(data-mtl-portrait)은 뺀다
@@ -57,6 +220,7 @@
    if(n.nodeType!==1)continue;
    const tag=n.tagName.toLowerCase();
    if(tag==='br'){out.push({t:'br'});continue}
+   if(n.hasAttribute('data-bc')){try{const c=JSON.parse(n.getAttribute('data-bc'));if(c&&c.t==='card'&&typeof c.k==='string')out.push(c)}catch(e){}continue}   /* 배틀 카드는 통째로 되살린다 */
    if(tag==='img'){if(n.hasAttribute('data-mtl-portrait'))continue;const s=n.getAttribute('src')||'';if(SAFE_SRC.test(s))out.push({t:'img',src:s});continue}
    if(/^(script|style|audio|video|source|embed|object|iframe|button)$/.test(tag))continue;
    if(n.classList.contains('tools'))continue;
@@ -197,10 +361,10 @@
  /* 오레마스 로그 한 줄 → 정리기 메시지 (null 이면 뺀다) */
  function convert(r,o,T){const d=r.data||{};let kind=r.kind;if(kind==='chat'&&d.bat)kind=d.bat;T=T||{};
   const base={id:uid(),ts:hm(r.at)};
-  if(kind==='whisper'){if(!o.wh||!d.t)return null;return{...base,name:r.who||'',to:String(d.toName||d.to||''),type:'whisper',tokens:textToks(d.t)}}   /* 서버는 귓속말을 내주지 않는다. 내보낸 파일(내 귓속말)에 든 것만 */
+  if(kind==='whisper'){if(!o.wh||!d.t)return null;if(o.card!==false&&o.battle&&(d.gmPriv||d.priv)&&/^【/.test(String(d.t))){const c=cardOf(d);if(c)return{...base,type:'whisper',name:r.who||'',to:String(d.toName||d.to||''),tokens:[c]}}return{...base,name:r.who||'',to:String(d.toName||d.to||''),type:'whisper',tokens:textToks(d.t)}}   /* 서버는 귓속말을 내주지 않는다. 내보낸 파일(내 귓속말)에 든 것만 */
   if(kind==='sys'){if(!o.battle)return null;return{...base,type:'sys',tokens:textToks(d.t)}}
-  if(kind==='dice'){if(!o.dice)return null;const t=String(d.t||'');const m=t.match(/^(.*?)\s*=\s*([^=]+)$/);return{...base,name:(T[d.from]&&T[d.from].name)||r.who||'',type:d.ch==='ooc'?'ooc':'say',tokens:m?[{t:'roll',expr:m[1].trim(),res:m[2].trim()}]:textToks(t)}}
-  if(kind==='battle'){if(!o.battle)return null;const t=String(d.t||'');const m=t.match(/^【([^】]+)】\s*([^\n]*)\n?([\s\S]*)$/);
+  if(kind==='dice'){if(!o.dice)return null;const t=String(d.t||'');if(o.card!==false&&d.ch!=='ooc'){const c=rollCardOf(d);if(c)return{...base,type:'sys',tokens:[c]}}const m=t.match(/^(.*?)\s*=\s*([^=]+)$/);return{...base,name:(T[d.from]&&T[d.from].name)||r.who||'',type:d.ch==='ooc'?'ooc':'say',tokens:m?[{t:'roll',expr:m[1].trim(),res:m[2].trim()}]:textToks(t)}}
+  if(kind==='battle'){if(!o.battle)return null;const t=String(d.t||'');if(o.card!==false){const c=cardOf(d);if(c)return{...base,type:'sys',tokens:[c]}}const m=t.match(/^【([^】]+)】\s*([^\n]*)\n?([\s\S]*)$/);
    const tk=m?[{t:'text',v:`【${m[1]}】 `,b:true},{t:'text',v:m[2],b:true},...(m[3].trim()?[{t:'br'},...textToks(m[3].trim())]:[])]:textToks(t);
    if(d.eff)tk.push({t:'br'},...textToks(String(d.eff).trim(),{i:true}));
    return{...base,type:'sys',tokens:tk}}
@@ -213,9 +377,9 @@
    if(d.img&&SAFE_SRC.test(String(d.img))){if(tk.length)tk.push({t:'br'});tk.push({t:'img',src:String(d.img)})}
    if(!tk.length)return null;
    return{...base,name:d.sms?`📱 ${name}`:name,type:d.ch==='ooc'?'ooc':narr?'emote':'say',   /* 오레마스 잡담 창(ch:'ooc') → OOC */
-    tokens:tk,_k:d.k||'',_as:d.as||'',_from:d.from||''}}
+    tokens:tk,_k:d.k||'',_as:d.as||'',_from:d.from||'',_nc:HEXC(d.sty&&d.sty.nc)}}
   return null}
- const strip=msgs=>msgs.forEach(m=>{delete m._k;delete m._as;delete m._from});
+ const strip=msgs=>msgs.forEach(m=>{delete m._k;delete m._as;delete m._from;delete m._nc});
 
  /* 화자 이름 → 그림 주소 (로스터 · 관계도 · 스탠딩) */
  function portraitMap(state,msgs){const ro=state.roster||{};const T=ro.trainers||{},M=ro.mons||{};const N=Object.values((state.graph||{}).nodes||{});
@@ -239,8 +403,8 @@
 
  /* 패널 */
  const tpl=$('omPanelTpl');const first=document.querySelector('.rail .panel');if(tpl&&first)first.after(tpl.content.cloneNode(true));
- const OPT_IDS={dice:'omDice',battle:'omBattle',sms:'omSms',cut:'omCut'};
- const opt=()=>({dice:$('omDice').checked,battle:$('omBattle').checked,sms:$('omSms').checked,cut:$('omCut').checked});
+ const OPT_IDS={dice:'omDice',battle:'omBattle',sms:'omSms',cut:'omCut',card:'omCard',hid:'omHid'};
+ const opt=()=>({dice:$('omDice').checked,battle:$('omBattle').checked,sms:$('omSms').checked,cut:$('omCut').checked,card:$('omCard').checked,hid:$('omHid').checked});
  (()=>{const v=ls.get('om-opts',null);if(v)Object.entries(OPT_IDS).forEach(([k,id])=>{if(typeof v[k]==='boolean')$(id).checked=v[k]});
   Object.values(OPT_IDS).forEach(id=>$(id).addEventListener('change',()=>ls.set('om-opts',opt())))})();   /* 패널 옵션을 이 브라우저에 기억한다 */
 
@@ -252,9 +416,14 @@
    const state=(states[0]&&states[0].data)||{};const cut=o.cut?0:(+((state.rp||{}).logClearAt)||0);
    const PAGES=500;let rows=[],after=cut,capped=false;
    for(let i=0;;i++){if(i>=PAGES){capped=true;break}const page=await rest(`om_log?room=eq.${encodeURIComponent(id)}&id=gt.${after}&order=id.asc&limit=1000&select=id,at,kind,who,data`);if(!page.length)break;rows.push(...page);after=page[page.length-1].id;say(`로그 ${rows.length}줄 읽는 중…`);if(page.length<1000)break}
+   /* 오레마스의 「가림」 구간(rp.logHide · pub.<좌석>.logHide = {시작 id: 끝 id|0})은 기본으로 뺀다 */
+   const H=[];if(!o.hid){const add=h=>{if(h&&typeof h==='object')for(const a in h){const z=+h[a];if(+a>0)H.push([+a,z>0?z:Infinity])}};add((state.rp||{}).logHide);const pub=state.pub||{};for(const k in pub)add((pub[k]||{}).logHide)}
+   const total=rows.length;if(H.length)rows=rows.filter(r=>!H.some(h=>r.id>=h[0]&&r.id<=h[1]));const hidN=total-rows.length;
+   if(!rows.length){say('옮길 로그가 없다 (모두 가린 구간)');return}
    const msgs=rows.map(r=>convert(r,o,(state.roster||{}).trainers||{})).filter(Boolean);
    if(!msgs.length){say('옮길 로그가 없다');return}
-   say('초상을 잇는 중…');const pr=await linkPortraits(portraitMap(state,msgs),msgs);strip(msgs);
+   applyNameColors(msgs);
+   say('초상을 잇는 중…');const pr=await linkPortraits(portraitMap(state,msgs),msgs);await linkCardImgs(msgs);strip(msgs);
    const d0=day(rows[0].at),d1=day(rows[rows.length-1].at);
    const title=`${rooms[0].name||id} · 오레마스 ${d0}${d1&&d1!==d0?' ~ '+d1:''}`;
    /* 같은 방을 이미 불러왔으면: 주소로 열 때는 그 로그를 새로 고치고, 버튼으로 부를 때는 물어본다. 고치기 전 상태는 「되돌리기」로 살린다 */
@@ -266,7 +435,7 @@
    else{log={id:uid(),title,autoTitle:title,messages:msgs,created:Date.now()};S.logs[log.id]=log}
    map[id]=log.id;await idb.set('om-rooms',map);
    touch(log);flush();await idb.set('log:'+log.id,log);await idb.set('imgs',S.imgs);await selectLog(log.id);
-   say(`${msgs.length}줄 · 초상 ${pr.ok}명${pr.fail?` (못 읽은 그림 ${pr.fail})`:''}${capped?` · 너무 길어 앞 ${rows.length.toLocaleString()}줄까지만 읽었다`:''}`);
+   say(`${msgs.length}줄${hidN?` · 가린 구간 ${hidN}줄 뺌`:''} · 초상 ${pr.ok}명${pr.fail?` (못 읽은 그림 ${pr.fail})`:''}${capped?` · 너무 길어 앞 ${rows.length.toLocaleString()}줄까지만 읽었다`:''}`);
    toast(capped?`로그가 너무 길어 앞 ${rows.length.toLocaleString()}줄까지만 읽었어요`:`오레마스 「${rooms[0].name||id}」 로그를 ${re?'새로 고쳤어요':'넣었어요'}`)
   }catch(e){console.error(e);say('읽지 못했다: '+e.message)}}
  $('omGo').onclick=()=>importRoom($('omRoom').value,opt());
@@ -360,7 +529,7 @@
   if(raw&&isOmHtml(raw)){const doc=new DOMParser().parseFromString(raw,'text/html');const pk=doc.getElementById('oremas-log');let r=null;
    if(pk){try{r=fromPack(JSON.parse(pk.textContent))}catch(e){r=null}}if(!r)r=fromDom(doc);
    if(!r.msgs.length){toast((title||'파일')+'에서 옮길 로그를 찾지 못했어요');return null}
-   await linkPortraits(r.por,r.msgs);strip(r.msgs);
+   applyNameColors(r.msgs);await linkPortraits(r.por,r.msgs);await linkCardImgs(r.msgs);strip(r.msgs);
    const log={id:uid(),title:title&&!/로그_\d{4}/.test(title)?title:r.title,messages:r.msgs,created:Date.now()};
    S.logs[log.id]=log;touch(log);idb.set('imgs',S.imgs);return log}
   if(raw&&looksHTML(raw)){const doc=new DOMParser().parseFromString(raw,'text/html');
