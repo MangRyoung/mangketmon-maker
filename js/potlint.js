@@ -542,7 +542,7 @@ window.MKM_POTLINT=(()=>{
    const nx=all.match(/된\s*(?:상대|대상)(?:가|이)\s*다음에?\s*내보내는\s*기술(?:에|의)\s*「\s*우선도\s*:\s*([+\-−]\s*\d+)\s*」/);
    if(nx&&BEC.test(all)){lines.length=0;lines.push('다음기술 상대1체 우선도'+nx[1].replace(/\s/g,'').replace('−','-'));why.length=0;why.push(all)}
    if(USED.test(all)){const rest=all.slice(all.search(USED));const self=/자신(?:의|에게|이|을)/.test(rest)&&!/대상/.test(rest);if(!self)for(let i=0;i<lines.length;i++)if(/^(?:회복|우선도|랭크|배율|상태|치유|다음기술|위력|완화)\s/.test(lines[i])&&!TG.test(lines[i]))lines[i]+=' 아군1체';
-    if(!timing)timing='웹툴 계기 — 그 기술이 아군에게 들어가면 저절로 묻는다(【자동】이면 바로). 대상 「아군1체」 = 기술을 받은 아군'}
-   else if(BEC.test(all)&&!timing)timing='웹툴 계기 — 필드 포켓몬의 타입 · 소지품 · 특성이 그렇게 바뀌면 저절로 묻는다(【자동】이면 바로). 「상대1체」 = 바뀐 그 포켓몬 (처음 나올 때부터 그런 것은 계기 아님)'}catch(e){}
+    if(!timing||/「발동」 버튼/.test(timing))timing='웹툴 계기 — 그 기술이 아군에게 들어가면 저절로 묻는다(【자동】이면 바로). 대상 「아군1체」 = 기술을 받은 아군'}
+   else if(BEC.test(all)&&(!timing||/「발동」 버튼/.test(timing)))timing='웹툴 계기 — 필드 포켓몬의 타입 · 소지품 · 특성이 그렇게 바뀌면 저절로 묻는다(【자동】이면 바로). 「상대1체」 = 바뀐 그 포켓몬 (처음 나올 때부터 그런 것은 계기 아님)'}catch(e){}
   {const fu=fixUp(all,lines);if(fu&&!lines.length)return {lines,why:why.length?why:[all],timing:fu}}return {lines,why,timing}}
  return {check,fixAll,fixOne,suggest,clauses,cmdChgOf}})();
