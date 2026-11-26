@@ -339,7 +339,8 @@ function moveCap(t,p){const k=classOf(p);const filled=p.moves.filter(m=>m.name);
  else{const gs=S.db.sock.map(x=>x[0]);const g=s=>{const m=(grade(s)||'').match(/[A-Z]+/);const i=m?gs.indexOf(m[0]==='EX'&&!gs.includes('EX')?'S':m[0]):-1;return i<0?99:i};
   const i=Math.min(g(p.base[1]),g(p.base[3]));
   if(i===99)cap=null;else{const tot=p.base.reduce((a,b)=>a+(+b||0),0);cap=+S.db.sock[i][tot>=570?3:tot>=525?2:1]}}
- const bon=sockBonus(p).mv;if(cap!=null&&bon)cap=+(cap+bon).toFixed(2);const ov=nz(p.sockMax);return {used,cap:ov?+p.sockMax:cap,mode,auto:cap,ov,bon}}
+ const bon=sockBonus(p).mv;if(cap!=null&&bon)cap=+(cap+bon).toFixed(2);if(ruleOff(t,'sock'))return {used,cap:null,mode,auto:null,ov:false,bon,off:true};   /* 폴더 규칙(몽환 세계): 기술 소켓 상한 없음 — 합계만 */
+ const ov=nz(p.sockMax);return {used,cap:ov?+p.sockMax:cap,mode,auto:cap,ov,bon}}
 /* 10-27 망령: 육성형 보너스 — 기술 하나의 소켓 상한 (경고만, 막지는 않는다).
    육성 A 이상: 할인 뒤 2.5까지 (소켓 3에 할인 체크 = 2.5 는 된다, 3 은 안 된다)
    육성 B: 할인 뒤 2.5 미만 (소켓 2.5 에 할인 체크하면 된다)
@@ -347,7 +348,7 @@ function moveCap(t,p){const k=classOf(p);const filled=p.moves.filter(m=>m.name);
 const BIGMV=2.5,BIGMV_RANK='A',BIGMV_HALF='B';
 const brk=t=>BU_L.indexOf(strip(((t&&t.ranks)||{})['육성']));
 const rawSock=(p,m)=>moveSock(p,Object.assign({},m,{half:false}));
-const isBigMv=(t,p,m)=>{if(!(t&&m&&m.name)||OLDK.includes(classOf(p)))return false;const r=brk(t);
+const isBigMv=(t,p,m)=>{if(!(t&&m&&m.name)||OLDK.includes(classOf(p))||ruleOff(t,'sock'))return false;const r=brk(t);
  if(r>=BU_L.indexOf(BIGMV_RANK))return moveSock(p,m)>BIGMV;
  if(r>=BU_L.indexOf(BIGMV_HALF))return moveSock(p,m)>=BIGMV;
  return rawSock(p,m)>=BIGMV};
@@ -359,7 +360,7 @@ const FOLLOW_MV=['날따름','분노가루'],WIDE_MV='와이드가드';
 const followWide=p=>{const n=(p.moves||[]).map(m=>m.name);const f=n.filter(x=>FOLLOW_MV.includes(x));return f.length&&n.includes(WIDE_MV)?[...f,WIDE_MV]:null};
 const followWideTxt=L=>`「날따름」 계열과 「와이드가드」는 한 포켓몬이 같이 들 수 없습니다 · ${L.join(', ')}`;
 const oldSock=()=>{const v=+(S.db.oldSock??5.5);return isNaN(v)?5.5:v};
-const capTxt=(c,none='-',sep=' / ')=>c.mode==='count'?`${c.used}개(${c.pt})`:`${c.used}${sep}${c.cap??none}`;
+const capTxt=(c,none='-',sep=' / ')=>c.off?`${c.used} (상한 없음)`:c.mode==='count'?`${c.used}개(${c.pt})`:`${c.used}${sep}${c.cap??none}`;
 function ptSockets(t,aw){let u=0;const m=isMisag(t);for(const p of t.pokemon){if(m&&!!awOf(t,p)!==!!aw)continue;if(p&&p.bench)continue;   /* 11-07 망령 「기술점도 빼」: 대기(벤치)는 PT 기술점에서 뺀다 */const c=moveCap(t,p);u+=c.mode==='count'?c.pt:c.used}return Math.round(u*100)/100}
 /* ---------- 프라이드 · 계산 종족치 (2026-10-25 종족치 분배 개편) ----------
    룰북 「포켓몬 제작」. 숫자는 전부 테이블·계산식 탭 「종족치 · 프라이드 규칙」에서 고친다 (공유 설정 meta/set.pride).
