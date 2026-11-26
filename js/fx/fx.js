@@ -11,14 +11,13 @@
  const iuLabel=iu=>{const lv=iu.lv||'';if(iu.all)return lv==='rank'?'랭크 변화 무시':lv==='mod'?'배율 변화 무시':'변화 모두 무시';if(iu.dn)return lv==='rank'?'감소(랭크) 무시':lv==='mod'?'저하(배율) 무시':'감소·저하 무시';return lv==='rank'?'상승(랭크) 무시':lv==='mod'?'강화(배율) 무시':'상승·강화 무시'};
  const iuLv=w=>w==='rank'?' 랭크':w==='mod'?' 배율':'';
 window.OM_FX=(()=>{
- const DB=()=>window.OM_DB||{}, B=()=>window.OM_BATTLE, S=()=>window.OM_STATS;
+ const DB=()=>window.OM_DB||{}, B=()=>window.OM_BATTLE;
  /* 특성 바꾸기 · 되돌리기 (10-24 망령): 이름만 바꾸면 효과 글(abilityEff)이 예전 특성 그대로 남는다 — 새 특성은 DB 글, 되돌릴 땐 원래 글(제작기 사본 포함)로 */
  const abEff=n=>{const a=(DB().traits||{})[n]||{};return String(a.multi||a.single||'').replace(/<br\s*\/?>/gi,'\n')};
  /* 10-26 (서서 VS 마리 시험): 특성이 바뀌면 옛 특성이 걸어 둔 자기 효과(내진의 땅 반감 등)를 푼다 */
  function dropAbFx(m,old){if(!old||!m||!m.fx)return;const F=fx(m);const key=old+' ← '+m.name;const hit=e=>e&&(e.key===key||String(e.key||'').startsWith(key+' ('));for(const e of (F.mults||[]).filter(hit))unmult(m,e);F.mults=(F.mults||[]).filter(e=>!hit(e));for(const k of ['mods','noind','prio','immune','nodrop','chance'])if(Array.isArray(F[k]))F[k]=F[k].filter(e=>!hit(e))}
  function setAb(m,n,by){const old0=m.ability;if(old0&&old0!==(n||''))dropAbFx(m,old0);if(m.abilityOrig==null){m.abilityOrig=m.ability||'';m.abilityEffOrig=m.abilityEff||''}if(by!=null)m.abilityBy=by;m.ability=n||'';m.abilityEff=abEff(n);if(m.abilityOrig===m.ability)resetAb(m)}
  function resetAb(m){if(m.abilityOrig==null)return false;m.ability=m.abilityOrig;m.abilityEff=m.abilityEffOrig!=null?m.abilityEffOrig:abEff(m.ability);delete m.abilityOrig;delete m.abilityEffOrig;delete m.abilityBy;return true}
- const STATS=['attack','defense','specialattack','specialdefense','speed','accuracy','evasion','critical','critical_buff'];
  const STAT_KO={attack:'공격',defense:'방어',specialattack:'특공',specialdefense:'특방',speed:'스피드',accuracy:'명중',evasion:'회피',critical:'급소',critical_buff:'급소방호'};
  const KO_STAT={};for(const k in STAT_KO)KO_STAT[STAT_KO[k]]=k;KO_STAT['특수공격']='specialattack';KO_STAT['특수방어']='specialdefense';KO_STAT['민첩']='speed';KO_STAT['속도']='speed';
  const TGT_KO={koed:'쓰러뜨린 상대',any1:'아무나 1체',self:'자신',ally:'아군 전체',allyx:'아군',enemy:'상대 전체',others:'자신 이외',all:'전체',ally1:'아군 1체',ally1s:'자신 포함 아군 1체',adj:'옆 아군',enemy1:'상대 1체',front:'정면',syncally:'동조된 아군',syncfoe:'동조된 상대',randother:'자신 이외 무작위 1체',randally:'자신 제외 아군 무작위 1체',randenemy:'상대 무작위 1체',randall:'전원 무작위 1체',area:'지정 에리어',diag:'대각',hitopp:'맞은대상옆'};
@@ -126,7 +125,6 @@ window.OM_FX=(()=>{
  function rmChance(a,text){const p=a&&a.p;if(p!=null&&p!==''&&isFinite(+p)&&+p>0)return Math.min(100,+p);const t=String((a&&a.text)||text||'');const c=chanceOf(t);if(c)return c;const pl=timing(t).percent;return pl?percentOf(pl):0}
 
  /* ===== 대상 고르기 ===== */
- function sideMons(b,side){return Object.values(b.mons||{}).filter(m=>m.side===side&&m.entry&&alive(m))}
  /* 10-24 망령: 개인전 — 트레이너에 solo 가 켜져 있으면 같은 진영이어도 그 트레이너 혼자 한 편 (오레마스 OM_TEAM 과 같은 규칙) */
  function teamOf(b,m){const t=((b&&b.trainers)||{})[m&&m.tid];return t&&t.solo?'solo:'+m.tid:(m&&m.side)||''}
  /* 11-03 20:44 망령 「커맨더 · 옵저버 같은 【방호】 아군 배율」: 【유일】 — 같은 이름의 효과를 다른 포켓몬에게서 이미 받은 대상은 빼고 건다 (같은 효과가 겹치지 않게) */

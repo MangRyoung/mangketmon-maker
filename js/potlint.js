@@ -235,7 +235,7 @@ window.MKM_POTLINT=(()=>{
     {const q=t.match(/(?:무시|관통)한다[.\s]*이\s*때\s*기술의\s*대미지는\s*(\d+\/\d+)(?:이|가)\s*된다/);if(q)for(let i=0;i<lines.length;i++)if(/방어관통/.test(lines[i])&&!/관통[×x*]/.test(lines[i]))lines[i]=lines[i].replace('방어관통','방어관통 관통×'+q[1])}
     {const q=t.match(/대상에게\s*「소지품\s*[:：]\s*([^」]+)」(?:을|를)\s*덮어씌우/);if(q&&!lines.some(x=>/^소지품지정/.test(x))){const L2='소지품지정 '+q[1].trim()+' 상대1체';const k=lines.findIndex(x=>/^(?:[^:]+: )?상태 .*상대1체/.test(x));if(k>=0)lines.splice(k,0,L2);else lines.push(L2)}}
     /* 11-23 235번 가 묶음: 기술 하나의 수치 · 판정을 바꾸는 꼴 */
-    {const PCT={드물게:1,저확률:3,중확률:5,고확률:6};let q;
+    {let q;
      q=t.match(/「타입\s*[:：]\s*([^」]+)」에\s*대해\s*「([^」:]+)」의\s*추가\s*효과\s*발생률을\s*강화\s*\(\s*\d+할\s*→\s*(\d+)할\s*\)/);if(q&&isMv(q[2])&&!lines.some(x=>/^추가효과 /.test(x)))lines.push('추가효과 ='+q[3]+'할 기술:'+q[2].trim()+' 상대타입:'+tyL(q[1]));
      q=t.match(/「([^」:]+)」(?:이|가)\s*(드물게|저확률|중확률|고확률)(?:로)?\s*「[^」]+」\s*대신\s*(?:(\d)턴\s*동안\s*)?「([^」:]+)」\s*상태로\s*만든다/);if(q&&isMv(q[1])){for(let i=lines.length-1;i>=0;i--)if(/상태 /.test(lines[i]))lines.splice(i,1);lines.push(q[2]+': 추가효과 바꾸기 10할 '+q[4].replace(/\s/g,'')+(q[3]?' '+q[3]+'턴':'')+' 기술:'+q[1].trim())}
      q=t.match(/「([^」:]+)」\s*상태인\s*상대에게\s*내보내는\s*「([^」:]+)」(?:이|가)\s*【?필중】?/);if(q&&isMv(q[2])&&!lines.some(x=>/필중화/.test(x))){lines.length=0;lines.push('위력 ×1 필중화 기술:'+q[2].trim()+' 상대상태:'+q[1].replace(/\s/g,''))}

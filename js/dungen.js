@@ -80,7 +80,6 @@ window.MK_DG=(()=>{
  /* 방의 야생 → [{name, pride, boss, role, ex(이름 있는 전용 수), p(제작기 포켓몬)|m(뼈대)}] */
  function monsOf(r){if(!r)return [];if(r.mk){const t=TR(r.mk);if(!t)return [];return t.pokemon.map(p=>{const boss=r.t==='boss'&&isBossP(p);return {name:p.nick||p.name||'',pride:prOf(p),boss,role:r.t==='boss'?(boss?'boss':'esc'):'pre',ex:exN(p),p}})}
   if(r.w)return r.w.mons.map(m=>({name:m.name,pride:m.pride,boss:!!m.boss,role:m.role||'pre',ex:(m.gye||[]).filter(g=>g.name).length+(m.wp&&m.wp.name?1:0),m}));return []}
- const hasWild=r=>!!(r&&(r.mk||r.w));
  /* 11-23 22:43 망령 「기록보관소 지하 서고에 만들어 둔 조우 포켓몬이 (세션 노트에) 연결 안 되어 있다」: 11-16 부터 방의 야생은 r.mk(제작기 트레이너)뿐이라
     세션 노트(fromOm — 방의 w 만 읽는다)로 받으면 조우가 비었다. 저장할 때 r.mk 방에 그 트레이너의 사본 w(야생 시트 꼴)를 같이 적는다 —
     제작기 화면은 받을 때 다시 떼어 r.mk 만 쓴다. 야생 시트를 고친 뒤에도 사본이 따라가도록 던전 탭을 그릴 때 견줘 다르면 다시 저장(snapSync). */
