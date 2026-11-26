@@ -47,7 +47,7 @@ function fixP(p) {
     .map(x => ({ name: String(x.name || ''), eff: String(x.eff || '') }));
   delete p.iv;
   delete p.nature;
-  if (Array.isArray(p.ivs) && p.ivs.length === 6) p.ivs = p.ivs.map(v => Math.max(0, Math.min(31, Math.round(+v) || 0)));
+  if (Array.isArray(p.ivs) && p.ivs.length === 6) p.ivs = ivNorm(p.ivs, p); /* 11-26 분류 고정(천부 · 금관)도 여기서 */
   else delete p.ivs;
   if (p.ivLog && typeof p.ivLog !== 'object') delete p.ivLog;
   {

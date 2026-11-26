@@ -453,24 +453,62 @@ function stat(t, p, i) {
 const IVROLL = { E: 1, D: 3, C: 5, B: 10, A: 15, AA: 20, AAA: 25, S: 30 },
   IVBIG = 130;
 const ivCount = t => +(IVROLL[strip((t.ranks || {})['육성'])] || 5);
-const ivRoll = () => STATS.map(() => Math.floor(Math.random() * 32));
+/* 11-26 망령 「알까기에서 천부의 재능은 모든 개체치 31로 고정 / 금관은 HP 개체치 62 스피드 개체치 0 으로 고정」
+   분류 포텐셜로 정해지는 개체값 표 — 칸(STATS 차례)마다 숫자 = 고정, null = 굴린다.
+   굴리기 · 후보 읽기 · 손으로 고치기 · 시트 읽기가 전부 ivNorm 하나를 거친다. 웹툴 js/engine/stats.js 의 IV_FIX 와 같은 표 — 고치면 둘 다 */
+const IV_FIX = {
+  '천부의 재능': [31, 31, 31, 31, 31, 31],
+  '금관 사이즈': [62, null, null, null, null, 0]
+};
+function ivFixOf(P) {
+  for (const p of (P && P.pots) || []) {
+    const name = String((p && typeof p === 'object' ? p.name : p) || '').replace(/[『』\s]/g, '');
+    const hit = Object.keys(IV_FIX).find(k => k.replace(/\s/g, '') === name);
+    if (hit) return IV_FIX[hit];
+  }
+  return null;
+}
+/* 개체값 6칸을 바르게: 고정 칸은 표의 값, 나머지는 0–31 정수 */
+function ivNorm(iv, P) {
+  const fix = ivFixOf(P);
+  return STATS.map((_, k) => (fix && fix[k] != null ? fix[k] : Math.max(0, Math.min(31, Math.round(+(iv || [])[k]) || 0))));
+}
+/* 알까기 창 · 시트 칸에 띄우는 한 줄 (고정이 없으면 빈 글) */
+function ivFixNote(P) {
+  const fix = ivFixOf(P);
+  if (!fix) return '';
+  const kind = Object.keys(IV_FIX).find(k => IV_FIX[k] === fix);
+  const all = fix.every(v => v != null && v === fix[0]);
+  return `『${kind}』 — ${
+    all
+      ? `모든 개체값 ${fix[0]}`
+      : fix
+          .map((v, k) => (v == null ? '' : `${STATS[k]} ${v}`))
+          .filter(Boolean)
+          .join(' · ')
+  } 고정`;
+}
+const ivRoll = P =>
+  ivNorm(
+    STATS.map(() => Math.floor(Math.random() * 32)),
+    P
+  );
 const ivSum = iv => (iv || []).reduce((a, b) => a + (+b || 0), 0);
 function ivHtml(t, ti, p, pi) {
   const iv = p.ivs || [0, 0, 0, 0, 0, 0];
   const has = !!p.ivs;
   const sum = ivSum(iv);
   const lg = p.ivLog;
+  const fix = ivFixOf(p);
   return `<div class="ivbox"><div class="ivhd"><b>개체값</b><span class="small muted">${has ? `합 <b class="num ${sum > IVBIG ? 'warn' : ''}">${sum}</b>` : '아직 안 깠다 (0)'}${lg ? ` · ${esc(lg.d || '')} 알까기 ${+lg.n || 0}회${lg.x ? ` + 추가 ${lg.x}` : ''}${lg.r ? ` · 다시 굴림 ${lg.r}` : ''}${lg.e ? ' · 손으로 고침' : ''}` : ''}</span><span class="sp"></span><button class="btn sm pri" data-act="ivHatch" data-i="${ti}" data-j="${pi}">🥚 알까기 <span class="faint">(${ivCount(t)}회)</span></button>${has ? `<button class="btn sm ghost" data-act="ivClear" data-i="${ti}" data-j="${pi}" title="개체값을 비운다 (0)">비우기</button>` : ''}</div>
-  <div class="ivrow6">${STATS.map((s, k) => `<label><span>${s}</span><input type="number" min="0" max="31" inputmode="numeric" data-ivs="${ti}.${pi}.${k}" value="${has ? iv[k] : ''}" placeholder="0" class="${iv[k] <= 1 && has ? 'lo' : iv[k] >= 30 ? 'hi' : ''}"></label>`).join('')}</div>
-  <div class="faint small">오레마스가 시트를 불러오면 이 값이 들어간다 (여기서 바꾸면 방에서 깐 값보다 우선)</div></div>`;
+  <div class="ivrow6">${STATS.map((s, k) => `<label><span>${s}</span><input type="number" min="0" max="31" inputmode="numeric" data-ivs="${ti}.${pi}.${k}" value="${has ? iv[k] : ''}" placeholder="0"${fix && fix[k] != null ? ' disabled title="분류로 고정된 값"' : ''} class="${iv[k] <= 1 && has ? 'lo' : iv[k] >= 30 ? 'hi' : ''}"></label>`).join('')}</div>
+  ${ivFixNote(p) ? `<div class="small"><b>${esc(ivFixNote(p))}</b> — 「🥚 알까기」로 깔면 이 값으로 들어간다</div>` : ''}<div class="faint small">오레마스가 시트를 불러오면 이 값이 들어간다 (여기서 바꾸면 방에서 깐 값보다 우선)</div></div>`;
 }
 /* 10-24 망령: 굴린 후보는 포켓몬에 남긴다(P.ivRolls = {rolls, x, r}) — 알까기를 다시 열면 그 후보가 그대로 나와 다시 고를 수 있다.
    후보가 바뀌는 건 🎲(하나) · 「전부 다시 굴림」 · 「+ 추가 굴림」을 눌렀을 때뿐. 아직 후보가 없으면 처음 열 때 한 번 굴려서 바로 남긴다 */
 const ivRollsOf = P => {
   const R = P && P.ivRolls;
-  return R && Array.isArray(R.rolls)
-    ? R.rolls.filter(r => Array.isArray(r) && r.length === 6).map(r => r.map(v => Math.max(0, Math.min(31, Math.round(+v) || 0))))
-    : null;
+  return R && Array.isArray(R.rolls) ? R.rolls.filter(r => Array.isArray(r) && r.length === 6).map(r => ivNorm(r, P)) : null;
 };
 async function openIvHatch(T, P) {
   const lg = P.ivLog;
@@ -478,7 +516,7 @@ async function openIvHatch(T, P) {
   const count = ivCount(T);
   const saved = ivRollsOf(P);
   const used = { x: +(P.ivRolls || {}).x || 0, r: +(P.ivRolls || {}).r || 0 };
-  let rolls = saved && saved.length ? saved : had ? [] : Array.from({ length: count }, ivRoll);
+  let rolls = saved && saved.length ? saved : had ? [] : Array.from({ length: count }, () => ivRoll(P));
   const keep = () => {
     P.ivRolls = { rolls: rolls.map(r => r.slice()), x: used.x, r: used.r };
     save();
@@ -491,7 +529,7 @@ async function openIvHatch(T, P) {
   const l = openModal(
     `<div class="mhead"><h2>알까기 — ${esc(P.name || '포켓몬')}</h2><span class="small muted" data-ivc></span><span class="sp"></span><button class="btn ghost" data-x>닫기</button></div><div class="mbody">
   <div class="ivnow"><span class="small muted">지금</span>${P.ivs ? tbl(P.ivs) + `<span class="small">합 <b>${ivSum(P.ivs)}</b></span>` : '<span class="small muted">없음</span>'}</div>
-  <p class="small muted" style="margin:6px 0">굴린 후보는 남아 있어서 다시 열어도 그대로다 · 하나를 눌러 고르고 「적용」 · <b class="ivlg lo">0–1</b> 낮음 · <b class="ivlg hi">30–31</b> 높음 · 🎲 = 그 후보만 다시 굴림 · <b class="ivlg big">★ 합 ${IVBIG} 초과</b> 는 다시 굴리기 전에 한 번 더 묻는다</p>
+  ${ivFixNote(P) ? `<p class="small" style="margin:6px 0"><b>${esc(ivFixNote(P))}</b></p>` : ''}<p class="small muted" style="margin:6px 0">굴린 후보는 남아 있어서 다시 열어도 그대로다 · 하나를 눌러 고르고 「적용」 · <b class="ivlg lo">0–1</b> 낮음 · <b class="ivlg hi">30–31</b> 높음 · 🎲 = 그 후보만 다시 굴림 · <b class="ivlg big">★ 합 ${IVBIG} 초과</b> 는 다시 굴리기 전에 한 번 더 묻는다</p>
   <div class="ivhad" data-ivhad><div><b>남아 있는 후보가 없다</b><div class="small muted">${lg && lg.d ? esc(lg.d) + ' 에 깐 값이다 · ' : ''}후보를 남기기 전에 깐 포켓몬이라 지금 값만 있다. 새 후보가 필요하면 「🎲 굴리기」 — 적용을 누르기 전까지 지금 값은 그대로</div></div><button class="btn pri" data-ivroll>🎲 굴리기 (${count}회)</button></div>
   <div class="ivgrid" data-ivg></div></div><div class="mfoot" data-ivfoot><button class="btn ghost" data-ivall>전부 다시 굴림</button><button class="btn ghost" data-ivadd>+ 추가 굴림</button><span class="sp"></span><button class="btn pri" data-ivok>적용</button></div>`,
     { wide: true }
@@ -520,7 +558,7 @@ async function openIvHatch(T, P) {
       const i = +re.dataset.ivre;
       const s = ivSum(rolls[i]);
       if (s > IVBIG && !(await ask(`#${i + 1} 은 합 ${s} — ${IVBIG} 넘는 후보입니다. 정말 다시 굴릴까요?`, '다시 굴림'))) return;
-      rolls[i] = ivRoll();
+      rolls[i] = ivRoll(P);
       used.r++;
       if (chosen === i) chosen = -1;
       keep();
@@ -528,7 +566,7 @@ async function openIvHatch(T, P) {
       return;
     }
     if (e.target.closest('[data-ivroll]')) {
-      rolls = Array.from({ length: count }, ivRoll);
+      rolls = Array.from({ length: count }, () => ivRoll(P));
       used.r += rolls.length;
       chosen = -1;
       keep();
@@ -542,7 +580,7 @@ async function openIvHatch(T, P) {
       return;
     }
     if (e.target.closest('[data-ivadd]')) {
-      rolls.push(ivRoll());
+      rolls.push(ivRoll(P));
       used.x++;
       keep();
       draw();
@@ -559,7 +597,7 @@ async function openIvHatch(T, P) {
         ))
       )
         return;
-      rolls = Array.from({ length: count + used.x }, ivRoll);
+      rolls = Array.from({ length: count + used.x }, () => ivRoll(P));
       used.r += rolls.length;
       chosen = -1;
       keep();

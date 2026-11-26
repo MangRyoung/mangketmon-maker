@@ -325,9 +325,9 @@ $('#v-char').addEventListener('change', e => {
     if (!P) return;
     let v = Math.round(+el.value);
     if (!isFinite(v)) v = 0;
-    v = Math.max(0, Math.min(31, v));
     if (!P.ivs) P.ivs = [0, 0, 0, 0, 0, 0];
     P.ivs[k] = v;
+    P.ivs = ivNorm(P.ivs, P);
     P.ivLog = Object.assign({}, P.ivLog || {}, { e: 1 });
     save();
     refreshTrainer(t);
