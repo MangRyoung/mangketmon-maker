@@ -67,6 +67,7 @@ async function accessToken(){
   const j=await r.json();tok={v:j.access_token,exp:Date.now()+50*60*1000,who:sa.client_email};
   return{token:tok.v,sa};
 }
+const pace={last:0,cool:0};
 /* 한 번 부르기. 돌려주는 것: {text, finish} */
 async function gemini(system,user,opt){
   opt=opt||{};
@@ -77,16 +78,23 @@ async function gemini(system,user,opt){
   if(opt.json)body.generationConfig.responseMimeType='application/json';
   if(mem.safety==='loose')body.safetySettings=['HARM_CATEGORY_HARASSMENT','HARM_CATEGORY_HATE_SPEECH','HARM_CATEGORY_SEXUALLY_EXPLICIT','HARM_CATEGORY_DANGEROUS_CONTENT'].map(c=>({category:c,threshold:'BLOCK_ONLY_HIGH'}));
   const url='https://'+host+'/v1/projects/'+encodeURIComponent(sa.project_id)+'/locations/'+encodeURIComponent(region)+'/publishers/google/models/'+encodeURIComponent(mem.model)+':generateContent';
-  /* 429(할당량 · 혼잡) · 500 · 503 은 잠깐 기다렸다가 다시 — 5초, 15초, 40초. 그래도 안 되면 멈춘다. */
-  const waits=[5,15,40];let r;
+  /* 429(할당량 · 혼잡) · 500 · 503: 바로 다시 보내면 더 막힌다(Google 권고 = 지수 백오프 + 흩뜨리기).
+     · 부르기 사이는 적어도 4초 띄운다 (구간을 연달아 쏘지 않게)
+     · 막히면 8 → 20 → 45 → 90초(±25%) 기다렸다가 다시. Retry-After 가 오면 그쪽을 따른다. 기다리는 동안에는 다른 부르기도 같이 쉰다 */
+  const sleep=ms=>new Promise((res,rej)=>{if(ms<=0)return res();const t=setTimeout(res,ms);if(opt.signal)opt.signal.addEventListener('abort',()=>{clearTimeout(t);rej(new DOMException('aborted','AbortError'))},{once:true})});
+  const waits=[8,20,45,90];let r;
   for(let n=0;;n++){
+    await sleep(Math.max(pace.last+4000,pace.cool)-Date.now());pace.last=Date.now();
     r=await fetch(url,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body),signal:opt.signal});
+    pace.last=Date.now();
     if(r.ok||![429,500,503].includes(r.status)||n>=waits.length)break;
-    const sec=waits[n];if(waitNote)waitNote('Google 쪽이 붐벼서(HTTP '+r.status+') '+sec+'초 기다렸다가 다시 해 볼게요… ('+(n+1)+'/'+waits.length+')');
-    await new Promise((res,rej)=>{const t=setTimeout(res,sec*1000);if(opt.signal)opt.signal.addEventListener('abort',()=>{clearTimeout(t);rej(new DOMException('aborted','AbortError'))},{once:true})});
+    const ra=parseInt(r.headers.get('retry-after')||'',10);const sec=Math.round(Math.max(ra>0&&ra<300?ra:0,waits[n]*(.75+Math.random()*.5)));
+    pace.cool=Date.now()+sec*1000;
+    if(waitNote)waitNote('Google 쪽이 붐벼서(HTTP '+r.status+') '+sec+'초 기다렸다가 다시 해 볼게요… ('+(n+1)+'/'+waits.length+')');
+    await sleep(sec*1000);
   }
   if(!r.ok){let d='';try{d=((await r.json()).error||{}).message||''}catch(e){}if(r.status===401)tok.exp=0;
-    if(r.status===429)throw new Error('Google 쪽 할당량이 잠시 찼어요 (HTTP 429). 세 번 다시 해 봤지만 안 됐어요. 1~2분 뒤에 「이어서 하기」 나 다시 눌러 주세요. '+String(d).slice(0,120));
+    if(r.status===429)throw new Error('Google 쪽 할당량이 잠시 찼어요 (HTTP 429). 네 번 다시 해 봤지만 안 됐어요. 몇 분 뒤에 「이어서 하기」 나 다시 눌러 주세요. '+String(d).slice(0,120));
     throw new Error('모델 호출이 거절됐어요 (HTTP '+r.status+') '+String(d).slice(0,240))}
   const j=await r.json();const c=(j.candidates||[])[0]||{};
   const text=((c.content||{}).parts||[]).map(p=>p.text||'').join('');
