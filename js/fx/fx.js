@@ -531,6 +531,9 @@ window.OM_FX=(()=>{
   for(const k in (m.auto||{}))for(const op of ((m.auto[k]||{}).ops||[]))if(op&&op.k==='stmod'&&op.st===en)return {n:+op.n,d:+op.d,name:k};
   const src=[...(m.pots||[]).filter(p=>p&&p.name&&!p.ph).map(p=>[p.name,p.eff]),...(m.excl?[[m.excl.name,m.excl.eff]]:[]),...(m.exclX||[]).map(x=>[x.name,x.eff]),[m.ability,m.abilityEff],...(itemsDead(m)?[]:[[m.item,m.itemEff],...((m.items2||[]).filter(x=>x&&x.item).map(x=>[x.item,x.itemEff]))])];
   for(const [name,eff] of src){if(!name||!eff)continue;for(const r of String(eff).matchAll(RE_STMOD))if(stEn(r[1])===en&&+r[3]>0)return {n:+r[2],d:+r[3],name:String(name).replace(/『|』/g,'')}}
+  /* 11-26 375 망령 「회복량이던 비례 대미지던 강화하는 경우가 좀 있어」 — 아군 범위: 같은 편 필드의 다른 포켓몬 글이 「아군의 「X」 …(a/b→c/d)」 꼴이면 그 상태에 걸린 이 포켓몬에게도 (마르타 『물가의 성녀』 — 아군의 「환희의노래」 상태의 회복량 1/16→1/8) */
+  try{const B0=RUNB||(((window.OM_APP||{}).ST||{}).state||{}).battle||{};for(const o of Object.values(B0.mons||{})){if(!o||o.id===m.id||o.side!==m.side||!o.entry||!(o.hp&&+o.hp.cur>0))continue;
+    for(const p of [].concat(o.pots||[],o.excl?[o.excl]:[],o.exclX||[])){if(!p||!p.name||p.ph)continue;for(const ln of String(p.eff||'').replace(/<br\s*\/?>/g,'\n').split(/\n|(?=[①②③④⑤])/))for(const r of ln.matchAll(RE_STMOD)){if(stEn(r[1])!==en||!(+r[3]>0))continue;if(!/아군(?:의|에게|이|\s*전체)/.test(ln.slice(0,r.index)))continue;return {n:+r[2],d:+r[3],name:`${o.name} ${String(p.name).replace(/『|』/g,'')}`}}}}}catch(e){}
   return null}
  function floating(m){const f=m.fx&&m.fx.float;if(!f)return false;const t=curTurn();return !(f.until>=0&&t>f.until)}
  function curTurn(){return +((((window.OM_APP||{}).ST||{}).state||{}).battle||{}).turn||0}
