@@ -512,7 +512,7 @@ function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);
  i(`계산 종족치 ${fmtN(c.ct)} (${parts.join(' · ')}) → 프라이드 ${c.step?c.step.lab:'-'}${c.ok?` (남는 점수 ${fmtN(c.cap-c.ct)})`:''}${prideIsAuto(p)?'':` · 직접 지정 ${pk}`} · 통솔점 ${prideCost(t,p)}`,'calc');
  if(c.down&&c.step)i(p.awaken==='free'?`통솔 D · 각성 (대가): 프라이드 ${c.step.lab}(대가 등급 그대로) · 종족치는 한 단계 아래 ${c.cap}까지`:`통솔 D · 『${DOWN_CLASS}』: 프라이드 ${c.step.lab}의 통솔점을 내고 종족치는 한 단계 아래 ${c.cap}까지`,'calc');
  if(!c.ok&&c.step&&!ruleOff(t||trOfPoke(p),'pride'))w(`계산 종족치 ${fmtN(c.ct)}가 커스텀 상한 ${c.step.lab}(${c.cap}${c.down?' · 통솔 D 한 단계 아래':''})를 ${fmtN(c.ct-c.cap)} 넘습니다 · 능력치를 덜거나 특성 소켓을 낮춰 주세요`);
- if(!prideIsAuto(p)){const m=prStep(pk);if(m&&!isEX(m)&&stepCap(m,c.down)<c.ct-1e-9)w(`직접 지정한 프라이드 ${pk}(${stepCap(m,c.down)})는 계산 종족치 ${fmtN(c.ct)}를 담지 못합니다`)}
+ if(!prideIsAuto(p)&&!ruleOff(t||trOfPoke(p),'pride')){const m=prStep(pk);if(m&&!isEX(m)&&stepCap(m,c.down)<c.ct-1e-9)w(`직접 지정한 프라이드 ${pk}(${stepCap(m,c.down)})는 계산 종족치 ${fmtN(c.ct)}를 담지 못합니다`)}
  if(c.real<pnum(R.realMin,400))w(`실제 종족치 합 ${c.real} · ${pnum(R.realMin,400)} 이상이어야 합니다`);
  const hint=[];if(c.fa)hint.push(`공격 ${b[1]} → ${b[1]+c.fa}`);if(c.fc)hint.push(`특공 ${b[3]} → ${b[3]+c.fc}`);if(c.fsp)hint.push(`스피드 ${b[5]} → ${c.sf}`);if(c.fdur)hint.push(`HP·방어·특방 합 ${c.dSum} → ${c.dMin}`);if(hint.length)i(`하한까지 계산: ${hint.join(', ')} (낮게 찍어도 돌려받는 점수는 없습니다)`,'calc');
  if(c.pri.floor)i(`선공 하한 ${c.pri.floor}: ${c.pri.src} (${c.pri.kind})`,'calc');
