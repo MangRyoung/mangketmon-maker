@@ -1,0 +1,8 @@
+# 정렬(prettier)은 js 코드만 — 데이터 · 만들어지는 조각 · 남의 코드는 뺀다
+/*
+!/js
+/js/config.js
+/js/vendor/
+/js/fx/readymade.js
+/js/fx/states.js
+/js/maker/

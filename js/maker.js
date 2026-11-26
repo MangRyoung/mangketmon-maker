@@ -1,3 +1,5 @@
+/* ⚠ 만들어지는 파일 — js/maker/ 의 조각을 고치고 `node tools/parts.js` 로 다시 만든다. 이 파일을 직접 고치면 다음에 만들 때 사라진다. */
+/* ── 조각 00_head.js — 머리 · 불러오기 ── */
 'use strict';
 const $ = (s, r = document) => r.querySelector(s),
   $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -192,6 +194,7 @@ function stApply() {
 }
 const lazyOk = k => (k === 'rm' ? rmLoaded() : k === 'st' ? stLoaded() : true);
 
+/* ── 조각 01_data.js — 기본 보조 데이터 · 상태 ── */
 /* ---------- 기본 보조 데이터 ---------- */
 const TAGS_DEF = [
   ['N/시', '조건을 채웠을 때 시합에 N번까지 사용할 수 있다. 무효화되어도 횟수를 소모한다.', '1/시|2/시|3/시|N/시'],
@@ -717,6 +720,7 @@ function reindex() {
   }
 }
 
+/* ── 조각 02_calc.js — 계산 · 프라이드 · 계산 종족치 ── */
 /* ---------- 계산 ---------- */
 const strip = r => String(r || '').replace(/[+-]/g, '');
 function baseLevel(rank) {
@@ -2731,6 +2735,7 @@ function s3val(v6, v1, unitKey) {
   if (R.keep === '1' && v1 != null && v1 !== '' && +v1 === +v6) return +v6;
   return s3num((+v6 || 0) * (+R.ratio || 0.5), unitKey);
 }
+/* ── 조각 03_misag.js — 미사그 대학(4+2) 규칙 ── */
 /* ---------- 미사그 대학 (4+2) · 10-28 망령 ----------
    PL 4체 + 각성체 2체(GM 제작). 각성체는 통솔점을 쓰지 않고, 각성 (대가) 1체의 프라이드 등급만큼 PL 쪽이 대가를 치른다(A는 B를 포함).
    숫자는 전부 테이블·계산식 「미사그 대학」(공유 설정 meta/set.rules.misag). 트레이너 t.misag · t.misagPen, 포켓몬 p.awaken('free' | 'c').
@@ -3580,6 +3585,7 @@ function openFolderCheck(fid) {
   });
 }
 
+/* ── 조각 04_text_notes_fx.js — 복사용 텍스트 · 세션 노트 묶음 · 자동화 구문 불러오기 · 시트 템플릿 ── */
 /* ---------- 복사용 텍스트 (더블용 시트 AI118 규칙) ---------- */
 const potRow = n => idx.pots.get(n);
 const kindCode = k =>
@@ -4205,6 +4211,7 @@ function stplApplyAll() {
   return [n, k];
 }
 
+/* ── 조각 05_model.js — 모델 · 기술 범위 그림 ── */
 /* ---------- 모델 ---------- */
 function newPoke() {
   return {
@@ -5332,6 +5339,7 @@ function rangeGrid(v) {
   return `<span class="rgrid" title="범위: ${esc(v || '-')}${one ? ' · 이 중 1체를 고름' : ''}${m ? '' : ' · 그림 없음'}">${c('S', '아군', '자신')}${c('F', '상대', '정면의 상대')}${c('A', '아군', '옆의 아군')}${c('D', '상대', '대각선의 상대')}</span>`;
 }
 
+/* ── 조각 06_ui_common.js — 공통 UI · 태그 툴바 · DB 피커 · DB 필터 ── */
 /* ---------- 공통 UI ---------- */
 function toast(m) {
   const t = $('#toast');
@@ -6285,6 +6293,7 @@ function openPicker(
   });
 }
 
+/* ── 조각 07_db_edit.js — DB 항목 편집 ── */
 /* ---------- DB 항목 편집 ---------- */
 const IR_HELP = `전용 피카츄/라이츄 · 소모품
 공격 강화 ×1.2 · 공격 강화 물리기 ×1.5 · 공격 강화 타입 불꽃/물 ×1.2 · 공격 강화 단일기 불꽃 ×1.3
@@ -7503,6 +7512,7 @@ document.addEventListener('click', e => {
   gotoSheet(b.dataset.gotoT, b.dataset.gotoP || '');
 });
 
+/* ── 조각 08_pot_editor.js — 포텐셜 편집기 ── */
 /* ---------- 포텐셜 편집기 ---------- */
 /* 11-10 망령 「공유는 확인을 위해 미리보기 아래쪽에 무엇이랑 공유되고 있는지」: 웹툴(battle_ui shareTag · shareWhy)과 같은 규칙 — 포켓몬 기준.
    괄호 없는 【공유】끼리 · 【공유 (『X』)】 = 이름에 X 가 들어간 효과 (『전용』 = 전용 포텐셜 또는 이름에 전용 · 한 글자는 그 글자로 끝나는 이름) */
@@ -7986,6 +7996,7 @@ function openPotEditor(t, p, slot) {
   });
 }
 
+/* ── 조각 09_pot_recommend.js — 포텐셜 추천 · 제작 ── */
 /* ---------- 포텐셜 추천 · 제작 ---------- */
 const PR_STAT_KO = { 0: 'HP', 1: '공격', 2: '방어', 3: '특공', 4: '특방', 5: '스피드' };
 const PR_RANKV = {
@@ -10037,6 +10048,7 @@ function openPotBuilder(t, p, onPick, excl, preset) {
   });
 }
 
+/* ── 조각 10_render_char.js — 서명 · 비공개 · 렌더: 캐릭터 ── */
 /* ---------- 내 서명 · 비공개 (화면에서만 숨김: 비밀구가 맞는 브라우저와 GM 만 본다) ---------- */
 const ME = { name: '', hash: '', gm: false };
 async function sha256hex(s) {
@@ -13247,6 +13259,7 @@ function mvExtHtml(t, ti, p, pi) {
   return `<div class="mksp mvext"><div class="row" style="gap:6px;align-items:baseline;flex-wrap:wrap"><b class="small">기능 확장</b><span class="small muted">트레이너가 주는 「기능 확장 : 기술」 — 소켓에 안 세고, 오레마스 배틀 기술 목록 맨 뒤에 붙는다 · 트레이너 「기능 확장」 칸과 같은 목록</span><span class="sp"></span><button type="button" class="btn sm" data-act="extAddP" data-i="${ti}" data-j="${pi}">+ 이 포켓몬 기능 확장</button></div>
  ${L.map(([e, k]) => extRow(t, ti, e, k)).join('') || '<p class="small faint" style="margin:4px 0 0">아직 없습니다 — 「+ 이 포켓몬 기능 확장」으로 기술 DB 에서 고른다 (예: 『항법술』 = 안개제거 · 【1/시】)</p>'}</div>`;
 }
+/* ── 조각 11_tune.js — 상세 조정 탭 ── */
 /* ---------- 상세 조정 탭 (10-22 망령): 이 포켓몬만의 상태 변화 사양 · 소지품 사양을 한곳에서 보고 고친다 ----------
    p.tune = {st:[{st:'아쿠아링',v:'1/6'}], item:'소지품 구문(js/fx/itemrule.js 꼴)', itemName:'그 구문을 쓴 소지품'}
    오레마스 import.js 가 st → 자동화 「상세 조정」의 「상태수정」 줄로, item → itemTune 으로 가져간다. 효과 글 · 「구문」 버튼으로 걸어 둔 것도 같이 보여 준다 */
@@ -13511,6 +13524,7 @@ function textTab(t, ti, p, pi, P) {
  <div class="copybox">${esc(s)}</div><label class="lbl" for="memo-${p.id}" style="margin-top:10px">메모<textarea id="memo-${p.id}" data-p="${P}.memo" rows="3">${esc(p.memo)}</textarea></label>`;
 }
 
+/* ── 조각 12_events_char.js — 이벤트: 캐릭터 ── */
 /* ---------- 이벤트: 캐릭터 ---------- */
 function getRef(path) {
   const a = path.split('.').map(unseg);
@@ -15809,6 +15823,7 @@ $('#v-char').addEventListener('click', async e => {
   }
 });
 
+/* ── 조각 13_drag_import.js — 드래그 정렬 · 올드 타입 · 텍스트 불러오기 ── */
 /* ---------- 드래그 정렬 (기술·포텐셜·포켓몬) ---------- */
 let drag = null,
   dragEnd = 0;
@@ -16192,6 +16207,7 @@ function splitCopies(txt) {
     .filter(isCopyText);
 }
 
+/* ── 조각 14_render_db.js — 렌더: DB 관리 · 맵툴 연동 ── */
 /* ---------- 렌더: DB 관리 ---------- */
 const dbs = {
   k: 'moves',
@@ -17125,6 +17141,7 @@ async function mtImport(kind) {
   toast(`DB에 추가 ${add} · 덮어쓰기 ${chg}`);
 }
 
+/* ── 조각 15_tables_tabs.js — 렌더: 테이블 · 탭 ── */
 /* ---------- 렌더: 테이블 ---------- */
 function misagPanel() {
   const M = MR();
@@ -18028,6 +18045,7 @@ document.addEventListener('keydown', e => {
   }
 });
 
+/* ── 조각 16_backup_history.js — 백업 · 엑셀 · 변경 이력 ── */
 /* ---------- 백업 · 엑셀 ---------- */
 function customDB() {
   const o = {};
@@ -18836,6 +18854,7 @@ $('#xlsxIn').addEventListener('change', async e => {
   }
 });
 
+/* ── 조각 17_share.js — 공유 저장소 ── */
 /* ---------- 공유 저장소 (여러 사람이 함께 보고 고치기) ----------
    trainers/<id>  {ord, data:트레이너(포켓몬 제외, pids=포켓몬 순서)}
    pokemon/<id>   {tid, data:포켓몬}
@@ -20131,6 +20150,7 @@ function renderAll() {
 }
 
 const MKROOT = () => document.getElementById('mk') || document.body;
+/* ── 조각 18_notes_link.js — 세션 노트 연동 ── */
 /* ---------- 세션 노트 연동: 같은 페이지의 세션 노트가 트레이너를 바로 읽는다 ---------- */
 let mkmT = null;
 function mkmChanged() {
@@ -20511,6 +20531,7 @@ window.addEventListener('message', async e => {
     e.source.postMessage({ mkm: 'flushed', ok, ro: SH.on && SH.ready && !SH.canWrite }, '*');
   } catch (_) {}
 });
+/* ── 조각 19_start.js — 시작 · 폰 숫자 칸 ── */
 /* ---------- 시작 ---------- */
 load();
 /* 10-25 망령: 오레마스 「💾 로그 → 정리기에서 열기」 = 제작기 ?tab=log&oremas=방ID — 로그 정리기 탭을 열고 그 방 로그를 바로 불러온다. 주소의 값은 한 번 쓰고 지운다 */
