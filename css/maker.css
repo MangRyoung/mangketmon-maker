@@ -1484,3 +1484,11 @@ html[data-vt="mm"] #mk .pcd-mkv dt{color:#cfae6e}
 #mk .tcd-ps>.pngsum{display:flex;align-items:center;gap:6px}#mk .tcd-ps>.pngsum::before{content:'▸';font-size:10px;color:var(--muted)}#mk .tcd-ps[data-open]>.pngsum::before{content:'▾'}#mk .tcd-ps[data-open] .tcd-pn{display:none}#mk .tcd-ps[data-open]>.pngsum{margin-bottom:4px}
 /* 11-25 망령 「고유 꾸미기는 제목 색도 맞춰서」: 트레이너 한 장 요약의 고유 칸 — 테두리 · 바탕 · 제목 · 아이콘이 고유 색 */
 #mk .tcd-uq>b{display:inline-block;color:var(--ucf,#fff);background:var(--uc);padding:1px 9px;border-radius:6px;font-size:15px}#mk .tcd-uqi{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-right:4px;border-radius:6px;background:var(--uc);color:var(--ucf,#fff);font-size:12px;vertical-align:1px}
+
+/* 11-26 전용 포텐셜 색 칩 (직접 작성 · 수정 창) */
+#mk .petys{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+#mk .pety{--pc:var(--sunk);--pf:var(--ink);min-height:30px;padding:3px 10px;border-radius:999px;border:2px solid transparent;background:var(--pc);color:var(--pf);font-size:12px;font-weight:600;cursor:pointer;opacity:.6}
+#mk .pety:hover{opacity:.9}
+#mk .pety.on{opacity:1;border-color:var(--ink)}
+#mk .pety.on::before{content:'✓ '}
+@media(max-width:700px){#mk .pety{min-height:36px;padding:5px 12px;font-size:13px}}

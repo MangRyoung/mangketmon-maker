@@ -1754,7 +1754,7 @@ function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전�
   ${isEx||isU?(()=>{/* 11-04 망령 「고유랑 전용은 횟수제인지 무제한인지 따로 지정」: 효과 글 맨 앞 【N/시】 태그를 고르는 칸 — 상시 = 태그 없음 (심도 검사 · 【1/시】 셈 · 웹툴이 같은 태그를 읽는다) */
    const m=String(cur.eff||'').match(/【\s*(\d+|N)\s*\/\s*시\s*】/);const v=m?m[1]:'';
    return `<label class="lbl" for="pe-uses">횟수 <span class="small muted" style="font-weight:400">효과 글 맨 앞 【N/시】 태그로 들어간다</span><select id="pe-uses">${[['','상시 (무제한 · 태그 없음)'],...['1','2','3','4','5','6'].map(k=>[k,k+'/시'])].concat(v&&!['1','2','3','4','5','6'].includes(v)?[[v,v+'/시']]:[]).map(([k,n])=>`<option value="${k}" ${k===v?'selected':''}>${n}</option>`).join('')}</select></label>`})():''}
-  ${isEx?`<label class="lbl" for="pe-ty">색 <span class="small muted" style="font-weight:400">타입 색으로 꾸미기 · 한 장 요약 · 포텐셜 탭에 쓰인다</span><select id="pe-ty"><option value="">기본 (전용 색)</option>${tyOpts(exO.ty||'')}</select></label>`:''}
+  ${isEx?`<div class="lbl">색 <span class="small muted" style="font-weight:400">타입 색으로 꾸미기 · 한 장 요약 · 포텐셜 탭에 쓰인다</span></div><input type="hidden" id="pe-ty" value="${esc(exO.ty||'')}"><div class="petys" role="radiogroup" aria-label="전용 포텐셜 색">${[''].concat(S.db.types.map(x=>x[0]).filter(x=>x&&x!=='-')).map(x=>{const c=x?tyCol(x):'';const on=x===(exO.ty||'');return `<button type="button" class="pety${on?' on':''}" data-pety="${esc(x)}" role="radio" aria-checked="${on}"${c?` style="--pc:${c};--pf:${fgOn(c)}"`:''}>${x?esc(x):'기본'}</button>`}).join('')}</div>`:''}
   <label class="lbl" for="pe-line">컷인 대사 <span class="small muted" style="font-weight:400">오레마스에서 이 포텐셜 컷인이 뜰 때 큰 글씨 아래에 나오는 한 줄 · 비우면 없음</span><input id="pe-line" maxlength="80" value="${esc(isU?String((t.unique[slot.unique]||{}).line||''):String(((p&&p.cutLine)||{})[String(cur.name||'').replace(/『|』/g,'').trim()]||''))}" placeholder="예: 하늘 끝까지 태워 주마!"></label>
   <label class="lbl" for="pe-eff">효과${tagbarHTML()}<textarea id="pe-eff" rows="6">${esc(brN(cur.eff))}</textarea></label>
   <div class="preview" data-prev></div><div class="small" data-ban></div>
@@ -1804,6 +1804,8 @@ function openPotEditor(t,p,slot){/* slot: 0..19 or 'excl' or {ex:i} (추가 전�
  const seg=v=>{$('.split',l).dataset.seg=v;$$('[data-seg]',l).forEach(b=>{if(b.tagName==='BUTTON')b.classList.toggle('on',b.dataset.seg===v)})};
  l.addEventListener('click',e=>{const b=e.target.closest('button[data-seg]');if(b)seg(b.dataset.seg)});
  mountPicker(l,'pots',st,{onPick:n=>{const r=potRow(n);$('#pe-name',l).value=n;ta.value=brN(r[2]);const k=$('#pe-kind',l);if(k)k.value=r[0];upd();if(matchMedia('(max-width:700px)').matches){seg('edit');toast(`「${n}」을(를) 불러왔습니다`)}}});
+ /* 11-26 망령 「UI가 구렸던거네 여기 개선좀」: 전용 색 = 고르는 상자 대신 타입 색 칩 (값은 숨은 #pe-ty 그대로) */
+ l.querySelectorAll('[data-pety]').forEach(b=>b.onclick=()=>{const h=$('#pe-ty',l);if(h)h.value=b.dataset.pety;l.querySelectorAll('[data-pety]').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-checked',String(x===b))})});
  const commit=(name,eff,kind)=>{if(isEx){if(xi!=null&&!name)p.exclX.splice(xi,1);else{exO.name=name;exO.eff=eff;{const ty=(($('#pe-ty',l)||{}).value||'').trim();if(ty)exO.ty=ty;else delete exO.ty}}}else if(isU){const ta2=$('#pe-auto',l);const dsl=ta2?ta2.value.trim():'';{const o0=t.unique[slot.unique]||{};const nu=Object.assign({},o0,{name,eff});if(dsl)nu.auto=dsl;else delete nu.auto;{const ln=(($('#pe-line',l)||{}).value||'').trim();if(ln&&name)nu.line=ln.slice(0,80);else delete nu.line}t.unique[slot.unique]=nu}   /* 10-23 망령: 고쳐도 꾸미기(색 · 아이콘 · 부제)는 남긴다 */}else{
    const r=potRow(name);p.pots[slot]=name;p.potEff[slot]=r&&brN(r[2]).trim()===eff.trim()?'':eff;p.potKind[slot]=r&&r[0]===kind?'':kind}
   if(!isU&&p){const ln=(($('#pe-line',l)||{}).value||'').trim();const k0=String(cur.name||'').replace(/『|』/g,'').trim(),k1=String(name||'').replace(/『|』/g,'').trim();p.cutLine=p.cutLine||{};if(k0&&k0!==k1)delete p.cutLine[k0];if(k1&&ln)p.cutLine[k1]=ln.slice(0,80);else if(k1)delete p.cutLine[k1];if(!Object.keys(p.cutLine).length)delete p.cutLine}
@@ -2588,10 +2590,13 @@ function openTrainerCard(t){const TID=t.id;const cur=()=>S.trainers.find(x=>x.id
  $('[data-tcdc]',l)&&($('[data-tcdc]',l).onclick=()=>{const T=cur();cardDc($('[data-tcdc]',l),$('.pcd',l),{id:'t_'+T.id,title:T.name||'트레이너',sub:'트레이너 한 장 요약',who:{n:T.name||'',img:/^https?:\/\//.test(T.image||'')?T.image:''},foot:`${T.name||'트레이너'} · 트레이너 한 장 요약`})});
  $('[data-tcpng]',l).onclick=()=>cardPng($('.pcd',l),(cur().name||'트레이너')+'_한장요약',`${cur().name||'트레이너'} · 트레이너 한 장 요약`);
  /* 11-26 망령 「포텐셜 보이게 한장 요약 해서 디코로」: 포텐셜 접힘 상자를 한꺼번에 펼치기 · 접기 */
- {const xb=$('[data-tcexp]',l);if(xb)xb.onclick=()=>{const D=[...l.querySelectorAll('details.tcd-ps')];const open=!D.every(d=>d.open);D.forEach(d=>d.open=open);xb.textContent=open?'포텐셜 접기':'포텐셜 펼치기'}}
+ {const xb=$('[data-tcexp]',l);let X=false;try{X=localStorage.getItem('mk_tcx')==='1'}catch(e){}   /* 11-26 망령 「열기를 눌러둬도 접혀 있어서 두번 열어야」: 펼침도 이 브라우저가 기억 · 열 때 그대로 */
+  const D=()=>[...l.querySelectorAll('details.tcd-ps')];
+  const setX=(o,save)=>{X=!!o;D().forEach(d=>d.open=X);if(xb)xb.textContent=X?'포텐셜 접기':'포텐셜 펼치기';if(save)try{localStorage.setItem('mk_tcx',X?'1':'0')}catch(_){}};
+  setX(X);if(xb)xb.onclick=()=>{const d=D();setX(!(d.length&&d.every(x=>x.open)),true)};l._tcx=setX}
  /* 11-26 망령 「트레이너 한장 펼치기는 각 요소들 마다 펴고 접을 수 있으면 — 타입/종족치/특성/기술폭/전용」: 요소마다 보이기 · 숨기기 (카드 전체에 · 이 브라우저가 기억) */
  {const pcd=$('.pcd',l);let H={};try{H=JSON.parse(localStorage.getItem('mk_tcv')||'{}')||{}}catch(e){}const paint=()=>{for(const [k] of TCV){pcd.classList.toggle('tcv-'+k,!!H[k]);const bt=$(`[data-tcv="${k}"]`,l);if(bt){bt.classList.toggle('pri',!H[k]);bt.classList.toggle('ghost',!!H[k]);bt.setAttribute('aria-pressed',H[k]?'false':'true')}}};paint();
-  l.querySelectorAll('[data-tcv]').forEach(bt=>bt.onclick=e=>{e.stopPropagation();const k=bt.dataset.tcv;H[k]=!H[k];try{localStorage.setItem('mk_tcv',JSON.stringify(H))}catch(_){}paint()})}}
+  l.querySelectorAll('[data-tcv]').forEach(bt=>bt.onclick=e=>{e.stopPropagation();const k=bt.dataset.tcv;H[k]=!H[k];try{localStorage.setItem('mk_tcv',JSON.stringify(H))}catch(_){}paint();if(k==='pt'&&!H[k]&&l._tcx)l._tcx(true,true)})}}
 /* 10-22 망령: 로그 탭(logtool/, 같은 출처 iframe)의 「제작기 그림 잇기」가 읽는 캐릭터 그림 목록 */
 window.MKM_CHARS=()=>S.trainers.flatMap(t=>[{name:t.name,image:safeImg(t.image)||'',kind:'trainer'},...(t.pokemon||[]).map(p=>({name:p.name,image:safeImg(p.image)||'',kind:'poke'}))]).filter(x=>x.name&&x.image);
 /* 11-03 감우 (20번 검토 편의 1): 새 트레이너 · 포켓몬 카드로 스크롤하고 이름 칸에 커서 (터치 화면에선 자판이 튀어 오르지 않게 초점만 안 준다) */
