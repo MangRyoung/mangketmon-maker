@@ -504,7 +504,7 @@ function pokeChecks(t,p){const out=[],R=PR(),pk=prideOf(p);const tot=baseTot(p);
  const low=isOld(p)?[]:b.map((v,k)=>[STATS[k],v]).filter(([,v])=>v<pnum(R.absMin,31));if(low.length)w(`절대 하한 ${pnum(R.absMin,31)} 미만: ${low.map(([n,v])=>n+' '+v).join(', ')}`);
  if(isOld(p)){const o=oldCalc(p);
   i(`올드 타입 · 실제 합 ${tot}${o.friendly?` − 『프렌들리 몬스터』 ${pnum((R.friendly||{}).d,10)} = ${o.t}`:''} → ${o.src==='db'?'DB 프라이드 칸':o.src==='cap'?'상한 초과':o.src==='low'?'최저 계단 미만':o.src==='prank'?'짓궂은마음이라 최저 계단':'버림'} ${o.lab}${prideIsAuto(p)?'':` · 직접 지정 ${pk}`} · 통솔점 ${prideCost(t,p)}`);
-  if(!prideIsAuto(p)){const a=prStep(o.lab),m=prStep(pk);if(a&&m&&m.v<a.v)w(`직접 지정한 프라이드 ${pk}가 계산값 ${o.lab}보다 낮습니다`)}
+  if(!prideIsAuto(p)&&!ruleOff(t||trOfPoke(p),'pride')){const a=prStep(o.lab),m=prStep(pk);if(a&&m&&m.v<a.v)w(`직접 지정한 프라이드 ${pk}가 계산값 ${o.lab}보다 낮습니다`)}
   if(pk==='EX')i('프라이드 EX · 본가 전설종이나 그에 준하는 스펙 자리입니다');
   if(p.pots.some(n=>n&&/포켓\s*파워/.test(n)))w('『포켓 파워』 속별은 금지입니다');
   return out}
