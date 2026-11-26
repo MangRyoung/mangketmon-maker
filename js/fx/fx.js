@@ -734,6 +734,8 @@ window.OM_FX=(()=>{
  function hoIgnOf(atk,def,q){if(!atk||!def||atk.id===def.id)return null;const L=[].concat(atk.pots||[],atk.excl?[atk.excl]:[],atk.exclX||[]);const R=[];
   for(const p of L){if(!p||p.ph)continue;const t=String(p.eff||'');
    if(/『\s*올드\s*타입\s*』\s*『\s*역할\s*포텐셜\s*』\s*이외의\s*포텐셜의\s*【\s*방호\s*】\s*(?:를|을)?\s*무시/.test(t))R.push({by:p.name,ok:n=>!/올드\s*타입/.test(n)&&!isRoleName(n)});
+   /* 11-26 09:28 망령 「킬러류 이건 이제 자동화 된 거야?」 — 『킬러』 ② 「①이 발동했을 때 대상의 『에이스』 포텐셜의 【방호】 효과를 무시한다」: 맞는 쪽의 그 역할 계열(에이스 · 서브 에이스 · 링크 에이스 · 킬링 에이스) 포텐셜이 거는 【방호】 완화 줄만 건너뛴다. ①(『에이스』에게 ×1.33)이 걸리는 상대 = 그 계열 포텐셜을 가진 상대라 조건은 따로 안 본다 */
+   {const r=t.match(/(?:대상|상대)의\s*『\s*([^』]+?)\s*』\s*포텐셜의\s*【\s*방호\s*】\s*(?:효과)?(?:를|을)?\s*무시/);if(r){const fam=roleFam(r[1])||r[1].trim();R.push({by:p.name,ok:n=>roleFams(n).includes(fam)})}}
    if(q&&q.pursuit&&/「\s*따라가때리기\s*」\s*효과가\s*부여된\s*기술이\s*대상의\s*【\s*방호\s*】\s*포텐셜을\s*무시/.test(t))R.push({by:p.name,ok:()=>true})}
   for(const e of liveMods(atk))if(e&&e.kind==='boost'&&(e.hoi||e.hot))R.push({by:e.name,ok:()=>true,p:!!e.hoi,t:!!e.hot});   /* 11-26 다음기술 방호무시 (포켓몬) · 트레이너방호무시 (트레이너 고유 — 삼각) */
   if(!R.length)return null;const DL=[].concat(def.pots||[],def.excl?[def.excl]:[],def.exclX||[]);const ho=n=>{const nm=String(n||'').replace(/『|』/g,'').trim();let p=DL.find(x=>x&&String(x.name||'').replace(/『|』/g,'').trim()===nm);let k='p';if(!p){const B0=RUNB||(((window.OM_APP||{}).ST||{}).state||{}).battle||{};const U=(((B0.trainers||{})[def.tid]||{}).unique)||[];p=U.find(x=>x&&String(x.name||'').replace(/『|』/g,'').trim()===nm);k='t'}   /* 11-26 트레이너 고유의 【방호】 = 't' (트레이너방호무시 · 삼각만) */return !!p&&/【\s*방호\s*】/.test(String(p.eff||''))?k:''};
