@@ -3009,6 +3009,7 @@ window.OM_FX = (() => {
           L.push(`${self.name} 레이드 배틀 설정 (구간 ${self.raid.segments || '?'})`);
           break;
         }
+        /* 11-26 망령 「3 · 기술 쪽도 막아 · 2도 병행」: 효과 · 기술로 하는 데이터 해석도 해석 차단에 막힌다 — 구문에 「강제」가 있을 때만(글에 「차단을 무시」) 뚫는다 */
         case 'dex': {
           const ts = (await targets(b, self, op.tgt || 'enemy1', ctx)).filter(m => m && teamOf(b, m) !== teamOf(b, self));
           L.push(`「${name}」 데이터 해석${ts.length ? ' → ' + ts.map(m => m.name).join(' · ') : ' — 대상 없음'}`);
@@ -3018,7 +3019,14 @@ window.OM_FX = (() => {
             ts.forEach((tg, i) =>
               setTimeout(
                 () =>
-                  window.OM_DEX_UI.analyze(vw, tg.id, { forced: true, free: true, quiet: !one, via: 'fx', by: name, byMid: (self && self.id) || '' }),
+                  window.OM_DEX_UI.analyze(vw, tg.id, {
+                    forced: !!op.force,
+                    free: true,
+                    quiet: !one,
+                    via: 'fx',
+                    by: name,
+                    byMid: (self && self.id) || ''
+                  }),
                 400 + i * 250
               )
             );
@@ -7723,8 +7731,8 @@ window.OM_FX = (() => {
       }
       case '해석': {
         const t = tgtOf(words);
-        return Object.assign({ k: 'dex', mode: 'scouter' }, t && t !== 'enemy1' ? { tgt: t } : {});
-      } /* 11-21: 대상 낱말 (없으면 상대 1체) */
+        return Object.assign({ k: 'dex', mode: 'scouter' }, t && t !== 'enemy1' ? { tgt: t } : {}, has('강제') ? { force: 1 } : {});
+      } /* 11-21: 대상 낱말 (없으면 상대 1체) · 11-26: 「강제」 = 해석 차단을 무시 */
       case '소지품해석': {
         const t = tgtOf(words);
         return Object.assign({ k: 'itemdex' }, t && t !== 'enemy1' ? { tgt: t } : {});
@@ -8720,7 +8728,7 @@ window.OM_FX = (() => {
           L.push('레이드' + (op.x ? ' 구간:' + op.x : ''));
           break;
         case 'dex':
-          L.push('해석' + (op.tgt ? tg(op.tgt) : ''));
+          L.push('해석' + (op.tgt ? tg(op.tgt) : '') + (op.force ? ' 강제' : ''));
           break;
         case 'itemdex':
           L.push('소지품해석' + (op.tgt ? tg(op.tgt) : ''));
@@ -8901,10 +8909,17 @@ window.OM_FX = (() => {
       return '';
     }
   }
+  /* 11-26 망령 「효과 해석도 차단에 막힘 — 「차단을 무시」라고 적힌 효과만 돌파」: 효과 · 기술 글이 해석 차단을 뚫는다고 적었는가.
+    웹툴(도감 · 기술 해석)과 추천기가 이 하나를 같이 쓴다 */
+  const DEX_PIERCE_RE = /(?:해석\s*)?차단(?:을|도|조차)?\s*(?:무시|돌파|관통)|강제\s*(?:로|적으로)?\s*(?:데이터\s*)?해석/;
+  function dexPierce(text) {
+    return DEX_PIERCE_RE.test(String(text || '').replace(/<br\s*\/?>/gi, ' '));
+  }
   return {
     FRAC,
     hoReads,
     preCondKnown,
+    dexPierce,
     canState,
     fracUp,
     moldQ,
