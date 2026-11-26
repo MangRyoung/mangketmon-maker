@@ -2146,12 +2146,14 @@ dialog.mtdlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
 const KEY='mtl-ai';
 /* 비밀 값(sa · nai)은 기억할 때 암호로 잠가서만 저장한다(AES-GCM, 키는 PBKDF2 31만 번). 저장 공간에는 암호문만 남는다.
    같은 주소(mangryoung.github.io)의 다른 도구가 저장 공간을 같이 쓰기 때문. */
-const mem={sa:'',region:'global',model:'',nai:'',keep:false,safety:'default'};
+const ALT_DEFAULT='us-central1, us-east5, europe-west4, asia-northeast1';
+const mem={sa:'',region:'global',model:'',nai:'',keep:false,safety:'default',alts:ALT_DEFAULT,model2:''};
 let locked=null,pass='';
 try{const s=ls.get(KEY,null);if(s){
   for(const k of ['region','model','safety'])if(s[k])mem[k]=s[k];
+  for(const k of ['alts','model2'])if(typeof s[k]==='string')mem[k]=s[k];
   if(s.enc){locked=s.enc;mem.keep=true}
-  else if(s.sa||s.nai){mem.sa=s.sa||'';mem.nai=s.nai||'';ls.set(KEY,{region:mem.region,model:mem.model,safety:mem.safety})}  /* 옛 방식(그대로 저장)은 읽고 바로 지운다 */
+  else if(s.sa||s.nai){mem.sa=s.sa||'';mem.nai=s.nai||'';ls.set(KEY,{region:mem.region,model:mem.model,safety:mem.safety,alts:mem.alts,model2:mem.model2})}  /* 옛 방식(그대로 저장)은 읽고 바로 지운다 */
 }}catch(e){}
 const hex=b=>Array.from(b,x=>x.toString(16).padStart(2,'0')).join(''),unhex=h=>Uint8Array.from(h.match(/../g)||[],x=>parseInt(x,16));
 async function passKey(pw,salt){const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
@@ -2162,7 +2164,7 @@ async function lockUp(pw){const salt=crypto.getRandomValues(new Uint8Array(16)),
 async function unlock(pw){const d=await crypto.subtle.decrypt({name:'AES-GCM',iv:unhex(locked.iv)},await passKey(pw,unhex(locked.salt)),unhex(locked.ct));
   const o=JSON.parse(new TextDecoder().decode(d));mem.sa=o.sa||'';mem.nai=o.nai||'';pass=pw;locked=null}
 async function persist(){
-  const plainPart={region:mem.region,model:mem.model,safety:mem.safety};
+  const plainPart={region:mem.region,model:mem.model,safety:mem.safety,alts:mem.alts,model2:mem.model2};
   if(mem.keep&&pass&&(mem.sa||mem.nai)){plainPart.enc=await lockUp(pass)}
   ls.set(KEY,plainPart);
 }
@@ -2192,34 +2194,49 @@ async function accessToken(){
   const j=await r.json();tok={v:j.access_token,exp:Date.now()+50*60*1000,who:sa.client_email};
   return{token:tok.v,sa};
 }
-const pace={last:0,cool:0};
+const pace={last:0,cool:0,good:'',bad:new Set()};
 /* 한 번 부르기. 돌려주는 것: {text, finish} */
 async function gemini(system,user,opt){
   opt=opt||{};
   if(!mem.model)throw new Error('설정 탭에서 모델 이름을 넣어 주세요.');
   const {token,sa}=await accessToken();
-  const region=mem.region||'global',host=region==='global'?'aiplatform.googleapis.com':region+'-aiplatform.googleapis.com';
   const body={contents:[{role:'user',parts:opt.parts||[{text:user}]}],systemInstruction:{parts:[{text:system}]},generationConfig:{temperature:opt.temperature??0.9,maxOutputTokens:opt.max??12000}};
   if(opt.json)body.generationConfig.responseMimeType='application/json';
   if(mem.safety==='loose')body.safetySettings=['HARM_CATEGORY_HARASSMENT','HARM_CATEGORY_HATE_SPEECH','HARM_CATEGORY_SEXUALLY_EXPLICIT','HARM_CATEGORY_DANGEROUS_CONTENT'].map(c=>({category:c,threshold:'BLOCK_ONLY_HIGH'}));
-  const url='https://'+host+'/v1/projects/'+encodeURIComponent(sa.project_id)+'/locations/'+encodeURIComponent(region)+'/publishers/google/models/'+encodeURIComponent(mem.model)+':generateContent';
-  /* 429(할당량 · 혼잡) · 500 · 503: 바로 다시 보내면 더 막힌다(Google 권고 = 지수 백오프 + 흩뜨리기).
-     · 부르기 사이는 적어도 4초 띄운다 (구간을 연달아 쏘지 않게)
-     · 막히면 8 → 20 → 45 → 90초(±25%) 기다렸다가 다시. Retry-After 가 오면 그쪽을 따른다. 기다리는 동안에는 다른 부르기도 같이 쉰다 */
+  /* 부를 곳 목록: 설정한 지역 · 모델이 먼저, 429 가 나면 「돌려 볼 지역」들, 그다음 「대신 쓸 모델」로 같은 지역들 (2026-11-26 망령 「429 가 해도 해도 심각」).
+     Vertex 의 429 는 지역 · 모델마다 따로 걸리는 공용 용량이라, 한 곳이 막혀도 다른 곳은 열려 있을 때가 많다 */
+  const regs=[mem.region||'global',...String(mem.alts||'').split(/[\s,]+/).filter(Boolean)].filter((x,k,a)=>/^[a-z0-9-]+$/.test(x)&&a.indexOf(x)===k);
+  const mods=[mem.model,(mem.model2||'').trim()].filter((x,k,a)=>x&&a.indexOf(x)===k);
+  const T=[];for(const m of mods)for(const g of regs)T.push({g,m,k:g+'|'+m});
+  const urlOf=t=>'https://'+(t.g==='global'?'aiplatform.googleapis.com':t.g+'-aiplatform.googleapis.com')+'/v1/projects/'+encodeURIComponent(sa.project_id)+'/locations/'+encodeURIComponent(t.g)+'/publishers/google/models/'+encodeURIComponent(t.m)+':generateContent';
+  const live=()=>T.filter(t=>!pace.bad.has(t.k));
+  /* · 부르기 사이는 적어도 4초
+     · 429 · 500 · 503 → 바로 다음 곳으로. 한 바퀴 다 막히면 15 → 40 → 90초(±25%) 쉬고 다시 한 바퀴. Retry-After 가 오면 그 값 이상
+     · 설정한 곳이 아닌 데서 400 · 403 · 404(그 지역에 그 모델이 없음)면 이번 창에서는 그곳을 건너뛴다
+     · 통한 곳은 기억해 두고 다음 부르기는 거기부터 */
   const sleep=ms=>new Promise((res,rej)=>{if(ms<=0)return res();const t=setTimeout(res,ms);if(opt.signal)opt.signal.addEventListener('abort',()=>{clearTimeout(t);rej(new DOMException('aborted','AbortError'))},{once:true})});
-  const waits=[8,20,45,90];let r;
-  for(let n=0;;n++){
+  const waits=[15,40,90];let r=null,cyc=0,tried=new Set(),cur=T.find(t=>t.k===pace.good&&!pace.bad.has(t.k))||T[0];const hit=[];
+  for(;;){
     await sleep(Math.max(pace.last+4000,pace.cool)-Date.now());pace.last=Date.now();
-    r=await fetch(url,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body),signal:opt.signal});
+    const x=await fetch(urlOf(cur),{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body),signal:opt.signal});
     pace.last=Date.now();
-    if(r.ok||![429,500,503].includes(r.status)||n>=waits.length)break;
-    const ra=parseInt(r.headers.get('retry-after')||'',10);const sec=Math.round(Math.max(ra>0&&ra<300?ra:0,waits[n]*(.75+Math.random()*.5)));
-    pace.cool=Date.now()+sec*1000;
-    if(waitNote)waitNote('Google 쪽이 붐벼서(HTTP '+r.status+') '+sec+'초 기다렸다가 다시 해 볼게요… ('+(n+1)+'/'+waits.length+')');
-    await sleep(sec*1000);
+    if(x.ok){r=x;if(pace.good!==cur.k&&cur!==T[0]&&waitNote)waitNote('「'+cur.g+(cur.m!==mem.model?' · '+cur.m:'')+'」 쪽으로 통했어요. 이번 창에서는 여기부터 불러요.');pace.good=cur.k;break}
+    if(cur!==T[0]&&[400,403,404].includes(x.status)){pace.bad.add(cur.k)}
+    else{r=x;if(![429,500,503].includes(x.status))break;hit.push(cur.g+(cur.m!==mem.model?'·'+cur.m:'')+' '+x.status)}
+    if(!pace.bad.has(cur.k))tried.add(cur.k);const L=live();if(!L.length)break;
+    const at=T.indexOf(cur);const nx=[...T.slice(at+1),...T.slice(0,at+1)].find(t=>!pace.bad.has(t.k));
+    if(L.every(t=>tried.has(t.k))){
+      if(cyc>=waits.length)break;
+      const ra=parseInt(x.headers.get('retry-after')||'',10);const sec=Math.round(Math.max(ra>0&&ra<300?ra:0,waits[cyc]*(.75+Math.random()*.5)));cyc++;tried.clear();
+      pace.cool=Date.now()+sec*1000;
+      if(waitNote)waitNote('Google 쪽이 '+(L.length>1?L.length+'곳 모두 ':'')+'붐벼서(HTTP '+x.status+') '+sec+'초 쉬었다가 다시 해 볼게요… ('+cyc+'/'+waits.length+')');
+      await sleep(sec*1000);
+    }else if(waitNote)waitNote('「'+cur.g+'」 가 붐벼서(HTTP '+x.status+') 「'+nx.g+(nx.m!==cur.m?' · '+nx.m:'')+'」 로 돌려 볼게요…');
+    cur=nx;
   }
+  if(!r)throw new Error('부를 수 있는 지역이 없어요. 설정 탭의 지역 · 모델 이름을 확인해 주세요.');
   if(!r.ok){let d='';try{d=((await r.json()).error||{}).message||''}catch(e){}if(r.status===401)tok.exp=0;
-    if(r.status===429)throw new Error('Google 쪽 할당량이 잠시 찼어요 (HTTP 429). 네 번 다시 해 봤지만 안 됐어요. 몇 분 뒤에 「이어서 하기」 나 다시 눌러 주세요. '+String(d).slice(0,120));
+    if(r.status===429)throw new Error('Google 쪽 할당량이 잠시 찼어요 (HTTP 429). '+[...new Set(hit)].slice(-8).join(', ')+' — 돌려 가며 여러 번 해 봤지만 안 됐어요. 몇 분 뒤에 「이어서 하기」 나 다시 눌러 주세요. '+String(d).slice(0,300));
     throw new Error('모델 호출이 거절됐어요 (HTTP '+r.status+') '+String(d).slice(0,240))}
   const j=await r.json();const c=(j.candidates||[])[0]||{};
   const text=((c.content||{}).parts||[]).map(p=>p.text||'').join('');
@@ -2433,6 +2450,8 @@ function open(){
  <div class="ai-row"><label>서비스 계정 JSON (리수에 넣는 것과 같은 글 전체)<textarea id="aiSa" class="ai-mono" rows="5" spellcheck="false" autocomplete="off"></textarea></label></div>
  <div class="ai-row"><label>지역<input type="text" id="aiRegion" spellcheck="false" autocomplete="off"></label><label>모델<select id="aiModelPick"><option value="gemini-4-carbon">gemini-4-carbon</option><option value="gemini-4-neon">gemini-4-neon</option><option value="gemini-4-argon">gemini-4-argon</option><option value="">직접 입력</option></select></label><label>모델 이름<input type="text" id="aiModel" spellcheck="false" autocomplete="off" placeholder="직접 적어도 돼요"></label>
  <label>안전 필터<select id="aiSafe"><option value="default">기본</option><option value="loose">느슨하게 (전투 · 유혈 묘사가 막힐 때)</option></select></label></div>
+ <div class="ai-row"><label>429 일 때 돌려 볼 지역 (쉼표로 · 비우면 안 돌림)<input type="text" id="aiAlts" spellcheck="false" autocomplete="off"></label><label>대신 쓸 모델 (비워도 됨)<input type="text" id="aiModel2" spellcheck="false" autocomplete="off" placeholder="예: gemini-4-neon"></label></div>
+ <div class="ai-note">Google 이 「붐빈다(429)」고 하면 위 지역들을 차례로 불러 보고, 다 막히면 대신 쓸 모델로 같은 지역들을 돕니다. 그 지역에 모델이 없으면 알아서 건너뛰어요. 통한 곳은 창을 닫을 때까지 기억합니다.</div>
  <h3>그림 AI — NovelAI (삽화 기능에 쓸 예정)</h3>
  <div class="ai-row"><label>NovelAI 토큰<input type="password" id="aiNai" spellcheck="false" autocomplete="off"></label></div>
  <div class="ai-row"><label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="aiKeep" style="width:auto"> 이 브라우저에 기억하기 (끄면 창을 닫을 때 잊습니다)</label>
@@ -2452,10 +2471,10 @@ function open(){
   function syncModelPick(){const v=q('aiModel').value.trim();q('aiModelPick').value=MODELS.includes(v)?v:''}
   q('aiModelPick').onchange=()=>{const v=q('aiModelPick').value;if(v)q('aiModel').value=v;else{q('aiModel').focus();q('aiModel').select()}};
   q('aiModel').addEventListener('input',syncModelPick);
-  q('aiRegion').value=mem.region;q('aiModel').value=mem.model;syncModelPick();q('aiKeep').checked=!!mem.keep;q('aiSafe').value=mem.safety;
+  q('aiRegion').value=mem.region;q('aiAlts').value=mem.alts;q('aiModel2').value=mem.model2;q('aiModel').value=mem.model;syncModelPick();q('aiKeep').checked=!!mem.keep;q('aiSafe').value=mem.safety;
   const fillSet=()=>{q('aiSa').value=mem.sa;q('aiNai').value=mem.nai;q('aiLockRow').hidden=!locked;q('aiPw').value=pass};
   fillSet();
-  const take=async()=>{mem.sa=q('aiSa').value.trim();mem.region=q('aiRegion').value.trim()||'global';mem.model=q('aiModel').value.trim();mem.nai=q('aiNai').value.trim().replace(/^Bearer\s+/i,'');mem.keep=q('aiKeep').checked;mem.safety=q('aiSafe').value;tok.exp=0;
+  const take=async()=>{mem.sa=q('aiSa').value.trim();mem.region=q('aiRegion').value.trim()||'global';mem.alts=q('aiAlts').value.trim();mem.model2=q('aiModel2').value.trim();pace.good='';pace.bad.clear();mem.model=q('aiModel').value.trim();mem.nai=q('aiNai').value.trim().replace(/^Bearer\s+/i,'');mem.keep=q('aiKeep').checked;mem.safety=q('aiSafe').value;tok.exp=0;
     if(mem.keep){const pw=q('aiPw').value;if(pw.length<8){q('aiSetStat').style.color='#b3402f';q('aiSetStat').textContent='아직 기억되지 않았어요 — 잠금 암호를 8자 이상 넣고 「적용」 을 다시 눌러 주세요. (키는 이번 창에서만 쓸 수 있어요)';q('aiPw').focus();pass='';mem.keep=false;await persist();mem.keep=true;return false}pass=pw;locked=null}else{pass='';locked=null}
     q('aiSetStat').style.color='';
     await persist();q('aiLockRow').hidden=true;return true};
