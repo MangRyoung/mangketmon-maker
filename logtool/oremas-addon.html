@@ -24,106 +24,430 @@
 .line a.lk{color:var(--accent)}
 </style>
 <script>
-(()=>{
- const OM={url:'https://jsnvqcvwspxzfnhdethl.supabase.co',key:'sb_publishable_HDcgWnb1QS1P6GOiBPqdAA_yBJNhU7R'};
- const SAFE_SRC=/^(https?:\/\/|data:image\/)/i;          /* 그림 주소는 http(s) · data:image 만 (javascript: 같은 주소는 버린다) */
- const DICE_TITLE=/\d*d\d+|[«»=]|rolled|굴림|판정/i;
+(() => {
+  const OM = { url: 'https://jsnvqcvwspxzfnhdethl.supabase.co', key: 'sb_publishable_HDcgWnb1QS1P6GOiBPqdAA_yBJNhU7R' };
+  const SAFE_SRC = /^(https?:\/\/|data:image\/)/i; /* 그림 주소는 http(s) · data:image 만 (javascript: 같은 주소는 버린다) */
+  const DICE_TITLE = /\d*d\d+|[«»=]|rolled|굴림|판정/i;
 
- /* 내보낸 HTML 에도 그림 · 링크 모양이 들어가게 #logcss 에 덧붙인다 */
- $('logcss').textContent+='\n.line img.mi{display:block;max-width:min(360px,100%);max-height:360px;border-radius:8px;margin:4px 0;border:1px solid var(--line)}\n.line a.lk{color:var(--accent)}';
+  /* 내보낸 HTML 에도 그림 · 링크 모양이 들어가게 #logcss 에 덧붙인다 */
+  $('logcss').textContent +=
+    '\n.line img.mi{display:block;max-width:min(360px,100%);max-height:360px;border-radius:8px;margin:4px 0;border:1px solid var(--line)}\n.line a.lk{color:var(--accent)}';
 
- /* ================= 저장소 부팅 기다리기 =================
+  /* ================= 저장소 부팅 기다리기 =================
     원본 부팅은 저장소를 읽고 renderCamps() → (예시 넣기) → 첫 화면 renderLog() 순서로 끝난다.
     ?oremas= 자동 불러오기는 그 뒤에 돌아야 부팅이 고른 로그로 덮이지 않는다 */
- let bootStage=0,bootRes;const boot=new Promise(r=>bootRes=r);
- const origRenderCamps=renderCamps;renderCamps=function(){if(!bootStage)bootStage=1;return origRenderCamps.apply(this,arguments)};
- const origRenderLog=renderLog;renderLog=function(){const r=origRenderLog.apply(this,arguments);if(bootStage===1){bootStage=2;setTimeout(bootRes,0)}return r};
- setTimeout(()=>{if(bootStage<2){bootStage=2;bootRes()}},15000);
+  let bootStage = 0,
+    bootRes;
+  const boot = new Promise(r => (bootRes = r));
+  const origRenderCamps = renderCamps;
+  renderCamps = function () {
+    if (!bootStage) bootStage = 1;
+    return origRenderCamps.apply(this, arguments);
+  };
+  const origRenderLog = renderLog;
+  renderLog = function () {
+    const r = origRenderLog.apply(this, arguments);
+    if (bootStage === 1) {
+      bootStage = 2;
+      setTimeout(bootRes, 0);
+    }
+    return r;
+  };
+  setTimeout(() => {
+    if (bootStage < 2) {
+      bootStage = 2;
+      bootRes();
+    }
+  }, 15000);
 
- /* ================= 토큰: 그림 · 링크 =================
+  /* ================= 토큰: 그림 · 링크 =================
     원본 토큰은 글 · 줄바꿈 · 주사위뿐이라 본문 그림과 링크가 사라졌다. {t:'img',src} · {t:'link',href,v} 를 더한다 */
- const origTok=tokHTML;
- tokHTML=function(tk){return tk.map(t=>{
-  if(t.t==='card'){try{return cardHTML(t)}catch(e){return esc(t.x||'')}}
-  if(t.t==='img')return SAFE_SRC.test(t.src||'')?`<img class="mi" src="${esc(t.src)}" alt="그림" loading="lazy">`:'';
-  if(t.t==='link')return /^https?:/i.test(t.href||'')?`<a class="lk" href="${esc(t.href)}" target="_blank" rel="noopener">${esc(t.v||t.href)}</a>`:esc(t.v||'');
-  return origTok([t])}).join('')};
- const plain2=tk=>tk.map(t=>t.t==='text'?t.v:t.t==='roll'?`[${t.expr?t.expr+' = ':''}${t.res}]`:t.t==='img'?'[그림]':t.t==='link'?(t.v||t.href):t.t==='card'?String(t.x||''):'\n').join('');
- window.OM_PLAIN=plain2;
- /* ================= 배틀 카드 토큰 (2026-11-26) =================
+  const origTok = tokHTML;
+  tokHTML = function (tk) {
+    return tk
+      .map(t => {
+        if (t.t === 'card') {
+          try {
+            return cardHTML(t);
+          } catch (e) {
+            return esc(t.x || '');
+          }
+        }
+        if (t.t === 'img') return SAFE_SRC.test(t.src || '') ? `<img class="mi" src="${esc(t.src)}" alt="그림" loading="lazy">` : '';
+        if (t.t === 'link')
+          return /^https?:/i.test(t.href || '')
+            ? `<a class="lk" href="${esc(t.href)}" target="_blank" rel="noopener">${esc(t.v || t.href)}</a>`
+            : esc(t.v || '');
+        return origTok([t]);
+      })
+      .join('');
+  };
+  const plain2 = tk =>
+    tk
+      .map(t =>
+        t.t === 'text'
+          ? t.v
+          : t.t === 'roll'
+            ? `[${t.expr ? t.expr + ' = ' : ''}${t.res}]`
+            : t.t === 'img'
+              ? '[그림]'
+              : t.t === 'link'
+                ? t.v || t.href
+                : t.t === 'card'
+                  ? String(t.x || '')
+                  : '\n'
+      )
+      .join('');
+  window.OM_PLAIN = plain2;
+  /* ================= 배틀 카드 토큰 (2026-11-26) =================
     오레마스 배틀 줄은 글자(【태그】 제목 …)와 함께 구조(data.hp · sc · fc · ord · rv · img)를 싣는다.
     글자로만 옮기면 HP 막대 · 상태 칩 · 행동 순서 표 · 포켓몬 그림이 다 사라지므로 {t:'card',…} 토큰으로 담아 카드로 그린다.
     - 카드는 <span class="bc" data-bc="…JSON…"> 로 그려서, 편집 모드에서 줄을 고치거나 저장한 HTML 을 다시 넣어도 walk 가 되살린다
     - 그림은 S.imgs 의 키(ik)로만 잇는다 → buildLog 가 쓴 키만 CSS 한 번으로 싣는다 (카드마다 그림을 되풀이해 넣지 않는다)
     - 토큰의 x 는 원래 글자(텍스트 복사 · 웹소설화가 쓴다) */
- const HEXC=v=>/^#[0-9a-f]{6}$/i.test(String(v||''))?String(v):'';
- const TAGCOL={'공격':'#c8553d','기술':'#3f7fb5','특성':'#8a62b8','포텐셜':'#c08a1e','고유':'#b8860b','전용':'#2f8f83','전달':'#7a8799','피해':'#d23a3a','회복':'#2f9a5b','공개':'#d6a23b','묘수':'#2b8fa8','커버':'#2b8fa8','스킬 체크':'#2b8fa8','자유 판정':'#2b8fa8','폼체인지':'#b05aa6','무효':'#8a8f9c','지연':'#8a8f9c','상태 변화':'#5f86b8','상태 이상':'#b0563f','상태 회복':'#2f9a5b'};
- const PHASES=[[/^시합 개시!\s*—\s*(TURN \d+)\s*\n?([\s\S]*)$/,'시합 개시'],[/^턴 개시\s*—\s*(TURN \d+)\s*\n?([\s\S]*)$/,'턴 개시'],[/^턴 개시\s*—\s*()([\s\S]*)$/,'턴 개시'],[/^페이즈: 지시 준비\s*—\s*()([\s\S]*)$/,'지시 준비'],[/^행동 처리\s*—\s*()([\s\S]*)$/,'행동 처리'],[/^행동 순서 끝\s*—\s*()([\s\S]*)$/,'행동 순서 끝'],[/^동시 내밀기!\s*()([\s\S]*)$/,'동시 내밀기!']];
- const SIDEKO={left:'좌측',right:'우측'};
- const U=v=>SAFE_SRC.test(String(v||''))?String(v):'';
- const S_=(v,n)=>String(v==null?'':v).slice(0,n||400);
- /* 오레마스 줄(data) → 카드 토큰. 카드로 만들 것이 없으면 null (그러면 예전처럼 글자 줄) */
- function cardOf(d){const t=String(d.t||'');const base={t:'card',x:t};const img=U(d.img);
-  if(d.hp&&+d.hp.max>0){const h=d.hp;const why=String(h.why||'');
-   const more=t.split('\n').slice(2).filter(l=>l&&!/쓰러졌다!$/.test(l)&&!why.split('\n').includes(l));
-   return{...base,k:'hp',_u:img,n:S_(h.name,80),cur:+h.cur||0,max:+h.max,prev:+h.prev||0,why:S_(why,1200),more:more.map(l=>S_(l)).slice(0,12),faint:h.faint?1:0}}
-  if(d.fc&&d.fc.n){const x=d.fc;const tag=(t.match(/^【([^】]+)】/)||[])[1]||({w:'날씨',o:'설치물'}[x.k]||'필드');
-   return{...base,k:'fc',tag:S_(tag,20),n:S_(x.n,80),col:HEXC(x.col),side:SIDEKO[x.side]||'',end:x.end?1:0,note:S_(x.note,80),L:(Array.isArray(x.L)?x.L:[]).map(l=>S_(l)).slice(0,12)}}
-  if(d.sc&&d.sc.n){const x=d.sc;const add=Array.isArray(x.add)?x.add:[],off=Array.isArray(x.off)?x.off:[];
-   return{...base,k:'sc',_u:U(x.img)||img,tag:add.length?(add.some(a=>a&&a.abn)?'상태 이상':'상태 변화'):'상태 회복',n:S_(x.n,80),at:S_(x.at,30),col:HEXC(x.col),
-    add:add.slice(0,12).map(a=>({ko:S_(a.ko,40),g:S_(a.g,30),col:HEXC(a.col),L:(Array.isArray(a.L)?a.L:[]).map(l=>S_(l)).slice(0,8)})),
-    off:off.slice(0,12).map(o=>S_(o&&o.ko,40)).filter(Boolean),by:x.by&&x.by.n?{n:S_(x.by.n,80),s:S_(x.by.s,80)}:null}}
-  if(/^행동 순서\n/.test(t)||(Array.isArray(d.ord)&&d.ord.length&&/^행동 순서/.test(t))){
-   const rows=(Array.isArray(d.ord)&&d.ord.length)?d.ord.map(r=>({n:S_(r.n,80),s:r.s==null?'':S_(r.s,10),cap:S_(r.cap,60),side:r.side==='left'||r.side==='right'?r.side:'',_u:U(r.img)}))
-    :t.split('\n').slice(1).map(l=>{const m=l.match(/^(\d+)\.\s*(.+?)\s*\((.*)\)\s*$/);if(!m)return null;return{n:S_(m[2],80),s:(m[3].match(/스피드\s*(\d+)/)||[])[1]||'',cap:S_(m[3].replace(/\s*·?\s*스피드\s*\d+/,'').trim(),60),side:''}}).filter(Boolean);
-   if(rows.length)return{...base,k:'ord',rows:rows.slice(0,40)}}
-  if(Array.isArray(d.rv)&&d.rv.length){const tag=(t.match(/^【([^】]+)】/)||[])[1]||'공개';
-   return{...base,k:'rv',tag:S_(tag,20),rows:d.rv.slice(0,24).map(r=>{const mv=r.mv||{};
-    const meta=[mv.cat,mv.pow&&mv.pow!=='-'?'위력 '+mv.pow:'',mv.acc&&mv.acc!=='-'?'명중 '+mv.acc:'',mv.range&&mv.range!=='-'?'범위 '+mv.range:'',mv.ct?'접촉':'',mv.prio?'우선도 '+(mv.prio>0?'+':'')+mv.prio:''].filter(Boolean).join(' · ');
-    return{n:S_(r.name,80),tr:S_(r.tr,80),pos:[SIDEKO[r.side]||'',S_(r.area,10)].filter(Boolean).join(' '),_u:U(r.img),none:r.none?1:0,
-     sw:r.sw?{n:S_(r.sw.name,80),done:r.sw.done?1:0,_u:U(r.sw.img)}:null,mv:mv.name?{n:S_(mv.name,80),ty:S_(mv.type,12),meta:S_(meta,160)}:null,
-     tg:(Array.isArray(r.tg)?r.tg:[]).slice(0,8).map(x=>({n:S_(x.name||'빈 자리',80),pos:[SIDEKO[x.side]||'',S_(x.area,10)].filter(Boolean).join(' '),foe:x.side!==r.side?1:0}))}}),
-    more:(Array.isArray(d.rvx)?d.rvx:[]).filter(Boolean).map(l=>S_(l)).slice(0,8)}}
-  for(const [re,label] of PHASES){const m=t.match(re);if(m)return{...base,k:'ph',n:label,turn:S_(m[1],20),note:S_(m[2].trim(),600)}}
-  {const m=t.match(/^▶\s*(.+)의 행동$/);if(m)return{...base,k:'now',n:S_(m[1],80)}}
-  const m=t.match(/^【([^】]+)】\s*([^\n]*)\n?([\s\S]*)$/);if(!m)return null;
-  return{...base,k:'gen',_u:img,tag:S_(m[1],24),title:S_(m[2],300),eff:S_(String(d.eff||'').trim(),2000),body:m[3].trim().split('\n').filter(Boolean).map(l=>S_(l,600)).slice(0,60)}}
- /* 스킬 체크 · 자유 판정 · 묘수 · 커버 굴림 줄 → 카드 (오레마스 skill_ui rollCard 와 같은 꼴) */
- function rollCardOf(d){const t=String(d.t||'');const L=t.split('\n');let x;
-  if((x=t.match(/^(.+) 묘수! 다시 굴려 합계 (\d+) \/ (\d+) → (\S+)$/)))return{t:'card',x:t,k:'sk',tag:'묘수',n:S_(x[1],80),sub:'다시 굴림',tot:x[2],goal:x[3],res:S_(x[4],20)};
-  if((x=t.match(/^(.*)의 (.+) 커버! HP −(\d+) · (.+) 「(.+)」 → 「(.+)」$/)))return{t:'card',x:t,k:'sk',tag:'커버',n:S_(x[2],80),sub:`HP −${x[3]}`,note:S_(`${x[4]} 「${x[5]}」 막음 · 「${x[6]}」 유지`,300)};
-  if(!(x=L[0].match(/^(스킬 체크|자유 판정) · (.+?) · (.+? \+ .+?|\S+ \(트레이너만\))(?: · (.+))?$/)))return null;
-  const dl=L[2]||'',bl=L[3]||'',sl=L.find(l=>/^합계 /.test(l))||'',rl=L.find(l=>/^→ /.test(l))||'';const sx=sl.match(/^합계 (\d+) \/ 목표 (\d+)(.*)$/)||[];
-  const dk=(dl.match(/^2d6 → (\d)\+(\d)/)||[]).slice(1);
-  return{t:'card',x:t,k:'sk',tag:x[1],n:S_(x[2],80),sub:S_(x[3]+(x[4]?' · '+x[4]:''),160),how:S_(L[1]||'',120),dice:dk,droll:dk.length?'':S_(dl,120),
-   bon:bl.replace(/^보정\s*/,'').split(' · ').filter(Boolean).map(p=>S_(p,60)).slice(0,12),tot:sx[1]||'',goal:sx[2]||'',res:S_(rl.slice(2).trim(),20),
-   note:S_([dl.replace(/^2d6 → \d\+\d\s*/,'').replace(/^—\s*/,'').trim(),(sx[3]||'').trim()].filter(Boolean).join(' · '),300)}}
- const RESCOL={'대성공':'#b8860b','성공':'#2f9a5b','부분':'#c08a1e','실패':'#c8553d','대실패':'#8a2f2f'};
- const resCol=r=>{for(const k in RESCOL)if(String(r||'').includes(k))return RESCOL[k];return'#2b8fa8'};
- const IK=k=>/^[\w-]{1,80}$/.test(String(k||''))?String(k):'';
- const cav=(o,cls)=>{const k=IK(o&&o.ik);return k?`<span class="bc-av ${cls||''}" data-ik="${k}"></span>`:(cls==='need'?`<span class="bc-av nil"></span>`:'')};
- const lineCls=l=>/실패|차단|없|않|무효/.test(l)?'neg':/\+\d|회복|성공/.test(l)?'pos':'';
- const bl=(l)=>/^▸ /.test(l)?`<span class="bc-sec">${esc(l.slice(2))}</span>`:/^→\s*[^:\n]+:/.test(l)?(()=>{const m=l.match(/^→\s*([^:]+):\s*(.*)$/);return`<span class="bc-hit"><b>→ ${esc(m[1])}</b>${m[2].split(/ · (?![^(]*\))/).map(p=>`<i class="${/✗|빗나|실패|무효/.test(p)?'neg':/대미지|급소 ✓|✓/.test(p)?'pos':''}">${esc(p)}</i>`).join('')}</span>`})():`<span class="bc-l ${lineCls(l)}">${esc(l)}</span>`;
- function cardHTML(c){
-  const wrap=(cls,col,inner)=>`<span class="bc bc-${cls}" contenteditable="false" data-bc="${esc(JSON.stringify(c))}"${HEXC(col)?` style="--tc:${HEXC(col)}"`:''}>${inner}</span>`;
-  const tag=(s)=>`<span class="bc-tag">${esc(s)}</span>`;
-  if(c.k==='hp'){const P=v=>v>0?Math.max(1,Math.round(v/c.max*100)):0;const a=P(c.prev),b=P(c.cur);const dmg=c.cur<c.prev;const lo=Math.min(a,b),hi=Math.min(100,Math.max(a,b));
-   return wrap('hp'+(c.faint?' faint':''),dmg?'#d23a3a':'#2f9a5b',`<span class="bc-h">${cav(c)}<span class="bc-hm"><span class="bc-ht"><b>${esc(c.n)}</b><span class="bc-n">${dmg?'−':'+'}${Math.abs(c.cur-c.prev)}</span></span>
-<span class="bc-bar ${b<=25?'low':b<=50?'mid':''}"><i style="width:${lo}%"></i><em class="${dmg?'cut':'gain'}" style="left:${lo}%;width:${hi-lo}%"></em></span>
-<span class="bc-hs"><span>HP ${esc(c.prev)} → <b>${esc(c.cur)}</b> / ${esc(c.max)}</span><span>${b}%</span></span></span></span>${String(c.why||'').split('\n').filter(Boolean).map(l=>`<span class="bc-l dim">${esc(l)}</span>`).join('')}${(c.more||[]).map(l=>`<span class="bc-l dim">${esc(l)}</span>`).join('')}${c.faint?`<span class="bc-faint">${esc(c.n)}은(는) 쓰러졌다!</span>`:''}`)}
-  if(c.k==='fc')return wrap('fc'+(c.end?' end':''),c.col||'#777777',`<span class="bc-h">${tag(c.tag)}${c.side?`<span class="bc-pos">${esc(c.side)}</span>`:''}<b>${esc(c.n)}</b><span class="bc-sp"></span><span class="bc-st">${c.end?'끝':esc(c.note||'전개')}</span></span>${(c.L||[]).map(l=>`<span class="bc-l">${esc(l)}</span>`).join('')}`);
-  if(c.k==='sc')return wrap('sc',c.col||TAGCOL[c.tag],`<span class="bc-h">${cav(c)}${tag(c.tag)}<b>${esc(c.n)}</b>${c.at?`<span class="bc-pos">${esc(c.at)}</span>`:''}</span>
-${(c.add||[]).map(a=>`<span class="bc-chiprow"><span class="bc-chip"${HEXC(a.col)?` style="--tc:${HEXC(a.col)}"`:''}>${esc(a.ko)}</span>${a.g?`<small>${esc(a.g)}</small>`:''}</span>${(a.L||[]).map(l=>`<span class="bc-l dim">${esc(l)}</span>`).join('')}`).join('')}${(c.off||[]).length?`<span class="bc-chiprow"><small>풀림</small>${c.off.map(o=>`<s class="bc-chip off">${esc(o)}</s>`).join('')}</span>`:''}${c.by?`<span class="bc-l dim">원인: ${esc(c.by.n)}${c.by.s?` 『${esc(c.by.s)}』`:''}</span>`:''}`);
-  if(c.k==='ord')return wrap('ord','#6c7bbd',`<span class="bc-h">${tag('행동 순서')}</span>${(c.rows||[]).map((r,i)=>`<span class="bc-or ${r.side||''}"><em>${i+1}</em>${cav(r,'need')}<b>${esc(r.n)}</b><span class="bc-sp"></span>${r.cap?`<small>${esc(r.cap)}</small>`:''}${r.s!==''?`<span class="bc-spd">${esc(r.s)}</span>`:''}</span>`).join('')}`);
-  if(c.k==='rv')return wrap('rv',TAGCOL[c.tag]||'#d6a23b',`<span class="bc-h">${tag(c.tag)}</span>${(c.rows||[]).map(r=>`<span class="bc-rr">${cav(r,'need')}<span class="bc-who"><b>${esc(r.n)}</b><small>${esc([r.tr,r.pos].filter(Boolean).join(' · '))}</small></span>${r.none?'<span class="bc-none">행동 없음</span>':r.sw?`<span class="bc-arr">⇄ 교대</span>${cav(r.sw,'need')}<span class="bc-who"><b>${esc(r.sw.n)}</b><small>${r.sw.done?'나왔다':'나올 포켓몬'}</small></span>`:`${r.mv?`<span class="bc-mv">${r.mv.ty?`<i class="bc-ty">${esc(r.mv.ty)}</i>`:''}<b>「${esc(r.mv.n)}」</b>${r.mv.meta?`<small>${esc(r.mv.meta)}</small>`:''}</span>`:''}${(r.tg||[]).length?`<span class="bc-arr">→</span><span class="bc-tgs">${r.tg.map(x=>`<span class="bc-tg ${x.foe?'foe':'ally'}"><b>${esc(x.n)}</b><small>${esc(x.pos)}</small></span>`).join('')}</span>`:''}`}</span>`).join('')}${(c.more||[]).map(l=>`<span class="bc-l">${esc(l)}</span>`).join('')}`);
-  if(c.k==='ph')return wrap('ph','',`<span class="bc-phl"><b>${esc(c.n)}</b>${c.turn?`<em>${esc(c.turn)}</em>`:''}</span>${c.note?`<span class="bc-l dim">${esc(c.note)}</span>`:''}`);
-  if(c.k==='now')return wrap('now','',`<span class="bc-nowl">▶ <b>${esc(c.n)}</b>의 행동</span>`);
-  if(c.k==='sk'){const col=c.res?resCol(c.res):'#2b8fa8';
-   return wrap('sk',col,`<span class="bc-h">${tag(c.tag)}<b>${esc(c.n)}</b>${c.sub?`<small>${esc(c.sub)}</small>`:''}<span class="bc-sp"></span>${c.res?`<span class="bc-res">${esc(c.res)}</span>`:''}</span>
-${c.how||c.tot||(c.dice||[]).length?`<span class="bc-calc">${c.how?`<small>${esc(c.how)}</small>`:''}${(c.dice||[]).map(v=>`<i class="bc-die">${esc(v)}</i>`).join('')}${c.droll?`<small>${esc(c.droll)}</small>`:''}${(c.bon||[]).map(p=>`<span class="bc-bon">${esc(p)}</span>`).join('')}${c.tot?`<span class="bc-tot">= <b>${esc(c.tot)}</b>${c.goal?` <small>/ ${esc(c.goal)}</small>`:''}</span>`:''}</span>`:''}${c.note?`<span class="bc-l dim">${esc(c.note)}</span>`:''}`)}
-  const sp=c.tag==='고유'?' uq':c.tag==='전용'?' ex':'';
-  return wrap('gen'+sp,TAGCOL[c.tag]||(/종료|개시/.test(c.tag||'')?'#6c7bbd':'#7a8799'),`<span class="bc-h">${cav(c)}${tag((sp===' uq'?'♛ ':sp===' ex'?'◆ ':'')+(c.tag||''))}<b>${esc(c.title||'')}</b></span>${c.eff?`<span class="bc-eff">${esc(c.eff)}</span>`:''}${(c.body||[]).map(bl).join('')}`)}
- const BC_CSS=`
+  const HEXC = v => (/^#[0-9a-f]{6}$/i.test(String(v || '')) ? String(v) : '');
+  const TAGCOL = {
+    '공격': '#c8553d',
+    '기술': '#3f7fb5',
+    '특성': '#8a62b8',
+    '포텐셜': '#c08a1e',
+    '고유': '#b8860b',
+    '전용': '#2f8f83',
+    '전달': '#7a8799',
+    '피해': '#d23a3a',
+    '회복': '#2f9a5b',
+    '공개': '#d6a23b',
+    '묘수': '#2b8fa8',
+    '커버': '#2b8fa8',
+    '스킬 체크': '#2b8fa8',
+    '자유 판정': '#2b8fa8',
+    '폼체인지': '#b05aa6',
+    '무효': '#8a8f9c',
+    '지연': '#8a8f9c',
+    '상태 변화': '#5f86b8',
+    '상태 이상': '#b0563f',
+    '상태 회복': '#2f9a5b'
+  };
+  const PHASES = [
+    [/^시합 개시!\s*—\s*(TURN \d+)\s*\n?([\s\S]*)$/, '시합 개시'],
+    [/^턴 개시\s*—\s*(TURN \d+)\s*\n?([\s\S]*)$/, '턴 개시'],
+    [/^턴 개시\s*—\s*()([\s\S]*)$/, '턴 개시'],
+    [/^페이즈: 지시 준비\s*—\s*()([\s\S]*)$/, '지시 준비'],
+    [/^행동 처리\s*—\s*()([\s\S]*)$/, '행동 처리'],
+    [/^행동 순서 끝\s*—\s*()([\s\S]*)$/, '행동 순서 끝'],
+    [/^동시 내밀기!\s*()([\s\S]*)$/, '동시 내밀기!']
+  ];
+  const SIDEKO = { left: '좌측', right: '우측' };
+  const U = v => (SAFE_SRC.test(String(v || '')) ? String(v) : '');
+  const S_ = (v, n) => String(v == null ? '' : v).slice(0, n || 400);
+  /* 오레마스 줄(data) → 카드 토큰. 카드로 만들 것이 없으면 null (그러면 예전처럼 글자 줄) */
+  function cardOf(d) {
+    const t = String(d.t || '');
+    const base = { t: 'card', x: t };
+    const img = U(d.img);
+    if (d.hp && +d.hp.max > 0) {
+      const h = d.hp;
+      const why = String(h.why || '');
+      const more = t
+        .split('\n')
+        .slice(2)
+        .filter(l => l && !/쓰러졌다!$/.test(l) && !why.split('\n').includes(l));
+      return {
+        ...base,
+        k: 'hp',
+        _u: img,
+        n: S_(h.name, 80),
+        cur: +h.cur || 0,
+        max: +h.max,
+        prev: +h.prev || 0,
+        why: S_(why, 1200),
+        more: more.map(l => S_(l)).slice(0, 12),
+        faint: h.faint ? 1 : 0
+      };
+    }
+    if (d.fc && d.fc.n) {
+      const x = d.fc;
+      const tag = (t.match(/^【([^】]+)】/) || [])[1] || { w: '날씨', o: '설치물' }[x.k] || '필드';
+      return {
+        ...base,
+        k: 'fc',
+        tag: S_(tag, 20),
+        n: S_(x.n, 80),
+        col: HEXC(x.col),
+        side: SIDEKO[x.side] || '',
+        end: x.end ? 1 : 0,
+        note: S_(x.note, 80),
+        L: (Array.isArray(x.L) ? x.L : []).map(l => S_(l)).slice(0, 12)
+      };
+    }
+    if (d.sc && d.sc.n) {
+      const x = d.sc;
+      const add = Array.isArray(x.add) ? x.add : [],
+        off = Array.isArray(x.off) ? x.off : [];
+      return {
+        ...base,
+        k: 'sc',
+        _u: U(x.img) || img,
+        tag: add.length ? (add.some(a => a && a.abn) ? '상태 이상' : '상태 변화') : '상태 회복',
+        n: S_(x.n, 80),
+        at: S_(x.at, 30),
+        col: HEXC(x.col),
+        add: add
+          .slice(0, 12)
+          .map(a => ({ ko: S_(a.ko, 40), g: S_(a.g, 30), col: HEXC(a.col), L: (Array.isArray(a.L) ? a.L : []).map(l => S_(l)).slice(0, 8) })),
+        off: off
+          .slice(0, 12)
+          .map(o => S_(o && o.ko, 40))
+          .filter(Boolean),
+        by: x.by && x.by.n ? { n: S_(x.by.n, 80), s: S_(x.by.s, 80) } : null
+      };
+    }
+    if (/^행동 순서\n/.test(t) || (Array.isArray(d.ord) && d.ord.length && /^행동 순서/.test(t))) {
+      const rows =
+        Array.isArray(d.ord) && d.ord.length
+          ? d.ord.map(r => ({
+              n: S_(r.n, 80),
+              s: r.s == null ? '' : S_(r.s, 10),
+              cap: S_(r.cap, 60),
+              side: r.side === 'left' || r.side === 'right' ? r.side : '',
+              _u: U(r.img)
+            }))
+          : t
+              .split('\n')
+              .slice(1)
+              .map(l => {
+                const m = l.match(/^(\d+)\.\s*(.+?)\s*\((.*)\)\s*$/);
+                if (!m) return null;
+                return {
+                  n: S_(m[2], 80),
+                  s: (m[3].match(/스피드\s*(\d+)/) || [])[1] || '',
+                  cap: S_(m[3].replace(/\s*·?\s*스피드\s*\d+/, '').trim(), 60),
+                  side: ''
+                };
+              })
+              .filter(Boolean);
+      if (rows.length) return { ...base, k: 'ord', rows: rows.slice(0, 40) };
+    }
+    if (Array.isArray(d.rv) && d.rv.length) {
+      const tag = (t.match(/^【([^】]+)】/) || [])[1] || '공개';
+      return {
+        ...base,
+        k: 'rv',
+        tag: S_(tag, 20),
+        rows: d.rv.slice(0, 24).map(r => {
+          const mv = r.mv || {};
+          const meta = [
+            mv.cat,
+            mv.pow && mv.pow !== '-' ? '위력 ' + mv.pow : '',
+            mv.acc && mv.acc !== '-' ? '명중 ' + mv.acc : '',
+            mv.range && mv.range !== '-' ? '범위 ' + mv.range : '',
+            mv.ct ? '접촉' : '',
+            mv.prio ? '우선도 ' + (mv.prio > 0 ? '+' : '') + mv.prio : ''
+          ]
+            .filter(Boolean)
+            .join(' · ');
+          return {
+            n: S_(r.name, 80),
+            tr: S_(r.tr, 80),
+            pos: [SIDEKO[r.side] || '', S_(r.area, 10)].filter(Boolean).join(' '),
+            _u: U(r.img),
+            none: r.none ? 1 : 0,
+            sw: r.sw ? { n: S_(r.sw.name, 80), done: r.sw.done ? 1 : 0, _u: U(r.sw.img) } : null,
+            mv: mv.name ? { n: S_(mv.name, 80), ty: S_(mv.type, 12), meta: S_(meta, 160) } : null,
+            tg: (Array.isArray(r.tg) ? r.tg : [])
+              .slice(0, 8)
+              .map(x => ({
+                n: S_(x.name || '빈 자리', 80),
+                pos: [SIDEKO[x.side] || '', S_(x.area, 10)].filter(Boolean).join(' '),
+                foe: x.side !== r.side ? 1 : 0
+              }))
+          };
+        }),
+        more: (Array.isArray(d.rvx) ? d.rvx : [])
+          .filter(Boolean)
+          .map(l => S_(l))
+          .slice(0, 8)
+      };
+    }
+    for (const [re, label] of PHASES) {
+      const m = t.match(re);
+      if (m) return { ...base, k: 'ph', n: label, turn: S_(m[1], 20), note: S_(m[2].trim(), 600) };
+    }
+    {
+      const m = t.match(/^▶\s*(.+)의 행동$/);
+      if (m) return { ...base, k: 'now', n: S_(m[1], 80) };
+    }
+    const m = t.match(/^【([^】]+)】\s*([^\n]*)\n?([\s\S]*)$/);
+    if (!m) return null;
+    return {
+      ...base,
+      k: 'gen',
+      _u: img,
+      tag: S_(m[1], 24),
+      title: S_(m[2], 300),
+      eff: S_(String(d.eff || '').trim(), 2000),
+      body: m[3]
+        .trim()
+        .split('\n')
+        .filter(Boolean)
+        .map(l => S_(l, 600))
+        .slice(0, 60)
+    };
+  }
+  /* 스킬 체크 · 자유 판정 · 묘수 · 커버 굴림 줄 → 카드 (오레마스 skill_ui rollCard 와 같은 꼴) */
+  function rollCardOf(d) {
+    const t = String(d.t || '');
+    const L = t.split('\n');
+    let x;
+    if ((x = t.match(/^(.+) 묘수! 다시 굴려 합계 (\d+) \/ (\d+) → (\S+)$/)))
+      return { t: 'card', x: t, k: 'sk', tag: '묘수', n: S_(x[1], 80), sub: '다시 굴림', tot: x[2], goal: x[3], res: S_(x[4], 20) };
+    if ((x = t.match(/^(.*)의 (.+) 커버! HP −(\d+) · (.+) 「(.+)」 → 「(.+)」$/)))
+      return {
+        t: 'card',
+        x: t,
+        k: 'sk',
+        tag: '커버',
+        n: S_(x[2], 80),
+        sub: `HP −${x[3]}`,
+        note: S_(`${x[4]} 「${x[5]}」 막음 · 「${x[6]}」 유지`, 300)
+      };
+    if (!(x = L[0].match(/^(스킬 체크|자유 판정) · (.+?) · (.+? \+ .+?|\S+ \(트레이너만\))(?: · (.+))?$/))) return null;
+    const dl = L[2] || '',
+      bl = L[3] || '',
+      sl = L.find(l => /^합계 /.test(l)) || '',
+      rl = L.find(l => /^→ /.test(l)) || '';
+    const sx = sl.match(/^합계 (\d+) \/ 목표 (\d+)(.*)$/) || [];
+    const dk = (dl.match(/^2d6 → (\d)\+(\d)/) || []).slice(1);
+    return {
+      t: 'card',
+      x: t,
+      k: 'sk',
+      tag: x[1],
+      n: S_(x[2], 80),
+      sub: S_(x[3] + (x[4] ? ' · ' + x[4] : ''), 160),
+      how: S_(L[1] || '', 120),
+      dice: dk,
+      droll: dk.length ? '' : S_(dl, 120),
+      bon: bl
+        .replace(/^보정\s*/, '')
+        .split(' · ')
+        .filter(Boolean)
+        .map(p => S_(p, 60))
+        .slice(0, 12),
+      tot: sx[1] || '',
+      goal: sx[2] || '',
+      res: S_(rl.slice(2).trim(), 20),
+      note: S_(
+        [
+          dl
+            .replace(/^2d6 → \d\+\d\s*/, '')
+            .replace(/^—\s*/, '')
+            .trim(),
+          (sx[3] || '').trim()
+        ]
+          .filter(Boolean)
+          .join(' · '),
+        300
+      )
+    };
+  }
+  const RESCOL = { '대성공': '#b8860b', '성공': '#2f9a5b', '부분': '#c08a1e', '실패': '#c8553d', '대실패': '#8a2f2f' };
+  const resCol = r => {
+    for (const k in RESCOL) if (String(r || '').includes(k)) return RESCOL[k];
+    return '#2b8fa8';
+  };
+  const IK = k => (/^[\w-]{1,80}$/.test(String(k || '')) ? String(k) : '');
+  const cav = (o, cls) => {
+    const k = IK(o && o.ik);
+    return k ? `<span class="bc-av ${cls || ''}" data-ik="${k}"></span>` : cls === 'need' ? `<span class="bc-av nil"></span>` : '';
+  };
+  const lineCls = l => (/실패|차단|없|않|무효/.test(l) ? 'neg' : /\+\d|회복|성공/.test(l) ? 'pos' : '');
+  const bl = l =>
+    /^▸ /.test(l)
+      ? `<span class="bc-sec">${esc(l.slice(2))}</span>`
+      : /^→\s*[^:\n]+:/.test(l)
+        ? (() => {
+            const m = l.match(/^→\s*([^:]+):\s*(.*)$/);
+            return `<span class="bc-hit"><b>→ ${esc(m[1])}</b>${m[2]
+              .split(/ · (?![^(]*\))/)
+              .map(p => `<i class="${/✗|빗나|실패|무효/.test(p) ? 'neg' : /대미지|급소 ✓|✓/.test(p) ? 'pos' : ''}">${esc(p)}</i>`)
+              .join('')}</span>`;
+          })()
+        : `<span class="bc-l ${lineCls(l)}">${esc(l)}</span>`;
+  function cardHTML(c) {
+    const wrap = (cls, col, inner) =>
+      `<span class="bc bc-${cls}" contenteditable="false" data-bc="${esc(JSON.stringify(c))}"${HEXC(col) ? ` style="--tc:${HEXC(col)}"` : ''}>${inner}</span>`;
+    const tag = s => `<span class="bc-tag">${esc(s)}</span>`;
+    if (c.k === 'hp') {
+      const P = v => (v > 0 ? Math.max(1, Math.round((v / c.max) * 100)) : 0);
+      const a = P(c.prev),
+        b = P(c.cur);
+      const dmg = c.cur < c.prev;
+      const lo = Math.min(a, b),
+        hi = Math.min(100, Math.max(a, b));
+      return wrap(
+        'hp' + (c.faint ? ' faint' : ''),
+        dmg ? '#d23a3a' : '#2f9a5b',
+        `<span class="bc-h">${cav(c)}<span class="bc-hm"><span class="bc-ht"><b>${esc(c.n)}</b><span class="bc-n">${dmg ? '−' : '+'}${Math.abs(c.cur - c.prev)}</span></span>
+<span class="bc-bar ${b <= 25 ? 'low' : b <= 50 ? 'mid' : ''}"><i style="width:${lo}%"></i><em class="${dmg ? 'cut' : 'gain'}" style="left:${lo}%;width:${hi - lo}%"></em></span>
+<span class="bc-hs"><span>HP ${esc(c.prev)} → <b>${esc(c.cur)}</b> / ${esc(c.max)}</span><span>${b}%</span></span></span></span>${String(c.why || '')
+          .split('\n')
+          .filter(Boolean)
+          .map(l => `<span class="bc-l dim">${esc(l)}</span>`)
+          .join(
+            ''
+          )}${(c.more || []).map(l => `<span class="bc-l dim">${esc(l)}</span>`).join('')}${c.faint ? `<span class="bc-faint">${esc(c.n)}은(는) 쓰러졌다!</span>` : ''}`
+      );
+    }
+    if (c.k === 'fc')
+      return wrap(
+        'fc' + (c.end ? ' end' : ''),
+        c.col || '#777777',
+        `<span class="bc-h">${tag(c.tag)}${c.side ? `<span class="bc-pos">${esc(c.side)}</span>` : ''}<b>${esc(c.n)}</b><span class="bc-sp"></span><span class="bc-st">${c.end ? '끝' : esc(c.note || '전개')}</span></span>${(c.L || []).map(l => `<span class="bc-l">${esc(l)}</span>`).join('')}`
+      );
+    if (c.k === 'sc')
+      return wrap(
+        'sc',
+        c.col || TAGCOL[c.tag],
+        `<span class="bc-h">${cav(c)}${tag(c.tag)}<b>${esc(c.n)}</b>${c.at ? `<span class="bc-pos">${esc(c.at)}</span>` : ''}</span>
+${(c.add || []).map(a => `<span class="bc-chiprow"><span class="bc-chip"${HEXC(a.col) ? ` style="--tc:${HEXC(a.col)}"` : ''}>${esc(a.ko)}</span>${a.g ? `<small>${esc(a.g)}</small>` : ''}</span>${(a.L || []).map(l => `<span class="bc-l dim">${esc(l)}</span>`).join('')}`).join('')}${(c.off || []).length ? `<span class="bc-chiprow"><small>풀림</small>${c.off.map(o => `<s class="bc-chip off">${esc(o)}</s>`).join('')}</span>` : ''}${c.by ? `<span class="bc-l dim">원인: ${esc(c.by.n)}${c.by.s ? ` 『${esc(c.by.s)}』` : ''}</span>` : ''}`
+      );
+    if (c.k === 'ord')
+      return wrap(
+        'ord',
+        '#6c7bbd',
+        `<span class="bc-h">${tag('행동 순서')}</span>${(c.rows || []).map((r, i) => `<span class="bc-or ${r.side || ''}"><em>${i + 1}</em>${cav(r, 'need')}<b>${esc(r.n)}</b><span class="bc-sp"></span>${r.cap ? `<small>${esc(r.cap)}</small>` : ''}${r.s !== '' ? `<span class="bc-spd">${esc(r.s)}</span>` : ''}</span>`).join('')}`
+      );
+    if (c.k === 'rv')
+      return wrap(
+        'rv',
+        TAGCOL[c.tag] || '#d6a23b',
+        `<span class="bc-h">${tag(c.tag)}</span>${(c.rows || []).map(r => `<span class="bc-rr">${cav(r, 'need')}<span class="bc-who"><b>${esc(r.n)}</b><small>${esc([r.tr, r.pos].filter(Boolean).join(' · '))}</small></span>${r.none ? '<span class="bc-none">행동 없음</span>' : r.sw ? `<span class="bc-arr">⇄ 교대</span>${cav(r.sw, 'need')}<span class="bc-who"><b>${esc(r.sw.n)}</b><small>${r.sw.done ? '나왔다' : '나올 포켓몬'}</small></span>` : `${r.mv ? `<span class="bc-mv">${r.mv.ty ? `<i class="bc-ty">${esc(r.mv.ty)}</i>` : ''}<b>「${esc(r.mv.n)}」</b>${r.mv.meta ? `<small>${esc(r.mv.meta)}</small>` : ''}</span>` : ''}${(r.tg || []).length ? `<span class="bc-arr">→</span><span class="bc-tgs">${r.tg.map(x => `<span class="bc-tg ${x.foe ? 'foe' : 'ally'}"><b>${esc(x.n)}</b><small>${esc(x.pos)}</small></span>`).join('')}</span>` : ''}`}</span>`).join('')}${(c.more || []).map(l => `<span class="bc-l">${esc(l)}</span>`).join('')}`
+      );
+    if (c.k === 'ph')
+      return wrap(
+        'ph',
+        '',
+        `<span class="bc-phl"><b>${esc(c.n)}</b>${c.turn ? `<em>${esc(c.turn)}</em>` : ''}</span>${c.note ? `<span class="bc-l dim">${esc(c.note)}</span>` : ''}`
+      );
+    if (c.k === 'now') return wrap('now', '', `<span class="bc-nowl">▶ <b>${esc(c.n)}</b>의 행동</span>`);
+    if (c.k === 'sk') {
+      const col = c.res ? resCol(c.res) : '#2b8fa8';
+      return wrap(
+        'sk',
+        col,
+        `<span class="bc-h">${tag(c.tag)}<b>${esc(c.n)}</b>${c.sub ? `<small>${esc(c.sub)}</small>` : ''}<span class="bc-sp"></span>${c.res ? `<span class="bc-res">${esc(c.res)}</span>` : ''}</span>
+${c.how || c.tot || (c.dice || []).length ? `<span class="bc-calc">${c.how ? `<small>${esc(c.how)}</small>` : ''}${(c.dice || []).map(v => `<i class="bc-die">${esc(v)}</i>`).join('')}${c.droll ? `<small>${esc(c.droll)}</small>` : ''}${(c.bon || []).map(p => `<span class="bc-bon">${esc(p)}</span>`).join('')}${c.tot ? `<span class="bc-tot">= <b>${esc(c.tot)}</b>${c.goal ? ` <small>/ ${esc(c.goal)}</small>` : ''}</span>` : ''}</span>` : ''}${c.note ? `<span class="bc-l dim">${esc(c.note)}</span>` : ''}`
+      );
+    }
+    const sp = c.tag === '고유' ? ' uq' : c.tag === '전용' ? ' ex' : '';
+    return wrap(
+      'gen' + sp,
+      TAGCOL[c.tag] || (/종료|개시/.test(c.tag || '') ? '#6c7bbd' : '#7a8799'),
+      `<span class="bc-h">${cav(c)}${tag((sp === ' uq' ? '♛ ' : sp === ' ex' ? '◆ ' : '') + (c.tag || ''))}<b>${esc(c.title || '')}</b></span>${c.eff ? `<span class="bc-eff">${esc(c.eff)}</span>` : ''}${(c.body || []).map(bl).join('')}`
+    );
+  }
+  const BC_CSS = `
 .sys:has(.bc){text-align:left;font-size:.92em;color:var(--fg)}
 .sys:has(.bc) .line{position:relative}
 .sys:has(.bc) .ts{position:absolute;right:0;top:4px}
@@ -191,414 +515,1273 @@ ${c.how||c.tot||(c.dice||[]).length?`<span class="bc-calc">${c.how?`<small>${esc
 .editing .bc{cursor:default;user-select:none}
 @media (max-width:560px){.bc{padding:8px 10px}.bc-av{width:30px;height:30px}}
 @media print{.bc{break-inside:avoid}}`;
- $('logcss').textContent+=BC_CSS;
- /* 카드가 쓴 그림만 CSS 로 싣는다 (화면 #tokcss · 저장한 HTML 둘 다 buildLog 의 css 를 쓴다) */
- {const prevBuild=buildLog;buildLog=function(){const r=prevBuild.apply(this,arguments);try{if(r&&r.html&&r.html.includes('data-ik="')){const ks=new Set();r.html.replace(/data-ik="([\w-]{1,80})"/g,(m,k)=>{ks.add(k);return m});
-   r.css=(r.css||'')+'\n'+[...ks].map(k=>{const u=img(k);return u&&/^data:image\//i.test(u)?`.bc-av[data-ik="${k}"]{background-image:url("${u}")}`:''}).filter(Boolean).join('\n')}}catch(e){}return r}}
- /* 카드 속 그림 주소(_u)를 S.imgs 키(ik)로 바꾼다 */
- async function assetKey(u,cache){if(!u||!SAFE_SRC.test(u))return'';if(cache.has(u))return cache.get(u);const key='o'+hashStr(u);let ok=true;
-  try{if(!S.imgs[key]){let d=null;if(/^data:image\//i.test(u))d=await shrink(dataToBlob(u));else{const r=await fetch(u);if(!r.ok)throw 0;d=await shrink(await r.blob())}if(!d)throw 0;S.imgs[key]=d}}catch(e){ok=false}
-  cache.set(u,ok?key:'');return ok?key:''}
- async function linkCardImgs(msgs){const cache=new Map();
-  const each=async o=>{if(!o||typeof o!=='object')return;if(Array.isArray(o)){for(const x of o)await each(x);return}
-   if(typeof o._u==='string'){const k=await assetKey(o._u,cache);delete o._u;if(k)o.ik=k}
-   for(const k in o)if(o[k]&&typeof o[k]==='object')await each(o[k])};
-  for(const m of msgs)for(const t of m.tokens||[])if(t.t==='card')await each(t)}
- /* 오레마스 채팅 설정의 이름 색(data.sty.nc) → 화자 색. 이미 색을 정한 화자는 건드리지 않는다 */
- function hueOf(hex){const n=parseInt(hex.slice(1),16);const r=(n>>16)/255,g=((n>>8)&255)/255,b=(n&255)/255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;if(d<.06)return null;
-  let h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;h=Math.round(h*60);return(h+360)%360}
- function applyNameColors(msgs){const seen=new Set();for(const m of msgs){if(!m.name||!m._nc||seen.has(m.name))continue;seen.add(m.name);if(S.speakers[m.name])continue;const h=hueOf(m._nc);if(h!=null)cfg(m.name).h=h}}
+  $('logcss').textContent += BC_CSS;
+  /* 카드가 쓴 그림만 CSS 로 싣는다 (화면 #tokcss · 저장한 HTML 둘 다 buildLog 의 css 를 쓴다) */
+  {
+    const prevBuild = buildLog;
+    buildLog = function () {
+      const r = prevBuild.apply(this, arguments);
+      try {
+        if (r && r.html && r.html.includes('data-ik="')) {
+          const ks = new Set();
+          r.html.replace(/data-ik="([\w-]{1,80})"/g, (m, k) => {
+            ks.add(k);
+            return m;
+          });
+          r.css =
+            (r.css || '') +
+            '\n' +
+            [...ks]
+              .map(k => {
+                const u = img(k);
+                return u && /^data:image\//i.test(u) ? `.bc-av[data-ik="${k}"]{background-image:url("${u}")}` : '';
+              })
+              .filter(Boolean)
+              .join('\n');
+        }
+      } catch (e) {}
+      return r;
+    };
+  }
+  /* 카드 속 그림 주소(_u)를 S.imgs 키(ik)로 바꾼다 */
+  async function assetKey(u, cache) {
+    if (!u || !SAFE_SRC.test(u)) return '';
+    if (cache.has(u)) return cache.get(u);
+    const key = 'o' + hashStr(u);
+    let ok = true;
+    try {
+      if (!S.imgs[key]) {
+        let d = null;
+        if (/^data:image\//i.test(u)) d = await shrink(dataToBlob(u));
+        else {
+          const r = await fetch(u);
+          if (!r.ok) throw 0;
+          d = await shrink(await r.blob());
+        }
+        if (!d) throw 0;
+        S.imgs[key] = d;
+      }
+    } catch (e) {
+      ok = false;
+    }
+    cache.set(u, ok ? key : '');
+    return ok ? key : '';
+  }
+  async function linkCardImgs(msgs) {
+    const cache = new Map();
+    const each = async o => {
+      if (!o || typeof o !== 'object') return;
+      if (Array.isArray(o)) {
+        for (const x of o) await each(x);
+        return;
+      }
+      if (typeof o._u === 'string') {
+        const k = await assetKey(o._u, cache);
+        delete o._u;
+        if (k) o.ik = k;
+      }
+      for (const k in o) if (o[k] && typeof o[k] === 'object') await each(o[k]);
+    };
+    for (const m of msgs) for (const t of m.tokens || []) if (t.t === 'card') await each(t);
+  }
+  /* 오레마스 채팅 설정의 이름 색(data.sty.nc) → 화자 색. 이미 색을 정한 화자는 건드리지 않는다 */
+  function hueOf(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) / 255,
+      g = ((n >> 8) & 255) / 255,
+      b = (n & 255) / 255;
+    const mx = Math.max(r, g, b),
+      mn = Math.min(r, g, b),
+      d = mx - mn;
+    if (d < 0.06) return null;
+    let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h = Math.round(h * 60);
+    return (h + 360) % 360;
+  }
+  function applyNameColors(msgs) {
+    const seen = new Set();
+    for (const m of msgs) {
+      if (!m.name || !m._nc || seen.has(m.name)) continue;
+      seen.add(m.name);
+      if (S.speakers[m.name]) continue;
+      const h = hueOf(m._nc);
+      if (h != null) cfg(m.name).h = h;
+    }
+  }
 
-
- /* ================= 본문 읽기 (walk) =================
+  /* ================= 본문 읽기 (walk) =================
     - 본문 속 그림(http(s) · data:image)은 그림 토큰으로 남긴다. 초상으로 쓴 그림(data-mtl-portrait)은 뺀다
     - http(s) 링크는 링크 토큰 (음원 · 유튜브 링크는 원본처럼 BGM 줄로 따로 뽑히므로 글자로만)
     - title 이 있는 span 은 주사위처럼 보일 때(1d20 · « » · = · Rolled …)만 주사위 칩. 그냥 툴팁은 글자로 둔다 */
- walk=function(node,fmt,out){
-  for(const n of node.childNodes){
-   if(n.nodeType===3){const v=n.nodeValue.replace(/\s+/g,' ');if(v)pushText(out,v,fmt);continue}
-   if(n.nodeType!==1)continue;
-   const tag=n.tagName.toLowerCase();
-   if(tag==='br'){out.push({t:'br'});continue}
-   if(n.hasAttribute('data-bc')){try{const c=JSON.parse(n.getAttribute('data-bc'));if(c&&c.t==='card'&&typeof c.k==='string')out.push(c)}catch(e){}continue}   /* 배틀 카드는 통째로 되살린다 */
-   if(tag==='img'){if(n.hasAttribute('data-mtl-portrait'))continue;const s=n.getAttribute('src')||'';if(SAFE_SRC.test(s))out.push(n.classList.contains('ill')?{t:'img',src:s,ill:1}:{t:'img',src:s});continue}
-   if(/^(script|style|audio|video|source|embed|object|iframe|button)$/.test(tag))continue;
-   if(n.classList.contains('tools'))continue;
-   if(tag==='a'){const h=n.getAttribute('href')||'',tx=n.textContent.trim();const im=n.querySelector('img:not([data-mtl-portrait])');
-    if(!tx&&im){const s=im.getAttribute('src')||'';if(SAFE_SRC.test(s)){out.push({t:'img',src:s});continue}}
-    if(/^data:image\//i.test(h)){out.push({t:'img',src:h});continue}
-    if(/^https?:/i.test(h)&&!AUDIO_RE.test(h)&&!isYT(h)){out.push({t:'link',href:h,v:tx||h});continue}}
-   if(n.classList.contains('roll')&&n.querySelector('.rs')){out.push({t:'roll',expr:(n.querySelector('.ex')?.textContent||'').replace(/\s*=\s*$/,'').trim(),res:n.querySelector('.rs').textContent.trim()});continue}
-   if(tag==='span'&&n.textContent.trim()){const tt=(n.getAttribute('title')||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
-    if(/roll/i.test(n.className)||(tt&&DICE_TITLE.test(tt))){out.push({t:'roll',expr:tt,res:n.textContent.trim().replace(/^«\s*|\s*»$/g,'')});continue}}
-   const f={...fmt};
-   if(tag==='b'||tag==='strong')f.b=1;
-   if(tag==='i'||tag==='em')f.i=1;
-   if(tag==='u')f.u=1;
-   const block=/^(div|p|tr|li|table|h\d)$/.test(tag);
-   if(block&&out.length&&out.at(-1).t!=='br')out.push({t:'br'});
-   walk(n,f,out);
-   if(block&&out.length&&out.at(-1).t!=='br')out.push({t:'br'});
-  }
-  return out;
- };
+  walk = function (node, fmt, out) {
+    for (const n of node.childNodes) {
+      if (n.nodeType === 3) {
+        const v = n.nodeValue.replace(/\s+/g, ' ');
+        if (v) pushText(out, v, fmt);
+        continue;
+      }
+      if (n.nodeType !== 1) continue;
+      const tag = n.tagName.toLowerCase();
+      if (tag === 'br') {
+        out.push({ t: 'br' });
+        continue;
+      }
+      if (n.hasAttribute('data-bc')) {
+        try {
+          const c = JSON.parse(n.getAttribute('data-bc'));
+          if (c && c.t === 'card' && typeof c.k === 'string') out.push(c);
+        } catch (e) {}
+        continue;
+      } /* 배틀 카드는 통째로 되살린다 */
+      if (tag === 'img') {
+        if (n.hasAttribute('data-mtl-portrait')) continue;
+        const s = n.getAttribute('src') || '';
+        if (SAFE_SRC.test(s)) out.push(n.classList.contains('ill') ? { t: 'img', src: s, ill: 1 } : { t: 'img', src: s });
+        continue;
+      }
+      if (/^(script|style|audio|video|source|embed|object|iframe|button)$/.test(tag)) continue;
+      if (n.classList.contains('tools')) continue;
+      if (tag === 'a') {
+        const h = n.getAttribute('href') || '',
+          tx = n.textContent.trim();
+        const im = n.querySelector('img:not([data-mtl-portrait])');
+        if (!tx && im) {
+          const s = im.getAttribute('src') || '';
+          if (SAFE_SRC.test(s)) {
+            out.push({ t: 'img', src: s });
+            continue;
+          }
+        }
+        if (/^data:image\//i.test(h)) {
+          out.push({ t: 'img', src: h });
+          continue;
+        }
+        if (/^https?:/i.test(h) && !AUDIO_RE.test(h) && !isYT(h)) {
+          out.push({ t: 'link', href: h, v: tx || h });
+          continue;
+        }
+      }
+      if (n.classList.contains('roll') && n.querySelector('.rs')) {
+        out.push({
+          t: 'roll',
+          expr: (n.querySelector('.ex')?.textContent || '').replace(/\s*=\s*$/, '').trim(),
+          res: n.querySelector('.rs').textContent.trim()
+        });
+        continue;
+      }
+      if (tag === 'span' && n.textContent.trim()) {
+        const tt = (n.getAttribute('title') || '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (/roll/i.test(n.className) || (tt && DICE_TITLE.test(tt))) {
+          out.push({ t: 'roll', expr: tt, res: n.textContent.trim().replace(/^«\s*|\s*»$/g, '') });
+          continue;
+        }
+      }
+      const f = { ...fmt };
+      if (tag === 'b' || tag === 'strong') f.b = 1;
+      if (tag === 'i' || tag === 'em') f.i = 1;
+      if (tag === 'u') f.u = 1;
+      const block = /^(div|p|tr|li|table|h\d)$/.test(tag);
+      if (block && out.length && out.at(-1).t !== 'br') out.push({ t: 'br' });
+      walk(n, f, out);
+      if (block && out.length && out.at(-1).t !== 'br') out.push({ t: 'br' });
+    }
+    return out;
+  };
 
- /* ================= 화자 판별 =================
+  /* ================= 화자 판별 =================
     「10:30」 같은 시각의 콜론은 이름 구분으로 읽지 않는다 (「Note at 10:30」 → 화자 「Note at 10」, 「오후 3:30 출발」 → 화자 「오후 3」 이 되던 문제) */
- takePrefix=function(tk){
-  let ts=null;
-  if(tk[0]&&tk[0].t==='text'){
-   let v=tk[0].v;const tm=v.match(/^\s*\[?(\d{1,2}:\d{2}(?::\d{2})?)\]?\s*/);if(tm){ts=tm[1];v=v.slice(tm[0].length)}
-   const vals=tk.map((t,j)=>j===0?{...t,v}:t);let acc='';
-   for(let i=0;i<vals.length&&vals[i].t==='text';i++){
-    acc+=vals[i].v;
-    const nm=acc.match(/^([^:：«»\n]{1,40}?)\s*[:：]\s?/);
-    if(nm&&!/https?$/i.test(nm[1])){
-     if(/\d$/.test(nm[1])&&/^\d/.test(acc.slice(nm[0].replace(/\s+$/,'').length)))break;   // 숫자:숫자 = 시각
-     return{ts,name:nm[1].trim(),tokens:trimTokens([{...vals[i],v:acc.slice(nm[0].length)},...vals.slice(i+1)])}}
-    if(acc.length>60)break;
-   }
-   return{ts,name:null,tokens:trimTokens(vals)};
-  }
-  return{ts,name:null,tokens:trimTokens(tk)};
- };
+  takePrefix = function (tk) {
+    let ts = null;
+    if (tk[0] && tk[0].t === 'text') {
+      let v = tk[0].v;
+      const tm = v.match(/^\s*\[?(\d{1,2}:\d{2}(?::\d{2})?)\]?\s*/);
+      if (tm) {
+        ts = tm[1];
+        v = v.slice(tm[0].length);
+      }
+      const vals = tk.map((t, j) => (j === 0 ? { ...t, v } : t));
+      let acc = '';
+      for (let i = 0; i < vals.length && vals[i].t === 'text'; i++) {
+        acc += vals[i].v;
+        const nm = acc.match(/^([^:：«»\n]{1,40}?)\s*[:：]\s?/);
+        if (nm && !/https?$/i.test(nm[1])) {
+          if (/\d$/.test(nm[1]) && /^\d/.test(acc.slice(nm[0].replace(/\s+$/, '').length))) break; // 숫자:숫자 = 시각
+          return { ts, name: nm[1].trim(), tokens: trimTokens([{ ...vals[i], v: acc.slice(nm[0].length) }, ...vals.slice(i + 1)]) };
+        }
+        if (acc.length > 60) break;
+      }
+      return { ts, name: null, tokens: trimTokens(vals) };
+    }
+    return { ts, name: null, tokens: trimTokens(tk) };
+  };
 
- /* ================= 정리기가 내보낸 HTML 다시 읽기 =================
+  /* ================= 정리기가 내보낸 HTML 다시 읽기 =================
     전에는 <body> 아래가 여러 덩어리라 메시지 하나로 뭉쳤다. 내보낸 꼴(.entries > .grp · .gm · .sys · .bgm)을 그대로 되읽는다.
     예전 GitHub 판(#bgmbar)과 이 판(.log-head) 둘 다 */
- const isOwnExport=doc=>!!doc.querySelector('main .entries')&&(!!doc.querySelector('main .log-head')||!!doc.getElementById('bgmbar'));
- function dataToBlob(d){const[h,b]=d.split(',');const bin=atob(b);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new Blob([u],{type:(h.match(/data:([^;]+)/)||[])[1]||'application/octet-stream'})}
- async function fromOwnExport(doc){
-  const css=[...doc.querySelectorAll('style')].map(x=>x.textContent).join('\n');const pics={};
-  css.replace(/\.([\w-]+)\{background-image:url\("([^"]+)"\)\}/g,(_,k,u)=>{pics[k]=u;return ''});
-  const picOf=el=>{if(!el)return null;const t=el.matches('.tk')?el:el.querySelector('.tk');if(!t)return null;const k=[...t.classList].find(c=>pics[c]);if(!k)return null;const u=pics[k];if(!/^data:image\//.test(u))return null;const key='d'+hashStr(u);if(!S.imgs[key])S.imgs[key]=u;return key};
-  const lineToks=el=>{const c=el.cloneNode(true);c.querySelectorAll('.ts,.n,.tools,.del').forEach(x=>x.remove());return trimTokens(walk(c.querySelector('.tx')||c,{},[]))};
-  const whoOf=el=>{const w=el&&el.querySelector('.who');if(!w)return{name:'',tag:''};const c=w.cloneNode(true);const tag=(c.querySelector('.tag')||{}).textContent||'';c.querySelectorAll('.ts,.tag,.tk').forEach(x=>x.remove());return{name:c.textContent.trim(),tag:tag.trim()}};
-  const tsOf=el=>((((el.querySelector('.ts')||{}).textContent||'').trim()).match(/^\d{1,2}:\d{2}(?::\d{2})?$/)||[null])[0];   /* 시각 칸은 HH:MM 꼴만 — 다른 글이 meta 줄에 HTML 로 들어가지 않게 */
-  const out=[];
-  const bgmOf=async b=>{const src=b.dataset.src||'',title=b.dataset.title||'BGM';const yt=b.querySelector('a[href]');
-   if(/^data:audio\//i.test(src)){try{const aid=uid();const blob=dataToBlob(src);await idb.set('audio:'+aid,{name:title,blob});audioURL[aid]=URL.createObjectURL(blob);return{id:uid(),type:'bgm',title,audioId:aid}}catch(e){return null}}
-   const url=src||(yt&&yt.getAttribute('href'))||'';return url?{id:uid(),type:'bgm',title,url}:null};
-  for(const g of doc.querySelectorAll('.entries > *')){
-   const ts=tsOf(g);
-   if(g.classList.contains('part')||g.classList.contains('empty'))continue;
-   if(g.classList.contains('bgm')){const m=await bgmOf(g);if(m)out.push(m);continue}
-   if(g.classList.contains('sys')){for(const ln of g.querySelectorAll('.line')){for(const b of ln.querySelectorAll('.bgm[data-src]')){const m=await bgmOf(b);if(m)out.push(m);b.remove()}const tokens=lineToks(ln);if(tokens.length)out.push({id:uid(),ts,name:null,type:'sys',tokens})}continue}
-   const emote=g.classList.contains('emote')?g.querySelector('.line'):g.querySelector('p.line.emote');
-   if(emote){const n=(emote.querySelector('b.n')||{}).textContent||'';const tokens=lineToks(emote);const a=picOf(g.querySelector('.av'));if(tokens.length){const m={id:uid(),ts,name:n.trim()||null,type:'emote',tokens};if(a)m.asset=a;out.push(m)}continue}
-   const{name,tag}=whoOf(g);const wh=/^귓속말/.test(tag),ooc=tag==='OOC';
-   const to=wh?((tag.match(/→\s*(.+)$/)||[])[1]||'').trim():'';
-   const a=picOf(g.querySelector('.av'))||picOf(g.querySelector('.who'));
-   g.querySelectorAll('.line').forEach((ln,i)=>{const tokens=lineToks(ln);if(!tokens.length)return;const m={id:uid(),ts:i?null:ts,name:name||null,type:wh?'whisper':ooc?'ooc':'say',tokens};if(wh)m.to=to;if(a)m.asset=a;out.push(m.type==='say'&&!m.name?classify(m):m)});
+  const isOwnExport = doc => !!doc.querySelector('main .entries') && (!!doc.querySelector('main .log-head') || !!doc.getElementById('bgmbar'));
+  function dataToBlob(d) {
+    const [h, b] = d.split(',');
+    const bin = atob(b);
+    const u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    return new Blob([u], { type: (h.match(/data:([^;]+)/) || [])[1] || 'application/octet-stream' });
   }
-  const t=doc.querySelector('.log-title');
-  return{msgs:out,title:t?t.textContent.trim():''};
- }
+  async function fromOwnExport(doc) {
+    const css = [...doc.querySelectorAll('style')].map(x => x.textContent).join('\n');
+    const pics = {};
+    css.replace(/\.([\w-]+)\{background-image:url\("([^"]+)"\)\}/g, (_, k, u) => {
+      pics[k] = u;
+      return '';
+    });
+    const picOf = el => {
+      if (!el) return null;
+      const t = el.matches('.tk') ? el : el.querySelector('.tk');
+      if (!t) return null;
+      const k = [...t.classList].find(c => pics[c]);
+      if (!k) return null;
+      const u = pics[k];
+      if (!/^data:image\//.test(u)) return null;
+      const key = 'd' + hashStr(u);
+      if (!S.imgs[key]) S.imgs[key] = u;
+      return key;
+    };
+    const lineToks = el => {
+      const c = el.cloneNode(true);
+      c.querySelectorAll('.ts,.n,.tools,.del').forEach(x => x.remove());
+      return trimTokens(walk(c.querySelector('.tx') || c, {}, []));
+    };
+    const whoOf = el => {
+      const w = el && el.querySelector('.who');
+      if (!w) return { name: '', tag: '' };
+      const c = w.cloneNode(true);
+      const tag = (c.querySelector('.tag') || {}).textContent || '';
+      c.querySelectorAll('.ts,.tag,.tk').forEach(x => x.remove());
+      return { name: c.textContent.trim(), tag: tag.trim() };
+    };
+    const tsOf = el =>
+      (((el.querySelector('.ts') || {}).textContent || '').trim().match(/^\d{1,2}:\d{2}(?::\d{2})?$/) || [
+        null
+      ])[0]; /* 시각 칸은 HH:MM 꼴만 — 다른 글이 meta 줄에 HTML 로 들어가지 않게 */
+    const out = [];
+    const bgmOf = async b => {
+      const src = b.dataset.src || '',
+        title = b.dataset.title || 'BGM';
+      const yt = b.querySelector('a[href]');
+      if (/^data:audio\//i.test(src)) {
+        try {
+          const aid = uid();
+          const blob = dataToBlob(src);
+          await idb.set('audio:' + aid, { name: title, blob });
+          audioURL[aid] = URL.createObjectURL(blob);
+          return { id: uid(), type: 'bgm', title, audioId: aid };
+        } catch (e) {
+          return null;
+        }
+      }
+      const url = src || (yt && yt.getAttribute('href')) || '';
+      return url ? { id: uid(), type: 'bgm', title, url } : null;
+    };
+    for (const g of doc.querySelectorAll('.entries > *')) {
+      const ts = tsOf(g);
+      if (g.classList.contains('part') || g.classList.contains('empty')) continue;
+      if (g.classList.contains('bgm')) {
+        const m = await bgmOf(g);
+        if (m) out.push(m);
+        continue;
+      }
+      if (g.classList.contains('sys')) {
+        for (const ln of g.querySelectorAll('.line')) {
+          for (const b of ln.querySelectorAll('.bgm[data-src]')) {
+            const m = await bgmOf(b);
+            if (m) out.push(m);
+            b.remove();
+          }
+          const tokens = lineToks(ln);
+          if (tokens.length) out.push({ id: uid(), ts, name: null, type: 'sys', tokens });
+        }
+        continue;
+      }
+      const emote = g.classList.contains('emote') ? g.querySelector('.line') : g.querySelector('p.line.emote');
+      if (emote) {
+        const n = (emote.querySelector('b.n') || {}).textContent || '';
+        const tokens = lineToks(emote);
+        const a = picOf(g.querySelector('.av'));
+        if (tokens.length) {
+          const m = { id: uid(), ts, name: n.trim() || null, type: 'emote', tokens };
+          if (a) m.asset = a;
+          out.push(m);
+        }
+        continue;
+      }
+      const { name, tag } = whoOf(g);
+      const wh = /^귓속말/.test(tag),
+        ooc = tag === 'OOC';
+      const to = wh ? ((tag.match(/→\s*(.+)$/) || [])[1] || '').trim() : '';
+      const a = picOf(g.querySelector('.av')) || picOf(g.querySelector('.who'));
+      g.querySelectorAll('.line').forEach((ln, i) => {
+        const tokens = lineToks(ln);
+        if (!tokens.length) return;
+        const m = { id: uid(), ts: i ? null : ts, name: name || null, type: wh ? 'whisper' : ooc ? 'ooc' : 'say', tokens };
+        if (wh) m.to = to;
+        if (a) m.asset = a;
+        out.push(m.type === 'say' && !m.name ? classify(m) : m);
+      });
+    }
+    const t = doc.querySelector('.log-title');
+    return { msgs: out, title: t ? t.textContent.trim() : '' };
+  }
 
- /* ================= HTML 로그 읽기 =================
+  /* ================= HTML 로그 읽기 =================
     - 표 형식: 이름 칸에서 화자를 찾았으면 본문 앞의 「…:」 를 자르지 않는다 (「규칙: 판정은…」 → 「판정은…」, 「오후 3:30에」 → 「30에」 로 잘리던 문제)
     - 초상: 표 형식은 본문 칸 밖의 첫 그림, 아니면 글자보다 앞에 나오는 첫 그림만. 나머지 그림은 본문에 남는다 */
- const leading=(el,im)=>{try{const r=el.ownerDocument.createRange();r.setStart(el,0);r.setEndBefore(im);return !r.toString().trim()}catch(e){return false}};
- parseHTML=function(raw){
-  const doc=new DOMParser().parseFromString(raw,'text/html');
-  doc.querySelectorAll('script,style,head,title').forEach(n=>n.remove());
-  let blocks=[...doc.body.children];
-  while(blocks.length===1&&blocks[0].tagName!=='TABLE'&&blocks[0].children.length>1)blocks=[...blocks[0].children];
-  if(blocks.length<=1){const html=(blocks[0]||doc.body).innerHTML;blocks=html.split(/<br\s*\/?>/i).map(h=>{const d=doc.createElement('div');d.innerHTML=h;return d})}
-  const out=[];
-  for(const el of blocks){
-   out.push(...findBgm(el));
-   if(!el.textContent.trim()&&!el.querySelector('img'))continue;
-   const tds=el.tagName==='TABLE'||el.querySelector('table')?[...el.querySelectorAll('td')]:[];
-   const body=tds.length>=2?tds.at(-1):null;
-   const ims=[...el.querySelectorAll('img')];
-   const pic=body?ims.find(i=>!body.contains(i)):ims.find(i=>{const s=i.getAttribute('src')||'';return(/^asset:\/\//i.test(s)||/^data:image\//i.test(s))&&leading(el,i)});
-   if(pic)pic.setAttribute('data-mtl-portrait','');
-   let m;
-   if(body){
-    const nameCell=tds.slice(0,-1).reverse().find(td=>td.textContent.trim());
-    let ts=null,name=nameCell?nameCell.textContent.trim().replace(/[:：]\s*$/,''):null;
-    const tm=name&&name.match(/^\[?(\d{1,2}:\d{2}(?::\d{2})?)\]?\s*/);if(tm){ts=tm[1];name=name.slice(tm[0].length)}
-    const toks=walk(body,{},[]);let inner=takePrefix(toks);
-    if(name&&inner.name!==name){const t0=toks[0]&&toks[0].t==='text'?toks[0].v:'';const tm2=t0.match(/^\s*\[?(\d{1,2}:\d{2}(?::\d{2})?)\]\s*/);
-     inner={ts:tm2?tm2[1]:null,name:null,tokens:trimTokens(tm2?[{...toks[0],v:t0.slice(tm2[0].length)},...toks.slice(1)]:toks)}}
-    m={ts:ts||inner.ts,name:name||inner.name,tokens:inner.tokens};
-   }else m=takePrefix(walk(el,{},[]));
-   if(pic){const src=pic.getAttribute('src')||'';const a=src.match(/asset:\/\/([0-9a-f]{32})/i);
-    if(a)m.asset=a[1].toLowerCase();
-    else if(/^data:image\//.test(src)){const k='d'+hashStr(src);if(!S.imgs[k])S.imgs[k]=src;m.asset=k}}
-   if(m.tokens.length){m.id=uid();out.push(classify(m))}
-  }
-  return out;
- };
+  const leading = (el, im) => {
+    try {
+      const r = el.ownerDocument.createRange();
+      r.setStart(el, 0);
+      r.setEndBefore(im);
+      return !r.toString().trim();
+    } catch (e) {
+      return false;
+    }
+  };
+  parseHTML = function (raw) {
+    const doc = new DOMParser().parseFromString(raw, 'text/html');
+    doc.querySelectorAll('script,style,head,title').forEach(n => n.remove());
+    let blocks = [...doc.body.children];
+    while (blocks.length === 1 && blocks[0].tagName !== 'TABLE' && blocks[0].children.length > 1) blocks = [...blocks[0].children];
+    if (blocks.length <= 1) {
+      const html = (blocks[0] || doc.body).innerHTML;
+      blocks = html.split(/<br\s*\/?>/i).map(h => {
+        const d = doc.createElement('div');
+        d.innerHTML = h;
+        return d;
+      });
+    }
+    const out = [];
+    for (const el of blocks) {
+      out.push(...findBgm(el));
+      if (!el.textContent.trim() && !el.querySelector('img')) continue;
+      const tds = el.tagName === 'TABLE' || el.querySelector('table') ? [...el.querySelectorAll('td')] : [];
+      const body = tds.length >= 2 ? tds.at(-1) : null;
+      const ims = [...el.querySelectorAll('img')];
+      const pic = body
+        ? ims.find(i => !body.contains(i))
+        : ims.find(i => {
+            const s = i.getAttribute('src') || '';
+            return (/^asset:\/\//i.test(s) || /^data:image\//i.test(s)) && leading(el, i);
+          });
+      if (pic) pic.setAttribute('data-mtl-portrait', '');
+      let m;
+      if (body) {
+        const nameCell = tds
+          .slice(0, -1)
+          .reverse()
+          .find(td => td.textContent.trim());
+        let ts = null,
+          name = nameCell ? nameCell.textContent.trim().replace(/[:：]\s*$/, '') : null;
+        const tm = name && name.match(/^\[?(\d{1,2}:\d{2}(?::\d{2})?)\]?\s*/);
+        if (tm) {
+          ts = tm[1];
+          name = name.slice(tm[0].length);
+        }
+        const toks = walk(body, {}, []);
+        let inner = takePrefix(toks);
+        if (name && inner.name !== name) {
+          const t0 = toks[0] && toks[0].t === 'text' ? toks[0].v : '';
+          const tm2 = t0.match(/^\s*\[?(\d{1,2}:\d{2}(?::\d{2})?)\]\s*/);
+          inner = {
+            ts: tm2 ? tm2[1] : null,
+            name: null,
+            tokens: trimTokens(tm2 ? [{ ...toks[0], v: t0.slice(tm2[0].length) }, ...toks.slice(1)] : toks)
+          };
+        }
+        m = { ts: ts || inner.ts, name: name || inner.name, tokens: inner.tokens };
+      } else m = takePrefix(walk(el, {}, []));
+      if (pic) {
+        const src = pic.getAttribute('src') || '';
+        const a = src.match(/asset:\/\/([0-9a-f]{32})/i);
+        if (a) m.asset = a[1].toLowerCase();
+        else if (/^data:image\//.test(src)) {
+          const k = 'd' + hashStr(src);
+          if (!S.imgs[k]) S.imgs[k] = src;
+          m.asset = k;
+        }
+      }
+      if (m.tokens.length) {
+        m.id = uid();
+        out.push(classify(m));
+      }
+    }
+    return out;
+  };
 
- /* ================= 형식 판별 =================
+  /* ================= 형식 판별 =================
     진짜 태그가 있을 때만 HTML 로 읽는다 (텍스트 로그에 「<b」 같은 글자가 한 번 있어도 HTML 로 가던 문제) */
- const looksHTML=r=>/^\s*<(!doctype|html|head|body|div|table|span|p|b|i|font|a|br|audio|iframe|img|main)\b/i.test(r)||/<\/(div|table|tr|td|span|p|b|i|u|font|a|li)\s*>/i.test(r)||/<br\s*\/?>/i.test(r)||/<(audio|iframe|img)\s[^>]*>/i.test(r);
- parseInput=function(raw){
-  raw=raw.trim();if(!raw)return[];
-  const msgs=looksHTML(raw)?parseHTML(raw):parseText(raw);
-  const known=[...new Set(msgs.filter(m=>m.name).map(m=>m.name))].sort((a,b)=>b.length-a.length);
-  for(const m of msgs){
-   if(m.type==='emote'&&!m.name&&m.tokens[0]?.t==='text'){
-    const v=m.tokens[0].v.replace(/^\*\s?/,'');const k=known.find(n=>v.startsWith(n));
-    if(k){m.name=k;m.tokens[0]={...m.tokens[0],v:v.slice(k.length).replace(/^\s+/,'')}}else m.tokens[0]={...m.tokens[0],v};
-   }
+  const looksHTML = r =>
+    /^\s*<(!doctype|html|head|body|div|table|span|p|b|i|font|a|br|audio|iframe|img|main)\b/i.test(r) ||
+    /<\/(div|table|tr|td|span|p|b|i|u|font|a|li)\s*>/i.test(r) ||
+    /<br\s*\/?>/i.test(r) ||
+    /<(audio|iframe|img)\s[^>]*>/i.test(r);
+  parseInput = function (raw) {
+    raw = raw.trim();
+    if (!raw) return [];
+    const msgs = looksHTML(raw) ? parseHTML(raw) : parseText(raw);
+    const known = [...new Set(msgs.filter(m => m.name).map(m => m.name))].sort((a, b) => b.length - a.length);
+    for (const m of msgs) {
+      if (m.type === 'emote' && !m.name && m.tokens[0]?.t === 'text') {
+        const v = m.tokens[0].v.replace(/^\*\s?/, '');
+        const k = known.find(n => v.startsWith(n));
+        if (k) {
+          m.name = k;
+          m.tokens[0] = { ...m.tokens[0], v: v.slice(k.length).replace(/^\s+/, '') };
+        } else m.tokens[0] = { ...m.tokens[0], v };
+      }
+    }
+    return msgs;
+  };
+
+  /* ================= 오레마스 =================  */
+  const say = t => {
+    const e = $('omMsg');
+    if (e) e.textContent = t;
+  };
+  /* 10-26 오레마스 상태 나누기: 배틀 · 포켓몬이 따로 담겨 om_get_state 로 합쳐 읽는다. 함수가 없는 옛 DB 면 표에서 */
+  async function omState(id) {
+    try {
+      const r = await fetch(`${OM.url}/rest/v1/rpc/om_get_state`, {
+        method: 'POST',
+        headers: { apikey: OM.key, 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ p_room: id })
+      });
+      if (r.ok) {
+        const j = await r.json();
+        if (j && j.data) return [{ data: j.data }];
+      }
+    } catch (e) {}
+    return rest(`om_state?room=eq.${encodeURIComponent(id)}&select=data`);
   }
-  return msgs;
- };
+  async function rest(path) {
+    const r = await fetch(`${OM.url}/rest/v1/${path}`, { headers: { apikey: OM.key, Accept: 'application/json' } });
+    if (!r.ok) throw new Error(`${r.status} ${(await r.text()).slice(0, 120)}`);
+    return r.json();
+  }
+  function roomIdOf(s) {
+    s = String(s || '').trim();
+    const m = s.match(/[#?&]r=([A-Za-z0-9_-]+)/) || s.match(/^([A-Za-z0-9_-]{4,})$/);
+    return m ? m[1] : '';
+  }
+  const hm = at => {
+    const d = new Date(at);
+    return isNaN(d) ? '' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+  const day = at => {
+    const d = new Date(at);
+    return isNaN(d) ? '' : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  function textToks(str, fmt) {
+    const out = [];
+    String(str || '')
+      .split('\n')
+      .forEach((ln, i) => {
+        if (i) out.push({ t: 'br' });
+        if (ln) out.push({ t: 'text', v: ln, ...(fmt || {}) });
+      });
+    return out;
+  }
 
- /* ================= 오레마스 =================  */
- const say=t=>{const e=$('omMsg');if(e)e.textContent=t};
- /* 10-26 오레마스 상태 나누기: 배틀 · 포켓몬이 따로 담겨 om_get_state 로 합쳐 읽는다. 함수가 없는 옛 DB 면 표에서 */
- async function omState(id){try{const r=await fetch(`${OM.url}/rest/v1/rpc/om_get_state`,{method:'POST',headers:{apikey:OM.key,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({p_room:id})});if(r.ok){const j=await r.json();if(j&&j.data)return [{data:j.data}]}}catch(e){}return rest(`om_state?room=eq.${encodeURIComponent(id)}&select=data`)}
- async function rest(path){const r=await fetch(`${OM.url}/rest/v1/${path}`,{headers:{apikey:OM.key,Accept:'application/json'}});if(!r.ok)throw new Error(`${r.status} ${(await r.text()).slice(0,120)}`);return r.json()}
- function roomIdOf(s){s=String(s||'').trim();const m=s.match(/[#?&]r=([A-Za-z0-9_-]+)/)||s.match(/^([A-Za-z0-9_-]{4,})$/);return m?m[1]:''}
- const hm=at=>{const d=new Date(at);return isNaN(d)?'':`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
- const day=at=>{const d=new Date(at);return isNaN(d)?'':`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
- function textToks(str,fmt){const out=[];String(str||'').split('\n').forEach((ln,i)=>{if(i)out.push({t:'br'});if(ln)out.push({t:'text',v:ln,...(fmt||{})})});return out}
+  /* 오레마스 로그 한 줄 → 정리기 메시지 (null 이면 뺀다) */
+  function convert(r, o, T) {
+    const d = r.data || {};
+    let kind = r.kind;
+    if (kind === 'chat' && d.bat) kind = d.bat;
+    T = T || {};
+    const base = { id: uid(), ts: hm(r.at) };
+    if (kind === 'whisper') {
+      if (!o.wh || !d.t) return null;
+      if (o.card !== false && o.battle && (d.gmPriv || d.priv) && /^【/.test(String(d.t))) {
+        const c = cardOf(d);
+        if (c) return { ...base, type: 'whisper', name: r.who || '', to: String(d.toName || d.to || ''), tokens: [c] };
+      }
+      return { ...base, name: r.who || '', to: String(d.toName || d.to || ''), type: 'whisper', tokens: textToks(d.t) };
+    } /* 서버는 귓속말을 내주지 않는다. 내보낸 파일(내 귓속말)에 든 것만 */
+    if (kind === 'sys') {
+      if (!o.battle) return null;
+      return { ...base, type: 'sys', tokens: textToks(d.t) };
+    }
+    if (kind === 'dice') {
+      if (!o.dice) return null;
+      const t = String(d.t || '');
+      if (o.card !== false && d.ch !== 'ooc') {
+        const c = rollCardOf(d);
+        if (c) return { ...base, type: 'sys', tokens: [c] };
+      }
+      const m = t.match(/^(.*?)\s*=\s*([^=]+)$/);
+      return {
+        ...base,
+        name: (T[d.from] && T[d.from].name) || r.who || '',
+        type: d.ch === 'ooc' ? 'ooc' : 'say',
+        tokens: m ? [{ t: 'roll', expr: m[1].trim(), res: m[2].trim() }] : textToks(t)
+      };
+    }
+    if (kind === 'battle') {
+      if (!o.battle) return null;
+      const t = String(d.t || '');
+      if (o.card !== false) {
+        const c = cardOf(d);
+        if (c) return { ...base, type: 'sys', tokens: [c] };
+      }
+      const m = t.match(/^【([^】]+)】\s*([^\n]*)\n?([\s\S]*)$/);
+      const tk = m
+        ? [
+            { t: 'text', v: `【${m[1]}】 `, b: true },
+            { t: 'text', v: m[2], b: true },
+            ...(m[3].trim() ? [{ t: 'br' }, ...textToks(m[3].trim())] : [])
+          ]
+        : textToks(t);
+      if (d.eff) tk.push({ t: 'br' }, ...textToks(String(d.eff).trim(), { i: true }));
+      return { ...base, type: 'sys', tokens: tk };
+    }
+    if (kind === 'chat') {
+      if (d.clear || d.room) return null;
+      if (d.sms && !o.sms) return null;
+      if (!d.t && !d.img) return null;
+      const name = (
+        d.as ||
+        (!d.sms && d.ch !== 'ooc' && d.from && d.from !== 'gm' && T[d.from] && T[d.from].name) ||
+        r.who ||
+        ''
+      ).trim(); /* 좌석의 세션 대사는 플레이어 닉 대신 그 캐릭터 이름 */
+      const t0 = String(d.t || '').trim();
+      let narr = /^\*([\s\S]+)\*$/.exec(t0);
+      /* 오레마스 새 줄 규칙(data.nf=1, 2026-10-20~): 따옴표로 감싸지 않은 글은 지문 — 오레마스 lineFmt 와 같게. 옛 줄(nf 없음)은 *…* 만 지문 */
+      if (!narr && d.nf && d.ch !== 'ooc' && t0 && !/^["“「『][\s\S]*["”」』]$/.test(t0)) narr = [t0, t0];
+      const tk = narr ? textToks(narr[1], { i: true }) : textToks(d.t);
+      if (d.img && SAFE_SRC.test(String(d.img))) {
+        if (tk.length) tk.push({ t: 'br' });
+        tk.push({ t: 'img', src: String(d.img) });
+      }
+      if (!tk.length) return null;
+      return {
+        ...base,
+        name: d.sms ? `📱 ${name}` : name,
+        type: d.ch === 'ooc' ? 'ooc' : narr ? 'emote' : 'say' /* 오레마스 잡담 창(ch:'ooc') → OOC */,
+        tokens: tk,
+        _k: d.k || '',
+        _as: d.as || '',
+        _from: d.from || '',
+        _nc: HEXC(d.sty && d.sty.nc)
+      };
+    }
+    return null;
+  }
+  const strip = msgs =>
+    msgs.forEach(m => {
+      delete m._k;
+      delete m._as;
+      delete m._from;
+      delete m._nc;
+    });
 
- /* 오레마스 로그 한 줄 → 정리기 메시지 (null 이면 뺀다) */
- function convert(r,o,T){const d=r.data||{};let kind=r.kind;if(kind==='chat'&&d.bat)kind=d.bat;T=T||{};
-  const base={id:uid(),ts:hm(r.at)};
-  if(kind==='whisper'){if(!o.wh||!d.t)return null;if(o.card!==false&&o.battle&&(d.gmPriv||d.priv)&&/^【/.test(String(d.t))){const c=cardOf(d);if(c)return{...base,type:'whisper',name:r.who||'',to:String(d.toName||d.to||''),tokens:[c]}}return{...base,name:r.who||'',to:String(d.toName||d.to||''),type:'whisper',tokens:textToks(d.t)}}   /* 서버는 귓속말을 내주지 않는다. 내보낸 파일(내 귓속말)에 든 것만 */
-  if(kind==='sys'){if(!o.battle)return null;return{...base,type:'sys',tokens:textToks(d.t)}}
-  if(kind==='dice'){if(!o.dice)return null;const t=String(d.t||'');if(o.card!==false&&d.ch!=='ooc'){const c=rollCardOf(d);if(c)return{...base,type:'sys',tokens:[c]}}const m=t.match(/^(.*?)\s*=\s*([^=]+)$/);return{...base,name:(T[d.from]&&T[d.from].name)||r.who||'',type:d.ch==='ooc'?'ooc':'say',tokens:m?[{t:'roll',expr:m[1].trim(),res:m[2].trim()}]:textToks(t)}}
-  if(kind==='battle'){if(!o.battle)return null;const t=String(d.t||'');if(o.card!==false){const c=cardOf(d);if(c)return{...base,type:'sys',tokens:[c]}}const m=t.match(/^【([^】]+)】\s*([^\n]*)\n?([\s\S]*)$/);
-   const tk=m?[{t:'text',v:`【${m[1]}】 `,b:true},{t:'text',v:m[2],b:true},...(m[3].trim()?[{t:'br'},...textToks(m[3].trim())]:[])]:textToks(t);
-   if(d.eff)tk.push({t:'br'},...textToks(String(d.eff).trim(),{i:true}));
-   return{...base,type:'sys',tokens:tk}}
-  if(kind==='chat'){if(d.clear||d.room)return null;if(d.sms&&!o.sms)return null;
-   if(!d.t&&!d.img)return null;const name=(d.as||(!d.sms&&d.ch!=='ooc'&&d.from&&d.from!=='gm'&&T[d.from]&&T[d.from].name)||r.who||'').trim();   /* 좌석의 세션 대사는 플레이어 닉 대신 그 캐릭터 이름 */
-   const t0=String(d.t||'').trim();let narr=/^\*([\s\S]+)\*$/.exec(t0);
-   /* 오레마스 새 줄 규칙(data.nf=1, 2026-10-20~): 따옴표로 감싸지 않은 글은 지문 — 오레마스 lineFmt 와 같게. 옛 줄(nf 없음)은 *…* 만 지문 */
-   if(!narr&&d.nf&&d.ch!=='ooc'&&t0&&!/^["“「『][\s\S]*["”」』]$/.test(t0))narr=[t0,t0];
-   const tk=narr?textToks(narr[1],{i:true}):textToks(d.t);
-   if(d.img&&SAFE_SRC.test(String(d.img))){if(tk.length)tk.push({t:'br'});tk.push({t:'img',src:String(d.img)})}
-   if(!tk.length)return null;
-   return{...base,name:d.sms?`📱 ${name}`:name,type:d.ch==='ooc'?'ooc':narr?'emote':'say',   /* 오레마스 잡담 창(ch:'ooc') → OOC */
-    tokens:tk,_k:d.k||'',_as:d.as||'',_from:d.from||'',_nc:HEXC(d.sty&&d.sty.nc)}}
-  return null}
- const strip=msgs=>msgs.forEach(m=>{delete m._k;delete m._as;delete m._from;delete m._nc});
+  /* 화자 이름 → 그림 주소 (로스터 · 관계도 · 스탠딩) */
+  function portraitMap(state, msgs) {
+    const ro = state.roster || {};
+    const T = ro.trainers || {},
+      M = ro.mons || {};
+    const N = Object.values((state.graph || {}).nodes || {});
+    const stand = x => {
+      const s = (x && x.stands) || [];
+      const a = s[+x.standActive || 0] || s[0];
+      return (a && a.src) || '';
+    };
+    const byName = n => {
+      const t = Object.values(T).find(x => x.name === n);
+      if (t) return t.image || stand(t);
+      const m = Object.values(M).find(x => x.name === n && x.image);
+      if (m) return m.image;
+      const g = N.find(x => x.name === n);
+      return g ? g.img || stand(g) : '';
+    };
+    const out = {};
+    for (const m of msgs) {
+      if (!m.name || out[m.name] !== undefined) continue;
+      let u = '';
+      const k = m._k;
+      if (k && k.startsWith('pm:')) {
+        const mm = M[k.slice(3)];
+        u = (mm && mm.image) || '';
+      } else if (k && k.startsWith('npc:')) u = byName(k.slice(4));
+      else if (k && k !== 'gm' && k !== 'me' && T[k]) u = T[k].image || stand(T[k]);
+      if (!u) u = byName(m._as || m.name.replace(/^📱 /, ''));
+      if (!u && m._from && T[m._from]) u = T[m._from].image || stand(T[m._from]);
+      out[m.name] = u || '';
+    }
+    return out;
+  }
+  /* 초상은 메시지마다 asset 으로만 잇는다 (전역 이름 표에 넣지 않으니 다른 방의 같은 이름 그림으로 바뀌지 않는다) */
+  async function linkPortraits(map, msgs) {
+    let ok = 0,
+      fail = 0;
+    for (const [name, u] of Object.entries(map)) {
+      if (!u || !SAFE_SRC.test(u)) continue;
+      const key = 'o' + hashStr(u);
+      try {
+        if (!S.imgs[key]) {
+          let d = null;
+          if (/^data:image\//i.test(u)) d = await shrink(dataToBlob(u));
+          else {
+            const r = await fetch(u);
+            if (!r.ok) throw 0;
+            d = await shrink(await r.blob());
+          }
+          if (!d) throw 0;
+          S.imgs[key] = d;
+        }
+        msgs.forEach(m => {
+          if (m.name === name) m.asset = key;
+        });
+        ok++;
+      } catch (e) {
+        fail++;
+      }
+    }
+    return { ok, fail };
+  }
 
- /* 화자 이름 → 그림 주소 (로스터 · 관계도 · 스탠딩) */
- function portraitMap(state,msgs){const ro=state.roster||{};const T=ro.trainers||{},M=ro.mons||{};const N=Object.values((state.graph||{}).nodes||{});
-  const stand=x=>{const s=(x&&x.stands)||[];const a=s[+x.standActive||0]||s[0];return a&&a.src||''};
-  const byName=n=>{const t=Object.values(T).find(x=>x.name===n);if(t)return t.image||stand(t);const m=Object.values(M).find(x=>x.name===n&&x.image);if(m)return m.image;const g=N.find(x=>x.name===n);return g?(g.img||stand(g)):''};
-  const out={};
-  for(const m of msgs){if(!m.name||out[m.name]!==undefined)continue;let u='';const k=m._k;
-   if(k&&k.startsWith('pm:')){const mm=M[k.slice(3)];u=mm&&mm.image||''}
-   else if(k&&k.startsWith('npc:'))u=byName(k.slice(4));
-   else if(k&&k!=='gm'&&k!=='me'&&T[k])u=T[k].image||stand(T[k]);
-   if(!u)u=byName(m._as||m.name.replace(/^📱 /,''));
-   if(!u&&m._from&&T[m._from])u=T[m._from].image||stand(T[m._from]);
-   out[m.name]=u||''}
-  return out}
- /* 초상은 메시지마다 asset 으로만 잇는다 (전역 이름 표에 넣지 않으니 다른 방의 같은 이름 그림으로 바뀌지 않는다) */
- async function linkPortraits(map,msgs){let ok=0,fail=0;
-  for(const [name,u] of Object.entries(map)){if(!u||!SAFE_SRC.test(u))continue;const key='o'+hashStr(u);
-   try{if(!S.imgs[key]){let d=null;if(/^data:image\//i.test(u))d=await shrink(dataToBlob(u));else{const r=await fetch(u);if(!r.ok)throw 0;d=await shrink(await r.blob())}if(!d)throw 0;S.imgs[key]=d}
-    msgs.forEach(m=>{if(m.name===name)m.asset=key});ok++}catch(e){fail++}}
-  return{ok,fail}}
+  /* 패널 */
+  const tpl = $('omPanelTpl');
+  const first = document.querySelector('.rail .panel');
+  if (tpl && first) first.after(tpl.content.cloneNode(true));
+  const OPT_IDS = { dice: 'omDice', battle: 'omBattle', sms: 'omSms', cut: 'omCut', card: 'omCard', hid: 'omHid' };
+  const opt = () => ({
+    dice: $('omDice').checked,
+    battle: $('omBattle').checked,
+    sms: $('omSms').checked,
+    cut: $('omCut').checked,
+    card: $('omCard').checked,
+    hid: $('omHid').checked
+  });
+  (() => {
+    const v = ls.get('om-opts', null);
+    if (v)
+      Object.entries(OPT_IDS).forEach(([k, id]) => {
+        if (typeof v[k] === 'boolean') $(id).checked = v[k];
+      });
+    Object.values(OPT_IDS).forEach(id => $(id).addEventListener('change', () => ls.set('om-opts', opt())));
+  })(); /* 패널 옵션을 이 브라우저에 기억한다 */
 
- /* 패널 */
- const tpl=$('omPanelTpl');const first=document.querySelector('.rail .panel');if(tpl&&first)first.after(tpl.content.cloneNode(true));
- const OPT_IDS={dice:'omDice',battle:'omBattle',sms:'omSms',cut:'omCut',card:'omCard',hid:'omHid'};
- const opt=()=>({dice:$('omDice').checked,battle:$('omBattle').checked,sms:$('omSms').checked,cut:$('omCut').checked,card:$('omCard').checked,hid:$('omHid').checked});
- (()=>{const v=ls.get('om-opts',null);if(v)Object.entries(OPT_IDS).forEach(([k,id])=>{if(typeof v[k]==='boolean')$(id).checked=v[k]});
-  Object.values(OPT_IDS).forEach(id=>$(id).addEventListener('change',()=>ls.set('om-opts',opt())))})();   /* 패널 옵션을 이 브라우저에 기억한다 */
+  async function importRoom(raw, o, auto) {
+    const id = roomIdOf(raw);
+    if (!id) {
+      say('방 링크나 ID를 넣어 줘');
+      return;
+    }
+    say('방을 읽는 중…');
+    try {
+      const [rooms, states] = await Promise.all([rest(`om_rooms?id=eq.${encodeURIComponent(id)}&select=id,name`), omState(id)]);
+      if (!rooms.length) {
+        say('그런 방이 없다');
+        return;
+      }
+      const state = (states[0] && states[0].data) || {};
+      const cut = o.cut ? 0 : +(state.rp || {}).logClearAt || 0;
+      const PAGES = 500;
+      let rows = [],
+        after = cut,
+        capped = false;
+      for (let i = 0; ; i++) {
+        if (i >= PAGES) {
+          capped = true;
+          break;
+        }
+        const page = await rest(`om_log?room=eq.${encodeURIComponent(id)}&id=gt.${after}&order=id.asc&limit=1000&select=id,at,kind,who,data`);
+        if (!page.length) break;
+        rows.push(...page);
+        after = page[page.length - 1].id;
+        say(`로그 ${rows.length}줄 읽는 중…`);
+        if (page.length < 1000) break;
+      }
+      /* 오레마스의 「가림」 구간(rp.logHide · pub.<좌석>.logHide = {시작 id: 끝 id|0})은 기본으로 뺀다 */
+      const H = [];
+      if (!o.hid) {
+        const add = h => {
+          if (h && typeof h === 'object')
+            for (const a in h) {
+              const z = +h[a];
+              if (+a > 0) H.push([+a, z > 0 ? z : Infinity]);
+            }
+        };
+        add((state.rp || {}).logHide);
+        const pub = state.pub || {};
+        for (const k in pub) add((pub[k] || {}).logHide);
+      }
+      const total = rows.length;
+      if (H.length) rows = rows.filter(r => !H.some(h => r.id >= h[0] && r.id <= h[1]));
+      const hidN = total - rows.length;
+      if (!rows.length) {
+        say('옮길 로그가 없다 (모두 가린 구간)');
+        return;
+      }
+      const msgs = rows.map(r => convert(r, o, (state.roster || {}).trainers || {})).filter(Boolean);
+      if (!msgs.length) {
+        say('옮길 로그가 없다');
+        return;
+      }
+      applyNameColors(msgs);
+      say('초상을 잇는 중…');
+      const pr = await linkPortraits(portraitMap(state, msgs), msgs);
+      await linkCardImgs(msgs);
+      strip(msgs);
+      const d0 = day(rows[0].at),
+        d1 = day(rows[rows.length - 1].at);
+      const title = `${rooms[0].name || id} · 오레마스 ${d0}${d1 && d1 !== d0 ? ' ~ ' + d1 : ''}`;
+      /* 같은 방을 이미 불러왔으면: 주소로 열 때는 그 로그를 새로 고치고, 버튼으로 부를 때는 물어본다. 고치기 전 상태는 「되돌리기」로 살린다 */
+      const map = (await idb.get('om-rooms')) || {};
+      const oldId = map[id] && S.index.some(e => e.id === map[id]) ? map[id] : null;
+      const old = oldId ? await getLog(oldId) : null;
+      let log,
+        re = false;
+      if (
+        old &&
+        (auto ||
+          confirm(
+            `「${old.title}」 을(를) 이미 불러왔어요.\n확인: 그 로그를 서버 내용으로 새로 고침 (전 내용은 「되돌리기」로 살릴 수 있어요)\n취소: 새 로그로 하나 더 넣기`
+          ))
+      ) {
+        S.undo.push({ id: old.id, title: old.title, messages: JSON.stringify(old.messages) });
+        if (S.undo.length > 50) S.undo.shift();
+        $('undoBtn').disabled = false;
+        old.messages = msgs;
+        {
+          const auto = old.autoTitle ? old.title === old.autoTitle : /· 오레마스 \d{4}-\d{2}-\d{2}/.test(old.title || '');
+          if (auto) old.title = title;
+          old.autoTitle = title;
+        }
+        log = old;
+        re = true;
+      } /* 10-25: 바꾼 이름은 남긴다 */
+      else {
+        log = { id: uid(), title, autoTitle: title, messages: msgs, created: Date.now() };
+        S.logs[log.id] = log;
+      }
+      map[id] = log.id;
+      await idb.set('om-rooms', map);
+      touch(log);
+      flush();
+      await idb.set('log:' + log.id, log);
+      await idb.set('imgs', S.imgs);
+      await selectLog(log.id);
+      say(
+        `${msgs.length}줄${hidN ? ` · 가린 구간 ${hidN}줄 뺌` : ''} · 초상 ${pr.ok}명${pr.fail ? ` (못 읽은 그림 ${pr.fail})` : ''}${capped ? ` · 너무 길어 앞 ${rows.length.toLocaleString()}줄까지만 읽었다` : ''}`
+      );
+      toast(
+        capped
+          ? `로그가 너무 길어 앞 ${rows.length.toLocaleString()}줄까지만 읽었어요`
+          : `오레마스 「${rooms[0].name || id}」 로그를 ${re ? '새로 고쳤어요' : '넣었어요'}`
+      );
+    } catch (e) {
+      console.error(e);
+      say('읽지 못했다: ' + e.message);
+    }
+  }
+  $('omGo').onclick = () => importRoom($('omRoom').value, opt());
+  $('omRoom').onkeydown = e => {
+    if (e.key === 'Enter' && !e.isComposing) importRoom($('omRoom').value, opt());
+  };
+  /* ?oremas=방ID: 한 번만 쓰고 주소에서 지운다(새로고침해도 또 생기지 않게). 저장소 부팅이 끝난 뒤에 불러온다 */
+  /* ================= 예전 GitHub 판(저장소 'mtl')의 로그를 한 번 옮겨 온다 ================= */
+  async function migrateOld() {
+    if (ls.get('mtl-migrated', 0)) return;
+    try {
+      if (indexedDB.databases) {
+        const dbs = await indexedDB.databases();
+        if (!dbs.some(d => d.name === 'mtl')) {
+          ls.set('mtl-migrated', 1);
+          return;
+        }
+      }
+    } catch (e) {}
+    let db;
+    try {
+      db = await new Promise((res, rej) => {
+        const r = indexedDB.open('mtl');
+        r.onupgradeneeded = () => {
+          r.transaction.abort();
+        };
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+    } catch (e) {
+      ls.set('mtl-migrated', 1);
+      return;
+    }
+    const all = async st => {
+      if (!db.objectStoreNames.contains(st)) return new Map();
+      const t = db.transaction(st).objectStore(st);
+      const [ks, vs] = await Promise.all([
+        new Promise(r => {
+          const q = t.getAllKeys();
+          q.onsuccess = () => r(q.result);
+        }),
+        new Promise(r => {
+          const q = t.getAll();
+          q.onsuccess = () => r(q.result);
+        })
+      ]);
+      return new Map(ks.map((k, i) => [k, vs[i]]));
+    };
+    try {
+      const [oldLogs, oldImgs, oldKv] = await Promise.all([all('logs'), all('imgs'), all('kv')]);
+      const list = [...oldLogs.values()].filter(l => l && Array.isArray(l.msgs) && !l.sample).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      if (!list.length) {
+        ls.set('mtl-migrated', 1);
+        db.close();
+        return;
+      }
+      const toData = async k => {
+        if (S.imgs[k] || S.lib[k]) return true;
+        const bl = oldImgs.get(k);
+        if (!bl) return false;
+        const d = await blobToData(bl);
+        if (d) {
+          S.imgs[k] = d;
+          return true;
+        }
+        return false;
+      };
+      const map = (await idb.get('om-rooms')) || {};
+      let n = 0;
+      for (const ol of list) {
+        const messages = [];
+        for (const m of ol.msgs) {
+          const rest = [];
+          for (const t of m.tokens || []) {
+            if (t.t === 'bgm') {
+              messages.push({ id: uid(), type: 'bgm', url: t.src, title: t.title || 'BGM' });
+              continue;
+            }
+            if (t.t === 'link' && t.v === '[그림]' && SAFE_SRC.test(t.href || '')) {
+              rest.push({ t: 'img', src: t.href });
+              continue;
+            }
+            rest.push(t);
+          }
+          const tk = trimTokens(rest);
+          if (!tk.length || m.type === 'bgm') continue;
+          const nm = { id: uid(), type: m.type, name: m.name || null, ts: m.ts || null, tokens: tk };
+          if (m.to) nm.to = m.to;
+          if (m.asset && (await toData(m.asset))) nm.asset = m.asset;
+          messages.push(nm);
+        }
+        if (!messages.length) continue;
+        const log = { id: uid(), title: ol.title || '옮겨 온 로그', messages, created: Date.now() };
+        S.logs[log.id] = log;
+        touch(log);
+        await idb.set('log:' + log.id, log);
+        n++;
+        if (ol.src && ol.src.oremas && !map[ol.src.oremas]) map[ol.src.oremas] = log.id;
+      }
+      const sp = oldKv.get('speakers') || {};
+      for (const [k, c] of Object.entries(sp)) {
+        if (!c) continue;
+        if (!S.speakers[k]) S.speakers[k] = { name: c.name || k, h: c.h, gm: !!c.gm, hide: !!c.hide };
+        if (c.imgKey) {
+          const bl = oldImgs.get(c.imgKey);
+          if (bl && !S.imgs['spk:' + k]) {
+            const d = await blobToData(bl);
+            if (d) S.imgs['spk:' + k] = d;
+          }
+        }
+      }
+      flush();
+      await idb.set('index', S.index);
+      await idb.set('imgs', S.imgs);
+      await idb.set('speakers', S.speakers);
+      await idb.set('om-rooms', map);
+      ls.set('mtl-migrated', 1);
+      db.close();
+      if (n) {
+        renderList();
+        toast(`예전 판에 있던 로그 ${n}개를 옮겨 왔어요`);
+      }
+    } catch (e) {
+      console.error(e);
+      try {
+        db.close();
+      } catch (_) {}
+    }
+  }
+  const ready = boot.then(migrateOld);
 
- async function importRoom(raw,o,auto){const id=roomIdOf(raw);if(!id){say('방 링크나 ID를 넣어 줘');return}
-  say('방을 읽는 중…');
-  try{
-   const [rooms,states]=await Promise.all([rest(`om_rooms?id=eq.${encodeURIComponent(id)}&select=id,name`),omState(id)]);
-   if(!rooms.length){say('그런 방이 없다');return}
-   const state=(states[0]&&states[0].data)||{};const cut=o.cut?0:(+((state.rp||{}).logClearAt)||0);
-   const PAGES=500;let rows=[],after=cut,capped=false;
-   for(let i=0;;i++){if(i>=PAGES){capped=true;break}const page=await rest(`om_log?room=eq.${encodeURIComponent(id)}&id=gt.${after}&order=id.asc&limit=1000&select=id,at,kind,who,data`);if(!page.length)break;rows.push(...page);after=page[page.length-1].id;say(`로그 ${rows.length}줄 읽는 중…`);if(page.length<1000)break}
-   /* 오레마스의 「가림」 구간(rp.logHide · pub.<좌석>.logHide = {시작 id: 끝 id|0})은 기본으로 뺀다 */
-   const H=[];if(!o.hid){const add=h=>{if(h&&typeof h==='object')for(const a in h){const z=+h[a];if(+a>0)H.push([+a,z>0?z:Infinity])}};add((state.rp||{}).logHide);const pub=state.pub||{};for(const k in pub)add((pub[k]||{}).logHide)}
-   const total=rows.length;if(H.length)rows=rows.filter(r=>!H.some(h=>r.id>=h[0]&&r.id<=h[1]));const hidN=total-rows.length;
-   if(!rows.length){say('옮길 로그가 없다 (모두 가린 구간)');return}
-   const msgs=rows.map(r=>convert(r,o,(state.roster||{}).trainers||{})).filter(Boolean);
-   if(!msgs.length){say('옮길 로그가 없다');return}
-   applyNameColors(msgs);
-   say('초상을 잇는 중…');const pr=await linkPortraits(portraitMap(state,msgs),msgs);await linkCardImgs(msgs);strip(msgs);
-   const d0=day(rows[0].at),d1=day(rows[rows.length-1].at);
-   const title=`${rooms[0].name||id} · 오레마스 ${d0}${d1&&d1!==d0?' ~ '+d1:''}`;
-   /* 같은 방을 이미 불러왔으면: 주소로 열 때는 그 로그를 새로 고치고, 버튼으로 부를 때는 물어본다. 고치기 전 상태는 「되돌리기」로 살린다 */
-   const map=(await idb.get('om-rooms'))||{};const oldId=map[id]&&S.index.some(e=>e.id===map[id])?map[id]:null;const old=oldId?await getLog(oldId):null;
-   let log,re=false;
-   if(old&&(auto||confirm(`「${old.title}」 을(를) 이미 불러왔어요.\n확인: 그 로그를 서버 내용으로 새로 고침 (전 내용은 「되돌리기」로 살릴 수 있어요)\n취소: 새 로그로 하나 더 넣기`))){
-    S.undo.push({id:old.id,title:old.title,messages:JSON.stringify(old.messages)});if(S.undo.length>50)S.undo.shift();$('undoBtn').disabled=false;
-    old.messages=msgs;{const auto=old.autoTitle?old.title===old.autoTitle:/· 오레마스 \d{4}-\d{2}-\d{2}/.test(old.title||'');if(auto)old.title=title;old.autoTitle=title}log=old;re=true}   /* 10-25: 바꾼 이름은 남긴다 */
-   else{log={id:uid(),title,autoTitle:title,messages:msgs,created:Date.now()};S.logs[log.id]=log}
-   map[id]=log.id;await idb.set('om-rooms',map);
-   touch(log);flush();await idb.set('log:'+log.id,log);await idb.set('imgs',S.imgs);await selectLog(log.id);
-   say(`${msgs.length}줄${hidN?` · 가린 구간 ${hidN}줄 뺌`:''} · 초상 ${pr.ok}명${pr.fail?` (못 읽은 그림 ${pr.fail})`:''}${capped?` · 너무 길어 앞 ${rows.length.toLocaleString()}줄까지만 읽었다`:''}`);
-   toast(capped?`로그가 너무 길어 앞 ${rows.length.toLocaleString()}줄까지만 읽었어요`:`오레마스 「${rooms[0].name||id}」 로그를 ${re?'새로 고쳤어요':'넣었어요'}`)
-  }catch(e){console.error(e);say('읽지 못했다: '+e.message)}}
- $('omGo').onclick=()=>importRoom($('omRoom').value,opt());
- $('omRoom').onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing)importRoom($('omRoom').value,opt())};
- /* ?oremas=방ID: 한 번만 쓰고 주소에서 지운다(새로고침해도 또 생기지 않게). 저장소 부팅이 끝난 뒤에 불러온다 */
- /* ================= 예전 GitHub 판(저장소 'mtl')의 로그를 한 번 옮겨 온다 ================= */
- async function migrateOld(){
-  if(ls.get('mtl-migrated',0))return;
-  try{if(indexedDB.databases){const dbs=await indexedDB.databases();if(!dbs.some(d=>d.name==='mtl')){ls.set('mtl-migrated',1);return}}}catch(e){}
-  let db;try{db=await new Promise((res,rej)=>{const r=indexedDB.open('mtl');r.onupgradeneeded=()=>{r.transaction.abort()};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch(e){ls.set('mtl-migrated',1);return}
-  const all=async st=>{if(!db.objectStoreNames.contains(st))return new Map();const t=db.transaction(st).objectStore(st);const [ks,vs]=await Promise.all([new Promise(r=>{const q=t.getAllKeys();q.onsuccess=()=>r(q.result)}),new Promise(r=>{const q=t.getAll();q.onsuccess=()=>r(q.result)})]);return new Map(ks.map((k,i)=>[k,vs[i]]))};
-  try{
-   const [oldLogs,oldImgs,oldKv]=await Promise.all([all('logs'),all('imgs'),all('kv')]);
-   const list=[...oldLogs.values()].filter(l=>l&&Array.isArray(l.msgs)&&!l.sample).sort((a,b)=>(a.order??0)-(b.order??0));
-   if(!list.length){ls.set('mtl-migrated',1);db.close();return}
-   const toData=async k=>{if(S.imgs[k]||S.lib[k])return true;const bl=oldImgs.get(k);if(!bl)return false;const d=await blobToData(bl);if(d){S.imgs[k]=d;return true}return false};
-   const map=(await idb.get('om-rooms'))||{};let n=0;
-   for(const ol of list){
-    const messages=[];
-    for(const m of ol.msgs){
-     const rest=[];
-     for(const t of m.tokens||[]){
-      if(t.t==='bgm'){messages.push({id:uid(),type:'bgm',url:t.src,title:t.title||'BGM'});continue}
-      if(t.t==='link'&&t.v==='[그림]'&&SAFE_SRC.test(t.href||'')){rest.push({t:'img',src:t.href});continue}
-      rest.push(t)}
-     const tk=trimTokens(rest);if(!tk.length||m.type==='bgm')continue;
-     const nm={id:uid(),type:m.type,name:m.name||null,ts:m.ts||null,tokens:tk};if(m.to)nm.to=m.to;
-     if(m.asset&&await toData(m.asset))nm.asset=m.asset;
-     messages.push(nm)}
-    if(!messages.length)continue;
-    const log={id:uid(),title:ol.title||'옮겨 온 로그',messages,created:Date.now()};S.logs[log.id]=log;touch(log);await idb.set('log:'+log.id,log);n++;
-    if(ol.src&&ol.src.oremas&&!map[ol.src.oremas])map[ol.src.oremas]=log.id}
-   const sp=oldKv.get('speakers')||{};for(const [k,c] of Object.entries(sp)){if(!c)continue;if(!S.speakers[k])S.speakers[k]={name:c.name||k,h:c.h,gm:!!c.gm,hide:!!c.hide};if(c.imgKey){const bl=oldImgs.get(c.imgKey);if(bl&&!S.imgs['spk:'+k]){const d=await blobToData(bl);if(d)S.imgs['spk:'+k]=d}}}
-   flush();await idb.set('index',S.index);await idb.set('imgs',S.imgs);await idb.set('speakers',S.speakers);await idb.set('om-rooms',map);
-   ls.set('mtl-migrated',1);db.close();
-   if(n){renderList();toast(`예전 판에 있던 로그 ${n}개를 옮겨 왔어요`)}
-  }catch(e){console.error(e);try{db.close()}catch(_){}}
- }
- const ready=boot.then(migrateOld);
+  const q = new URLSearchParams(location.search).get('oremas');
+  if (q) {
+    $('omRoom').value = q;
+    try {
+      const u = new URL(location.href);
+      u.searchParams.delete('oremas');
+      history.replaceState(null, '', u.pathname + u.search + u.hash);
+    } catch (e) {}
+    ready.then(() => importRoom(q, opt(), true));
+  }
 
- const q=new URLSearchParams(location.search).get('oremas');
- if(q){$('omRoom').value=q;
-  try{const u=new URL(location.href);u.searchParams.delete('oremas');history.replaceState(null,'',u.pathname+u.search+u.hash)}catch(e){}
-  ready.then(()=>importRoom(q,opt(),true))}
-
- /* ----- 오레마스에서 내보낸 HTML · TXT -----
+  /* ----- 오레마스에서 내보낸 HTML · TXT -----
     새 파일: <script id="oremas-log"> 의 원본 줄 · 초상을 그대로. 옛 파일: 말풍선 꼴(.m .bub .who .av). TXT: 「[날짜 시각] 이름: 말」의 날짜를 뗀다 */
- const isOmHtml=t=>/<meta name="generator" content="oremas">|id="oremas-log"|· 오레마스<\/small><\/h1>/.test(t);
- const isOmTxt=t=>/^﻿?\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}\] /.test(t);
- const bgUrl=el=>{const m=(el&&el.getAttribute('style')||'').match(/url\(['"]?([^'")]+)['"]?\)/);return m?m[1]:''};
- function fromPack(p){const o={...opt(),wh:true};   /* 파일도 패널의 「주사위 · 배틀 · 문자」 옵션을 따른다. 귓속말은 파일에 들어 있으면 살린다 */
-  const msgs=(p.rows||[]).map(r=>convert(r,o,Object.fromEntries(Object.entries(p.trainers||{}).map(([k,v])=>[k,{name:v}])))).filter(Boolean);
-  const por={};for(const m of msgs){if(!m.name||por[m.name]!==undefined)continue;const base=m.name.replace(/^📱 /,'');por[m.name]=(p.por||{})[m._as||base]||(p.por||{})[base]||''}
-  return{title:`${p.name||p.room||'오레마스'} · 오레마스${p.exported?' '+p.exported.slice(0,10):''}`,msgs,por}}
- function fromDom(doc){const msgs=[],por={},o=opt();
-  doc.querySelectorAll('.wrap > .m').forEach(el=>{const tm=(el.querySelector('.tm')||{}).textContent||'';const base={id:uid(),ts:(tm.trim().match(/^\d{1,2}:\d{2}(?::\d{2})?$/)||[''])[0]};
-   if(el.classList.contains('sys')){if(!o.battle)return;const c=(el.querySelector('.bub')||el).cloneNode(true);c.querySelectorAll('.tm').forEach(x=>x.remove());msgs.push({...base,type:'sys',tokens:textToks(c.textContent.trim())});return}
-   const card=el.querySelector('.card');
-   if(card){if(!o.battle)return;const tag=(card.querySelector('.tag')||{}).textContent||'',ttl=(card.querySelector('b')||{}).textContent||'';const tk=[{t:'text',v:`【${tag}】 `,b:true},{t:'text',v:ttl,b:true}];
-    card.querySelectorAll('.bl').forEach(x=>tk.push({t:'br'},{t:'text',v:x.textContent}));const eff=card.querySelector('.eff');if(eff)tk.push({t:'br'},...textToks(eff.textContent,{i:true}));msgs.push({...base,type:'sys',tokens:tk});return}
-   const bub=el.querySelector('.bub');if(!bub)return;let who=((bub.querySelector('.who')||{}).textContent||'').trim();
-   const isDice=el.classList.contains('dice'),isSms=el.classList.contains('sms'),isW=el.classList.contains('whisper');
-   if(isDice&&!o.dice)return;if(isSms&&!o.sms)return;
-   const c=bub.cloneNode(true);c.querySelectorAll('.who,.tm').forEach(x=>x.remove());   /* 말풍선 안의 이름 · 시각은 본문이 아니다 */
-   const imgs=[...c.querySelectorAll('img')].map(i=>i.getAttribute('src')).filter(u=>u&&SAFE_SRC.test(u));c.querySelectorAll('a,img').forEach(x=>x.remove());const text=c.textContent.trim();
-   let to='';if(isW){const mm=who.match(/^(.*?)\s*→\s*(.*)$/);if(mm){who=mm[1].trim();to=mm[2].trim()}}
-   if(isDice){const m=text.match(/^(.*?)\s*=\s*([^=]+)$/);msgs.push({...base,name:who,type:el.classList.contains('ooc')?'ooc':'say',tokens:m?[{t:'roll',expr:m[1].trim(),res:m[2].trim()}]:textToks(text)})}
-   else{const tk=el.classList.contains('narr')?textToks(text,{i:true}):textToks(text);imgs.forEach(u=>{if(tk.length)tk.push({t:'br'});tk.push({t:'img',src:u})});if(!tk.length)return;
-    const type=isW?'whisper':el.classList.contains('ooc')?'ooc':el.classList.contains('narr')?'emote':'say';const m={...base,name:isSms?`📱 ${who}`:who,type,tokens:tk};if(isW)m.to=to;msgs.push(m)}
-   const nm=msgs.at(-1)&&msgs.at(-1).name;if(nm&&!por[nm]){const u=bgUrl(el.querySelector('.av'));if(u&&SAFE_SRC.test(u))por[nm]=u}});
-  const h=doc.querySelector('h1');const title=h?h.childNodes[0].textContent.trim():'오레마스';return{title:`${title} · 오레마스`,msgs,por}}
+  const isOmHtml = t => /<meta name="generator" content="oremas">|id="oremas-log"|· 오레마스<\/small><\/h1>/.test(t);
+  const isOmTxt = t => /^﻿?\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}\] /.test(t);
+  const bgUrl = el => {
+    const m = ((el && el.getAttribute('style')) || '').match(/url\(['"]?([^'")]+)['"]?\)/);
+    return m ? m[1] : '';
+  };
+  function fromPack(p) {
+    const o = { ...opt(), wh: true }; /* 파일도 패널의 「주사위 · 배틀 · 문자」 옵션을 따른다. 귓속말은 파일에 들어 있으면 살린다 */
+    const msgs = (p.rows || [])
+      .map(r => convert(r, o, Object.fromEntries(Object.entries(p.trainers || {}).map(([k, v]) => [k, { name: v }]))))
+      .filter(Boolean);
+    const por = {};
+    for (const m of msgs) {
+      if (!m.name || por[m.name] !== undefined) continue;
+      const base = m.name.replace(/^📱 /, '');
+      por[m.name] = (p.por || {})[m._as || base] || (p.por || {})[base] || '';
+    }
+    return { title: `${p.name || p.room || '오레마스'} · 오레마스${p.exported ? ' ' + p.exported.slice(0, 10) : ''}`, msgs, por };
+  }
+  function fromDom(doc) {
+    const msgs = [],
+      por = {},
+      o = opt();
+    doc.querySelectorAll('.wrap > .m').forEach(el => {
+      const tm = (el.querySelector('.tm') || {}).textContent || '';
+      const base = { id: uid(), ts: (tm.trim().match(/^\d{1,2}:\d{2}(?::\d{2})?$/) || [''])[0] };
+      if (el.classList.contains('sys')) {
+        if (!o.battle) return;
+        const c = (el.querySelector('.bub') || el).cloneNode(true);
+        c.querySelectorAll('.tm').forEach(x => x.remove());
+        msgs.push({ ...base, type: 'sys', tokens: textToks(c.textContent.trim()) });
+        return;
+      }
+      const card = el.querySelector('.card');
+      if (card) {
+        if (!o.battle) return;
+        const tag = (card.querySelector('.tag') || {}).textContent || '',
+          ttl = (card.querySelector('b') || {}).textContent || '';
+        const tk = [
+          { t: 'text', v: `【${tag}】 `, b: true },
+          { t: 'text', v: ttl, b: true }
+        ];
+        card.querySelectorAll('.bl').forEach(x => tk.push({ t: 'br' }, { t: 'text', v: x.textContent }));
+        const eff = card.querySelector('.eff');
+        if (eff) tk.push({ t: 'br' }, ...textToks(eff.textContent, { i: true }));
+        msgs.push({ ...base, type: 'sys', tokens: tk });
+        return;
+      }
+      const bub = el.querySelector('.bub');
+      if (!bub) return;
+      let who = ((bub.querySelector('.who') || {}).textContent || '').trim();
+      const isDice = el.classList.contains('dice'),
+        isSms = el.classList.contains('sms'),
+        isW = el.classList.contains('whisper');
+      if (isDice && !o.dice) return;
+      if (isSms && !o.sms) return;
+      const c = bub.cloneNode(true);
+      c.querySelectorAll('.who,.tm').forEach(x => x.remove()); /* 말풍선 안의 이름 · 시각은 본문이 아니다 */
+      const imgs = [...c.querySelectorAll('img')].map(i => i.getAttribute('src')).filter(u => u && SAFE_SRC.test(u));
+      c.querySelectorAll('a,img').forEach(x => x.remove());
+      const text = c.textContent.trim();
+      let to = '';
+      if (isW) {
+        const mm = who.match(/^(.*?)\s*→\s*(.*)$/);
+        if (mm) {
+          who = mm[1].trim();
+          to = mm[2].trim();
+        }
+      }
+      if (isDice) {
+        const m = text.match(/^(.*?)\s*=\s*([^=]+)$/);
+        msgs.push({
+          ...base,
+          name: who,
+          type: el.classList.contains('ooc') ? 'ooc' : 'say',
+          tokens: m ? [{ t: 'roll', expr: m[1].trim(), res: m[2].trim() }] : textToks(text)
+        });
+      } else {
+        const tk = el.classList.contains('narr') ? textToks(text, { i: true }) : textToks(text);
+        imgs.forEach(u => {
+          if (tk.length) tk.push({ t: 'br' });
+          tk.push({ t: 'img', src: u });
+        });
+        if (!tk.length) return;
+        const type = isW ? 'whisper' : el.classList.contains('ooc') ? 'ooc' : el.classList.contains('narr') ? 'emote' : 'say';
+        const m = { ...base, name: isSms ? `📱 ${who}` : who, type, tokens: tk };
+        if (isW) m.to = to;
+        msgs.push(m);
+      }
+      const nm = msgs.at(-1) && msgs.at(-1).name;
+      if (nm && !por[nm]) {
+        const u = bgUrl(el.querySelector('.av'));
+        if (u && SAFE_SRC.test(u)) por[nm] = u;
+      }
+    });
+    const h = doc.querySelector('h1');
+    const title = h ? h.childNodes[0].textContent.trim() : '오레마스';
+    return { title: `${title} · 오레마스`, msgs, por };
+  }
 
- /* addLog 를 감싼다: 파일 추가 · 붙여넣기 · 끌어 놓기가 모두 여기를 지난다 */
- /* ===== 맵툴 팀 패치로 저장한 로그(그림이 파일 안에 든 것, 2026-11-25) =====
+  /* addLog 를 감싼다: 파일 추가 · 붙여넣기 · 끌어 놓기가 모두 여기를 지난다 */
+  /* ===== 맵툴 팀 패치로 저장한 로그(그림이 파일 안에 든 것, 2026-11-25) =====
     저장 파일 끝의 <script id="mt-assets"> 에 md5 → 그림이 한 번씩 들어 있고, 본문 img 는 data-mta="md5" 로 가리킨다.
     그림을 이 브라우저의 그림 보관(S.imgs)에 넣고 img 를 다시 asset://md5 로 돌려, 캠페인 파일 없이도 토큰 그림이 이어지게 한다. */
- async function takeMtAssets(raw){
-  const doc=new DOMParser().parseFromString(raw,'text/html');const el=doc.getElementById('mt-assets');if(!el)return raw;
-  let map=null;try{map=JSON.parse(el.textContent)}catch(e){return raw}
-  let n=0;
-  for(const [k0,u] of Object.entries(map||{})){const k=String(k0).toLowerCase();
-   if(!/^[0-9a-f]{32}$/.test(k)||!/^data:image\/[\w.+-]+;base64,/i.test(u))continue;
-   if(S.imgs[k]||S.lib[k])continue;
-   try{const d=await shrink(dataToBlob(u));if(d){S.imgs[k]=d;n++}}catch(e){}}
-  if(n)await idb.set('imgs',S.imgs);
-  return raw.replace(/<script\b[^>]*\bid=["']mt-assets["'][^>]*>[\s\S]*?<\/script>/i,'')
-   .replace(/\bsrc=(["'])data:image\/gif;base64,[A-Za-z0-9+\/=]+\1(\s+)data-mta=(["'])([0-9a-fA-F]{32})\3/g,(m,q,sp,q2,k)=>'src="asset://'+k.toLowerCase()+'"')};
- const origAddLog=addLog;
- addLog=async function(raw,title){
-  if(raw&&/\bid=["']mt-assets["']/.test(raw)){try{raw=await takeMtAssets(raw)}catch(e){}}
-  if(raw&&isOmHtml(raw)){const doc=new DOMParser().parseFromString(raw,'text/html');const pk=doc.getElementById('oremas-log');let r=null;
-   if(pk){try{r=fromPack(JSON.parse(pk.textContent))}catch(e){r=null}}if(!r)r=fromDom(doc);
-   if(!r.msgs.length){toast((title||'파일')+'에서 옮길 로그를 찾지 못했어요');return null}
-   applyNameColors(r.msgs);await linkPortraits(r.por,r.msgs);await linkCardImgs(r.msgs);strip(r.msgs);
-   const log={id:uid(),title:title&&!/로그_\d{4}/.test(title)?title:r.title,messages:r.msgs,created:Date.now()};
-   S.logs[log.id]=log;touch(log);idb.set('imgs',S.imgs);return log}
-  if(raw&&looksHTML(raw)){const doc=new DOMParser().parseFromString(raw,'text/html');
-   if(isOwnExport(doc)){const r=await fromOwnExport(doc);if(r.msgs.length){const log={id:uid(),title:title||r.title||'다시 넣은 로그',messages:r.msgs,created:Date.now()};S.logs[log.id]=log;touch(log);idb.set('imgs',S.imgs);return log}}}
-  if(raw&&isOmTxt(raw))raw=raw.replace(/^﻿/,'').replace(/^\[\d{4}-\d{2}-\d{2} (\d{2}:\d{2})\] /gm,'[$1] ');
-  return origAddLog.call(this,raw,title)};
+  async function takeMtAssets(raw) {
+    const doc = new DOMParser().parseFromString(raw, 'text/html');
+    const el = doc.getElementById('mt-assets');
+    if (!el) return raw;
+    let map = null;
+    try {
+      map = JSON.parse(el.textContent);
+    } catch (e) {
+      return raw;
+    }
+    let n = 0;
+    for (const [k0, u] of Object.entries(map || {})) {
+      const k = String(k0).toLowerCase();
+      if (!/^[0-9a-f]{32}$/.test(k) || !/^data:image\/[\w.+-]+;base64,/i.test(u)) continue;
+      if (S.imgs[k] || S.lib[k]) continue;
+      try {
+        const d = await shrink(dataToBlob(u));
+        if (d) {
+          S.imgs[k] = d;
+          n++;
+        }
+      } catch (e) {}
+    }
+    if (n) await idb.set('imgs', S.imgs);
+    return raw
+      .replace(/<script\b[^>]*\bid=["']mt-assets["'][^>]*>[\s\S]*?<\/script>/i, '')
+      .replace(
+        /\bsrc=(["'])data:image\/gif;base64,[A-Za-z0-9+\/=]+\1(\s+)data-mta=(["'])([0-9a-fA-F]{32})\3/g,
+        (m, q, sp, q2, k) => 'src="asset://' + k.toLowerCase() + '"'
+      );
+  }
+  const origAddLog = addLog;
+  addLog = async function (raw, title) {
+    if (raw && /\bid=["']mt-assets["']/.test(raw)) {
+      try {
+        raw = await takeMtAssets(raw);
+      } catch (e) {}
+    }
+    if (raw && isOmHtml(raw)) {
+      const doc = new DOMParser().parseFromString(raw, 'text/html');
+      const pk = doc.getElementById('oremas-log');
+      let r = null;
+      if (pk) {
+        try {
+          r = fromPack(JSON.parse(pk.textContent));
+        } catch (e) {
+          r = null;
+        }
+      }
+      if (!r) r = fromDom(doc);
+      if (!r.msgs.length) {
+        toast((title || '파일') + '에서 옮길 로그를 찾지 못했어요');
+        return null;
+      }
+      applyNameColors(r.msgs);
+      await linkPortraits(r.por, r.msgs);
+      await linkCardImgs(r.msgs);
+      strip(r.msgs);
+      const log = { id: uid(), title: title && !/로그_\d{4}/.test(title) ? title : r.title, messages: r.msgs, created: Date.now() };
+      S.logs[log.id] = log;
+      touch(log);
+      idb.set('imgs', S.imgs);
+      return log;
+    }
+    if (raw && looksHTML(raw)) {
+      const doc = new DOMParser().parseFromString(raw, 'text/html');
+      if (isOwnExport(doc)) {
+        const r = await fromOwnExport(doc);
+        if (r.msgs.length) {
+          const log = { id: uid(), title: title || r.title || '다시 넣은 로그', messages: r.msgs, created: Date.now() };
+          S.logs[log.id] = log;
+          touch(log);
+          idb.set('imgs', S.imgs);
+          return log;
+        }
+      }
+    }
+    if (raw && isOmTxt(raw)) raw = raw.replace(/^﻿/, '').replace(/^\[\d{4}-\d{2}-\d{2} (\d{2}:\d{2})\] /gm, '[$1] ');
+    return origAddLog.call(this, raw, title);
+  };
 
- /* ================= 파일 글자 인코딩 =================
+  /* ================= 파일 글자 인코딩 =================
     UTF-8 이 아니면 문서에 적힌 charset, 없으면 CP949(EUC-KR)로 읽는다. UTF-16 BOM 도 알아본다 */
- function decodeSmart(buf){const u=new Uint8Array(buf);
-  if(u[0]===0xFF&&u[1]===0xFE)return new TextDecoder('utf-16le').decode(u);
-  if(u[0]===0xFE&&u[1]===0xFF)return new TextDecoder('utf-16be').decode(u);
-  try{return new TextDecoder('utf-8',{fatal:true}).decode(u)}catch(e){}
-  const head=new TextDecoder('latin1').decode(u.subarray(0,4096));const cs=(head.match(/charset\s*=\s*["']?([\w-]+)/i)||[])[1];
-  if(cs&&!/^utf-?8$/i.test(cs))try{return new TextDecoder(cs).decode(u)}catch(e){}
-  return new TextDecoder('euc-kr').decode(u)}
- addFiles=async function(files){
-  let first=null,n=0;
-  for(const f of files){let raw='';try{raw=decodeSmart(await f.arrayBuffer())}catch(e){}const log=await addLog(raw,f.name.replace(/\.(html?|txt|log)$/i,''));if(log){n++;if(!first)first=log}}
-  flush();await idb.set('index',S.index);   /* 원본은 0.4초 뒤에야 로그 본문을 저장해서, 곧바로 새로고침하면 목록만 남고 본문이 없었다 */
-  if(first){await selectLog(first.id);toast(`로그 ${n}개를 추가했어요${n<files.length?` · ${files.length-n}개는 읽지 못했어요`:''}`)}
- };
+  function decodeSmart(buf) {
+    const u = new Uint8Array(buf);
+    if (u[0] === 0xff && u[1] === 0xfe) return new TextDecoder('utf-16le').decode(u);
+    if (u[0] === 0xfe && u[1] === 0xff) return new TextDecoder('utf-16be').decode(u);
+    try {
+      return new TextDecoder('utf-8', { fatal: true }).decode(u);
+    } catch (e) {}
+    const head = new TextDecoder('latin1').decode(u.subarray(0, 4096));
+    const cs = (head.match(/charset\s*=\s*["']?([\w-]+)/i) || [])[1];
+    if (cs && !/^utf-?8$/i.test(cs))
+      try {
+        return new TextDecoder(cs).decode(u);
+      } catch (e) {}
+    return new TextDecoder('euc-kr').decode(u);
+  }
+  addFiles = async function (files) {
+    let first = null,
+      n = 0;
+    for (const f of files) {
+      let raw = '';
+      try {
+        raw = decodeSmart(await f.arrayBuffer());
+      } catch (e) {}
+      const log = await addLog(raw, f.name.replace(/\.(html?|txt|log)$/i, ''));
+      if (log) {
+        n++;
+        if (!first) first = log;
+      }
+    }
+    flush();
+    await idb.set('index', S.index); /* 원본은 0.4초 뒤에야 로그 본문을 저장해서, 곧바로 새로고침하면 목록만 남고 본문이 없었다 */
+    if (first) {
+      await selectLog(first.id);
+      toast(`로그 ${n}개를 추가했어요${n < files.length ? ` · ${files.length - n}개는 읽지 못했어요` : ''}`);
+    }
+  };
 
- /* 저장된 본문이 없는 로그를 고르면 화면이 비어 버리던 것: 목록은 그려 둔다 */
- const origSelect=selectLog;
- selectLog=async function(id){await origSelect.apply(this,arguments);if(!S.logs[id]){if(S.cur===id)S.cur=null;renderList();renderSpeakers();renderLog();toast('이 로그의 본문을 찾지 못했어요')}};
+  /* 저장된 본문이 없는 로그를 고르면 화면이 비어 버리던 것: 목록은 그려 둔다 */
+  const origSelect = selectLog;
+  selectLog = async function (id) {
+    await origSelect.apply(this, arguments);
+    if (!S.logs[id]) {
+      if (S.cur === id) S.cur = null;
+      renderList();
+      renderSpeakers();
+      renderLog();
+      toast('이 로그의 본문을 찾지 못했어요');
+    }
+  };
 
- /* ================= 압축 도구(JSZip) =================
+  /* ================= 압축 도구(JSZip) =================
     cdnjs 를 못 불렀으면 같은 폴더의 vendor/jszip.min.js 로 한 번 더 */
- const loadJs=src=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)});
- const ensureZip=async()=>{if(typeof JSZip==='undefined'){try{await loadJs('vendor/jszip.min.js')}catch(e){}}};
- const origZips=importZips;importZips=async function(){await ensureZip();return origZips.apply(this,arguments)};
- const origSaveSel=$('saveSel').onclick;$('saveSel').onclick=async function(){await ensureZip();return origSaveSel.apply(this,arguments)};
+  const loadJs = src =>
+    new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = res;
+      s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  const ensureZip = async () => {
+    if (typeof JSZip === 'undefined') {
+      try {
+        await loadJs('vendor/jszip.min.js');
+      } catch (e) {}
+    }
+  };
+  const origZips = importZips;
+  importZips = async function () {
+    await ensureZip();
+    return origZips.apply(this, arguments);
+  };
+  const origSaveSel = $('saveSel').onclick;
+  $('saveSel').onclick = async function () {
+    await ensureZip();
+    return origSaveSel.apply(this, arguments);
+  };
 
- /* ================= 파일 저장 =================
+  /* ================= 파일 저장 =================
     원본은 claude.ai 의 저장 기능에 기대서, GitHub Pages 에서는 HTML 을 복사만 하고 묶음(zip)은 저장하지 못했다. 브라우저 내려받기로 저장한다 */
- const origOffer=offer;
- offer=async function(filename,data,fallbackText){
-  if(dl)return origOffer.apply(this,arguments);
-  try{const blob=data instanceof Blob?data:new Blob([data],{type:'text/html;charset=utf-8'});const u=URL.createObjectURL(blob);
-   const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast('저장했어요')}
-  catch(e){return origOffer.apply(this,arguments)}};
+  const origOffer = offer;
+  offer = async function (filename, data, fallbackText) {
+    if (dl) return origOffer.apply(this, arguments);
+    try {
+      const blob = data instanceof Blob ? data : new Blob([data], { type: 'text/html;charset=utf-8' });
+      const u = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = u;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 5000);
+      toast('저장했어요');
+    } catch (e) {
+      return origOffer.apply(this, arguments);
+    }
+  };
 
- /* ================= 내보내기: 올린 그림을 파일 안에 담는다 =================
+  /* ================= 내보내기: 올린 그림을 파일 안에 담는다 =================
     원격 주소 그림은 원본이 지워지면 깨진다. 받을 수 있으면 data 주소로 바꿔 넣는다 */
- const inl=new Map();
- async function inlineOf(u){if(inl.has(u))return inl.get(u);let d=null;
-  try{const r=await fetch(u,{mode:'cors'});if(r.ok){let b=await r.blob();
-    if(b.size>350000||!/^image\/(gif|png|jpe?g|webp)$/i.test(b.type)){const bm=await createImageBitmap(b);const Z=1000,k=Math.min(1,Z/Math.max(bm.width,bm.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(bm.width*k));c.height=Math.max(1,Math.round(bm.height*k));c.getContext('2d').drawImage(bm,0,0,c.width,c.height);bm.close&&bm.close();const nb=await new Promise(r=>c.toBlob(r,'image/webp',.86));if(nb)b=nb}
-    d=await blobToData(b)}}catch(e){}
-  inl.set(u,d);return d}
- const origExport=exportHTML;
- exportHTML=async function(log){let h=await origExport.apply(this,arguments);
-  const urls=[...new Set([...h.matchAll(/<img class="mi" src="(https?:[^"]+)"/g)].map(m=>m[1]))];
-  if(urls.length){toast(`그림 ${urls.length}장을 파일에 담는 중…`);for(const e of urls){const d=await inlineOf(e.replace(/&amp;/g,'&'));if(d)h=h.split(`<img class="mi" src="${e}"`).join(`<img class="mi" src="${d}"`)}}
-  return h};
+  const inl = new Map();
+  async function inlineOf(u) {
+    if (inl.has(u)) return inl.get(u);
+    let d = null;
+    try {
+      const r = await fetch(u, { mode: 'cors' });
+      if (r.ok) {
+        let b = await r.blob();
+        if (b.size > 350000 || !/^image\/(gif|png|jpe?g|webp)$/i.test(b.type)) {
+          const bm = await createImageBitmap(b);
+          const Z = 1000,
+            k = Math.min(1, Z / Math.max(bm.width, bm.height));
+          const c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(bm.width * k));
+          c.height = Math.max(1, Math.round(bm.height * k));
+          c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height);
+          bm.close && bm.close();
+          const nb = await new Promise(r => c.toBlob(r, 'image/webp', 0.86));
+          if (nb) b = nb;
+        }
+        d = await blobToData(b);
+      }
+    } catch (e) {}
+    inl.set(u, d);
+    return d;
+  }
+  const origExport = exportHTML;
+  exportHTML = async function (log) {
+    let h = await origExport.apply(this, arguments);
+    const urls = [...new Set([...h.matchAll(/<img class="mi" src="(https?:[^"]+)"/g)].map(m => m[1]))];
+    if (urls.length) {
+      toast(`그림 ${urls.length}장을 파일에 담는 중…`);
+      for (const e of urls) {
+        const d = await inlineOf(e.replace(/&amp;/g, '&'));
+        if (d) h = h.split(`<img class="mi" src="${e}"`).join(`<img class="mi" src="${d}"`);
+      }
+    }
+    return h;
+  };
 
- /* ================= 텍스트 복사: 그림 · 링크도 글자로 ================= */
- $('copyText').onclick=()=>{
-  const l=curLog();if(!l)return;const o=opts();
-  const lines=l.messages.filter(m=>m.type!=='bgm'&&!(m.name&&cfg(m.name).hide)&&!(m.type==='ooc'&&!o.optOoc)&&!(m.type==='whisper'&&!o.optWhisper)&&!(m.type==='sys'&&!o.optSys)).map(m=>{
-   const n=m.name?cfg(m.name).name:'';const t=plain2(m.tokens);
-   if(m.type==='emote')return`* ${n} ${t}`.trim();
-   if(m.type==='whisper')return`${n} (귓속말${m.to?' → '+cfg(m.to).name:''}): ${t}`;
-   if(m.type==='ooc')return`[OOC] ${n}: ${t}`;
-   return n?`${n}: ${t}`:t});
-  copyText(`# ${l.title}\n\n`+lines.join('\n'),'텍스트')};
+  /* ================= 텍스트 복사: 그림 · 링크도 글자로 ================= */
+  $('copyText').onclick = () => {
+    const l = curLog();
+    if (!l) return;
+    const o = opts();
+    const lines = l.messages
+      .filter(
+        m =>
+          m.type !== 'bgm' &&
+          !(m.name && cfg(m.name).hide) &&
+          !(m.type === 'ooc' && !o.optOoc) &&
+          !(m.type === 'whisper' && !o.optWhisper) &&
+          !(m.type === 'sys' && !o.optSys)
+      )
+      .map(m => {
+        const n = m.name ? cfg(m.name).name : '';
+        const t = plain2(m.tokens);
+        if (m.type === 'emote') return `* ${n} ${t}`.trim();
+        if (m.type === 'whisper') return `${n} (귓속말${m.to ? ' → ' + cfg(m.to).name : ''}): ${t}`;
+        if (m.type === 'ooc') return `[OOC] ${n}: ${t}`;
+        return n ? `${n}: ${t}` : t;
+      });
+    copyText(`# ${l.title}\n\n` + lines.join('\n'), '텍스트');
+  };
 
- window.OM_LOG_IMPORT={importRoom,convert,roomIdOf,boot};
+  window.OM_LOG_IMPORT = { importRoom, convert, roomIdOf, boot };
 })();
 </script>
 <!-- ===== 덧붙임 끝 ===== -->
@@ -606,21 +1789,54 @@ ${c.how||c.tot||(c.dice||[]).length?`<span class="bc-calc">${c.how?`<small>${esc
   제작기(망켓몬 제작기)의 「로그」 탭 안에서 열리면, 제작기의 트레이너 · 포켓몬 그림을 같은 이름의 등장인물 초상으로 잇는다.
   제작기가 parent.MKM_CHARS() 로 [{name, image, kind}] 를 준다 (같은 출처 iframe). 혼자 열렸으면 아무것도 하지 않는다. -->
 <script>
-(()=>{
- const host=()=>{try{return window.parent!==window&&typeof window.parent.MKM_CHARS==='function'?window.parent:null}catch(e){return null}};
- if(!host())return;
- const OK=/^(https?:\/\/|data:image\/)/i;
- const key=s=>String(s||'').replace(/\s+/g,'').toLowerCase();
- const list=$('spkList');if(!list)return;
- const bar=document.createElement('div');bar.className='row mkrow';
- bar.innerHTML='<button class="btn" type="button" id="mkLink" title="제작기의 트레이너 · 포켓몬 그림을 이름이 같은 등장인물에 넣는다 (직접 넣은 그림은 그대로)">제작기 그림 잇기</button><label class="hint" style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="mkOver"> 이미 넣은 그림도 바꾸기</label><span class="hint" id="mkMsg"></span>';
- list.parentNode.insertBefore(bar,list);
- $('mkLink').onclick=async()=>{let C=[];try{C=host().MKM_CHARS()||[]}catch(e){}
-  const by=new Map();for(const c of C){if(!c||!c.name||!c.image||!OK.test(c.image))continue;const k=key(c.name);if(!by.has(k)||c.kind==='trainer')by.set(k,c)}
-  const over=$('mkOver').checked;let n=0;
-  for(const [nm,c] of Object.entries(S.speakers)){const hit=by.get(key(c.name||nm))||by.get(key(nm));if(!hit)continue;if(S.imgs['spk:'+nm]&&!over)continue;S.imgs['spk:'+nm]=hit.image;n++}
-  if(n){await idb.set('imgs',S.imgs);renderSpeakers();renderLog()}
-  $('mkMsg').textContent=n?`${n}명에 그림을 이었어요`:(by.size?'이름이 같은 등장인물이 없어요':'제작기에 그림 있는 캐릭터가 없어요')};
+(() => {
+  const host = () => {
+    try {
+      return window.parent !== window && typeof window.parent.MKM_CHARS === 'function' ? window.parent : null;
+    } catch (e) {
+      return null;
+    }
+  };
+  if (!host()) return;
+  const OK = /^(https?:\/\/|data:image\/)/i;
+  const key = s =>
+    String(s || '')
+      .replace(/\s+/g, '')
+      .toLowerCase();
+  const list = $('spkList');
+  if (!list) return;
+  const bar = document.createElement('div');
+  bar.className = 'row mkrow';
+  bar.innerHTML =
+    '<button class="btn" type="button" id="mkLink" title="제작기의 트레이너 · 포켓몬 그림을 이름이 같은 등장인물에 넣는다 (직접 넣은 그림은 그대로)">제작기 그림 잇기</button><label class="hint" style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="mkOver"> 이미 넣은 그림도 바꾸기</label><span class="hint" id="mkMsg"></span>';
+  list.parentNode.insertBefore(bar, list);
+  $('mkLink').onclick = async () => {
+    let C = [];
+    try {
+      C = host().MKM_CHARS() || [];
+    } catch (e) {}
+    const by = new Map();
+    for (const c of C) {
+      if (!c || !c.name || !c.image || !OK.test(c.image)) continue;
+      const k = key(c.name);
+      if (!by.has(k) || c.kind === 'trainer') by.set(k, c);
+    }
+    const over = $('mkOver').checked;
+    let n = 0;
+    for (const [nm, c] of Object.entries(S.speakers)) {
+      const hit = by.get(key(c.name || nm)) || by.get(key(nm));
+      if (!hit) continue;
+      if (S.imgs['spk:' + nm] && !over) continue;
+      S.imgs['spk:' + nm] = hit.image;
+      n++;
+    }
+    if (n) {
+      await idb.set('imgs', S.imgs);
+      renderSpeakers();
+      renderLog();
+    }
+    $('mkMsg').textContent = n ? `${n}명에 그림을 이었어요` : by.size ? '이름이 같은 등장인물이 없어요' : '제작기에 그림 있는 캐릭터가 없어요';
+  };
 })();
 </script>
 <!-- ===== 제작기 연동 끝 ===== -->
@@ -641,15 +1857,52 @@ html.embed .main>.bar{position:sticky;top:0;z-index:6;background:var(--bg);paddi
 @media (max-width:900px){html.embed .app{grid-template-columns:minmax(0,1fr)}html.embed .rail{position:static;max-height:none}}
 </style>
 <script>
-(()=>{
- try{if(window.parent!==window&&typeof window.parent.MKM_CHARS==='function')document.documentElement.classList.add('embed')}catch(e){}
- const LS='mtlog_fold';let st={};try{st=JSON.parse(localStorage.getItem(LS)||'{}')||{}}catch(e){}
- const save=()=>{try{localStorage.setItem(LS,JSON.stringify(st))}catch(e){}};
- const FOLD=['오레마스 방 불러오기','토큰 이미지 자동 연결'];
- const setup=()=>{for(const p of document.querySelectorAll('.rail section.panel')){if(p.classList.contains('foldable'))continue;const h=p.querySelector(':scope>h2');if(!h)continue;const name=h.textContent.trim();if(!FOLD.includes(name))continue;
-   const hd=document.createElement('div');hd.className='fdh';hd.setAttribute('role','button');hd.tabIndex=0;h.replaceWith(hd);hd.appendChild(h);p.classList.add('foldable');if(st[name])p.classList.add('folded');
-   const tog=()=>{p.classList.toggle('folded');st[name]=p.classList.contains('folded');save()};hd.onclick=tog;hd.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog()}}}};
- setup();setTimeout(setup,300);
+(() => {
+  try {
+    if (window.parent !== window && typeof window.parent.MKM_CHARS === 'function') document.documentElement.classList.add('embed');
+  } catch (e) {}
+  const LS = 'mtlog_fold';
+  let st = {};
+  try {
+    st = JSON.parse(localStorage.getItem(LS) || '{}') || {};
+  } catch (e) {}
+  const save = () => {
+    try {
+      localStorage.setItem(LS, JSON.stringify(st));
+    } catch (e) {}
+  };
+  const FOLD = ['오레마스 방 불러오기', '토큰 이미지 자동 연결'];
+  const setup = () => {
+    for (const p of document.querySelectorAll('.rail section.panel')) {
+      if (p.classList.contains('foldable')) continue;
+      const h = p.querySelector(':scope>h2');
+      if (!h) continue;
+      const name = h.textContent.trim();
+      if (!FOLD.includes(name)) continue;
+      const hd = document.createElement('div');
+      hd.className = 'fdh';
+      hd.setAttribute('role', 'button');
+      hd.tabIndex = 0;
+      h.replaceWith(hd);
+      hd.appendChild(h);
+      p.classList.add('foldable');
+      if (st[name]) p.classList.add('folded');
+      const tog = () => {
+        p.classList.toggle('folded');
+        st[name] = p.classList.contains('folded');
+        save();
+      };
+      hd.onclick = tog;
+      hd.onkeydown = e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          tog();
+        }
+      };
+    }
+  };
+  setup();
+  setTimeout(setup, 300);
 })();
 </script>
 <!-- ===== 접는 패널 끝 ===== -->
@@ -670,30 +1923,121 @@ html.embed .main>.bar .mkopen{margin-left:2px}
 @media (min-width:1480px){html.embed .app.three{grid-template-columns:300px minmax(0,1fr) 330px}html.embed .rail2{position:sticky}}
 </style>
 <script>
-(()=>{
- const D=document.documentElement;if(!D.classList.contains('embed'))return;let P=null;try{P=window.parent}catch(e){}if(!P)return;
- /* 제작기 색 · 글꼴 (밝은 · 어두운 화면 모두 제작기 #mk 의 값을 그대로 읽는다) — 바깥 틀에만 입힌다 */
- const st=document.createElement('style');st.id='mkvars';document.head.appendChild(st);
- const sync=()=>{try{const mk=P.document.getElementById('mk');if(!mk)return;const cs=P.getComputedStyle(mk);const g=k=>cs.getPropertyValue(k).trim();if(!g('--bg'))return;
-  /* 10-25: 테마에 따라 글자(--ink)와 칸(--surface)이 둘 다 어두워 목록 글자가 안 보이던 것 — 대비가 모자라면 글자색을 칸에 맞춰 다시 고른다 */
-  const cv=document.createElement('canvas').getContext('2d');const rgb=c=>{cv.fillStyle='#000';cv.fillStyle=c;const h=cv.fillStyle;if(h[0]==='#')return [1,3,5].map(i=>parseInt(h.slice(i,i+2),16));const m=h.match(/[\d.]+/g);return m?m.slice(0,3).map(Number):[0,0,0]};
-  const lum=c=>{const v=rgb(c).map(x=>{x/=255;return x<=.03928?x/12.92:((x+.055)/1.055)**2.4});return .2126*v[0]+.7152*v[1]+.0722*v[2]};const ratio=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
-  let INK=g('--ink'),MUT=g('--muted');const SF=g('--surface');if(ratio(INK,SF)<3.2){INK=lum(SF)<.35?'#eef0f4':'#1d2129';MUT=`color-mix(in srgb,${INK} 62%,${SF})`}else if(ratio(MUT,SF)<2.2)MUT=`color-mix(in srgb,${INK} 62%,${SF})`;
-  const v=`--bg:${g('--bg')};--surface:${g('--surface')};--sunk:${g('--sunk')};--fg:${INK};--ink:${INK};--muted:${MUT};--line:${g('--line')};--accent:${INK};--accent-ink:${g('--surface')};--gm-bg:${g('--sunk')};--mka:${g('--accent')};--mkd:${g('--display')};font-family:${g('--body')}`;
-  st.textContent=`html.embed body{background:${g('--bg')}}html.embed .rail,html.embed .main>.bar,html.embed .pop,html.embed .toast{${v};color:${INK}}`;   /* 10-26: 글자색은 body 에서 물려받아 어두운 테마에서 목록 글자가 칸과 같은 색이 되던 것 */
-  const th=P.document.documentElement.getAttribute('data-theme');if(th)D.setAttribute('data-theme',th);else D.removeAttribute('data-theme')}catch(e){}};
- sync();try{P.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>setTimeout(sync,30));new P.MutationObserver(sync).observe(P.document.documentElement,{attributes:true,attributeFilter:['data-theme']})}catch(e){}
- /* 넓은 화면: 오른쪽 줄 */
- const R2=['등장인물','스타일','표시 옵션'];let rail2=null,marks=[];
- const nameOf=p=>{const h=p.querySelector(':scope>h2,:scope>summary h2,:scope>.fdh h2,:scope>.row h2,:scope>summary');return h?h.textContent.trim():''};
- const lay=()=>{const app=document.getElementById('app');const rail=app&&app.querySelector(':scope>.rail:not(.rail2)');if(!rail)return;const wide=innerWidth>=1480;
-  if(wide&&!rail2){const ps=[...rail.children].filter(p=>p.classList.contains('panel')&&R2.includes(nameOf(p)));if(!ps.length)return;rail2=document.createElement('aside');rail2.className='rail rail2';app.appendChild(rail2);
-   for(const p of ps){const m=document.createComment('rail2');p.before(m);marks.push([m,p]);rail2.appendChild(p)}app.classList.add('three')}
-  else if(!wide&&rail2){for(const [m,p] of marks)m.replaceWith(p);marks=[];rail2.remove();rail2=null;app.classList.remove('three')}};
- lay();setTimeout(lay,350);addEventListener('resize',()=>{clearTimeout(lay.t);lay.t=setTimeout(lay,120)});
- /* 도구 줄에 「새 창으로」 */
- const nw=()=>{const bar=document.querySelector('.main>.bar');if(!bar||bar.querySelector('.mkopen'))return;const a=document.createElement('a');a.className='btn mkopen';a.href='index.html';a.target='_blank';a.rel='noopener';a.textContent='새 창으로 ↗';a.title='로그 정리기를 제작기 밖 새 창에서 연다';bar.appendChild(a)};
- nw();setTimeout(nw,350);
+(() => {
+  const D = document.documentElement;
+  if (!D.classList.contains('embed')) return;
+  let P = null;
+  try {
+    P = window.parent;
+  } catch (e) {}
+  if (!P) return;
+  /* 제작기 색 · 글꼴 (밝은 · 어두운 화면 모두 제작기 #mk 의 값을 그대로 읽는다) — 바깥 틀에만 입힌다 */
+  const st = document.createElement('style');
+  st.id = 'mkvars';
+  document.head.appendChild(st);
+  const sync = () => {
+    try {
+      const mk = P.document.getElementById('mk');
+      if (!mk) return;
+      const cs = P.getComputedStyle(mk);
+      const g = k => cs.getPropertyValue(k).trim();
+      if (!g('--bg')) return;
+      /* 10-25: 테마에 따라 글자(--ink)와 칸(--surface)이 둘 다 어두워 목록 글자가 안 보이던 것 — 대비가 모자라면 글자색을 칸에 맞춰 다시 고른다 */
+      const cv = document.createElement('canvas').getContext('2d');
+      const rgb = c => {
+        cv.fillStyle = '#000';
+        cv.fillStyle = c;
+        const h = cv.fillStyle;
+        if (h[0] === '#') return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+        const m = h.match(/[\d.]+/g);
+        return m ? m.slice(0, 3).map(Number) : [0, 0, 0];
+      };
+      const lum = c => {
+        const v = rgb(c).map(x => {
+          x /= 255;
+          return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+      };
+      const ratio = (a, b) => {
+        const x = lum(a),
+          y = lum(b);
+        return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+      };
+      let INK = g('--ink'),
+        MUT = g('--muted');
+      const SF = g('--surface');
+      if (ratio(INK, SF) < 3.2) {
+        INK = lum(SF) < 0.35 ? '#eef0f4' : '#1d2129';
+        MUT = `color-mix(in srgb,${INK} 62%,${SF})`;
+      } else if (ratio(MUT, SF) < 2.2) MUT = `color-mix(in srgb,${INK} 62%,${SF})`;
+      const v = `--bg:${g('--bg')};--surface:${g('--surface')};--sunk:${g('--sunk')};--fg:${INK};--ink:${INK};--muted:${MUT};--line:${g('--line')};--accent:${INK};--accent-ink:${g('--surface')};--gm-bg:${g('--sunk')};--mka:${g('--accent')};--mkd:${g('--display')};font-family:${g('--body')}`;
+      st.textContent = `html.embed body{background:${g('--bg')}}html.embed .rail,html.embed .main>.bar,html.embed .pop,html.embed .toast{${v};color:${INK}}`; /* 10-26: 글자색은 body 에서 물려받아 어두운 테마에서 목록 글자가 칸과 같은 색이 되던 것 */
+      const th = P.document.documentElement.getAttribute('data-theme');
+      if (th) D.setAttribute('data-theme', th);
+      else D.removeAttribute('data-theme');
+    } catch (e) {}
+  };
+  sync();
+  try {
+    P.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => setTimeout(sync, 30));
+    new P.MutationObserver(sync).observe(P.document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  } catch (e) {}
+  /* 넓은 화면: 오른쪽 줄 */
+  const R2 = ['등장인물', '스타일', '표시 옵션'];
+  let rail2 = null,
+    marks = [];
+  const nameOf = p => {
+    const h = p.querySelector(':scope>h2,:scope>summary h2,:scope>.fdh h2,:scope>.row h2,:scope>summary');
+    return h ? h.textContent.trim() : '';
+  };
+  const lay = () => {
+    const app = document.getElementById('app');
+    const rail = app && app.querySelector(':scope>.rail:not(.rail2)');
+    if (!rail) return;
+    const wide = innerWidth >= 1480;
+    if (wide && !rail2) {
+      const ps = [...rail.children].filter(p => p.classList.contains('panel') && R2.includes(nameOf(p)));
+      if (!ps.length) return;
+      rail2 = document.createElement('aside');
+      rail2.className = 'rail rail2';
+      app.appendChild(rail2);
+      for (const p of ps) {
+        const m = document.createComment('rail2');
+        p.before(m);
+        marks.push([m, p]);
+        rail2.appendChild(p);
+      }
+      app.classList.add('three');
+    } else if (!wide && rail2) {
+      for (const [m, p] of marks) m.replaceWith(p);
+      marks = [];
+      rail2.remove();
+      rail2 = null;
+      app.classList.remove('three');
+    }
+  };
+  lay();
+  setTimeout(lay, 350);
+  addEventListener('resize', () => {
+    clearTimeout(lay.t);
+    lay.t = setTimeout(lay, 120);
+  });
+  /* 도구 줄에 「새 창으로」 */
+  const nw = () => {
+    const bar = document.querySelector('.main>.bar');
+    if (!bar || bar.querySelector('.mkopen')) return;
+    const a = document.createElement('a');
+    a.className = 'btn mkopen';
+    a.href = 'index.html';
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.textContent = '새 창으로 ↗';
+    a.title = '로그 정리기를 제작기 밖 새 창에서 연다';
+    bar.appendChild(a);
+  };
+  nw();
+  setTimeout(nw, 350);
 })();
 </script>
 <!-- ===== 제작기 안 화면 2 끝 ===== -->
@@ -757,170 +2101,836 @@ dialog.mtdlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
 .mtem{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 </style>
 <script>
-(()=>{
- const OM={url:'https://jsnvqcvwspxzfnhdethl.supabase.co',key:'sb_publishable_HDcgWnb1QS1P6GOiBPqdAA_yBJNhU7R'};
- const H={apikey:OM.key,Authorization:'Bearer '+OM.key};
- async function api(path,opt){opt=opt||{};const r=await fetch(`${OM.url}/rest/v1/${path}`,Object.assign({},opt,{headers:Object.assign({},H,opt.headers||{})}));if(!r.ok)throw new Error(`${r.status} ${(await r.text()).slice(0,160)}`);const t=await r.text();return t?JSON.parse(t):null}
- const put=(kind,id,data)=>api('docs?on_conflict=kind,id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify([{kind,id,data}])});
- const UP=()=>!!ls.get('mtl-cloud-up',false);
- const CL={idx:new Map(),st:new Map(),err:'',busy:false,ready:false,gone:[]};
- const isSample=t=>/\(예시\)\s*$/.test(String(t||''));
- const ymd=t=>{const d=new Date(+t||0);return +t?`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`:''};
+(() => {
+  const OM = { url: 'https://jsnvqcvwspxzfnhdethl.supabase.co', key: 'sb_publishable_HDcgWnb1QS1P6GOiBPqdAA_yBJNhU7R' };
+  const H = { apikey: OM.key, Authorization: 'Bearer ' + OM.key };
+  async function api(path, opt) {
+    opt = opt || {};
+    const r = await fetch(`${OM.url}/rest/v1/${path}`, Object.assign({}, opt, { headers: Object.assign({}, H, opt.headers || {}) }));
+    if (!r.ok) throw new Error(`${r.status} ${(await r.text()).slice(0, 160)}`);
+    const t = await r.text();
+    return t ? JSON.parse(t) : null;
+  }
+  const put = (kind, id, data) =>
+    api('docs?on_conflict=kind,id', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify([{ kind, id, data }])
+    });
+  const UP = () => !!ls.get('mtl-cloud-up', false);
+  const CL = { idx: new Map(), st: new Map(), err: '', busy: false, ready: false, gone: [] };
+  const isSample = t => /\(예시\)\s*$/.test(String(t || ''));
+  const ymd = t => {
+    const d = new Date(+t || 0);
+    return +t ? `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}` : '';
+  };
 
- /* 로그 메타에 만든 날 · 고친 날을 남긴다 */
- const oEntry=indexEntry;indexEntry=function(log){const e=oEntry.apply(this,arguments);e.created=log.created||0;e.upd=log.updated||0;e.meta=log.meta||null;e.nc=!!log.noCloud;return e};
- const HID=()=>ls.get('mtl-hidden',[])||[];
- const oTouch=touch;touch=function(log){if(log)log.updated=Date.now();const r=oTouch.apply(this,arguments);if(log)queue(log.id);return r};
+  /* 로그 메타에 만든 날 · 고친 날을 남긴다 */
+  const oEntry = indexEntry;
+  indexEntry = function (log) {
+    const e = oEntry.apply(this, arguments);
+    e.created = log.created || 0;
+    e.upd = log.updated || 0;
+    e.meta = log.meta || null;
+    e.nc = !!log.noCloud;
+    return e;
+  };
+  const HID = () => ls.get('mtl-hidden', []) || [];
+  const oTouch = touch;
+  touch = function (log) {
+    if (log) log.updated = Date.now();
+    const r = oTouch.apply(this, arguments);
+    if (log) queue(log.id);
+    return r;
+  };
 
- /* 이 로그가 쓰는 그림: http(s) 주소는 다 · data: 그림은 합쳐서 1.5MB 까지 */
- function imgsFor(log){const out={};let budget=1500000;const keys=new Set();for(const m of log.messages||[]){if(m.asset)keys.add(m.asset);if(m.name)keys.add('spk:'+m.name)}
-  for(const k of keys){const v=img(k);if(!v)continue;if(/^https?:/i.test(v))out[k]=v;else if(/^data:image\//.test(v)&&v.length<budget){out[k]=v;budget-=v.length}}return out}
- const setSt=(id,s)=>{CL.st.set(id,s);paint()};
- async function upload(id){const log=S.logs[id]||await idb.get('log:'+id);if(!log||isSample(log.title))return;if(log.noCloud){setSt(id,'');return}const e=S.index.find(x=>x.id===id)||{};
-  const data={v:1,title:log.title,meta:log.meta||null,folder:e.folder||null,created:log.created||0,updated:log.updated||Date.now(),count:(log.messages||[]).filter(m=>m.type!=='bgm').length,messages:(log.messages||[]).filter(m=>!(m.type==='bgm'&&m.audioId&&!m.url)),imgs:imgsFor(log)};
-  setSt(id,'up');try{await put('mtlog',id,data);CL.idx.set(id,{u:data.updated,title:data.title});setSt(id,'ok')}catch(err){CL.err=err.message;setSt(id,'err');console.warn('보관소 올리기',err)}}
- const upT=new Map();
- function queue(id){if(!UP()||!CL.ready)return;clearTimeout(upT.get(id));upT.set(id,setTimeout(()=>{upT.delete(id);upload(id)},2500));CL.st.set(id,'wait')}
+  /* 이 로그가 쓰는 그림: http(s) 주소는 다 · data: 그림은 합쳐서 1.5MB 까지 */
+  function imgsFor(log) {
+    const out = {};
+    let budget = 1500000;
+    const keys = new Set();
+    for (const m of log.messages || []) {
+      if (m.asset) keys.add(m.asset);
+      if (m.name) keys.add('spk:' + m.name);
+    }
+    for (const k of keys) {
+      const v = img(k);
+      if (!v) continue;
+      if (/^https?:/i.test(v)) out[k] = v;
+      else if (/^data:image\//.test(v) && v.length < budget) {
+        out[k] = v;
+        budget -= v.length;
+      }
+    }
+    return out;
+  }
+  const setSt = (id, s) => {
+    CL.st.set(id, s);
+    paint();
+  };
+  async function upload(id) {
+    const log = S.logs[id] || (await idb.get('log:' + id));
+    if (!log || isSample(log.title)) return;
+    if (log.noCloud) {
+      setSt(id, '');
+      return;
+    }
+    const e = S.index.find(x => x.id === id) || {};
+    const data = {
+      v: 1,
+      title: log.title,
+      meta: log.meta || null,
+      folder: e.folder || null,
+      created: log.created || 0,
+      updated: log.updated || Date.now(),
+      count: (log.messages || []).filter(m => m.type !== 'bgm').length,
+      messages: (log.messages || []).filter(m => !(m.type === 'bgm' && m.audioId && !m.url)),
+      imgs: imgsFor(log)
+    };
+    setSt(id, 'up');
+    try {
+      await put('mtlog', id, data);
+      CL.idx.set(id, { u: data.updated, title: data.title });
+      setSt(id, 'ok');
+    } catch (err) {
+      CL.err = err.message;
+      setSt(id, 'err');
+      console.warn('보관소 올리기', err);
+    }
+  }
+  const upT = new Map();
+  function queue(id) {
+    if (!UP() || !CL.ready) return;
+    clearTimeout(upT.get(id));
+    upT.set(
+      id,
+      setTimeout(() => {
+        upT.delete(id);
+        upload(id);
+      }, 2500)
+    );
+    CL.st.set(id, 'wait');
+  }
 
- /* 지우기: 올리는 브라우저면 보관소에서도 (지운 목록 gone 에 남겨 다른 기기가 다시 올리지 않게) */
- const oRm=removeLogData;removeLogData=async function(id){const r=await oRm.apply(this,arguments);
-  if(UP()&&CL.idx.has(id)){try{await api(`docs?kind=eq.mtlog&id=eq.${encodeURIComponent(id)}`,{method:'DELETE'});CL.idx.delete(id);CL.gone=[...new Set([...CL.gone,id])].slice(-500);treeDirty=true}catch(err){toast('보관소에서 지우지 못했어요: '+err.message)}}
-  else if(!UP()&&CL.idx.has(id)){ls.set('mtl-hidden',[...new Set([...HID(),id])]);toast('이 브라우저에서만 지웠어요 — 보관소에는 남아 있어요 (숨긴 로그로 다시 볼 수 있어요)');setTimeout(paint,0)}
-  CL.st.delete(id);return r};
+  /* 지우기: 올리는 브라우저면 보관소에서도 (지운 목록 gone 에 남겨 다른 기기가 다시 올리지 않게) */
+  const oRm = removeLogData;
+  removeLogData = async function (id) {
+    const r = await oRm.apply(this, arguments);
+    if (UP() && CL.idx.has(id)) {
+      try {
+        await api(`docs?kind=eq.mtlog&id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+        CL.idx.delete(id);
+        CL.gone = [...new Set([...CL.gone, id])].slice(-500);
+        treeDirty = true;
+      } catch (err) {
+        toast('보관소에서 지우지 못했어요: ' + err.message);
+      }
+    } else if (!UP() && CL.idx.has(id)) {
+      ls.set('mtl-hidden', [...new Set([...HID(), id])]);
+      toast('이 브라우저에서만 지웠어요 — 보관소에는 남아 있어요 (숨긴 로그로 다시 볼 수 있어요)');
+      setTimeout(paint, 0);
+    }
+    CL.st.delete(id);
+    return r;
+  };
 
- /* 본문은 열 때 받는다: 이 브라우저에 없거나 보관소 쪽이 더 새것이면 */
- const oGet=getLog;getLog=async function(id){let l=await oGet.apply(this,arguments);const e=S.index.find(x=>x.id===id);
-  if((!l||(e&&e.stale))&&CL.idx.has(id)){try{setSt(id,'down');const rows=await api(`docs?kind=eq.mtlog&id=eq.${encodeURIComponent(id)}&select=data`);const d=rows&&rows[0]&&rows[0].data;
-    if(d){for(const [k,v] of Object.entries(d.imgs||{}))if(!S.imgs[k])S.imgs[k]=v;l={id,title:d.title||'로그',messages:d.messages||[],created:d.created||0,updated:d.updated||0};S.logs[id]=l;await idb.set('log:'+id,l);await idb.set('imgs',S.imgs);
-     if(e){const f=e.folder;Object.assign(e,indexEntry(l));e.folder=f;delete e.stale;delete e.remote}await idb.set('index',S.index)}setSt(id,'ok')}catch(err){setSt(id,'err');toast('보관소에서 받지 못했어요: '+err.message)}}
-  return l};
+  /* 본문은 열 때 받는다: 이 브라우저에 없거나 보관소 쪽이 더 새것이면 */
+  const oGet = getLog;
+  getLog = async function (id) {
+    let l = await oGet.apply(this, arguments);
+    const e = S.index.find(x => x.id === id);
+    if ((!l || (e && e.stale)) && CL.idx.has(id)) {
+      try {
+        setSt(id, 'down');
+        const rows = await api(`docs?kind=eq.mtlog&id=eq.${encodeURIComponent(id)}&select=data`);
+        const d = rows && rows[0] && rows[0].data;
+        if (d) {
+          for (const [k, v] of Object.entries(d.imgs || {})) if (!S.imgs[k]) S.imgs[k] = v;
+          l = { id, title: d.title || '로그', messages: d.messages || [], created: d.created || 0, updated: d.updated || 0 };
+          S.logs[id] = l;
+          await idb.set('log:' + id, l);
+          await idb.set('imgs', S.imgs);
+          if (e) {
+            const f = e.folder;
+            Object.assign(e, indexEntry(l));
+            e.folder = f;
+            delete e.stale;
+            delete e.remote;
+          }
+          await idb.set('index', S.index);
+        }
+        setSt(id, 'ok');
+      } catch (err) {
+        setSt(id, 'err');
+        toast('보관소에서 받지 못했어요: ' + err.message);
+      }
+    }
+    return l;
+  };
 
- /* 폴더 · 순서 */
- let treeDirty=false,treeSig='';
- const treeOf=()=>({folders:S.folders.map(f=>({id:f.id,name:f.name})),order:S.index.map(e=>[e.id,e.folder||null]),gone:CL.gone});
- function checkTree(){if(!CL.ready)return;const sig=JSON.stringify(treeOf());if(sig!==treeSig){treeSig=sig;treeDirty=true}if(treeDirty&&UP()){treeDirty=false;clearTimeout(checkTree.t);checkTree.t=setTimeout(async()=>{const at=Date.now();try{await put('mtlogmeta','tree',Object.assign(treeOf(),{at}));ls.set('mtl-tree-at',at)}catch(err){CL.err=err.message;paint()}},1500)}}
+  /* 폴더 · 순서 */
+  let treeDirty = false,
+    treeSig = '';
+  const treeOf = () => ({
+    folders: S.folders.map(f => ({ id: f.id, name: f.name })),
+    order: S.index.map(e => [e.id, e.folder || null]),
+    gone: CL.gone
+  });
+  function checkTree() {
+    if (!CL.ready) return;
+    const sig = JSON.stringify(treeOf());
+    if (sig !== treeSig) {
+      treeSig = sig;
+      treeDirty = true;
+    }
+    if (treeDirty && UP()) {
+      treeDirty = false;
+      clearTimeout(checkTree.t);
+      checkTree.t = setTimeout(async () => {
+        const at = Date.now();
+        try {
+          await put('mtlogmeta', 'tree', Object.assign(treeOf(), { at }));
+          ls.set('mtl-tree-at', at);
+        } catch (err) {
+          CL.err = err.message;
+          paint();
+        }
+      }, 1500);
+    }
+  }
 
- /* 등장인물 설정(색 · 표시 이름 · GM · 숨김 · 직접 넣은 초상)도 보관소에 — 'mtlogmeta/speakers' */
- let spkSig='';
- function spkOf(){const imgs={};let budget=3000000;for(const n of Object.keys(S.speakers)){const v=S.imgs['spk:'+n];if(!v)continue;if(/^https?:/i.test(v))imgs['spk:'+n]=v;else if(/^data:image\//.test(v)&&v.length<Math.min(400000,budget)){imgs['spk:'+n]=v;budget-=v.length}}return {speakers:S.speakers,imgs}}
- function checkSpk(){if(!CL.ready||!UP())return;const d=spkOf();const sig=JSON.stringify(d.speakers)+Object.keys(d.imgs).join('|')+Object.values(d.imgs).map(v=>v.length).join(',');if(sig===spkSig)return;spkSig=sig;clearTimeout(checkSpk.t);checkSpk.t=setTimeout(async()=>{const at=Date.now();try{await put('mtlogmeta','speakers',Object.assign(spkOf(),{at}));ls.set('mtl-spk-at',at)}catch(err){CL.err=err.message;paint()}},2000)}
- async function applySpk(d){if(!d||(+d.at||0)<=(+ls.get('mtl-spk-at',0)||0))return;for(const [n,c] of Object.entries(d.speakers||{}))S.speakers[n]=Object.assign({},S.speakers[n]||{},c);for(const [k,v] of Object.entries(d.imgs||{}))S.imgs[k]=v;ls.set('mtl-spk-at',+d.at);try{await idb.set('speakers',S.speakers);await idb.set('imgs',S.imgs);if(typeof rebuildNames==='function')rebuildNames()}catch(e){}try{renderSpeakers();renderLog()}catch(e){}}
+  /* 등장인물 설정(색 · 표시 이름 · GM · 숨김 · 직접 넣은 초상)도 보관소에 — 'mtlogmeta/speakers' */
+  let spkSig = '';
+  function spkOf() {
+    const imgs = {};
+    let budget = 3000000;
+    for (const n of Object.keys(S.speakers)) {
+      const v = S.imgs['spk:' + n];
+      if (!v) continue;
+      if (/^https?:/i.test(v)) imgs['spk:' + n] = v;
+      else if (/^data:image\//.test(v) && v.length < Math.min(400000, budget)) {
+        imgs['spk:' + n] = v;
+        budget -= v.length;
+      }
+    }
+    return { speakers: S.speakers, imgs };
+  }
+  function checkSpk() {
+    if (!CL.ready || !UP()) return;
+    const d = spkOf();
+    const sig =
+      JSON.stringify(d.speakers) +
+      Object.keys(d.imgs).join('|') +
+      Object.values(d.imgs)
+        .map(v => v.length)
+        .join(',');
+    if (sig === spkSig) return;
+    spkSig = sig;
+    clearTimeout(checkSpk.t);
+    checkSpk.t = setTimeout(async () => {
+      const at = Date.now();
+      try {
+        await put('mtlogmeta', 'speakers', Object.assign(spkOf(), { at }));
+        ls.set('mtl-spk-at', at);
+      } catch (err) {
+        CL.err = err.message;
+        paint();
+      }
+    }, 2000);
+  }
+  async function applySpk(d) {
+    if (!d || (+d.at || 0) <= (+ls.get('mtl-spk-at', 0) || 0)) return;
+    for (const [n, c] of Object.entries(d.speakers || {})) S.speakers[n] = Object.assign({}, S.speakers[n] || {}, c);
+    for (const [k, v] of Object.entries(d.imgs || {})) S.imgs[k] = v;
+    ls.set('mtl-spk-at', +d.at);
+    try {
+      await idb.set('speakers', S.speakers);
+      await idb.set('imgs', S.imgs);
+      if (typeof rebuildNames === 'function') rebuildNames();
+    } catch (e) {}
+    try {
+      renderSpeakers();
+      renderLog();
+    } catch (e) {}
+  }
 
- /* 부팅 뒤: 보관소 목록을 읽어 섞는다 */
- async function pull(quiet){if(CL.busy)return;CL.busy=true;CL.err='';paint();
-  try{const [rows,meta]=await Promise.all([api('docs?kind=eq.mtlog&select=id,title:data->>title,folder:data->>folder,count:data->>count,created:data->>created,updated:data->>updated,meta:data->meta&order=id'),api('docs?kind=eq.mtlogmeta&select=id,data').catch(()=>[])]);
-   const tree=(meta||[]).find(x=>x.id==='tree');const spk=(meta||[]).find(x=>x.id==='speakers');applySpk(spk&&spk.data);const T0=tree&&tree.data||null;CL.gone=(T0&&T0.gone)||CL.gone;const hid=new Set(HID());
-   CL.idx=new Map(rows.map(r=>[r.id,{u:+r.updated||0,title:r.title,folder:r.folder,count:+r.count||0,created:+r.created||0,meta:r.meta||null}]));
-   let add=0,up=0;
-   for(const [id,c] of CL.idx){const e=S.index.find(x=>x.id===id);
-    if(hid.has(id))continue;
-    if(!e){S.index.push({id,title:c.title||'로그',count:c.count,assets:[],names:[],folder:c.folder&&c.folder!=='null'?c.folder:null,created:c.created,upd:c.u,meta:c.meta,remote:1});add++}
-    else{if(e.remote){e.title=c.title||e.title;e.count=c.count;e.meta=c.meta}if(c.u>(e.upd||0)+1000)e.stale=1;CL.st.set(id,e.stale?'new':'ok')}}
-   /* 이 브라우저에만 있는 로그 · 이쪽이 더 새 로그는 올린다 (올리는 브라우저만, 예시 · 지운 것 빼고) */
-   if(UP())for(const e of S.index){if(e.remote||e.nc||isSample(e.title)||CL.gone.includes(e.id))continue;const c=CL.idx.get(e.id);if(!c||(e.upd||0)>c.u+1000){queue(e.id);up++}}
-   /* 폴더 · 순서: 보관소 쪽이 더 새것이면 따른다 */
-   if(T0&&(+T0.at||0)>(+ls.get('mtl-tree-at',0)||0)){const tree=T0;const F=new Map(S.folders.map(f=>[f.id,f]));S.folders=(tree.folders||[]).map(f=>Object.assign(F.get(f.id)||{open:false},{id:f.id,name:f.name}));
-    const pos=new Map((tree.order||[]).map(([id,fd],i)=>[id,[i,fd]]));for(const e of S.index){const p=pos.get(e.id);if(p)e.folder=p[1]&&S.folders.some(f=>f.id===p[1])?p[1]:null}
-    S.index.sort((a,b)=>(pos.has(a.id)?pos.get(a.id)[0]:1e9)-(pos.has(b.id)?pos.get(b.id)[0]:1e9));ls.set('mtl-tree-at',+tree.at);await idb.set('folders',S.folders)}
-   await idb.set('index',S.index);CL.ready=true;treeSig=JSON.stringify(treeOf());try{const d=spkOf();spkSig=JSON.stringify(d.speakers)+Object.keys(d.imgs).join('|')+Object.values(d.imgs).map(v=>v.length).join(',')}catch(e){}renderList();
-   if(!quiet&&(add||up))toast(`보관소: ${add?`새 로그 ${add}개를 목록에 더했어요`:''}${add&&up?' · ':''}${up?`${up}개를 올리는 중`:''}`)}
-  catch(err){CL.err=err.message;console.warn('보관소 읽기',err)}finally{CL.busy=false;CL.ready=true;paint()}}
+  /* 부팅 뒤: 보관소 목록을 읽어 섞는다 */
+  async function pull(quiet) {
+    if (CL.busy) return;
+    CL.busy = true;
+    CL.err = '';
+    paint();
+    try {
+      const [rows, meta] = await Promise.all([
+        api(
+          'docs?kind=eq.mtlog&select=id,title:data->>title,folder:data->>folder,count:data->>count,created:data->>created,updated:data->>updated,meta:data->meta&order=id'
+        ),
+        api('docs?kind=eq.mtlogmeta&select=id,data').catch(() => [])
+      ]);
+      const tree = (meta || []).find(x => x.id === 'tree');
+      const spk = (meta || []).find(x => x.id === 'speakers');
+      applySpk(spk && spk.data);
+      const T0 = (tree && tree.data) || null;
+      CL.gone = (T0 && T0.gone) || CL.gone;
+      const hid = new Set(HID());
+      CL.idx = new Map(
+        rows.map(r => [
+          r.id,
+          { u: +r.updated || 0, title: r.title, folder: r.folder, count: +r.count || 0, created: +r.created || 0, meta: r.meta || null }
+        ])
+      );
+      let add = 0,
+        up = 0;
+      for (const [id, c] of CL.idx) {
+        const e = S.index.find(x => x.id === id);
+        if (hid.has(id)) continue;
+        if (!e) {
+          S.index.push({
+            id,
+            title: c.title || '로그',
+            count: c.count,
+            assets: [],
+            names: [],
+            folder: c.folder && c.folder !== 'null' ? c.folder : null,
+            created: c.created,
+            upd: c.u,
+            meta: c.meta,
+            remote: 1
+          });
+          add++;
+        } else {
+          if (e.remote) {
+            e.title = c.title || e.title;
+            e.count = c.count;
+            e.meta = c.meta;
+          }
+          if (c.u > (e.upd || 0) + 1000) e.stale = 1;
+          CL.st.set(id, e.stale ? 'new' : 'ok');
+        }
+      }
+      /* 이 브라우저에만 있는 로그 · 이쪽이 더 새 로그는 올린다 (올리는 브라우저만, 예시 · 지운 것 빼고) */
+      if (UP())
+        for (const e of S.index) {
+          if (e.remote || e.nc || isSample(e.title) || CL.gone.includes(e.id)) continue;
+          const c = CL.idx.get(e.id);
+          if (!c || (e.upd || 0) > c.u + 1000) {
+            queue(e.id);
+            up++;
+          }
+        }
+      /* 폴더 · 순서: 보관소 쪽이 더 새것이면 따른다 */
+      if (T0 && (+T0.at || 0) > (+ls.get('mtl-tree-at', 0) || 0)) {
+        const tree = T0;
+        const F = new Map(S.folders.map(f => [f.id, f]));
+        S.folders = (tree.folders || []).map(f => Object.assign(F.get(f.id) || { open: false }, { id: f.id, name: f.name }));
+        const pos = new Map((tree.order || []).map(([id, fd], i) => [id, [i, fd]]));
+        for (const e of S.index) {
+          const p = pos.get(e.id);
+          if (p) e.folder = p[1] && S.folders.some(f => f.id === p[1]) ? p[1] : null;
+        }
+        S.index.sort((a, b) => (pos.has(a.id) ? pos.get(a.id)[0] : 1e9) - (pos.has(b.id) ? pos.get(b.id)[0] : 1e9));
+        ls.set('mtl-tree-at', +tree.at);
+        await idb.set('folders', S.folders);
+      }
+      await idb.set('index', S.index);
+      CL.ready = true;
+      treeSig = JSON.stringify(treeOf());
+      try {
+        const d = spkOf();
+        spkSig =
+          JSON.stringify(d.speakers) +
+          Object.keys(d.imgs).join('|') +
+          Object.values(d.imgs)
+            .map(v => v.length)
+            .join(',');
+      } catch (e) {}
+      renderList();
+      if (!quiet && (add || up))
+        toast(`보관소: ${add ? `새 로그 ${add}개를 목록에 더했어요` : ''}${add && up ? ' · ' : ''}${up ? `${up}개를 올리는 중` : ''}`);
+    } catch (err) {
+      CL.err = err.message;
+      console.warn('보관소 읽기', err);
+    } finally {
+      CL.busy = false;
+      CL.ready = true;
+      paint();
+    }
+  }
 
- /* ---------- 목록 ---------- */
- const panel=document.querySelector('#logList')&&document.querySelector('#logList').closest('.panel');
- if(panel){const box=document.createElement('div');box.className='mtc';box.innerHTML=`<div class="mth"><b>☁ 캠페인 보관소</b><button class="btn" type="button" id="mtPull" title="보관소 목록을 다시 읽는다">새로 읽기</button></div><span class="st" id="mtSt" style="margin-top:-4px"></span>
+  /* ---------- 목록 ---------- */
+  const panel = document.querySelector('#logList') && document.querySelector('#logList').closest('.panel');
+  if (panel) {
+    const box = document.createElement('div');
+    box.className = 'mtc';
+    box.innerHTML = `<div class="mth"><b>☁ 캠페인 보관소</b><button class="btn" type="button" id="mtPull" title="보관소 목록을 다시 읽는다">새로 읽기</button></div><span class="st" id="mtSt" style="margin-top:-4px"></span>
    <label class="mtup"><input type="checkbox" id="mtUp"> 이 브라우저에서 보관소에 올리기 <span style="opacity:.75">(GM 컴퓨터에서만)</span></label><input type="search" class="mtfind" id="mtQ" placeholder="이름 · 등장인물 · 태그 · 본문으로 찾기"><div class="mtsort">정렬<select id="mtSort"><option value="">직접 정한 순서</option><option value="ep">화 순서</option><option value="date">날짜 순서</option><option value="title">이름 순서</option></select><button class="btn" type="button" id="mtSortGo" style="height:24px;font-size:12px;padding:0 8px">정렬하기</button><span style="flex:1"></span><button type="button" class="mthid" id="mtHid" hidden></button></div>`;
-  const sb=panel.querySelector('.selbar');(sb||$('logList')).before(box);const fd=document.createElement('div');fd.className='logs';fd.id='mtFound';fd.hidden=true;$('logList').after(fd);
-  $('mtUp').checked=UP();$('mtUp').onchange=()=>{ls.set('mtl-cloud-up',$('mtUp').checked);if($('mtUp').checked){toast('이 브라우저의 로그를 보관소에 올려요');pull()}else paint()};
-  $('mtPull').onclick=()=>pull();$('mtQ').oninput=()=>{clearTimeout(find.t);find.t=setTimeout(find,180)};
-  $('mtSortGo').onclick=()=>sortBy($('mtSort').value);
-  $('mtHid').onclick=()=>{if(!confirm(`숨긴 로그 ${HID().length}개를 목록에 다시 보일까요?`))return;ls.set('mtl-hidden',[]);pull()};
-  const hint=[...panel.querySelectorAll('p.hint')].find(p=>/이 브라우저에 저장/.test(p.textContent));if(hint)hint.textContent='로그는 이 브라우저에 두고, 「보관소에 올리기」를 켠 브라우저는 보관소(Supabase)에도 올려요. 다른 기기에서는 목록에 뜨고, 열 때 내려받아요. 등장인물 설정과 스타일은 이 브라우저에만 남아요.'}
- function paint(){const hb=$('mtHid');if(hb){const n=HID().length;hb.hidden=!n;hb.textContent=`숨긴 로그 ${n}`}const s=$('mtSt');if(s){const n=CL.idx.size;const up=[...CL.st.values()].filter(v=>v==='wait'||v==='up').length;s.textContent=CL.err?`⚠ ${CL.err.slice(0,60)}`:CL.busy?'읽는 중…':`${n}개${up?` · 올리는 중 ${up}`:''}${UP()?' · 올리기 켬':' · 보기만'}`}decorate()}
- const BADGE={nc:['🔒','보관소에 올리지 않는 로그'],ok:['☁','보관소에 있어요'],wait:['↑','곧 보관소에 올려요'],up:['↑','올리는 중'],down:['↓','받는 중'],err:['⚠','보관소와 맞추지 못했어요'],new:['☁•','보관소에 더 새 내용이 있어요 — 열면 받아요'],remote:['☁↓','보관소에만 있어요 — 열면 받아요']};
- const epOf=e=>{const m=e&&e.meta;return m&&m.ep!==''&&m.ep!=null?String(m.ep):''};
- function decorate(){document.querySelectorAll('#logList .li[data-kind="log"]').forEach(row=>{const id=row.dataset.id;const e=S.index.find(x=>x.id===id);if(!e)return;
-   const t=row.querySelector(':scope>.t');if(t&&!row.querySelector('.mtx')){const w=document.createElement('span');w.className='mtx';t.replaceWith(w);w.appendChild(t);const sm=document.createElement('small');w.appendChild(sm);
-    const bx=document.createElement('span');bx.className='mtbtns';bx.innerHTML='<button type="button" class="mtren" title="로그 이름 바꾸기 (제목을 두 번 눌러도 돼요)">✎</button><button type="button" class="mtren mtinfo" title="세션 정보 — 화 · 날짜 · 참가자 · 태그 · 요약 · 보관소">ⓘ</button>';row.appendChild(bx)}
-   const tt=row.querySelector('.mtx .t');const m=e.meta||{};const ep=epOf(e);if(tt&&!tt.querySelector('.mtep')&&ep)tt.insertAdjacentHTML('afterbegin',`<span class="mtep">${esc(ep)}화</span>`);
-   row.title=m.summary?String(m.summary).slice(0,300):'';
-   const sm=row.querySelector('.mtx small');if(!sm)return;const st=e.nc?'nc':e.remote?'remote':CL.st.get(id)||(CL.idx.has(id)?'ok':'');const b=BADGE[st];
-   const bits=[m.date?String(m.date).replace(/-/g,'.'):ymd(e.created||(S.logs[id]||{}).created),m.players?String(m.players):(e.names||[]).length?`${e.names.length}명`:'',`${(e.count||0).toLocaleString()}줄`].filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join('<span>·</span>');
-   const tags=(Array.isArray(m.tags)?m.tags:[]).slice(0,4).map(x=>`<span class="mttag">#${esc(x)}</span>`).join('');
-   sm.innerHTML=bits+(b?`<span class="mtb${st==='err'?' err':''}" title="${esc(b[1])}">${b[0]}</span>`:'<span class="mtb" title="이 브라우저에만 있어요" style="opacity:.5">💻</span>')+tags;
-   row.classList.toggle('remote',!!e.remote)})}
- const oList=renderList;renderList=function(){const r=oList.apply(this,arguments);try{decorate();checkTree();if($('mtQ')&&$('mtQ').value.trim())find()}catch(err){console.warn(err)}return r};
+    const sb = panel.querySelector('.selbar');
+    (sb || $('logList')).before(box);
+    const fd = document.createElement('div');
+    fd.className = 'logs';
+    fd.id = 'mtFound';
+    fd.hidden = true;
+    $('logList').after(fd);
+    $('mtUp').checked = UP();
+    $('mtUp').onchange = () => {
+      ls.set('mtl-cloud-up', $('mtUp').checked);
+      if ($('mtUp').checked) {
+        toast('이 브라우저의 로그를 보관소에 올려요');
+        pull();
+      } else paint();
+    };
+    $('mtPull').onclick = () => pull();
+    $('mtQ').oninput = () => {
+      clearTimeout(find.t);
+      find.t = setTimeout(find, 180);
+    };
+    $('mtSortGo').onclick = () => sortBy($('mtSort').value);
+    $('mtHid').onclick = () => {
+      if (!confirm(`숨긴 로그 ${HID().length}개를 목록에 다시 보일까요?`)) return;
+      ls.set('mtl-hidden', []);
+      pull();
+    };
+    const hint = [...panel.querySelectorAll('p.hint')].find(p => /이 브라우저에 저장/.test(p.textContent));
+    if (hint)
+      hint.textContent =
+        '로그는 이 브라우저에 두고, 「보관소에 올리기」를 켠 브라우저는 보관소(Supabase)에도 올려요. 다른 기기에서는 목록에 뜨고, 열 때 내려받아요. 등장인물 설정과 스타일은 이 브라우저에만 남아요.';
+  }
+  function paint() {
+    const hb = $('mtHid');
+    if (hb) {
+      const n = HID().length;
+      hb.hidden = !n;
+      hb.textContent = `숨긴 로그 ${n}`;
+    }
+    const s = $('mtSt');
+    if (s) {
+      const n = CL.idx.size;
+      const up = [...CL.st.values()].filter(v => v === 'wait' || v === 'up').length;
+      s.textContent = CL.err
+        ? `⚠ ${CL.err.slice(0, 60)}`
+        : CL.busy
+          ? '읽는 중…'
+          : `${n}개${up ? ` · 올리는 중 ${up}` : ''}${UP() ? ' · 올리기 켬' : ' · 보기만'}`;
+    }
+    decorate();
+  }
+  const BADGE = {
+    nc: ['🔒', '보관소에 올리지 않는 로그'],
+    ok: ['☁', '보관소에 있어요'],
+    wait: ['↑', '곧 보관소에 올려요'],
+    up: ['↑', '올리는 중'],
+    down: ['↓', '받는 중'],
+    err: ['⚠', '보관소와 맞추지 못했어요'],
+    new: ['☁•', '보관소에 더 새 내용이 있어요 — 열면 받아요'],
+    remote: ['☁↓', '보관소에만 있어요 — 열면 받아요']
+  };
+  const epOf = e => {
+    const m = e && e.meta;
+    return m && m.ep !== '' && m.ep != null ? String(m.ep) : '';
+  };
+  function decorate() {
+    document.querySelectorAll('#logList .li[data-kind="log"]').forEach(row => {
+      const id = row.dataset.id;
+      const e = S.index.find(x => x.id === id);
+      if (!e) return;
+      const t = row.querySelector(':scope>.t');
+      if (t && !row.querySelector('.mtx')) {
+        const w = document.createElement('span');
+        w.className = 'mtx';
+        t.replaceWith(w);
+        w.appendChild(t);
+        const sm = document.createElement('small');
+        w.appendChild(sm);
+        const bx = document.createElement('span');
+        bx.className = 'mtbtns';
+        bx.innerHTML =
+          '<button type="button" class="mtren" title="로그 이름 바꾸기 (제목을 두 번 눌러도 돼요)">✎</button><button type="button" class="mtren mtinfo" title="세션 정보 — 화 · 날짜 · 참가자 · 태그 · 요약 · 보관소">ⓘ</button>';
+        row.appendChild(bx);
+      }
+      const tt = row.querySelector('.mtx .t');
+      const m = e.meta || {};
+      const ep = epOf(e);
+      if (tt && !tt.querySelector('.mtep') && ep) tt.insertAdjacentHTML('afterbegin', `<span class="mtep">${esc(ep)}화</span>`);
+      row.title = m.summary ? String(m.summary).slice(0, 300) : '';
+      const sm = row.querySelector('.mtx small');
+      if (!sm) return;
+      const st = e.nc ? 'nc' : e.remote ? 'remote' : CL.st.get(id) || (CL.idx.has(id) ? 'ok' : '');
+      const b = BADGE[st];
+      const bits = [
+        m.date ? String(m.date).replace(/-/g, '.') : ymd(e.created || (S.logs[id] || {}).created),
+        m.players ? String(m.players) : (e.names || []).length ? `${e.names.length}명` : '',
+        `${(e.count || 0).toLocaleString()}줄`
+      ]
+        .filter(Boolean)
+        .map(x => `<span>${esc(x)}</span>`)
+        .join('<span>·</span>');
+      const tags = (Array.isArray(m.tags) ? m.tags : [])
+        .slice(0, 4)
+        .map(x => `<span class="mttag">#${esc(x)}</span>`)
+        .join('');
+      sm.innerHTML =
+        bits +
+        (b
+          ? `<span class="mtb${st === 'err' ? ' err' : ''}" title="${esc(b[1])}">${b[0]}</span>`
+          : '<span class="mtb" title="이 브라우저에만 있어요" style="opacity:.5">💻</span>') +
+        tags;
+      row.classList.toggle('remote', !!e.remote);
+    });
+  }
+  const oList = renderList;
+  renderList = function () {
+    const r = oList.apply(this, arguments);
+    try {
+      decorate();
+      checkTree();
+      if ($('mtQ') && $('mtQ').value.trim()) find();
+    } catch (err) {
+      console.warn(err);
+    }
+    return r;
+  };
 
- /* 이름 바꾸기 */
- $('logList').addEventListener('click',e=>{const b=e.target.closest('.mtren');if(!b)return;e.stopPropagation();e.preventDefault();const row=b.closest('.li');if(b.classList.contains('mtinfo'))info(row.dataset.id);else rename(row.dataset.id,row)},true);
- $('logList').addEventListener('dblclick',e=>{const t=e.target.closest('.li[data-kind="log"] .t');if(!t)return;e.preventDefault();rename(t.closest('.li').dataset.id,t.closest('.li'))});
- function rename(id,row){const e=S.index.find(x=>x.id===id);if(!e||!row)return;const w=row.querySelector('.mtx .t')||row.querySelector('.t');const inp=document.createElement('input');inp.className='mtrn';inp.value=e.title;w.replaceWith(inp);inp.focus();inp.select();
-  let done=false;const fin=async ok=>{if(done)return;done=true;const v=inp.value.trim();if(ok&&v&&v!==e.title){const log=await getLog(id);if(log){log.title=v;touch(log);flush()}else e.title=v;if(S.cur===id)renderLog();toast('이름을 바꿨어요')}renderList()};
-  inp.addEventListener('keydown',ev=>{ev.stopPropagation();if(ev.isComposing)return;if(ev.key==='Enter')fin(true);if(ev.key==='Escape')fin(false)});inp.addEventListener('blur',()=>fin(true));inp.addEventListener('click',ev=>ev.stopPropagation());inp.addEventListener('pointerdown',ev=>ev.stopPropagation())}
+  /* 이름 바꾸기 */
+  $('logList').addEventListener(
+    'click',
+    e => {
+      const b = e.target.closest('.mtren');
+      if (!b) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const row = b.closest('.li');
+      if (b.classList.contains('mtinfo')) info(row.dataset.id);
+      else rename(row.dataset.id, row);
+    },
+    true
+  );
+  $('logList').addEventListener('dblclick', e => {
+    const t = e.target.closest('.li[data-kind="log"] .t');
+    if (!t) return;
+    e.preventDefault();
+    rename(t.closest('.li').dataset.id, t.closest('.li'));
+  });
+  function rename(id, row) {
+    const e = S.index.find(x => x.id === id);
+    if (!e || !row) return;
+    const w = row.querySelector('.mtx .t') || row.querySelector('.t');
+    const inp = document.createElement('input');
+    inp.className = 'mtrn';
+    inp.value = e.title;
+    w.replaceWith(inp);
+    inp.focus();
+    inp.select();
+    let done = false;
+    const fin = async ok => {
+      if (done) return;
+      done = true;
+      const v = inp.value.trim();
+      if (ok && v && v !== e.title) {
+        const log = await getLog(id);
+        if (log) {
+          log.title = v;
+          touch(log);
+          flush();
+        } else e.title = v;
+        if (S.cur === id) renderLog();
+        toast('이름을 바꿨어요');
+      }
+      renderList();
+    };
+    inp.addEventListener('keydown', ev => {
+      ev.stopPropagation();
+      if (ev.isComposing) return;
+      if (ev.key === 'Enter') fin(true);
+      if (ev.key === 'Escape') fin(false);
+    });
+    inp.addEventListener('blur', () => fin(true));
+    inp.addEventListener('click', ev => ev.stopPropagation());
+    inp.addEventListener('pointerdown', ev => ev.stopPropagation());
+  }
 
- /* 찾기: 이름 · 등장인물 (폴더 안까지) */
- const msgText=m=>(m.tokens||[]).map(t=>t.v||((t.expr||'')+' '+(t.res||''))).join('')+(m.title?' '+m.title:'');
- async function find(){const q=$('mtQ').value.trim().toLowerCase();const F=$('mtFound');if(!q){F.hidden=true;$('logList').hidden=false;return}const tok=find.tok=(find.tok||0)+1;
-  const res=[];for(const e of S.index){const m=e.meta||{};const head=[e.title,(e.names||[]).join(' '),m.players,(m.tags||[]).join(' '),m.summary,epOf(e)?epOf(e)+'화':''].join(' ').toLowerCase();let snip='',hit=head.includes(q);
-   if(!e.remote){const log=S.logs[e.id]||await idb.get('log:'+e.id);if(tok!==find.tok)return;if(log){const mm=(log.messages||[]).find(x=>msgText(x).toLowerCase().includes(q));if(mm){const tx=msgText(mm);const i=tx.toLowerCase().indexOf(q);snip=(mm.name?mm.name+': ':'')+(i>20?'…':'')+tx.slice(Math.max(0,i-20),i+60);hit=true}}}
-   if(hit)res.push([e,snip])}
-  F.innerHTML=res.map(([e,sn])=>{const f=e.folder&&S.folders.find(x=>x.id===e.folder);const ep=epOf(e);return `<div class="li${e.id===S.cur?' cur':''}" data-fid="${esc(e.id)}"><span class="mtx"><span class="t">${ep?`<span class="mtep">${esc(ep)}화</span>`:''}${esc(e.title)}</span><small>${esc([f?'📁 '+f.name:'',(e.meta&&e.meta.date)||ymd(e.created),(e.count||0).toLocaleString()+'줄'].filter(Boolean).join(' · '))}</small>${sn?`<span class="mtsn">“${esc(sn)}”</span>`:''}</span></div>`}).join('')||`<p class="hint">찾는 로그가 없어요${S.index.some(e=>e.remote)?' · 보관소에만 있는 로그는 한 번 열어야 본문까지 찾아요':''}</p>`;
-  F.hidden=false;$('logList').hidden=true;F.querySelectorAll('[data-fid]').forEach(r=>r.onclick=async()=>{await selectLog(r.dataset.fid);setTimeout(()=>jump(q),120)})}
- /* 찾은 글이 있는 줄로 굴리고 잠깐 표시 */
- function jump(q){const L=$('log');if(!L)return;const el=[...L.querySelectorAll('.line,.gm,.roll')].find(x=>x.textContent.toLowerCase().includes(q));if(!el)return;el.scrollIntoView({block:'center',behavior:'smooth'});el.classList.add('mthit');setTimeout(()=>el.classList.remove('mthit'),1800)}
+  /* 찾기: 이름 · 등장인물 (폴더 안까지) */
+  const msgText = m => (m.tokens || []).map(t => t.v || (t.expr || '') + ' ' + (t.res || '')).join('') + (m.title ? ' ' + m.title : '');
+  async function find() {
+    const q = $('mtQ').value.trim().toLowerCase();
+    const F = $('mtFound');
+    if (!q) {
+      F.hidden = true;
+      $('logList').hidden = false;
+      return;
+    }
+    const tok = (find.tok = (find.tok || 0) + 1);
+    const res = [];
+    for (const e of S.index) {
+      const m = e.meta || {};
+      const head = [e.title, (e.names || []).join(' '), m.players, (m.tags || []).join(' '), m.summary, epOf(e) ? epOf(e) + '화' : '']
+        .join(' ')
+        .toLowerCase();
+      let snip = '',
+        hit = head.includes(q);
+      if (!e.remote) {
+        const log = S.logs[e.id] || (await idb.get('log:' + e.id));
+        if (tok !== find.tok) return;
+        if (log) {
+          const mm = (log.messages || []).find(x => msgText(x).toLowerCase().includes(q));
+          if (mm) {
+            const tx = msgText(mm);
+            const i = tx.toLowerCase().indexOf(q);
+            snip = (mm.name ? mm.name + ': ' : '') + (i > 20 ? '…' : '') + tx.slice(Math.max(0, i - 20), i + 60);
+            hit = true;
+          }
+        }
+      }
+      if (hit) res.push([e, snip]);
+    }
+    F.innerHTML =
+      res
+        .map(([e, sn]) => {
+          const f = e.folder && S.folders.find(x => x.id === e.folder);
+          const ep = epOf(e);
+          return `<div class="li${e.id === S.cur ? ' cur' : ''}" data-fid="${esc(e.id)}"><span class="mtx"><span class="t">${ep ? `<span class="mtep">${esc(ep)}화</span>` : ''}${esc(e.title)}</span><small>${esc([f ? '📁 ' + f.name : '', (e.meta && e.meta.date) || ymd(e.created), (e.count || 0).toLocaleString() + '줄'].filter(Boolean).join(' · '))}</small>${sn ? `<span class="mtsn">“${esc(sn)}”</span>` : ''}</span></div>`;
+        })
+        .join('') ||
+      `<p class="hint">찾는 로그가 없어요${S.index.some(e => e.remote) ? ' · 보관소에만 있는 로그는 한 번 열어야 본문까지 찾아요' : ''}</p>`;
+    F.hidden = false;
+    $('logList').hidden = true;
+    F.querySelectorAll('[data-fid]').forEach(
+      r =>
+        (r.onclick = async () => {
+          await selectLog(r.dataset.fid);
+          setTimeout(() => jump(q), 120);
+        })
+    );
+  }
+  /* 찾은 글이 있는 줄로 굴리고 잠깐 표시 */
+  function jump(q) {
+    const L = $('log');
+    if (!L) return;
+    const el = [...L.querySelectorAll('.line,.gm,.roll')].find(x => x.textContent.toLowerCase().includes(q));
+    if (!el) return;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.classList.add('mthit');
+    setTimeout(() => el.classList.remove('mthit'), 1800);
+  }
 
- /* ---------- 정렬 (한 번 정렬해 순서를 저장 — 그 뒤엔 끌어서 다시 바꿀 수 있다) ---------- */
- async function sortBy(k){if(!k)return toast('정렬 기준을 골라 주세요');const key=e=>{const m=e.meta||{};if(k==='ep'){const n=parseFloat(m.ep);return isNaN(n)?1e9:n}if(k==='date')return m.date?Date.parse(m.date):(e.created||0);return String(e.title||'')};
-  const cmp=(a,b)=>{const x=key(a),y=key(b);return typeof x==='string'?x.localeCompare(y,'ko',{numeric:true}):x-y};S.index.sort(cmp);await idb.set('index',S.index);renderList();toast({ep:'화 순서',date:'날짜 순서',title:'이름 순서'}[k]+'로 정렬했어요')}
+  /* ---------- 정렬 (한 번 정렬해 순서를 저장 — 그 뒤엔 끌어서 다시 바꿀 수 있다) ---------- */
+  async function sortBy(k) {
+    if (!k) return toast('정렬 기준을 골라 주세요');
+    const key = e => {
+      const m = e.meta || {};
+      if (k === 'ep') {
+        const n = parseFloat(m.ep);
+        return isNaN(n) ? 1e9 : n;
+      }
+      if (k === 'date') return m.date ? Date.parse(m.date) : e.created || 0;
+      return String(e.title || '');
+    };
+    const cmp = (a, b) => {
+      const x = key(a),
+        y = key(b);
+      return typeof x === 'string' ? x.localeCompare(y, 'ko', { numeric: true }) : x - y;
+    };
+    S.index.sort(cmp);
+    await idb.set('index', S.index);
+    renderList();
+    toast({ ep: '화 순서', date: '날짜 순서', title: '이름 순서' }[k] + '로 정렬했어요');
+  }
 
- /* ---------- 세션 정보 ---------- */
- const dlg=document.createElement('dialog');dlg.className='mtdlg';document.body.appendChild(dlg);
- async function info(id){const log=await getLog(id);if(!log)return toast('로그를 열지 못했어요');const m=log.meta||{};
-  dlg.innerHTML=`<h3>세션 정보</h3><div style="font-size:.85rem;margin:-4px 0 10px;opacity:.8">${esc(log.title)}</div>
-   <div class="two"><label>화 번호<input type="text" id="mdEp" value="${esc(m.ep??'')}" placeholder="예) 4"></label><label>플레이한 날<input type="date" id="mdDate" value="${esc(m.date||'')}"></label></div>
-   <label>참가자<input type="text" id="mdPl" value="${esc(m.players||'')}" placeholder="예) 느긋하게 · 마히루 · 퓨리나"></label>
-   <label>태그 <span style="opacity:.7">쉼표로 나눠요</span><input type="text" id="mdTag" value="${esc((m.tags||[]).join(', '))}" placeholder="예) 무진, 등대, 보스전"></label>
-   <label>한 줄 요약 · 메모<textarea id="mdSum" rows="4" placeholder="이번 세션에 있었던 일">${esc(m.summary||'')}</textarea></label>
-   <label class="ck"><input type="checkbox" id="mdNc" ${log.noCloud?'checked':''}> 이 로그는 보관소에 올리지 않음 (GM 개인 메모 등)</label>
+  /* ---------- 세션 정보 ---------- */
+  const dlg = document.createElement('dialog');
+  dlg.className = 'mtdlg';
+  document.body.appendChild(dlg);
+  async function info(id) {
+    const log = await getLog(id);
+    if (!log) return toast('로그를 열지 못했어요');
+    const m = log.meta || {};
+    dlg.innerHTML = `<h3>세션 정보</h3><div style="font-size:.85rem;margin:-4px 0 10px;opacity:.8">${esc(log.title)}</div>
+   <div class="two"><label>화 번호<input type="text" id="mdEp" value="${esc(m.ep ?? '')}" placeholder="예) 4"></label><label>플레이한 날<input type="date" id="mdDate" value="${esc(m.date || '')}"></label></div>
+   <label>참가자<input type="text" id="mdPl" value="${esc(m.players || '')}" placeholder="예) 느긋하게 · 마히루 · 퓨리나"></label>
+   <label>태그 <span style="opacity:.7">쉼표로 나눠요</span><input type="text" id="mdTag" value="${esc((m.tags || []).join(', '))}" placeholder="예) 무진, 등대, 보스전"></label>
+   <label>한 줄 요약 · 메모<textarea id="mdSum" rows="4" placeholder="이번 세션에 있었던 일">${esc(m.summary || '')}</textarea></label>
+   <label class="ck"><input type="checkbox" id="mdNc" ${log.noCloud ? 'checked' : ''}> 이 로그는 보관소에 올리지 않음 (GM 개인 메모 등)</label>
    <div class="acts"><button type="button" class="btn" id="mdX">취소</button><button type="button" class="btn primary" id="mdOk">저장</button></div>`;
-  dlg.showModal();$('mdX').onclick=()=>dlg.close();
-  $('mdOk').onclick=async()=>{const nm={ep:$('mdEp').value.trim(),date:$('mdDate').value,players:$('mdPl').value.trim(),tags:$('mdTag').value.split(/[,，]/).map(x=>x.trim().replace(/^#/,'')).filter(Boolean),summary:$('mdSum').value.trim()};
-   const nc=$('mdNc').checked;const wasCloud=CL.idx.has(id);log.meta=Object.values(nm).some(v=>Array.isArray(v)?v.length:v)?nm:null;log.noCloud=nc||undefined;dlg.close();touch(log);flush();
-   if(nc&&wasCloud&&UP()){try{await api(`docs?kind=eq.mtlog&id=eq.${encodeURIComponent(id)}`,{method:'DELETE'});CL.idx.delete(id);toast('보관소에서 내렸어요 — 이 브라우저에만 남아요')}catch(err){toast('보관소에서 내리지 못했어요: '+err.message)}}
-   else toast('세션 정보를 저장했어요');renderList();if(S.cur===id)renderLog()}}
+    dlg.showModal();
+    $('mdX').onclick = () => dlg.close();
+    $('mdOk').onclick = async () => {
+      const nm = {
+        ep: $('mdEp').value.trim(),
+        date: $('mdDate').value,
+        players: $('mdPl').value.trim(),
+        tags: $('mdTag')
+          .value.split(/[,，]/)
+          .map(x => x.trim().replace(/^#/, ''))
+          .filter(Boolean),
+        summary: $('mdSum').value.trim()
+      };
+      const nc = $('mdNc').checked;
+      const wasCloud = CL.idx.has(id);
+      log.meta = Object.values(nm).some(v => (Array.isArray(v) ? v.length : v)) ? nm : null;
+      log.noCloud = nc || undefined;
+      dlg.close();
+      touch(log);
+      flush();
+      if (nc && wasCloud && UP()) {
+        try {
+          await api(`docs?kind=eq.mtlog&id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+          CL.idx.delete(id);
+          toast('보관소에서 내렸어요 — 이 브라우저에만 남아요');
+        } catch (err) {
+          toast('보관소에서 내리지 못했어요: ' + err.message);
+        }
+      } else toast('세션 정보를 저장했어요');
+      renderList();
+      if (S.cur === id) renderLog();
+    };
+  }
 
- /* 로그 머리에 세션 정보 (저장한 HTML 에도) */
- const oBuild=buildLog;buildLog=function(log){const r=oBuild.apply(this,arguments);try{const m=log&&log.meta;if(m&&r&&r.html){const bits=[m.ep?`<b>${esc(m.ep)}화</b>`:'',m.date?esc(String(m.date).replace(/-/g,'.')):'',m.players?esc(m.players):'',(m.tags||[]).map(t=>'#'+esc(t)).join(' ')].filter(Boolean).join(' · ');
-   const add=`<div class="log-sess">${bits}${m.summary?`<p>${esc(m.summary)}</p>`:''}</div>`;r.html=r.html.replace('<div class="log-meta">',add+'<div class="log-meta">')}}catch(e){}return r};
- $('logcss').textContent+='\n.log-sess{margin:8px 0 2px;font-size:.88em;color:var(--muted)}.log-sess b{color:var(--fg)}.log-sess p{margin:6px 0 0;white-space:pre-wrap;color:var(--fg);opacity:.85}';
+  /* 로그 머리에 세션 정보 (저장한 HTML 에도) */
+  const oBuild = buildLog;
+  buildLog = function (log) {
+    const r = oBuild.apply(this, arguments);
+    try {
+      const m = log && log.meta;
+      if (m && r && r.html) {
+        const bits = [
+          m.ep ? `<b>${esc(m.ep)}화</b>` : '',
+          m.date ? esc(String(m.date).replace(/-/g, '.')) : '',
+          m.players ? esc(m.players) : '',
+          (m.tags || []).map(t => '#' + esc(t)).join(' ')
+        ]
+          .filter(Boolean)
+          .join(' · ');
+        const add = `<div class="log-sess">${bits}${m.summary ? `<p>${esc(m.summary)}</p>` : ''}</div>`;
+        r.html = r.html.replace('<div class="log-meta">', add + '<div class="log-meta">');
+      }
+    } catch (e) {}
+    return r;
+  };
+  $('logcss').textContent +=
+    '\n.log-sess{margin:8px 0 2px;font-size:.88em;color:var(--muted)}.log-sess b{color:var(--fg)}.log-sess p{margin:6px 0 0;white-space:pre-wrap;color:var(--fg);opacity:.85}';
 
- /* ---------- 보기: 화면에 맞춤 (좌우 여백 없이) ---------- */
- (()=>{const lw=$('sLw');if(!lw)return;lw.max='1600';const fld=lw.closest('.field');if(!fld)return;const lab=document.createElement('label');lab.className='hint';lab.style.cssText='display:flex;gap:6px;align-items:center;margin-top:4px';
-  lab.innerHTML='<input type="checkbox" id="mtFit"> 넓게 보기 (화면 폭에 맞춰 최대 1000px · 저장한 HTML 은 로그 폭을 따른다)';fld.after(lab);const on=!!ls.get('mtl-fit',true);$('mtFit').checked=on;document.documentElement.classList.toggle('fitlog',on);
-  $('mtFit').onchange=()=>{ls.set('mtl-fit',$('mtFit').checked);document.documentElement.classList.toggle('fitlog',$('mtFit').checked)}})();
+  /* ---------- 보기: 화면에 맞춤 (좌우 여백 없이) ---------- */
+  (() => {
+    const lw = $('sLw');
+    if (!lw) return;
+    lw.max = '1600';
+    const fld = lw.closest('.field');
+    if (!fld) return;
+    const lab = document.createElement('label');
+    lab.className = 'hint';
+    lab.style.cssText = 'display:flex;gap:6px;align-items:center;margin-top:4px';
+    lab.innerHTML = '<input type="checkbox" id="mtFit"> 넓게 보기 (화면 폭에 맞춰 최대 1000px · 저장한 HTML 은 로그 폭을 따른다)';
+    fld.after(lab);
+    const on = !!ls.get('mtl-fit', true);
+    $('mtFit').checked = on;
+    document.documentElement.classList.toggle('fitlog', on);
+    $('mtFit').onchange = () => {
+      ls.set('mtl-fit', $('mtFit').checked);
+      document.documentElement.classList.toggle('fitlog', $('mtFit').checked);
+    };
+  })();
 
- /* 10-26 망령: ?view=로그ID — 세션 노트 「기록」 탭에서 열기. 보관소 목록을 읽은 뒤 그 로그를 고른다(본문은 getLog 가 받아 온다). 주소에서는 지운다 */
- const VIEW_ID=new URLSearchParams(location.search).get('view');
- if(VIEW_ID){try{const u=new URL(location.href);u.searchParams.delete('view');history.replaceState(null,'',u.pathname+u.search+u.hash)}catch(e){}}
- const go=async()=>{await pull(true);if(VIEW_ID){if(!S.index.some(x=>x.id===VIEW_ID)){const c=CL.idx.get(VIEW_ID);if(c)S.index.push({id:VIEW_ID,title:c.title||'로그',count:c.count,assets:[],names:[],folder:null,created:c.created,upd:c.u,meta:c.meta,remote:1})}
-   if(S.index.some(x=>x.id===VIEW_ID)){await selectLog(VIEW_ID);const el=document.querySelector(`.li[data-fid="${CSS.escape(VIEW_ID)}"]`);if(el)el.scrollIntoView({block:'center'});const lg=document.getElementById('log')||document.querySelector('.log,#out,main');if(lg)lg.scrollIntoView({behavior:'smooth',block:'start'})}else toast('보관소에 그 로그가 없어요')}};
- (window.OM_LOG_IMPORT&&window.OM_LOG_IMPORT.boot?window.OM_LOG_IMPORT.boot:Promise.resolve()).then(()=>setTimeout(go,600));
- setInterval(()=>{checkTree();checkSpk()},4000);addEventListener('pagehide',()=>{for(const [id,t] of upT){clearTimeout(t);upload(id)}});
- /* ---------- 지문(*…*) 글꼴 · 색 · 기울임 (10-25 망령) — 저장한 HTML 에도 들어간다 ---------- */
- (()=>{const fg=$('fGm');const fld=fg&&fg.closest('.field');if(!fld)return;
-  const box=document.createElement('div');box.innerHTML=`<div class="field"><span>지문 글꼴</span><select id="fEm"></select><span></span></div>
+  /* 10-26 망령: ?view=로그ID — 세션 노트 「기록」 탭에서 열기. 보관소 목록을 읽은 뒤 그 로그를 고른다(본문은 getLog 가 받아 온다). 주소에서는 지운다 */
+  const VIEW_ID = new URLSearchParams(location.search).get('view');
+  if (VIEW_ID) {
+    try {
+      const u = new URL(location.href);
+      u.searchParams.delete('view');
+      history.replaceState(null, '', u.pathname + u.search + u.hash);
+    } catch (e) {}
+  }
+  const go = async () => {
+    await pull(true);
+    if (VIEW_ID) {
+      if (!S.index.some(x => x.id === VIEW_ID)) {
+        const c = CL.idx.get(VIEW_ID);
+        if (c)
+          S.index.push({
+            id: VIEW_ID,
+            title: c.title || '로그',
+            count: c.count,
+            assets: [],
+            names: [],
+            folder: null,
+            created: c.created,
+            upd: c.u,
+            meta: c.meta,
+            remote: 1
+          });
+      }
+      if (S.index.some(x => x.id === VIEW_ID)) {
+        await selectLog(VIEW_ID);
+        const el = document.querySelector(`.li[data-fid="${CSS.escape(VIEW_ID)}"]`);
+        if (el) el.scrollIntoView({ block: 'center' });
+        const lg = document.getElementById('log') || document.querySelector('.log,#out,main');
+        if (lg) lg.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else toast('보관소에 그 로그가 없어요');
+    }
+  };
+  (window.OM_LOG_IMPORT && window.OM_LOG_IMPORT.boot ? window.OM_LOG_IMPORT.boot : Promise.resolve()).then(() => setTimeout(go, 600));
+  setInterval(() => {
+    checkTree();
+    checkSpk();
+  }, 4000);
+  addEventListener('pagehide', () => {
+    for (const [id, t] of upT) {
+      clearTimeout(t);
+      upload(id);
+    }
+  });
+  /* ---------- 지문(*…*) 글꼴 · 색 · 기울임 (10-25 망령) — 저장한 HTML 에도 들어간다 ---------- */
+  (() => {
+    const fg = $('fGm');
+    const fld = fg && fg.closest('.field');
+    if (!fld) return;
+    const box = document.createElement('div');
+    box.innerHTML = `<div class="field"><span>지문 글꼴</span><select id="fEm"></select><span></span></div>
    <div class="field"><span>지문 모양</span><span class="mtem"><input type="color" id="cEm" title="지문 글자 색"><button type="button" class="btn" id="cEmX" title="지문 색을 기본(흐린 글자)으로">기본 색</button><label class="hint" style="display:flex;gap:5px;align-items:center"><input type="checkbox" id="iEm"> 기울임</label></span><span></span></div>`;
-  fld.after(...box.children);
-  $('fEm').innerHTML='<option value="">본문과 같게</option>'+Object.keys(FONTS).map(f=>`<option value="${f}" style="font-family:'${f}'">${f}</option>`).join('');
-  const sync=()=>{const st=S.style;$('fEm').value=st.fEmote||'';$('cEm').value=st.emoteC||'#8a8f9c';$('cEm').style.opacity=st.emoteC?1:.5;$('iEm').checked=st.emoteIt!==false};
-  const oSync=syncStyleUI;syncStyleUI=function(){const r=oSync.apply(this,arguments);try{sync()}catch(e){}return r};sync();
-  const set=p=>{setStyle(p);if(S.style.fEmote)ensureFont(S.style.fEmote)};
-  $('fEm').onchange=()=>set({fEmote:$('fEm').value||''});$('cEm').oninput=()=>set({emoteC:$('cEm').value});$('cEmX').onclick=()=>set({emoteC:''});$('iEm').onchange=()=>set({emoteIt:$('iEm').checked});
-  if(S.style.fEmote)ensureFont(S.style.fEmote)})();
- const oVars=styleVars;styleVars=function(){const st=S.style;let r=oVars.apply(this,arguments);r+=`;--f-emote:${st.fEmote?fontStack(st.fEmote):'inherit'};--emote-c:${st.emoteC||'var(--muted)'};--emote-st:${st.emoteIt===false?'normal':'italic'}`;return r};
- const oFL=fontLink;fontLink=function(list){return oFL.call(this,[...(list||[]),S.style.fEmote].filter(Boolean))};
- $('logcss').textContent+='\n.emote .line{font-family:var(--f-emote,inherit);color:var(--emote-c,var(--muted));font-style:var(--emote-st,italic)}\n.emote .line i,.emote .line em{font-style:inherit}';
- window.MTL_CLOUD={pull,upload,CL};
+    fld.after(...box.children);
+    $('fEm').innerHTML =
+      '<option value="">본문과 같게</option>' +
+      Object.keys(FONTS)
+        .map(f => `<option value="${f}" style="font-family:'${f}'">${f}</option>`)
+        .join('');
+    const sync = () => {
+      const st = S.style;
+      $('fEm').value = st.fEmote || '';
+      $('cEm').value = st.emoteC || '#8a8f9c';
+      $('cEm').style.opacity = st.emoteC ? 1 : 0.5;
+      $('iEm').checked = st.emoteIt !== false;
+    };
+    const oSync = syncStyleUI;
+    syncStyleUI = function () {
+      const r = oSync.apply(this, arguments);
+      try {
+        sync();
+      } catch (e) {}
+      return r;
+    };
+    sync();
+    const set = p => {
+      setStyle(p);
+      if (S.style.fEmote) ensureFont(S.style.fEmote);
+    };
+    $('fEm').onchange = () => set({ fEmote: $('fEm').value || '' });
+    $('cEm').oninput = () => set({ emoteC: $('cEm').value });
+    $('cEmX').onclick = () => set({ emoteC: '' });
+    $('iEm').onchange = () => set({ emoteIt: $('iEm').checked });
+    if (S.style.fEmote) ensureFont(S.style.fEmote);
+  })();
+  const oVars = styleVars;
+  styleVars = function () {
+    const st = S.style;
+    let r = oVars.apply(this, arguments);
+    r += `;--f-emote:${st.fEmote ? fontStack(st.fEmote) : 'inherit'};--emote-c:${st.emoteC || 'var(--muted)'};--emote-st:${st.emoteIt === false ? 'normal' : 'italic'}`;
+    return r;
+  };
+  const oFL = fontLink;
+  fontLink = function (list) {
+    return oFL.call(this, [...(list || []), S.style.fEmote].filter(Boolean));
+  };
+  $('logcss').textContent +=
+    '\n.emote .line{font-family:var(--f-emote,inherit);color:var(--emote-c,var(--muted));font-style:var(--emote-st,italic)}\n.emote .line i,.emote .line em{font-style:inherit}';
+  window.MTL_CLOUD = { pull, upload, CL };
 })();
 </script>
 <!-- ===== 캠페인 로그 보관소 끝 ===== -->

@@ -74,84 +74,337 @@ html:not(.embed) .log{border-radius:16px;box-shadow:0 1px 2px rgb(0 0 0 / .04),0
 }
 </style>
 <script>
-(()=>{
- const D=document,$i=id=>D.getElementById(id);const bar=D.querySelector('.main>.bar'),app=$i('app'),logEl=$i('log');if(!bar||!logEl)return;
- const embed=D.documentElement.classList.contains('embed');
- const el=(tag,attrs,html)=>{const e=D.createElement(tag);for(const k in attrs||{})e.setAttribute(k,attrs[k]);if(html!=null)e.innerHTML=html;return e};
+(() => {
+  const D = document,
+    $i = id => D.getElementById(id);
+  const bar = D.querySelector('.main>.bar'),
+    app = $i('app'),
+    logEl = $i('log');
+  if (!bar || !logEl) return;
+  const embed = D.documentElement.classList.contains('embed');
+  const el = (tag, attrs, html) => {
+    const e = D.createElement(tag);
+    for (const k in attrs || {}) e.setAttribute(k, attrs[k]);
+    if (html != null) e.innerHTML = html;
+    return e;
+  };
 
- /* 제목: 맵툴만이 아니라 오레마스 로그도 정리한다 */
- {const h=D.querySelector('.brand h1'),s=D.querySelector('.brand small');if(h)h.textContent='로그 정리기';if(s)s.textContent='맵툴 · 오레마스';try{D.title='로그 정리기 — 맵툴 · 오레마스'}catch(e){}}
+  /* 제목: 맵툴만이 아니라 오레마스 로그도 정리한다 */
+  {
+    const h = D.querySelector('.brand h1'),
+      s = D.querySelector('.brand small');
+    if (h) h.textContent = '로그 정리기';
+    if (s) s.textContent = '맵툴 · 오레마스';
+    try {
+      D.title = '로그 정리기 — 맵툴 · 오레마스';
+    } catch (e) {}
+  }
 
- /* ================= 표시 옵션: 배틀 카드 간단히 ================= */
- $('logcss').textContent+='\n.bc-mini .bc .bc-l.dim,.bc-mini .bc .bc-eff,.bc-mini .bc-sc .bc-l{display:none}';
- let bcMini=!!ls.get('mtl-optBcMini',false);
- {const tg=D.querySelector('#optCast')&&D.querySelector('#optCast').closest('.toggles');
-  if(tg){const lb=el('label',{title:'효과 본문 · 계산 내역을 접고 제목 · HP 막대만'},'<input type="checkbox" id="optBcMini"> 배틀 카드 간단히');tg.appendChild(lb);const c=lb.firstChild;c.checked=bcMini;c.onchange=()=>{bcMini=c.checked;ls.set('mtl-optBcMini',bcMini);renderLog()}}}
- {const prev=buildLog;buildLog=function(){const r=prev.apply(this,arguments);if(r&&bcMini)r.cls=(r.cls||'log')+' bc-mini';return r}}
+  /* ================= 표시 옵션: 배틀 카드 간단히 ================= */
+  $('logcss').textContent += '\n.bc-mini .bc .bc-l.dim,.bc-mini .bc .bc-eff,.bc-mini .bc-sc .bc-l{display:none}';
+  let bcMini = !!ls.get('mtl-optBcMini', false);
+  {
+    const tg = D.querySelector('#optCast') && D.querySelector('#optCast').closest('.toggles');
+    if (tg) {
+      const lb = el('label', { title: '효과 본문 · 계산 내역을 접고 제목 · HP 막대만' }, '<input type="checkbox" id="optBcMini"> 배틀 카드 간단히');
+      tg.appendChild(lb);
+      const c = lb.firstChild;
+      c.checked = bcMini;
+      c.onchange = () => {
+        bcMini = c.checked;
+        ls.set('mtl-optBcMini', bcMini);
+        renderLog();
+      };
+    }
+  }
+  {
+    const prev = buildLog;
+    buildLog = function () {
+      const r = prev.apply(this, arguments);
+      if (r && bcMini) r.cls = (r.cls || 'log') + ' bc-mini';
+      return r;
+    };
+  }
 
- /* ================= 도구 줄 ================= */
- const sp=bar.querySelector('.sp');
- const railBtn=el('button',{class:'btn ux-rail',type:'button','aria-expanded':'false'},'도구');bar.insertBefore(railBtn,bar.firstChild);
- const find=el('div',{class:'ux-find',role:'search'},'<input type="search" id="uxQ" placeholder="로그에서 찾기 ( / )" autocomplete="off" spellcheck="false" aria-label="로그에서 찾기"><span class="cnt" id="uxCnt"></span><button type="button" id="uxPrev" title="이전 (Shift+Enter)" aria-label="이전">▲</button><button type="button" id="uxNext" title="다음 (Enter)" aria-label="다음">▼</button>');
- bar.insertBefore(find,sp||null);
- const statBtn=el('button',{class:'btn',type:'button',id:'uxStat',title:'화자별 대사 수 · 주사위 · 배틀 요약'},'통계');
- const printBtn=el('button',{class:'btn',type:'button',id:'uxPrint',title:'지금 보이는 모양 그대로 인쇄하거나 PDF 로 저장'},'인쇄 · PDF');
- const anchor=$i('copyText');bar.insertBefore(statBtn,anchor);bar.insertBefore(printBtn,anchor);
+  /* ================= 도구 줄 ================= */
+  const sp = bar.querySelector('.sp');
+  const railBtn = el('button', { class: 'btn ux-rail', type: 'button', 'aria-expanded': 'false' }, '도구');
+  bar.insertBefore(railBtn, bar.firstChild);
+  const find = el(
+    'div',
+    { class: 'ux-find', role: 'search' },
+    '<input type="search" id="uxQ" placeholder="로그에서 찾기 ( / )" autocomplete="off" spellcheck="false" aria-label="로그에서 찾기"><span class="cnt" id="uxCnt"></span><button type="button" id="uxPrev" title="이전 (Shift+Enter)" aria-label="이전">▲</button><button type="button" id="uxNext" title="다음 (Enter)" aria-label="다음">▼</button>'
+  );
+  bar.insertBefore(find, sp || null);
+  const statBtn = el('button', { class: 'btn', type: 'button', id: 'uxStat', title: '화자별 대사 수 · 주사위 · 배틀 요약' }, '통계');
+  const printBtn = el(
+    'button',
+    { class: 'btn', type: 'button', id: 'uxPrint', title: '지금 보이는 모양 그대로 인쇄하거나 PDF 로 저장' },
+    '인쇄 · PDF'
+  );
+  const anchor = $i('copyText');
+  bar.insertBefore(statBtn, anchor);
+  bar.insertBefore(printBtn, anchor);
 
- /* 휴대폰: 로그가 먼저 보이게 왼쪽 도구는 접어 둔다. 로그가 하나도 없으면 펴 둔다 */
- const mq=matchMedia('(max-width:900px)');let railOff=ls.get('mtl-railOff',null);
- const railSync=()=>{const off=mq.matches&&(railOff==null?!!(S.index&&S.index.length):railOff);app.classList.toggle('rail-off',off);railBtn.textContent=off?'도구 열기':'도구 접기';railBtn.setAttribute('aria-expanded',String(!off))};
- railBtn.onclick=()=>{railOff=!app.classList.contains('rail-off');ls.set('mtl-railOff',railOff);railSync();if(!railOff)D.querySelector('.rail').scrollIntoView({block:'start'})};
- mq.addEventListener('change',railSync);
+  /* 휴대폰: 로그가 먼저 보이게 왼쪽 도구는 접어 둔다. 로그가 하나도 없으면 펴 둔다 */
+  const mq = matchMedia('(max-width:900px)');
+  let railOff = ls.get('mtl-railOff', null);
+  const railSync = () => {
+    const off = mq.matches && (railOff == null ? !!(S.index && S.index.length) : railOff);
+    app.classList.toggle('rail-off', off);
+    railBtn.textContent = off ? '도구 열기' : '도구 접기';
+    railBtn.setAttribute('aria-expanded', String(!off));
+  };
+  railBtn.onclick = () => {
+    railOff = !app.classList.contains('rail-off');
+    ls.set('mtl-railOff', railOff);
+    railSync();
+    if (!railOff) D.querySelector('.rail').scrollIntoView({ block: 'start' });
+  };
+  mq.addEventListener('change', railSync);
 
- /* ================= 찾기 ================= */
- const q=$i('uxQ'),cnt=$i('uxCnt');let hits=[],cur=-1;
- const clear=()=>{logEl.querySelectorAll('mark.hit').forEach(m=>{const p=m.parentNode;p.replaceChild(D.createTextNode(m.textContent),m);p.normalize()});hits=[];cur=-1};
- function mark(){clear();const s=q.value.trim();if(!s||S.edit){cnt.textContent=S.edit&&s?'편집 중':'';return}
-  const low=s.toLowerCase();const root=logEl.querySelector('.entries');if(!root){cnt.textContent='';return}
-  const tw=D.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentNode.closest('.tools,.bgm-play,script,style')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
-  const nodes=[];for(let n;(n=tw.nextNode());)if(n.nodeValue.toLowerCase().includes(low))nodes.push(n);
-  for(const n of nodes){const v=n.nodeValue,lv=v.toLowerCase();const fr=D.createDocumentFragment();let i=0,j;
-   while((j=lv.indexOf(low,i))>=0){if(j>i)fr.appendChild(D.createTextNode(v.slice(i,j)));const m=D.createElement('mark');m.className='hit';m.textContent=v.slice(j,j+s.length);fr.appendChild(m);hits.push(m);i=j+s.length;if(hits.length>=5000)break}
-   if(i<v.length)fr.appendChild(D.createTextNode(v.slice(i)));n.parentNode.replaceChild(fr,n);if(hits.length>=5000)break}
-  cnt.textContent=hits.length?`0 / ${hits.length}${hits.length>=5000?'+':''}`:'없음'}
- function go(d){if(!hits.length)return;if(cur>=0&&hits[cur])hits[cur].classList.remove('cur');cur=(cur+d+hits.length)%hits.length;const m=hits[cur];m.classList.add('cur');
-  const dt=m.closest('details:not([open])');if(dt)dt.open=true;m.scrollIntoView({block:'center',behavior:'smooth'});cnt.textContent=`${cur+1} / ${hits.length}`}
- let tm=0;q.addEventListener('input',()=>{clearTimeout(tm);tm=setTimeout(()=>{mark();if(hits.length){cur=-1;go(1)}},180)});
- q.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();go(e.shiftKey?-1:1)}else if(e.key==='Escape'){q.value='';mark();q.blur()}});
- $i('uxPrev').onclick=()=>go(-1);$i('uxNext').onclick=()=>go(1);
- D.addEventListener('keydown',e=>{if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.target.closest('input,textarea,select,[contenteditable]')){e.preventDefault();q.focus();q.select()}});
- {const prev=renderLog;renderLog=function(){const r=prev.apply(this,arguments);hits=[];cur=-1;try{if(q.value.trim())mark();else cnt.textContent='';railSync()}catch(e){}return r}}
+  /* ================= 찾기 ================= */
+  const q = $i('uxQ'),
+    cnt = $i('uxCnt');
+  let hits = [],
+    cur = -1;
+  const clear = () => {
+    logEl.querySelectorAll('mark.hit').forEach(m => {
+      const p = m.parentNode;
+      p.replaceChild(D.createTextNode(m.textContent), m);
+      p.normalize();
+    });
+    hits = [];
+    cur = -1;
+  };
+  function mark() {
+    clear();
+    const s = q.value.trim();
+    if (!s || S.edit) {
+      cnt.textContent = S.edit && s ? '편집 중' : '';
+      return;
+    }
+    const low = s.toLowerCase();
+    const root = logEl.querySelector('.entries');
+    if (!root) {
+      cnt.textContent = '';
+      return;
+    }
+    const tw = D.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: n => (n.parentNode.closest('.tools,.bgm-play,script,style') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT)
+    });
+    const nodes = [];
+    for (let n; (n = tw.nextNode());) if (n.nodeValue.toLowerCase().includes(low)) nodes.push(n);
+    for (const n of nodes) {
+      const v = n.nodeValue,
+        lv = v.toLowerCase();
+      const fr = D.createDocumentFragment();
+      let i = 0,
+        j;
+      while ((j = lv.indexOf(low, i)) >= 0) {
+        if (j > i) fr.appendChild(D.createTextNode(v.slice(i, j)));
+        const m = D.createElement('mark');
+        m.className = 'hit';
+        m.textContent = v.slice(j, j + s.length);
+        fr.appendChild(m);
+        hits.push(m);
+        i = j + s.length;
+        if (hits.length >= 5000) break;
+      }
+      if (i < v.length) fr.appendChild(D.createTextNode(v.slice(i)));
+      n.parentNode.replaceChild(fr, n);
+      if (hits.length >= 5000) break;
+    }
+    cnt.textContent = hits.length ? `0 / ${hits.length}${hits.length >= 5000 ? '+' : ''}` : '없음';
+  }
+  function go(d) {
+    if (!hits.length) return;
+    if (cur >= 0 && hits[cur]) hits[cur].classList.remove('cur');
+    cur = (cur + d + hits.length) % hits.length;
+    const m = hits[cur];
+    m.classList.add('cur');
+    const dt = m.closest('details:not([open])');
+    if (dt) dt.open = true;
+    m.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    cnt.textContent = `${cur + 1} / ${hits.length}`;
+  }
+  let tm = 0;
+  q.addEventListener('input', () => {
+    clearTimeout(tm);
+    tm = setTimeout(() => {
+      mark();
+      if (hits.length) {
+        cur = -1;
+        go(1);
+      }
+    }, 180);
+  });
+  q.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.isComposing) {
+      e.preventDefault();
+      go(e.shiftKey ? -1 : 1);
+    } else if (e.key === 'Escape') {
+      q.value = '';
+      mark();
+      q.blur();
+    }
+  });
+  $i('uxPrev').onclick = () => go(-1);
+  $i('uxNext').onclick = () => go(1);
+  D.addEventListener('keydown', e => {
+    if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest('input,textarea,select,[contenteditable]')) {
+      e.preventDefault();
+      q.focus();
+      q.select();
+    }
+  });
+  {
+    const prev = renderLog;
+    renderLog = function () {
+      const r = prev.apply(this, arguments);
+      hits = [];
+      cur = -1;
+      try {
+        if (q.value.trim()) mark();
+        else cnt.textContent = '';
+        railSync();
+      } catch (e) {}
+      return r;
+    };
+  }
 
- /* ================= 읽는 위치 · 맨 위/아래 ================= */
- const prog=el('div',{class:'ux-prog','aria-hidden':'true'});const jump=el('div',{class:'ux-jump'},'<button type="button" id="uxTop" title="맨 위로" aria-label="맨 위로">↑</button><button type="button" id="uxBot" title="맨 아래로" aria-label="맨 아래로">↓</button>');
- D.body.appendChild(prog);D.body.appendChild(jump);
- const se=()=>D.scrollingElement||D.documentElement;
- let raf=0;const onScroll=()=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=0;const s=se();const max=s.scrollHeight-innerHeight;prog.style.width=max>40?Math.min(100,Math.max(0,s.scrollTop/max*100))+'%':'0';jump.classList.toggle('on',max>innerHeight*1.5&&s.scrollTop>300)})};
- addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onScroll,{passive:true});
- $i('uxTop').onclick=()=>scrollTo({top:0,behavior:'smooth'});$i('uxBot').onclick=()=>scrollTo({top:se().scrollHeight,behavior:'smooth'});
+  /* ================= 읽는 위치 · 맨 위/아래 ================= */
+  const prog = el('div', { class: 'ux-prog', 'aria-hidden': 'true' });
+  const jump = el(
+    'div',
+    { class: 'ux-jump' },
+    '<button type="button" id="uxTop" title="맨 위로" aria-label="맨 위로">↑</button><button type="button" id="uxBot" title="맨 아래로" aria-label="맨 아래로">↓</button>'
+  );
+  D.body.appendChild(prog);
+  D.body.appendChild(jump);
+  const se = () => D.scrollingElement || D.documentElement;
+  let raf = 0;
+  const onScroll = () => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      const s = se();
+      const max = s.scrollHeight - innerHeight;
+      prog.style.width = max > 40 ? Math.min(100, Math.max(0, (s.scrollTop / max) * 100)) + '%' : '0';
+      jump.classList.toggle('on', max > innerHeight * 1.5 && s.scrollTop > 300);
+    });
+  };
+  addEventListener('scroll', onScroll, { passive: true });
+  addEventListener('resize', onScroll, { passive: true });
+  $i('uxTop').onclick = () => scrollTo({ top: 0, behavior: 'smooth' });
+  $i('uxBot').onclick = () => scrollTo({ top: se().scrollHeight, behavior: 'smooth' });
 
- /* ================= 통계 ================= */
- function stats(){const l=curLog();if(!l){toast('먼저 로그를 골라 주세요');return}
-  const by=new Map();let dice=0,cards=0,say=0,emo=0,ooc=0,wh=0;const kinds={};const txt=window.OM_PLAIN||(tk=>tk.map(t=>t.t==='text'?t.v:'').join(''));
-  for(const m of l.messages){if(m.type==='bgm')continue;for(const t of m.tokens||[]){if(t.t==='roll')dice++;if(t.t==='card'){cards++;const k=t.k==='gen'?(t.tag||'기타'):({hp:'HP 변화',sc:'상태',fc:'필드 · 설치물',ord:'행동 순서',rv:'지시 공개',ph:'페이즈',now:'차례',sk:t.tag||'판정'}[t.k]||'기타');kinds[k]=(kinds[k]||0)+1;if(t.k==='sk')dice++}}
-   if(m.type==='say')say++;else if(m.type==='emote')emo++;else if(m.type==='ooc')ooc++;else if(m.type==='whisper')wh++;
-   if(!m.name||m.type==='sys')continue;const c=by.get(m.name)||{n:0,ch:0};c.n++;c.ch+=txt((m.tokens||[]).filter(t=>t.t!=='card')).replace(/\s+/g,'').length;by.set(m.name,c)}
-  const rows=[...by].sort((a,b)=>b[1].ch-a[1].ch);const mx=Math.max(1,...rows.map(r=>r[1].ch));const total=rows.reduce((n,r)=>n+r[1].ch,0);
-  const ks=Object.entries(kinds).sort((a,b)=>b[1]-a[1]);const kmx=Math.max(1,...ks.map(k=>k[1]));
-  const kpi=(v,t)=>`<div class="ux-kpi"><b>${esc(typeof v==='number'?v.toLocaleString():v)}</b><span>${esc(t)}</span></div>`;
-  const dim=el('div',{class:'ux-dim',role:'dialog','aria-modal':'true','aria-label':'로그 통계'},`<div class="ux-box"><div class="hd"><h3>${esc(l.title)}</h3><button class="btn" type="button" data-x>닫기</button></div>
-<div class="ux-kpis">${kpi(say,'대사')}${kpi(emo,'지문')}${kpi(ooc,'잡담')}${wh?kpi(wh,'귓속말'):''}${kpi(dice,'주사위 · 판정')}${cards?kpi(cards,'배틀 카드'):''}${kpi(total,'글자 (공백 빼고)')}</div>
-<h4>화자별 분량 (글자 수)</h4><div class="ux-rows">${rows.map(([n,c])=>`<div class="ux-r" style="--h:${cfg(n).h}"><span class="nm" title="${esc(cfg(n).name)}">${esc(cfg(n).name)}</span><span class="br"><i style="width:${Math.max(2,c.ch/mx*100)}%"></i></span><span class="nv">${c.ch.toLocaleString()}자 · ${c.n}줄</span></div>`).join('')||'<p class="hint">화자가 없어요.</p>'}</div>
-${ks.length?`<h4>배틀 카드 종류</h4><div class="ux-rows">${ks.slice(0,14).map(([k,n])=>`<div class="ux-r" style="--h:228"><span class="nm" style="color:var(--fg)">${esc(k)}</span><span class="br"><i style="width:${Math.max(2,n/kmx*100)}%;background:var(--accent)"></i></span><span class="nv">${n}</span></div>`).join('')}</div>`:''}</div>`);
-  const close=()=>{dim.remove();D.removeEventListener('keydown',onKey)};const onKey=e=>{if(e.key==='Escape')close()};
-  dim.onclick=e=>{if(e.target===dim||e.target.closest('[data-x]'))close()};D.addEventListener('keydown',onKey);D.body.appendChild(dim);dim.querySelector('[data-x]').focus()}
- statBtn.onclick=stats;
+  /* ================= 통계 ================= */
+  function stats() {
+    const l = curLog();
+    if (!l) {
+      toast('먼저 로그를 골라 주세요');
+      return;
+    }
+    const by = new Map();
+    let dice = 0,
+      cards = 0,
+      say = 0,
+      emo = 0,
+      ooc = 0,
+      wh = 0;
+    const kinds = {};
+    const txt = window.OM_PLAIN || (tk => tk.map(t => (t.t === 'text' ? t.v : '')).join(''));
+    for (const m of l.messages) {
+      if (m.type === 'bgm') continue;
+      for (const t of m.tokens || []) {
+        if (t.t === 'roll') dice++;
+        if (t.t === 'card') {
+          cards++;
+          const k =
+            t.k === 'gen'
+              ? t.tag || '기타'
+              : { hp: 'HP 변화', sc: '상태', fc: '필드 · 설치물', ord: '행동 순서', rv: '지시 공개', ph: '페이즈', now: '차례', sk: t.tag || '판정' }[
+                  t.k
+                ] || '기타';
+          kinds[k] = (kinds[k] || 0) + 1;
+          if (t.k === 'sk') dice++;
+        }
+      }
+      if (m.type === 'say') say++;
+      else if (m.type === 'emote') emo++;
+      else if (m.type === 'ooc') ooc++;
+      else if (m.type === 'whisper') wh++;
+      if (!m.name || m.type === 'sys') continue;
+      const c = by.get(m.name) || { n: 0, ch: 0 };
+      c.n++;
+      c.ch += txt((m.tokens || []).filter(t => t.t !== 'card')).replace(/\s+/g, '').length;
+      by.set(m.name, c);
+    }
+    const rows = [...by].sort((a, b) => b[1].ch - a[1].ch);
+    const mx = Math.max(1, ...rows.map(r => r[1].ch));
+    const total = rows.reduce((n, r) => n + r[1].ch, 0);
+    const ks = Object.entries(kinds).sort((a, b) => b[1] - a[1]);
+    const kmx = Math.max(1, ...ks.map(k => k[1]));
+    const kpi = (v, t) => `<div class="ux-kpi"><b>${esc(typeof v === 'number' ? v.toLocaleString() : v)}</b><span>${esc(t)}</span></div>`;
+    const dim = el(
+      'div',
+      { class: 'ux-dim', role: 'dialog', 'aria-modal': 'true', 'aria-label': '로그 통계' },
+      `<div class="ux-box"><div class="hd"><h3>${esc(l.title)}</h3><button class="btn" type="button" data-x>닫기</button></div>
+<div class="ux-kpis">${kpi(say, '대사')}${kpi(emo, '지문')}${kpi(ooc, '잡담')}${wh ? kpi(wh, '귓속말') : ''}${kpi(dice, '주사위 · 판정')}${cards ? kpi(cards, '배틀 카드') : ''}${kpi(total, '글자 (공백 빼고)')}</div>
+<h4>화자별 분량 (글자 수)</h4><div class="ux-rows">${rows.map(([n, c]) => `<div class="ux-r" style="--h:${cfg(n).h}"><span class="nm" title="${esc(cfg(n).name)}">${esc(cfg(n).name)}</span><span class="br"><i style="width:${Math.max(2, (c.ch / mx) * 100)}%"></i></span><span class="nv">${c.ch.toLocaleString()}자 · ${c.n}줄</span></div>`).join('') || '<p class="hint">화자가 없어요.</p>'}</div>
+${
+  ks.length
+    ? `<h4>배틀 카드 종류</h4><div class="ux-rows">${ks
+        .slice(0, 14)
+        .map(
+          ([k, n]) =>
+            `<div class="ux-r" style="--h:228"><span class="nm" style="color:var(--fg)">${esc(k)}</span><span class="br"><i style="width:${Math.max(2, (n / kmx) * 100)}%;background:var(--accent)"></i></span><span class="nv">${n}</span></div>`
+        )
+        .join('')}</div>`
+    : ''
+}</div>`
+    );
+    const close = () => {
+      dim.remove();
+      D.removeEventListener('keydown', onKey);
+    };
+    const onKey = e => {
+      if (e.key === 'Escape') close();
+    };
+    dim.onclick = e => {
+      if (e.target === dim || e.target.closest('[data-x]')) close();
+    };
+    D.addEventListener('keydown', onKey);
+    D.body.appendChild(dim);
+    dim.querySelector('[data-x]').focus();
+  }
+  statBtn.onclick = stats;
 
- /* ================= 인쇄 / PDF ================= */
- printBtn.onclick=()=>{if(!curLog()){toast('먼저 로그를 골라 주세요');return}if(S.edit){toast('편집 모드를 끝내고 눌러 주세요');return}const t=D.title;try{D.title=curLog().title}catch(e){}const back=()=>{D.title=t;removeEventListener('afterprint',back)};addEventListener('afterprint',back);print()};
+  /* ================= 인쇄 / PDF ================= */
+  printBtn.onclick = () => {
+    if (!curLog()) {
+      toast('먼저 로그를 골라 주세요');
+      return;
+    }
+    if (S.edit) {
+      toast('편집 모드를 끝내고 눌러 주세요');
+      return;
+    }
+    const t = D.title;
+    try {
+      D.title = curLog().title;
+    } catch (e) {}
+    const back = () => {
+      D.title = t;
+      removeEventListener('afterprint', back);
+    };
+    addEventListener('afterprint', back);
+    print();
+  };
 
- railSync();onScroll();
+  railSync();
+  onScroll();
 })();
 </script>
 <!-- ===== 화면 다듬기 끝 ===== -->
