@@ -115,6 +115,8 @@ window.OM_MOVEAUTO=(()=>{
    /* 11-18 망령 「물마름 — 「타입 : 물」에게 1/2의 드레인」 (맥 콘 글린 『환상을 마시다』 = 「타입 : 페어리」에게도): 그 타입을 맞힌 몫만 드레인 */
    m=s.match(/^「타입\s*:\s*([^」]+)」에게\s*(\d+\/\d+)의 드레인$/);if(m){drain=m[2];const tys=m[1].split(/[,·、\/]/).map(t=>t.trim()).filter(Boolean).map(t=>FX()&&FX().TYPE_KO?Object.keys(FX().TYPE_KO).find(k=>FX().TYPE_KO[k]===t):'').filter(Boolean);if(tys.length)FL.drainVs=tys;continue}
    m=s.match(/^(?:자신의\s*)?「HP」를\s*(\d+\/\d+)만큼 회복한다$/);if(m){groups.push({n:10,label:'HP '+m[1]+' 회복',who:'once',ops:[{k:'heal',tgt:'self',value:m[1]}],when:'use'});continue}
+   /* 11-26 376 생명의물방울 「「HP」를 1/4만큼 회복시킨다」(범위 : 아군 전체) — 예전엔 손으로. 범위가 아군 전체인 기술만 (다른 「회복시킨다」 꼴은 대상이 달라 그대로 손) */
+   m=s.match(/^「HP」를\s*(\d+\/\d+)만큼 회복시킨다$/);if(m&&/아군\s*전체/.test(String(mv.range||''))){groups.push({n:10,label:'아군 전체 HP '+m[1]+' 회복',who:'once',ops:[{k:'heal',tgt:'ally',value:m[1]}],when:'use'});continue}
    if(/^반드시 급소에 맞는다$/.test(s)){critSure=true;continue}
    {const once=[];const fr=fieldSent(s,mv,op=>once.push(op),FL);if(fr){if(once.length)groups.push({n:10,label:s,who:'once',ops:once,when:'hit'});if(fr==='partial')notes.push(s);continue}}
    if(/^사용 후 「빈사」 상태가 된다$/.test(s)){selfFaint=true;continue}
