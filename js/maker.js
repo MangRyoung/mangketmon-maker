@@ -765,6 +765,7 @@ function lv(t, p) {
 function lvBonusList(t, p) {
   const out = [];
   if (!t || !p) return out;
+  out.push(...ruleLvList(t, p)); /* 폴더 규칙이 주는 레벨 (03_misag RULE_LV — 몽환 세계 『에이스』 +10) */
   const tys = [p.t1, p.t2, p.t3].filter(x => x && x !== '-');
   const srcs = [];
   for (const q of t.pokemon || []) {
@@ -2852,6 +2853,31 @@ const PT_OFF_KEY = { pride: 'lead', disc: 'disc' };
 const ptItemOff = (t, a) => !!PT_OFF_KEY[a] && ruleOff(t, PT_OFF_KEY[a]);
 const mongRank = t => RV[strip(((t && t.ranks) || {})['육성'])] ?? 0;
 const mongGye = t => (mongRank(t) >= RV.A ? 4 : 3);
+/* 11-26 17:22 망령 「몽환 방에선 에이스는 레벨 기본적으로 +10. 단 분배레벨로 더 올릴려면 경고」
+   폴더 규칙이 주는 레벨 보너스 표 — 규칙마다 { role: 역할 칸 이름, n: 더할 레벨 }. lvBonusList 가 이 줄을 같이 싣는다
+   (공유 저장 때 lvUp 으로 나가 웹툴도 같은 레벨이 된다). 그 포켓몬에 분배레벨을 더 주면 ruleLvWarns 가 경고 */
+const RULE_LV = { mong: [{ role: '에이스', n: 10 }] };
+const ruleLvRows = (t, p) => {
+  const role = String((p && roleOf(p)) || '').replace(/[『』\s]/g, '');
+  return (RULE_LV[tRule(t)] || []).filter(r => r.role === role);
+};
+const ruleLvList = (t, p) => ruleLvRows(t, p).map(r => ({ n: r.n, by: `${F_RULE[tRule(t)].lab} · 『${r.role}』`, rule: 1 }));
+/* 레벨 칸 꼬리표: 【준비】 글에서 온 것 · 폴더 규칙에서 온 것 */
+const lvBonusLabel = L => [L.some(x => !x.rule) ? '【준비】' : '', L.some(x => x.rule) ? '규칙' : ''].filter(Boolean).join(' · ');
+function ruleLvWarns(t) {
+  const out = [];
+  for (const p of (t && t.pokemon) || []) {
+    const dist = Math.round(+p.dist) || 0;
+    for (const r of ruleLvRows(t, p))
+      if (dist > 0)
+        out.push({
+          who: p.name || '이름 없음',
+          pid: p.id,
+          t: `『${r.role}』는 ${F_RULE[tRule(t)].lab}으로 이미 「LV : +${r.n}」 — 분배레벨 +${dist} 로 더 올렸다`
+        });
+  }
+  return out;
+}
 /* 시트 템플릿에 얹는 줄 — 종족 포텐셜 ③(전원) · ④(육성 A 이상) · 약점회피 · 약점내성(육성 B 이상) */
 function mongRows(t) {
   const L = [{ kind: '04.3. 종족', name: '종족 포텐셜③', tg: '전원' }];
@@ -3598,6 +3624,7 @@ function trainerWarns(t) {
         if (g > c)
           out.push({ who: p.name || '이름 없음', pid: p.id, t: `『계제』(종족 포텐셜) ${g} / ${c}개 — 몽환 세계는 전원 3계제 · 육성 A 이상 4계제` });
       }
+    out.push(...ruleLvWarns(t));
     for (const x of ptChecks(t)) out.push({ who: '', t: x });
     if (typeof deckChecks === 'function') for (const x of deckChecks(t)) out.push({ who: '', t: x });
     if (typeof sk3Checks === 'function') for (const x of sk3Checks(t)) out.push({ who: '', t: x });
@@ -13157,7 +13184,7 @@ function baseTab(t, ti, p, pi, P) {
    <label class="lbl" for="dist-${id}">레벨 <span class="faint">기본 ${baseLevel(t.ranks['육성'])} + 분배${(() => {
      const L = lvBonusList(t, p);
      return L.length
-       ? ` <span title="${esc(L.map(x => x.by + ' ' + (x.n > 0 ? '+' : '') + x.n).join(' · '))}">+ 【준비】 ${L.reduce((a, x) => a + x.n, 0)}</span>`
+       ? ` <span title="${esc(L.map(x => x.by + ' ' + (x.n > 0 ? '+' : '') + x.n).join(' · '))}">+ ${lvBonusLabel(L)} ${L.reduce((a, x) => a + x.n, 0)}</span>`
        : '';
    })()}</span><span class="row"><b class="num" style="font-size:15px">${lv(t, p)}</b>${inp(P + '.dist', p.dist, { id: 'dist-' + id, w: '56px', num: 1 })}</span></label>
    ${

@@ -43,6 +43,7 @@ function lv(t, p) {
 function lvBonusList(t, p) {
   const out = [];
   if (!t || !p) return out;
+  out.push(...ruleLvList(t, p)); /* 폴더 규칙이 주는 레벨 (03_misag RULE_LV — 몽환 세계 『에이스』 +10) */
   const tys = [p.t1, p.t2, p.t3].filter(x => x && x !== '-');
   const srcs = [];
   for (const q of t.pokemon || []) {

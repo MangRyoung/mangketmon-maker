@@ -3069,7 +3069,7 @@ function baseTab(t, ti, p, pi, P) {
    <label class="lbl" for="dist-${id}">레벨 <span class="faint">기본 ${baseLevel(t.ranks['육성'])} + 분배${(() => {
      const L = lvBonusList(t, p);
      return L.length
-       ? ` <span title="${esc(L.map(x => x.by + ' ' + (x.n > 0 ? '+' : '') + x.n).join(' · '))}">+ 【준비】 ${L.reduce((a, x) => a + x.n, 0)}</span>`
+       ? ` <span title="${esc(L.map(x => x.by + ' ' + (x.n > 0 ? '+' : '') + x.n).join(' · '))}">+ ${lvBonusLabel(L)} ${L.reduce((a, x) => a + x.n, 0)}</span>`
        : '';
    })()}</span><span class="row"><b class="num" style="font-size:15px">${lv(t, p)}</b>${inp(P + '.dist', p.dist, { id: 'dist-' + id, w: '56px', num: 1 })}</span></label>
    ${
