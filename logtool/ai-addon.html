@@ -95,15 +95,17 @@ async function gemini(system,user,opt){
 }
 
 /* ---------- 로그 → 글 줄 ---------- */
-function logLines(l){
-  const o=opts();
-  return l.messages.filter(m=>m.type!=='bgm'&&!(m.name&&cfg(m.name).hide)&&m.type!=='ooc'&&!(m.type==='whisper'&&!o.optWhisper)).map(m=>{
-    const n=m.name?cfg(m.name).name:'';const t=(window.OM_PLAIN||plain)(m.tokens).replace(/\s+\n/g,'\n').trim();
-    if(!t)return'';
-    if(m.type==='emote')return('* '+n+' '+t).trim();
-    if(m.type==='whisper')return n+' (귓속말'+(m.to?' → '+cfg(m.to).name:'')+'): '+t;
-    return n?n+': '+t:'[지문] '+t;
-  }).filter(Boolean);
+function logLines(l,ill){
+  const o=opts();const out=[];const tail=x=>out.push('[삽화 '+x.k+'] '+(x.caption||''));
+  for(const m of l.messages){
+    if(m.ill){const x=ill&&ill.byMsg.get(m.id);if(x)tail(x);continue}   /* 로그에 넣은 삽화: 「[그림]」 글자로 보내지 않고 자리 표시만 */
+    if(!(m.type==='bgm'||(m.name&&cfg(m.name).hide)||m.type==='ooc'||(m.type==='whisper'&&!o.optWhisper))){
+      const n=m.name?cfg(m.name).name:'';const t=(window.OM_PLAIN||plain)(m.tokens).replace(/\s+\n/g,'\n').trim();
+      if(t)out.push(m.type==='emote'?('* '+n+' '+t).trim():m.type==='whisper'?n+' (귓속말'+(m.to?' → '+cfg(m.to).name:'')+'): '+t:n?n+': '+t:'[지문] '+t)}
+    if(ill&&ill.after.has(m.id))ill.after.get(m.id).forEach(tail);
+  }
+  if(ill)ill.rest.forEach(tail);
+  return out;
 }
 function chunks(lines,size){
   const out=[];let cur=[],n=0;
@@ -135,6 +137,7 @@ function novelSystem(o){
   '',
   '[이어 쓰기]',
   '앞부분에서 이어지는 글이면, 주어진 「바로 앞 본문」 에 자연스럽게 이어 쓴다(되풀이하지 않는다).',
+  o.ill?'로그에 「[삽화 N] 설명」 줄이 있으면 그 자리에 그림이 들어간다. 그 장면을 쓴 문단 바로 뒤에 [[삽화 N]] 만 적은 줄을 따로 한 줄 둔다(번호는 로그 그대로, 한 번씩만, 없는 번호를 지어내지 않는다). 설명 글 자체는 본문에 옮기지 않는다.':'',
   '본문을 다 쓴 다음, 맨 끝에 '+SPLIT+' 한 줄을 쓰고 그 아래에 「지금까지의 줄거리와 인물들의 현재 상태」 를 600자 안쪽으로 정리한다. 이 정리는 다음 구간을 쓸 때 참고 자료로만 쓰인다.'].filter((x,k,a)=>!(x===''&&a[k-1]==='')).join('\n');
 }
 function novelUser(o,ctx,part,i,n){
@@ -156,7 +159,7 @@ function logItems(l){
   const o=opts();
   return l.messages.filter(m=>m.type!=='bgm'&&!(m.name&&cfg(m.name).hide)&&m.type!=='ooc'&&!(m.type==='whisper'&&!o.optWhisper)).map(m=>{
     const n=m.name?cfg(m.name).name:'';const t=(window.OM_PLAIN||plain)(m.tokens).replace(/\s+\n/g,'\n').trim();
-    if(!t||t==='[그림]')return null;
+    if(m.ill||!t||t==='[그림]')return null;
     return{id:m.id,text:m.type==='emote'?('* '+n+' '+t).trim():n?n+': '+t:'[지문] '+t};
   }).filter(Boolean);
 }
@@ -266,9 +269,10 @@ function open(){
  <div class="ai-foot" style="margin-top:0"><button class="btn" id="aiGuideSave" type="button">지침 저장</button><button class="btn" id="aiGuideReset" type="button">기본값으로</button><span class="ai-stat" id="aiGuideStat"></span></div>
  <div class="ai-note">위에서 고른 시점 · 분량 · 문체 주문은 이 지침 뒤에 자동으로 붙습니다. 구간을 이어 쓰기 위한 규칙(앞 본문에 이어 쓰기 · 끝에 줄거리 정리)도 항상 붙고, 이 둘은 여기서 바꿀 수 없습니다. 지침은 이 브라우저에 저장됩니다.</div></details>
  <div class="ai-row"><label>설정 메모 (비워도 됨 · 세계관이나 인물 관계처럼 로그만으로는 알기 어려운 것)<textarea id="aiMemo" rows="2"></textarea></label></div>
+ <div class="ai-row"><label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="aiIllIn" checked style="width:auto"> 그려 둔 삽화를 본문에 넣기 <span class="ai-stat" id="aiIllCnt" style="margin:0"></span></label></div>
  <div class="ai-stat" id="aiStat"></div><div class="ai-prog"><i id="aiBar"></i></div>
  <textarea id="aiOut" rows="16" placeholder="여기에 소설 본문이 구간마다 이어서 채워집니다. 다 된 뒤에는 바로 고칠 수 있어요."></textarea>
- <div class="ai-foot"><button class="btn primary" id="aiGo" type="button">웹소설로 바꾸기</button><button class="btn" id="aiMore" type="button" hidden>이어서 하기</button><button class="btn" id="aiStop" type="button" hidden>멈추기</button>
+ <div class="ai-foot"><button class="btn primary" id="aiGo" type="button">웹소설로 바꾸기</button><button class="btn" id="aiMore" type="button" hidden>이어서 하기</button><button class="btn" id="aiStop" type="button" hidden>멈추기</button><button class="btn" id="aiIllPlace" type="button" title="이미 쓴 글에, 아직 자리가 없는 삽화를 로그에서의 위치에 맞춰 문단 사이에 넣어요 (글 AI 를 쓰지 않아요)">삽화 자리 넣기</button>
  <span class="sp"></span><button class="btn" id="aiCopy" type="button">복사</button><button class="btn" id="aiTxt" type="button">TXT 저장</button><button class="btn" id="aiHtml" type="button">HTML 저장</button><button class="btn" id="aiClose" type="button">닫기</button></div>
 </section>
 <section data-p="ill" hidden>
@@ -332,6 +336,17 @@ function open(){
   syncPw();
   if(!mem.sa||!mem.model)tab('set');
   if(locked)setTimeout(()=>{try{q('aiUnlockPw').focus()}catch(e){}},50);
+  /* 삽화 보관 (2026-11-26 망령 「뽑은 삽화가 저장이 안 되고 창 끄니 날아갔다」): 주문서 · 그린 그림을 로그마다 이 브라우저(IndexedDB)에 둔다 */
+  const ikey=l?'ai-ill:'+l.id:null;const IL={seq:0,keys:{},orders:[]};
+  const keepIll=()=>{if(ikey)idb.set(ikey,{seq:IL.seq,keys:IL.keys,orders:IL.orders.map(o=>({k:o.k,after:o.after,caption:o.caption,orientation:o.orientation,scene:o.scene,negative:o.negative,characters:o.characters,afterId:o.afterId,afterText:o.afterText,src:o.src||'',putId:o.putId||''}))}).catch(()=>{})};
+  /* 쓸 수 있는 삽화 = 로그에 넣은 것 + 그려만 둔 것. 번호(k)는 한 번 붙으면 바뀌지 않는다 */
+  function illList(){if(!l)return[];const out=[],seen=new Set();let ch=false;
+    l.messages.forEach((m,idx)=>{if(!m.ill)return;const im=(m.tokens||[]).find(t=>t.t==='img'&&t.src);if(!im)return;let k=IL.keys[m.id];if(!k){k=IL.keys[m.id]=++IL.seq;ch=true}
+      out.push({k,src:im.src,caption:(m.tokens||[]).filter(t=>t.t==='text').map(t=>t.v).join(' ').trim(),idx,msgId:m.id});seen.add(k)});
+    IL.orders.forEach(o=>{if(!o.src||seen.has(o.k))return;const idx=l.messages.findIndex(m=>m.id===o.afterId);out.push({k:o.k,src:o.src,caption:o.caption||'',idx:idx<0?l.messages.length:idx+.5,afterId:idx<0?null:o.afterId})});
+    if(ch)keepIll();return out.sort((a,b)=>a.idx-b.idx)}
+  function illHook(){const L=illList();const byMsg=new Map(),after=new Map(),rest=[];for(const x of L){if(x.msgId)byMsg.set(x.msgId,x);else if(x.afterId){if(!after.has(x.afterId))after.set(x.afterId,[]);after.get(x.afterId).push(x)}else rest.push(x)}return{byMsg,after,rest,list:L}}
+  let illReady=Promise.resolve();
   /* 삽화 */
   (function(){
     const rawOf={};(l?l.messages:[]).forEach(m=>{if(m.name&&!cfg(m.name).hide){const d=cfg(m.name).name;if(!rawOf[d])rawOf[d]=m.name}});
@@ -352,34 +367,38 @@ function open(){
     };
     q('aiNm').onchange=()=>{q('aiSt').value=q('aiNm').value.startsWith('nai-diffusion-5-')?'18':'28'};
     const ist=t=>q('aiIllStat').textContent=t;
-    let orders=[],irun=null;
-    const busy=b=>{q('aiPlan').hidden=b;q('aiIllStop').hidden=!b;q('aiDrawAll').hidden=b||!orders.length};
+    let irun=null;
+    const busy=b=>{q('aiPlan').hidden=b;q('aiIllStop').hidden=!b;q('aiDrawAll').hidden=b||!IL.orders.length};
     function card(o,i){
       const d=E('div',{class:'ai-card','data-i':i,style:'border:1px solid var(--line,#ccc);border-radius:10px;padding:10px 12px;margin:10px 0'});
-      d.innerHTML=`<div style="font-size:.8rem;opacity:.75;margin-bottom:4px">${i+1}번 · 「${esc((o.afterText||'').slice(0,60))}」 뒤에</div>
+      d.innerHTML=`<div style="font-size:.8rem;opacity:.75;margin-bottom:4px">삽화 ${o.k} · 「${esc((o.afterText||'').slice(0,60))}」 뒤에</div>
 <div class="ai-row"><label>설명<input type="text" data-f="caption" value="${esc(o.caption)}"></label><label style="flex:0 0 130px">방향<select data-f="orientation"><option value="landscape">가로</option><option value="portrait">세로</option><option value="square">정사각</option></select></label></div>
 <div class="ai-row"><label>장면 태그<textarea data-f="scene" rows="2" class="ai-mono">${esc(o.scene)}</textarea></label></div>
 ${o.characters.map((c,k)=>`<div class="ai-row"><label>${esc(c.name||'인물 '+(k+1))}<textarea data-c="${k}" rows="2" class="ai-mono">${esc(c.tags)}</textarea></label></div>`).join('')}
 <div data-img></div>
-<div class="ai-foot"><button class="btn primary" data-a="draw" type="button">그리기</button><button class="btn" data-a="put" type="button" hidden>로그에 넣기</button><button class="btn" data-a="drop" type="button">버리기</button><span class="ai-stat" data-s></span></div>`;
+<div class="ai-foot"><button class="btn primary" data-a="draw" type="button">그리기</button><button class="btn" data-a="put" type="button" hidden>로그에 넣기</button><a class="btn" data-a="save" hidden style="text-decoration:none">그림 저장</a><button class="btn" data-a="drop" type="button">버리기</button><span class="ai-stat" data-s></span></div>`;
       d.querySelector('[data-f=orientation]').value=o.orientation;
       const read=()=>{o.caption=d.querySelector('[data-f=caption]').value.trim();o.orientation=d.querySelector('[data-f=orientation]').value;o.scene=d.querySelector('[data-f=scene]').value.trim();d.querySelectorAll('[data-c]').forEach(el=>{o.characters[Number(el.dataset.c)].tags=el.value.trim()});o.characters=o.characters.filter(c=>c.tags)};
       const cs=t=>d.querySelector('[data-s]').textContent=t;
+      const show=()=>{if(!o.src)return;d.querySelector('[data-img]').innerHTML=`<img src="${esc(o.src)}" alt="" style="max-width:100%;border-radius:8px;margin:6px 0">`;d.querySelector('[data-a=put]').hidden=false;d.querySelector('[data-a=draw]').textContent='다시 그리기';
+        const a=d.querySelector('[data-a=save]');a.hidden=false;a.href=o.src;a.download=safeName((l?l.title:'log')+' 삽화 '+o.k)+'.'+((o.src.match(/^data:image\/(\w+)/)||[])[1]||'webp').replace('jpeg','jpg');
+        if(o.putId&&l.messages.some(m=>m.id===o.putId))d.querySelector('[data-a=put]').textContent='바꿔 넣기';else o.putId=''};
+      d.addEventListener('change',()=>{read();keepIll()});
       o.draw=async(signal)=>{read();cs('그리는 중… (보통 10~30초)');d.querySelector('[data-a=draw]').disabled=true;
-        try{const r=await naiGenerate(o,signal);o.src=r.src;d.querySelector('[data-img]').innerHTML=`<img src="${esc(r.src)}" alt="" style="max-width:100%;border-radius:8px;margin:6px 0">`;d.querySelector('[data-a=put]').hidden=false;d.querySelector('[data-a=draw]').textContent='다시 그리기';cs('다 그렸어요 · 약 '+Math.round(r.src.length*.75/1024)+'KB');return true}
+        try{const r=await naiGenerate(o,signal);o.src=r.src;show();keepIll();cs('다 그렸어요 · 약 '+Math.round(r.src.length*.75/1024)+'KB · 이 브라우저에 보관했어요');return true}
         catch(e){cs(e&&e.name==='AbortError'?'멈췄어요':String(e.message||e));return false}
         finally{d.querySelector('[data-a=draw]').disabled=false}};
       d.querySelector('[data-a=draw]').onclick=()=>o.draw();
-      d.querySelector('[data-a=put]').onclick=()=>{read();if(!o.src)return;if(o.putId){const k=l.messages.findIndex(m=>m.id===o.putId);if(k>=0)l.messages.splice(k,1)}o.putId=insertIllust(l,o.afterId,o.src,o.caption);cs('로그에 넣었어요 (HTML 로 저장하면 같이 들어가요)');d.querySelector('[data-a=put]').textContent='바꿔 넣기'};
-      d.querySelector('[data-a=drop]').onclick=()=>{orders=orders.filter(x=>x!==o);d.remove();q('aiDrawAll').hidden=!orders.length};
-      return d;
+      d.querySelector('[data-a=put]').onclick=()=>{read();if(!o.src)return;if(o.putId){const k=l.messages.findIndex(m=>m.id===o.putId);if(k>=0)l.messages.splice(k,1);delete IL.keys[o.putId]}o.putId=insertIllust(l,o.afterId,o.src,o.caption);IL.keys[o.putId]=o.k;keepIll();cs('로그에 넣었어요 (HTML 로 저장하면 같이 들어가요)');d.querySelector('[data-a=put]').textContent='바꿔 넣기'};
+      d.querySelector('[data-a=drop]').onclick=()=>{IL.orders=IL.orders.filter(x=>x!==o);d.remove();q('aiDrawAll').hidden=!IL.orders.length;keepIll()};
+      show();return d;
     }
     q('aiPlan').onclick=async()=>{
       if(!l){ist('먼저 로그를 골라 주세요.');return}
       if(!mem.sa||!mem.model){tab('set');return}
       takeArt();const items=logItems(l);if(!items.length){ist('옮길 줄이 없어요.');return}
       const n=Math.min(art.count,items.length),per=Math.ceil(items.length/n);
-      orders=[];q('aiCards').innerHTML='';irun=new AbortController();busy(true);
+      IL.orders=IL.orders.filter(o=>o.src);q('aiCards').innerHTML='';IL.orders.forEach((o,i)=>q('aiCards').appendChild(card(o,i)));irun=new AbortController();busy(true);   /* 이미 그린 것은 남긴다 */
       try{
         /* 외모 칸이 비어 있고 토큰 그림이 있는 인물은 먼저 그림을 보고 채운다(같은 얼굴로 나오게) */
         if(art.autoLook){const todo=names.filter(n=>!art.looks[n]&&portraitOf(l,rawOf[n]));
@@ -391,16 +410,19 @@ ${o.characters.map((c,k)=>`<div class="ai-row"><label>${esc(c.name||'인물 '+(k
           const from=k*per,seg=items.slice(from,from+per);if(!seg.length)break;
           const r=await gemini(illustSystem(),illustUser(l.title,seg,from,art.looks,''),{signal:irun.signal,json:true,temperature:0.7,max:4000});
           const o=parseOrder(r.text);const at=Math.max(from,Math.min(from+seg.length-1,(o.after||from+1)-1));
-          o.afterId=items[at].id;o.afterText=items[at].text;orders.push(o);q('aiCards').appendChild(card(o,orders.length-1));
+          o.afterId=items[at].id;o.afterText=items[at].text;o.k=++IL.seq;IL.orders.push(o);keepIll();q('aiCards').appendChild(card(o,IL.orders.length-1));
         }
-        ist(orders.length+'장면을 골랐어요. 태그를 고친 뒤 그리면 돼요.');
+        ist(n+'장면을 골랐어요. 태그를 고친 뒤 그리면 돼요.');
       }catch(e){ist(e&&e.name==='AbortError'?'멈췄어요.':'멈춤: '+String(e.message||e))}
       finally{irun=null;busy(false)}
     };
     q('aiDrawAll').onclick=async()=>{takeArt();irun=new AbortController();busy(true);let ok=0;
-      try{for(const o of orders.slice()){if(irun.signal.aborted)break;if(o.src)continue;ist('그리는 중… '+(ok+1));if(await o.draw(irun.signal))ok++;else if(irun.signal.aborted)break}ist(ok+'장을 그렸어요.')}
+      try{for(const o of IL.orders.slice()){if(irun.signal.aborted)break;if(o.src)continue;ist('그리는 중… '+(ok+1));if(await o.draw(irun.signal))ok++;else if(irun.signal.aborted)break}ist(ok+'장을 그렸어요.')}
       finally{irun=null;busy(false)}};
     q('aiIllStop').onclick=()=>{if(irun)irun.abort()};
+    if(ikey)illReady=idb.get(ikey).then(v=>{if(!v)return;IL.seq=+v.seq||0;IL.keys=v.keys||{};IL.orders=(v.orders||[]).map(o=>Object.assign({caption:'',orientation:'landscape',scene:'',negative:'',characters:[]},o));
+      IL.orders.forEach(o=>{if(!o.k)o.k=++IL.seq});IL.orders.forEach((o,i)=>q('aiCards').appendChild(card(o,i)));q('aiDrawAll').hidden=!IL.orders.length;
+      const dn=IL.orders.filter(o=>o.src).length;if(IL.orders.length)ist('전에 만든 삽화 '+IL.orders.length+'장면을 불러왔어요'+(dn?' · 그림 '+dn+'장':''))}).catch(()=>{});
     ['aiAutoLook','aiN','aiNm','aiSt','aiArt','aiNeg'].forEach(id=>q(id).addEventListener('change',takeArt));
   })();
   /* 웹소설 */
@@ -413,15 +435,16 @@ ${o.characters.map((c,k)=>`<div class="ai-row"><label>${esc(c.name||'인물 '+(k
   const st=(t)=>q('aiStat').textContent=t;const bar=p=>q('aiBar').style.width=Math.round(p*100)+'%';
   let state=null;
   const nkey=l?'ai-novel:'+l.id:null;
-  if(nkey)idb.get(nkey).then(v=>{if(v&&v.text&&!q('aiOut').value){q('aiOut').value=v.text;state=v.state||null;st('전에 만든 글을 불러왔어요'+(state&&state.next<state.total?' · '+state.next+'/'+state.total+' 구간까지':''));q('aiMore').hidden=!(state&&state.next<state.total)}}).catch(()=>{});
+  if(nkey)idb.get(nkey).then(v=>{if(v&&v.text&&!q('aiOut').value){q('aiOut').value=v.text;state=v.state||null;st('전에 만든 글을 불러왔어요'+(state&&state.next<state.total?' · '+state.next+'/'+state.total+' 구간까지':''));q('aiMore').hidden=!(state&&state.next<state.total);illCount()}}).catch(()=>{});
   const keepOut=()=>{if(nkey)idb.set(nkey,{text:q('aiOut').value,state}).catch(()=>{})};
   q('aiOut').addEventListener('change',keepOut);
   async function go(resume){
     if(!l){st('먼저 로그를 골라 주세요.');return}
     if(!mem.sa||!mem.model){tab('set');return}
     takeGuide();
-    const o={title:l.title,pov:q('aiPov').value,povWho:q('aiWho').value,len:q('aiLen').value,style:q('aiStyle').value.trim(),memo:q('aiMemo').value.trim()};
-    const parts=chunks(logLines(l),Number(q('aiSize').value)||9000);
+    await illReady;const hook=q('aiIllIn').checked?illHook():null;
+    const o={title:l.title,pov:q('aiPov').value,povWho:q('aiWho').value,len:q('aiLen').value,style:q('aiStyle').value.trim(),memo:q('aiMemo').value.trim(),ill:!!(hook&&hook.list.length)};
+    const parts=chunks(logLines(l,hook),Number(q('aiSize').value)||9000);
     if(!parts.length){st('옮길 줄이 없어요.');return}
     if(!resume||!state||state.total!==parts.length){
       if(q('aiOut').value.trim()&&!confirm('지금 있는 글을 지우고 처음부터 다시 만들까요?'))return;
@@ -438,7 +461,7 @@ ${o.characters.map((c,k)=>`<div class="ai-row"><label>${esc(c.name||'인물 '+(k
         const bodyText=(k>=0?r.text.slice(0,k):r.text).trim();
         if(k>=0)state.summary=r.text.slice(k+SPLIT.length).trim().slice(0,1500);
         q('aiOut').value=(cur?cur.replace(/\s+$/,'')+'\n\n':'')+bodyText;q('aiOut').scrollTop=q('aiOut').scrollHeight;
-        state.next=i+1;keepOut();
+        state.next=i+1;keepOut();illCount();
         if(r.finish==='MAX_TOKENS')st('주의: '+(i+1)+'구간이 길이 제한에 걸려 끝이 잘렸을 수 있어요.');
       }
       bar(1);st('다 됐어요 · '+parts.length+'구간 · '+q('aiOut').value.length.toLocaleString()+'자');
@@ -450,12 +473,24 @@ ${o.characters.map((c,k)=>`<div class="ai-row"><label>${esc(c.name||'인물 '+(k
   }
   q('aiGo').onclick=()=>go(false);q('aiMore').onclick=()=>go(true);q('aiStop').onclick=()=>{if(run)run.abort()};
   const title=()=>safeName((l?l.title:'log')+' 소설');
-  q('aiCopy').onclick=()=>copyText(q('aiOut').value,'소설');
-  q('aiTxt').onclick=()=>offer(title()+'.txt',q('aiOut').value,q('aiOut').value);
-  q('aiHtml').onclick=()=>{const t=q('aiOut').value;
-    const bodyHtml=t.split(/\n{2,}/).map(p=>p.trim()==='***'?'<p class="br">* * *</p>':'<p>'+esc(p).replace(/\n/g,'<br>')+'</p>').join('\n');
-    const h=`<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(l?l.title:'')}</title><style>body{max-width:720px;margin:48px auto;padding:0 20px;font:17px/1.9 'Noto Serif KR',serif;color:#222;background:#fbfaf7}h1{font-size:1.4rem;margin:0 0 2em}p{margin:0 0 1.1em;text-indent:1em;word-break:keep-all}p.br{text-align:center;text-indent:0;opacity:.5;margin:2em 0}@media(prefers-color-scheme:dark){body{background:#17181b;color:#ddd}}</style></head><body><h1>${esc(l?l.title:'')}</h1>\n${bodyHtml}\n</body></html>`;
-    offer(title()+'.html',h,h)};
+  /* 본문 속 삽화 자리: [[삽화 N]] 한 줄 */
+  const MARK=/^\[\[삽화\s*(\d+)\]\]$/;
+  const marksIn=t=>new Set([...t.matchAll(/\[\[삽화\s*(\d+)\]\]/g)].map(m=>+m[1]));
+  const illCount=()=>illReady.then(()=>{const L=illList();const has=marksIn(q('aiOut').value);const n=L.filter(x=>has.has(x.k)).length;q('aiIllCnt').textContent=L.length?'· 삽화 '+L.length+'장'+(q('aiOut').value.trim()?' (본문에 자리 '+n+'곳)':''):'· 아직 그려 둔 삽화가 없어요 (「삽화」 탭)';q('aiIllPlace').hidden=!L.length||!q('aiOut').value.trim()||n>=L.length});
+  box.querySelectorAll('.ai-tabs button').forEach(b=>b.addEventListener('click',illCount));q('aiOut').addEventListener('input',illCount);illCount();
+  q('aiIllPlace').onclick=async()=>{await illReady;const hook=illHook();const t=q('aiOut').value;const has=marksIn(t);const todo=hook.list.filter(x=>!has.has(x.k));if(!todo.length){st('넣을 삽화가 없어요.');return}
+    const lines=logLines(l,hook);const total=lines.reduce((n,x)=>n+x.length+1,0)||1;const at={};let off=0;for(const ln of lines){const m=ln.match(/^\[삽화 (\d+)\]/);if(m)at[+m[1]]=off/total;off+=ln.length+1}
+    const ps=t.split(/\n{2,}/);const body=ps.reduce((n,x)=>n+(MARK.test(x.trim())?0:x.length),0)||1;const ins=ps.map(()=>[]);
+    for(const x of todo){const goal=(at[x.k]==null?1:at[x.k])*body;let acc=0,k=ps.length-1;for(let i=0;i<ps.length;i++){if(!MARK.test(ps[i].trim()))acc+=ps[i].length;if(acc>=goal){k=i;break}}ins[k].push('[[삽화 '+x.k+']]')}
+    q('aiOut').value=ps.map((x,i)=>[x,...ins[i]].join('\n\n')).join('\n\n');keepOut();illCount();st('삽화 '+todo.length+'장의 자리를 넣었어요. 줄을 옮기면 그림도 따라가요.')};
+  const plainOut=()=>{const cap=new Map(illList().map(x=>[x.k,x.caption]));return q('aiOut').value.split(/\n{2,}/).map(p=>{const m=p.trim().match(MARK);if(!m)return p;const c=cap.get(+m[1]);return c==null?null:'[삽화'+(c?': '+c:'')+']'}).filter(p=>p!=null).join('\n\n')};
+  q('aiCopy').onclick=()=>copyText(plainOut(),'소설');
+  q('aiTxt').onclick=()=>{const t=plainOut();offer(title()+'.txt',t,t)};
+  q('aiHtml').onclick=async()=>{await illReady;const t=q('aiOut').value;const im=new Map(illList().map(x=>[x.k,x]));let used=0;
+    const bodyHtml=t.split(/\n{2,}/).map(p=>{const m=p.trim().match(MARK);if(m){const x=im.get(+m[1]);if(!x||!/^data:image\//i.test(x.src))return'';used++;return'<figure><img src="'+esc(x.src)+'" alt="'+esc(x.caption||'삽화')+'">'+(x.caption?'<figcaption>'+esc(x.caption)+'</figcaption>':'')+'</figure>'}
+      return p.trim()==='***'?'<p class="br">* * *</p>':'<p>'+esc(p).replace(/\n/g,'<br>')+'</p>'}).filter(Boolean).join('\n');
+    const h=`<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(l?l.title:'')}</title><style>body{max-width:720px;margin:48px auto;padding:0 20px;font:17px/1.9 'Noto Serif KR',serif;color:#222;background:#fbfaf7}h1{font-size:1.4rem;margin:0 0 2em}p{margin:0 0 1.1em;text-indent:1em;word-break:keep-all}p.br{text-align:center;text-indent:0;opacity:.5;margin:2em 0}figure{margin:2.2em 0;text-align:center}figure img{max-width:100%;border-radius:10px}figcaption{font-size:.82em;opacity:.6;margin-top:.5em}@media(prefers-color-scheme:dark){body{background:#17181b;color:#ddd}}</style></head><body><h1>${esc(l?l.title:'')}</h1>\n${bodyHtml}\n</body></html>`;
+    offer(title()+'.html',h,h);if(used)st('삽화 '+used+'장을 넣어 저장했어요.')};
 }
 /* 단추 */
 const anchor=$('copyText');

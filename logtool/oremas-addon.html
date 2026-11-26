@@ -221,7 +221,7 @@ ${c.how||c.tot||(c.dice||[]).length?`<span class="bc-calc">${c.how?`<small>${esc
    const tag=n.tagName.toLowerCase();
    if(tag==='br'){out.push({t:'br'});continue}
    if(n.hasAttribute('data-bc')){try{const c=JSON.parse(n.getAttribute('data-bc'));if(c&&c.t==='card'&&typeof c.k==='string')out.push(c)}catch(e){}continue}   /* 배틀 카드는 통째로 되살린다 */
-   if(tag==='img'){if(n.hasAttribute('data-mtl-portrait'))continue;const s=n.getAttribute('src')||'';if(SAFE_SRC.test(s))out.push({t:'img',src:s});continue}
+   if(tag==='img'){if(n.hasAttribute('data-mtl-portrait'))continue;const s=n.getAttribute('src')||'';if(SAFE_SRC.test(s))out.push(n.classList.contains('ill')?{t:'img',src:s,ill:1}:{t:'img',src:s});continue}
    if(/^(script|style|audio|video|source|embed|object|iframe|button)$/.test(tag))continue;
    if(n.classList.contains('tools'))continue;
    if(tag==='a'){const h=n.getAttribute('href')||'',tx=n.textContent.trim();const im=n.querySelector('img:not([data-mtl-portrait])');
