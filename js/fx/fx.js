@@ -515,11 +515,22 @@ window.OM_FX=(()=>{
  function noindHit(m,kind,q){const t=curTurn();for(const e of (m&&m.fx&&m.fx.noind)||[]){if(e.until>=0&&t>e.until)continue;if(e.uses===0)continue;if(itemOff(m,e))continue;if(!(e.kind===kind||(e.kind===''&&kind!=='switch'&&kind!=='freesw'&&kind!=='recoilko')))continue;if(hasCond(e)&&!(q?condAll(e,m,q.defMon||null,q,true):condAll(e,m,null,null,true)))continue;   /* 11-23 공격 문맥이 없는 판정(비례 대미지 · 공격 이외의 빈사)도 필드 조건(지역 · 적진알그룹 · 날씨 …)은 본다 — 기술 조건이 붙은 줄은 예전대로 통과 못 함 */if(e.pc){if(q&&q.pcr){if(!pcPass(e,m,q))continue}else if(!rollP(m,+e.pc,{}).ok)continue}return e}return null}
  function noind(m,kind,q){return !!noindHit(m,kind,q)}
  function moldQ(atk,q){try{const nm=x=>String(x||'').replace(/\s/g,'');return spOf(atk,'mold').some(e=>{if(e.types&&e.types.length&&!(q&&(q.types||[]).some(t=>e.types.includes(t))))return false;if(e.mv&&e.mv.length&&!(q&&e.mv.some(x=>nm(x)===nm(q.move))))return false;if(e.rng==='single'&&q&&q.single===false)return false;if(e.rng==='multi'&&q&&q.single!==false)return false;if(e.ab&&nm(atk.ability)!==nm(e.ab))return false;return true})}catch(e){return false}}
+ /* ── 11-26 분수 강화 글 「… 강화(a/b→c/d)」 읽기를 한 곳에 (FRAC) ──
+    괄호 · 화살표 · 분수 꼴(FRAC.re 가 붙이는 꼬리)과 「그 포켓몬의 글 목록」(FRAC.texts)은 여기서만 정한다. 읽는 쪽은 앞머리(무엇을 강화하나)만 제 꼴로 붙인다:
+    fx stMod(상태의 회복량 · 대미지) · fx fracUp(기술의 위력 · 회복량) · field.js hazFracUp(폭탄 · 지뢰원 비례 대미지) · field.js seedUp(씨뿌리기 드레인) ·
+    battle_ui potModsOf(『X』의 회복량) · battle_ui drainUp(기술의 드레인).  FRAC.of(m,i) = 묶음 i 부터 네 숫자 → {from:[n,d], to:[n,d], fromS:'a/b', toS:'c/d'} */
+ const FRAC=(()=>{const TAIL='[(（]\\s*(\\d+)\\s*\\/\\s*(\\d+)\\s*(?:→|->|⇒|=>|➜)\\s*(\\d+)\\s*\\/\\s*(\\d+)\\s*[)）]';
+  const re=(head,flags)=>new RegExp(head+TAIL,flags||'');
+  const of=(m,i)=>({from:[+m[i],+m[i+1]],to:[+m[i+2],+m[i+3]],fromS:m[i]+'/'+m[i+1],toS:m[i+2]+'/'+m[i+3]});
+  /* [이름, 글] 목록 — 포텐셜(자리만 있는 ph 는 빼고) · 전용 · (opt.ability) 특성 · (opt.items) 소지품 */
+  const texts=(m,opt)=>{opt=opt||{};if(!m)return [];const L=[...(m.pots||[]).filter(p=>p&&p.name&&!p.ph).map(p=>[p.name,p.eff]),...(m.excl?[[m.excl.name,m.excl.eff]]:[]),...(m.exclX||[]).filter(Boolean).map(x=>[x.name,x.eff])];
+   if(opt.ability)L.push([m.ability,m.abilityEff]);if(opt.items)L.push([m.item,m.itemEff],...((m.items2||[]).filter(x=>x&&x.item).map(x=>[x.item,x.itemEff])));return L.filter(x=>x[0]&&x[1])};
+  return {re,of,texts}})();
  /* 11-23 망령 「「나이트헤드」가 「타입 : 물, 고스트」에게 위력이 강화(1/3→1/2)된다. 그리고 이런 것도」 — 글로 읽는다:
     쓰는 쪽의 특성 · 포텐셜 글에 「기술」이 (「타입 : X」에게) 위력이 강화(a/b→c/d) 가 있으면, 그 기술의 비례 대미지 분수 a/b 를 c/d 로 바꾼다. 타입이 적혀 있으면 받는 쪽이 그 타입일 때만. */
  function fracUp(texts,mvName,tys,ops){try{const nm=String(mvName||'').replace(/\s/g,'');const ko=(tys||[]).map(t=>TYPE_KO[t]||t);const fr=x=>String(x).replace(/\s/g,'');
-   for(const tx of (texts||[])){const t=String((tx&&tx.eff!=null?tx.eff:tx)||'').replace(/<br\s*\/?>/gi,'\n');const re=/[「『]([^」』:]+)[」』](?:이|가|의)\s*(?:「타입\s*:\s*([^」]+)」\s*에게\s*)?(?:위력|회복량)(?:이|을)\s*강화\s*\(\s*(\d+\s*\/\s*\d+)\s*(?:→|->|⇒)\s*(\d+\s*\/\s*\d+)\s*\)/g;let m;
-    while((m=re.exec(t))){if(m[1].replace(/\s/g,'')!==nm)continue;if(m[2]&&!m[2].split(/[,·\/、]/).map(y=>y.trim()).filter(Boolean).some(y=>ko.includes(y)))continue;const from=fr(m[3]),to=fr(m[4]);let hit=false;
+   for(const tx of (texts||[])){const t=String((tx&&tx.eff!=null?tx.eff:tx)||'').replace(/<br\s*\/?>/gi,'\n');const re=FRAC.re('[「『]([^」』:]+)[」』](?:이|가|의)\\s*(?:「타입\\s*:\\s*([^」]+)」\\s*에게\\s*)?(?:위력|회복량)(?:이|을)\\s*강화\\s*','g');let m;
+    while((m=re.exec(t))){if(m[1].replace(/\s/g,'')!==nm)continue;if(m[2]&&!m[2].split(/[,·\/、]/).map(y=>y.trim()).filter(Boolean).some(y=>ko.includes(y)))continue;const {fromS:from,toS:to}=FRAC.of(m,3);let hit=false;
      const out=(ops||[]).map(o=>{if(o&&(o.k==='dmg'||o.k==='heal')&&fr(o.value)===from){hit=true;return Object.assign({},o,{value:to})}return o});if(hit)return {ops:out,from,to,name:(tx&&tx.name)||'',types:m[2]||''}}}}catch(e){}return null}
  function noindUse(m,kind,q){const e=noindHit(m,kind,q);if(!e)return '';if(e.uses>0){e.uses--;if(e.uses===0)m.fx.noind=m.fx.noind.filter(x=>x!==e)}return e.name||'비례 무시'}   /* 강제 교대 무시(switch)는 「비례 대미지 무시」에 딸려 오지 않는다 */
  function noindName(m,kind){for(const e of (m.fx&&m.fx.noind)||[]){if(itemOff(m,e))continue;if(hasCond(e)||e.pc)continue;if(e.kind===kind||(e.kind===''&&kind!=='switch'&&kind!=='freesw'))return e.name}return ''}
@@ -527,14 +538,13 @@ window.OM_FX=(()=>{
     ① 효과 글: 『수선녀의 요술』 「아쿠아링」에 의한 회복량을 강화(1/8 → 1/6)한다 처럼 「상태」 … (a/b → c/d)
     ② 자동화 구문: 상태수정 아쿠아링 1/6
     돌려줌 {n,d,name} 또는 null. 턴 종료 처리(field.js)가 아쿠아링 · 뿌리박기 · 독 · 화상 … 의 비율을 이걸로 바꾼다 */
- const RE_STMOD=/「([^」]+)」\s*(?:상태\s*)?(?:에\s*의한|에\s*따른|로\s*인한|으로\s*인한|의)[^(（\n]{0,24}[(（]\s*\d+\s*\/\s*\d+\s*(?:→|->|⇒|=>|➜)\s*(\d+)\s*\/\s*(\d+)\s*[)）]/g;
+ const RE_STMOD=FRAC.re('「([^」]+)」\\s*(?:상태\\s*)?(?:에\\s*의한|에\\s*따른|로\\s*인한|으로\\s*인한|의)[^(（\\n]{0,24}','g');   /* 묶음: 1 상태 이름 · 2~5 분수(FRAC.of(r,2)) */
  function stMod(m,en){if(!m||!en)return null;
   for(const k in (m.auto||{}))for(const op of ((m.auto[k]||{}).ops||[]))if(op&&op.k==='stmod'&&op.st===en)return {n:+op.n,d:+op.d,name:k};
-  const src=[...(m.pots||[]).filter(p=>p&&p.name&&!p.ph).map(p=>[p.name,p.eff]),...(m.excl?[[m.excl.name,m.excl.eff]]:[]),...(m.exclX||[]).map(x=>[x.name,x.eff]),[m.ability,m.abilityEff],...(itemsDead(m)?[]:[[m.item,m.itemEff],...((m.items2||[]).filter(x=>x&&x.item).map(x=>[x.item,x.itemEff]))])];
-  for(const [name,eff] of src){if(!name||!eff)continue;for(const r of String(eff).matchAll(RE_STMOD))if(stEn(r[1])===en&&+r[3]>0)return {n:+r[2],d:+r[3],name:String(name).replace(/『|』/g,'')}}
+  for(const [name,eff] of FRAC.texts(m,{ability:1,items:!itemsDead(m)}))for(const r of String(eff).matchAll(RE_STMOD)){const to=FRAC.of(r,2).to;if(stEn(r[1])===en&&to[1]>0)return {n:to[0],d:to[1],name:String(name).replace(/『|』/g,'')}}
   /* 11-26 375 망령 「회복량이던 비례 대미지던 강화하는 경우가 좀 있어」 — 아군 범위: 같은 편 필드의 다른 포켓몬 글이 「아군의 「X」 …(a/b→c/d)」 꼴이면 그 상태에 걸린 이 포켓몬에게도 (마르타 『물가의 성녀』 — 아군의 「환희의노래」 상태의 회복량 1/16→1/8) */
   try{const B0=RUNB||(((window.OM_APP||{}).ST||{}).state||{}).battle||{};for(const o of Object.values(B0.mons||{})){if(!o||o.id===m.id||o.side!==m.side||!o.entry||!(o.hp&&+o.hp.cur>0))continue;
-    for(const p of [].concat(o.pots||[],o.excl?[o.excl]:[],o.exclX||[])){if(!p||!p.name||p.ph)continue;for(const ln of String(p.eff||'').replace(/<br\s*\/?>/g,'\n').split(/\n|(?=[①②③④⑤])/))for(const r of ln.matchAll(RE_STMOD)){if(stEn(r[1])!==en||!(+r[3]>0))continue;if(!/아군(?:의|에게|이|\s*전체)/.test(ln.slice(0,r.index)))continue;return {n:+r[2],d:+r[3],name:`${o.name} ${String(p.name).replace(/『|』/g,'')}`}}}}}catch(e){}
+    for(const p of [].concat(o.pots||[],o.excl?[o.excl]:[],o.exclX||[])){if(!p||!p.name||p.ph)continue;for(const ln of String(p.eff||'').replace(/<br\s*\/?>/g,'\n').split(/\n|(?=[①②③④⑤])/))for(const r of ln.matchAll(RE_STMOD)){const to=FRAC.of(r,2).to;if(stEn(r[1])!==en||!(to[1]>0))continue;if(!/아군(?:의|에게|이|\s*전체)/.test(ln.slice(0,r.index)))continue;return {n:to[0],d:to[1],name:`${o.name} ${String(p.name).replace(/『|』/g,'')}`}}}}}catch(e){}
   return null}
  function floating(m){const f=m.fx&&m.fx.float;if(!f)return false;const t=curTurn();return !(f.until>=0&&t>f.until)}
  function curTurn(){return +((((window.OM_APP||{}).ST||{}).state||{}).battle||{}).turn||0}
@@ -739,23 +749,47 @@ window.OM_FX=(()=>{
    {const r=t.match(/(?:대상|상대)의\s*『\s*([^』]+?)\s*』\s*포텐셜의\s*【\s*방호\s*】\s*(?:효과)?(?:를|을)?\s*무시/);if(r){const fam=roleFam(r[1])||r[1].trim();R.push({by:p.name,ok:n=>roleFams(n).includes(fam)})}}
    if(q&&q.pursuit&&/「\s*따라가때리기\s*」\s*효과가\s*부여된\s*기술이\s*대상의\s*【\s*방호\s*】\s*포텐셜을\s*무시/.test(t))R.push({by:p.name,ok:()=>true})}
   for(const e of liveMods(atk))if(e&&e.kind==='boost'&&(e.hoi||e.hot||e.hoa))R.push({by:e.name,ok:()=>true,p:!!e.hoi,t:!!e.hot,a:!!e.hoa});
-  /* 11-26 특성의 【방호】 — 글로 읽는 꼴: 「(「타입 : X」인) 상대(의) 「특성」(『포텐셜』)의 【방호】 효과를 무시」. 앞에 다른 조건(위력 · 기술 이름 · 급소 랭크 · 소모 · 아군의 공격 …)이 붙은 줄은 손으로. 『포텐셜』이 같이 적혀 있으면 포켓몬 【방호】도 */
-  for(const p of L){if(!p||p.ph)continue;for(const cl of String(p.eff||'').replace(/<br\s*\/?>/g,'\n').split(/\n|(?=[①②③④⑤])/)){const r=cl.match(/(?:「\s*타입\s*[:：]\s*([^」]+)」\s*인\s*)?상대(?:의)?\s*「\s*특성\s*」\s*(『\s*포텐셜\s*』)?\s*의\s*【\s*방호\s*】\s*(?:효과)?(?:를|을)?\s*무시/);if(!r)continue;
-    if(cl.slice(0,r.index).replace(/[①②③④⑤]/g,'').replace(/【[^】]*】/g,'').replace(/^[\s\/]+|\s+$/g,''))continue;
+  /* 11-26 특성 · 포텐셜의 【방호】 — 글로 읽는 꼴: 「(조건) (「타입 : X」인) 상대(의) 「특성」 · 『포텐셜』(포텐셜)의 【방호】 (효과)를 무시」.
+     「특성」이 적혀 있으면 특성 【방호】, 포텐셜이 적혀 있으면 포켓몬 【방호】. 앞에 붙은 조건은 preCond 표(상성 · 위력 · 기술 이름 · 급소 랭크)로 — 모르는 조건(소모 · 아군의 공격 · 상대 상태 …)이면 손으로 */
+  for(const p of L){if(!p||p.ph)continue;for(const cl of clausesOf(p.eff)){const r=cl.match(HO_TXT);if(!r||!(r[2]||r[3]))continue;
+    if(!preCond(cl.slice(0,r.index),q,atk,def))continue;
     if(r[1]){const want=r[1].split(/[,·\/、]/).map(x=>KO_TYPE[x.trim()]||x.trim()).filter(Boolean);const dt=(q&&q.defTypes)||def.types||[];if(!want.some(t=>dt.includes(t)))continue}
-    R.push({by:p.name,ok:()=>true,p:r[2]?true:false,a:true})}}   /* 11-26 다음기술 방호무시 (포켓몬) · 트레이너방호무시 (트레이너 고유 — 삼각) */
+    R.push({by:p.name,ok:()=>true,p:!!r[3],a:!!r[2]})}}   /* 11-26 다음기술 방호무시 (포켓몬) · 트레이너방호무시 (트레이너 고유 — 삼각) */
   if(!R.length)return null;const DL=[].concat(def.pots||[],def.excl?[def.excl]:[],def.exclX||[]);const ho=n=>{const nm=String(n||'').replace(/『|』/g,'').trim();let p=DL.find(x=>x&&String(x.name||'').replace(/『|』/g,'').trim()===nm);let k='p';if(!p){const an=String(def.ability||'').replace(/『|』/g,'').trim();if(an&&an===nm)return /【\s*방호\s*】/.test(String(def.abilityEff||abEff(def.ability)||''))?'a':''}if(!p){const B0=RUNB||(((window.OM_APP||{}).ST||{}).state||{}).battle||{};const U=(((B0.trainers||{})[def.tid]||{}).unique)||[];p=U.find(x=>x&&String(x.name||'').replace(/『|』/g,'').trim()===nm);k='t'}   /* 11-26 트레이너 고유의 【방호】 = 't' (트레이너방호무시 · 삼각만) */return !!p&&/【\s*방호\s*】/.test(String(p.eff||''))?k:''};
   return e=>{if(!e)return null;const k=ho(e.name);if(!k)return null;const r=R.find(x=>(k==='t'?x.t:k==='a'?x.a:(x.p!==false))&&x.ok(String(e.name||'')));return r?r.by:null}}   /* 포켓몬 【방호】 = 예전 규칙(올드 타입 · 추격 · 방호무시) · 트레이너 【방호】 = 트레이너방호무시만 */
  /* 11-26 364 「『X』의 배율을 강화(a배→b배)한다」(풀 플레이트 아머 — 『약점 내성』 0.85→0.67): 그 포켓몬의 포텐셜 · 전용 글에 조건 없이 적혀 있으면 이름이 X 인 위력 · 완화 줄의 배율 a 를 b 로 (「~에 대한」 · 「~때」가 앞에 붙은 줄은 손으로) */
  /* 11-26 368 조건 붙은 꼴: 이름은 『X』 또는 「특성 : X」(샴언니의 인내), 배율은 (a배→b배) 또는 (b배)만(매복악의 매복).
-     앞에 붙는 조건은 vtCond 가 아는 것만 — 「상성 : a배~b배」가 (아닌|인) 기술에 대한(멸망룡의 용린) · 「통상 교대」로 나온 포켓몬에게(매복악의 매복). 모르는 조건이 붙은 줄은 손으로 */
+     앞에 붙는 조건은 preCond(표 PRE_COND)가 아는 것만 — 「상성 : a배~b배」가 (아닌|인) 기술에 대한(멸망룡의 용린) · 「통상 교대」로 나온 포켓몬에게(매복악의 매복). 모르는 조건이 붙은 줄은 손으로 */
  const VT_RE=/(?:『\s*([^』]+?)\s*』|「\s*특성\s*[:：]\s*([^」]+?)\s*」)\s*의\s*배율을\s*강화\s*\(\s*(?:([\d.]+)\s*배?\s*(?:→|->|⇒)\s*)?([\d.]+)\s*배\s*\)/;
- function vtCond(pre,q,oth){const s=String(pre||'').replace(/[①②③④⑤]/g,'').replace(/【[^】]*】/g,'').replace(/^[\s\/]+|\s+$/g,'');if(!s)return true;
-  let m=s.match(/^「\s*상성\s*[:：]\s*([\d.]+)\s*배\s*(?:[~∼〜-]\s*([\d.]+)\s*배)?\s*」\s*(?:이|가)?\s*(아닌|인)\s*기술에\s*대한$/);
-  if(m){if(!q||q.eff==null||!isFinite(+q.eff))return false;const lo=+m[1],hi=m[2]?+m[2]:lo;const inR=+q.eff>=lo-0.001&&+q.eff<=hi+0.001;return m[3]==='인'?inR:!inR}
-  if(/^「\s*통상\s*교대\s*」\s*로\s*나온\s*포켓몬\s*에게$/.test(s))return !!(oth&&+oth.inSw&&+oth.inT===curTurn());
-  return false}
- function vTune(own,e,q,oth){try{if(!own||!e||!e.name)return e.v;const nq=x=>String(x||'').replace(/[『』「」\s]/g,'');const nm=nq(e.name);for(const p of [].concat(own.pots||[],own.excl?[own.excl]:[],own.exclX||[])){if(!p||p.ph)continue;for(const seg of String(p.eff||'').replace(/<br\s*\/?>/g,'\n').split(/\n|(?=[①②③④⑤])/)){const r=seg.match(VT_RE);if(!r||nq(r[1]||r[2])!==nm)continue;if(!vtCond(seg.slice(0,r.index),q,oth))continue;if(r[3]==null||Math.abs(+e.v-+r[3])<0.011)return +r[4]}}}catch(x){}return e.v}
+ /* 11-26 글 앞 조건을 한 곳에 (PRE_COND · preCond): 글로 읽는 자동화 — 배율 고치기(vTune) · 【방호】 무시(hoIgnOf) — 가 본문 앞에 붙은 조건을 같은 표로 판정한다.
+    머리 태그 【…】/ 와 ①② 는 떼고, 앞에서부터 아는 꼴을 하나씩 떼어 내며 본다. 모르는 말이 남으면 false(손으로) — 새 조건 꼴은 표에 한 줄.
+    q = 공격 문맥(attackMods 의 q: eff 상성 · pow 위력 · tags · move) · own = 글 주인 · oth = 맞은편 */
+ const pcNq=x=>String(x||'').replace(/[『』「」\s]/g,'');
+ const PRE_COND=[
+  /* 「상성 : a배(~b배)」(가) 인 · 아닌 기술(에 대한 · 이) */
+  {re:/^「\s*상성\s*[:：]\s*([\d.]+)\s*배\s*(?:[~∼〜-]\s*([\d.]+)\s*배)?\s*」\s*(?:이|가)?\s*(아닌|인)\s*기술(?:에\s*대한|이|가)?/,
+   ok:(m,q)=>{if(!q||q.eff==null||!isFinite(+q.eff))return false;const lo=+m[1],hi=m[2]?+m[2]:lo;const inR=+q.eff>=lo-0.001&&+q.eff<=hi+0.001;return m[3]==='인'?inR:!inR}},
+  /* 「통상 교대」로 나온 포켓몬에게 — 맞은편이 이번 턴 통상 교대로 나왔다 */
+  {re:/^「\s*통상\s*교대\s*」\s*로\s*나온\s*포켓몬\s*에게/,ok:(m,q,own,oth)=>!!(oth&&+oth.inSw&&+oth.inT===curTurn())},
+  /* 「위력 : N」 이상 · 이하인 기술(「통상기」)이 */
+  {re:/^「\s*위력\s*[:：]\s*(\d+)\s*」\s*(이상|이하)\s*인\s*(?:「\s*(통상기)\s*」|기술)\s*(?:이|가)/,
+   ok:(m,q)=>{if(!q||!(+q.pow>0))return false;if(m[3]&&!(q.tags||[]).includes('통상기'))return false;return m[2]==='이상'?+q.pow>=+m[1]:+q.pow<=+m[1]}},
+  /* 「예리 : C+N」일 때 — 글 주인의 급소 랭크가 N 이상 */
+  {re:/^「\s*예리\s*[:：]\s*C\s*\+\s*(\d)\s*」\s*(?:이상\s*)?일\s*때/,ok:(m,q,own)=>(+((own&&own.rank)||{}).critical||0)>=+m[1]},
+  /* 「기술 이름」이 — 지금 내는 기술 (맨 뒤: 낫표에 콜론이 없는 것만) */
+  {re:/^「\s*([^」:：]+?)\s*」\s*(?:이|가)(?=\s|$)/,ok:(m,q)=>!!(q&&q.move)&&pcNq(q.move)===pcNq(m[1])}];
+ /* 걷기 하나로: fn 이 있으면 꼴마다 판정까지(preCond), 없으면 「엔진이 아는 조건뿐인가」만(preCondKnown — 추천기 안내용) */
+ function preCondWalk(pre,fn){let s=String(pre||'').replace(/[①②③④⑤]/g,'').replace(/【[^】]*】/g,'').replace(/^[\s\/]+|\s+$/g,'');
+  for(let n=0;s&&n<6;n++){let hit=null;for(const R of PRE_COND){const m=s.match(R.re);if(m){hit=[R,m];break}}if(!hit||(fn&&!fn(hit[0],hit[1])))return false;s=s.slice(hit[1][0].length).replace(/^[\s,]+/,'')}
+  return !s}
+ const preCond=(pre,q,own,oth)=>preCondWalk(pre,(R,m)=>R.ok(m,q,own,oth));
+ const preCondKnown=pre=>preCondWalk(pre,null);
+ /* 글 한 덩이를 절(줄 · ①②)로 */
+ const clausesOf=t=>String(t||'').replace(/<br\s*\/?>/g,'\n').split(/\n|(?=[①②③④⑤])/);
+ /* 특성 · 포텐셜의 【방호】 무시 글 꼴 (hoIgnOf 가 읽는다) + 엔진이 그 글을 읽는지(hoReads — 추천기가 「엔진이 글로 읽는다」 안내에 쓴다) */
+ const HO_TXT=/(?:「\s*타입\s*[:：]\s*([^」]+)」\s*인\s*)?상대(?:의)?\s*(「\s*특성\s*」)?\s*(『\s*포텐셜\s*』|포텐셜)?\s*의\s*【\s*방호\s*】\s*(?:효과)?(?:를|을)?\s*무시/;
+ function hoReads(text){for(const cl of clausesOf(text)){const r=cl.match(HO_TXT);if(r&&(r[2]||r[3])&&preCondKnown(cl.slice(0,r.index)))return {trait:!!r[2],pot:!!r[3],cond:!!cl.slice(0,r.index).replace(/[①②③④⑤]/g,'').replace(/【[^】]*】/g,'').replace(/[\s\/]/g,'')}}return null}
+ function vTune(own,e,q,oth){try{if(!own||!e||!e.name)return e.v;const nq=x=>String(x||'').replace(/[『』「」\s]/g,'');const nm=nq(e.name);for(const p of [].concat(own.pots||[],own.excl?[own.excl]:[],own.exclX||[])){if(!p||p.ph)continue;for(const seg of String(p.eff||'').replace(/<br\s*\/?>/g,'\n').split(/\n|(?=[①②③④⑤])/)){const r=seg.match(VT_RE);if(!r||nq(r[1]||r[2])!==nm)continue;if(!preCond(seg.slice(0,r.index),q,own,oth))continue;if(r[3]==null||Math.abs(+e.v-+r[3])<0.011)return +r[4]}}}catch(x){}return e.v}
  /* 11-26 366 「「X」(이/가) 상대의 『Y』를 무시한다」(오른 『화산의 노여움』 — 「지진」이 상대의 『병법술』을 무시): 때리는 쪽 포텐셜 · 전용 글에 있으면,
      그 기술(X)을 낼 때 이름이 Y 인 상대 쪽 완화 줄(맞는 포켓몬의 것 · 「기술자체」로 필드에 깔린 것 모두)을 건너뛴다. 【방호】 무시(hoIgnOf)와는 따로 — 이름으로만 본다 */
   function nameIgnOf(atk,q){try{if(!atk||!q||!q.move)return null;const nq=x=>String(x||'').replace(/[『』「」\s]/g,'');const mv=nq(q.move);const R=[];
@@ -1085,5 +1119,5 @@ window.OM_FX=(()=>{
  function describe(ops){return unparse(ops)}
  /* 11-25: 실제로 걸지 않고 그 상태가 될 수 있는지만 본다 (복사본에 setState) — 될 수 없으면 까닭 글, 되면 '' */
  function canState(m,en,self,o){try{const c=JSON.parse(JSON.stringify(m||{}));const s=self&&m&&self.id===m.id?c:self;const r=setState(c,en,null,false,s,'',o||null);return (c.states||{})[en]?'':String(r||'될 수 없다')}catch(e){return ''}}
- return {canState,fracUp,moldQ,potSure,asOf,traitMods,priRank,priSpec,priOk,effPride,priSelfSet,srcPriBlock,PRI_ORD,supTgt,noHeal,effOver,rkRedir,rkToAb,whileSync,cmod,prioPcNote,noindUse,noindHit,condTok,condStr,condAll,hasCond,pcPass,iuList,xOk,nodropHit,hitOk,hitDesc,syncPairs,roleFam,roleFams,ROLE_FAM,spOf,spDesc,SP_KO,reAura,effOf,rmChance,rollP,lineChance,release,nextOf,scopeKo,chanceOf,setAb,resetAb,stMod,untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,nullOf,dynOk,evaMods,accMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,weatherBlock,magicRoom,itemOff,abSync,holds,useItem,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
+ return {FRAC,hoReads,preCondKnown,canState,fracUp,moldQ,potSure,asOf,traitMods,priRank,priSpec,priOk,effPride,priSelfSet,srcPriBlock,PRI_ORD,supTgt,noHeal,effOver,rkRedir,rkToAb,whileSync,cmod,prioPcNote,noindUse,noindHit,condTok,condStr,condAll,hasCond,pcPass,iuList,xOk,nodropHit,hitOk,hitDesc,syncPairs,roleFam,roleFams,ROLE_FAM,spOf,spDesc,SP_KO,reAura,effOf,rmChance,rollP,lineChance,release,nextOf,scopeKo,chanceOf,setAb,resetAb,stMod,untransform,FUTURE,rm,rmAll,autoOf,run,attackMods,nullOf,dynOk,evaMods,accMods,consume,prioOf,turnEnd,chips,remove,removeAll,removeByName,timing,percentOf,percentBase,parse,unparse,describe,noind,noindName,floating,terrainBlock,weatherBlock,magicRoom,itemOff,abSync,holds,useItem,immuneHit,nodropHit,liveMods,modDesc,TGT_KO,STAT_KO,TYPE_KO,NEG,ABN,stEn,stKo};
 })();
