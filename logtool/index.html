@@ -4888,7 +4888,7 @@ dialog.mtdlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
  <div class="ai-note">글 AI 가 각 인물의 초상(토큰 그림)과 로그를 보고 외모 태그를 적습니다. 이미 적어 둔 칸은 건드리지 않아요. 결과는 꼭 한 번 읽고 고쳐 주세요.</div>
  <div id="aiLooks"></div></details>
  <div class="ai-row"><label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="aiAutoLook" style="width:auto"> 장면을 고를 때, 외모 칸이 빈 인물은 토큰 그림을 보고 알아서 채우기</label></div>
- <div class="ai-foot"><button class="btn primary" id="aiPlan" type="button">삽화 장면 고르기</button><button class="btn" id="aiDrawAll" type="button" hidden>모두 그리기</button><button class="btn" id="aiIllStop" type="button" hidden>멈추기</button><span class="ai-stat" id="aiIllStat"></span></div>
+ <div class="ai-foot"><button class="btn primary" id="aiPlan" type="button">삽화 장면 고르기</button><button class="btn" id="aiDrawAll" type="button" hidden>모두 그리기</button><button class="btn" id="aiPutAll" type="button" hidden>모두 넣기</button><button class="btn" id="aiIllStop" type="button" hidden>멈추기</button><span class="ai-stat" id="aiIllStat"></span></div>
  <div class="ai-note">글 AI 가 로그를 장수만큼 나눠 구간마다 한 장면을 고르고, NovelAI 가 그립니다. 그림은 1장 · 100만 화소 이하 · 28스텝 이하로만 요청합니다(Opus 무료 생성 조건). 그래도 계정 상태에 따라 Anlas 가 쓰일 수 있어요.</div>
  <div id="aiCards"></div>
 </section>
@@ -5261,7 +5261,7 @@ dialog.mtdlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
       const busy = b => {
         q('aiPlan').hidden = b;
         q('aiIllStop').hidden = !b;
-        q('aiDrawAll').hidden = b || !IL.orders.length;
+        q('aiDrawAll').hidden = q('aiPutAll').hidden = b || !IL.orders.length;
       };
       function card(o, i) {
         const d = E('div', {
@@ -5322,9 +5322,9 @@ ${o.characters.map((c, k) => `<div class="ai-row"><label>${esc(c.name || '인물
           }
         };
         d.querySelector('[data-a=draw]').onclick = () => o.draw();
-        d.querySelector('[data-a=put]').onclick = () => {
+        o.put = () => {
           read();
-          if (!o.src) return;
+          if (!o.src) return false;
           if (o.putId) {
             const k = l.messages.findIndex(m => m.id === o.putId);
             if (k >= 0) l.messages.splice(k, 1);
@@ -5335,11 +5335,13 @@ ${o.characters.map((c, k) => `<div class="ai-row"><label>${esc(c.name || '인물
           keepIll();
           cs('로그에 넣었어요 (HTML 로 저장하면 같이 들어가요)');
           d.querySelector('[data-a=put]').textContent = '바꿔 넣기';
+          return true;
         };
+        d.querySelector('[data-a=put]').onclick = () => o.put();
         d.querySelector('[data-a=drop]').onclick = () => {
           IL.orders = IL.orders.filter(x => x !== o);
           d.remove();
-          q('aiDrawAll').hidden = !IL.orders.length;
+          q('aiDrawAll').hidden = q('aiPutAll').hidden = !IL.orders.length;
           keepIll();
         };
         show();
@@ -5437,6 +5439,21 @@ ${o.characters.map((c, k) => `<div class="ai-row"><label>${esc(c.name || '인물
           busy(false);
         }
       };
+      /* 그려 둔 삽화를 한 번에 로그에 넣는다. 이미 로그에 들어가 있는 장면은 그대로 둔다 (2026-11-27 망령 「하나하나 넣어야 되네」) */
+      q('aiPutAll').onclick = () => {
+        const drawn = IL.orders.filter(o => o.src);
+        if (!drawn.length) return ist('아직 그린 삽화가 없어요. 먼저 그려 주세요.');
+        let put = 0,
+          had = 0;
+        for (const o of drawn) {
+          if (o.putId && l.messages.some(m => m.id === o.putId)) had++;
+          else if (o.put && o.put()) put++;
+        }
+        const rest = IL.orders.length - drawn.length;
+        ist(
+          put + '장을 로그에 넣었어요' + (had ? ' · 이미 들어가 있던 ' + had + '장은 그대로 뒀어요' : '') + (rest ? ' · 아직 안 그린 ' + rest + '장면은 빠졌어요' : '')
+        );
+      };
       q('aiIllStop').onclick = () => {
         if (irun) irun.abort();
       };
@@ -5454,7 +5471,7 @@ ${o.characters.map((c, k) => `<div class="ai-row"><label>${esc(c.name || '인물
               if (!o.k) o.k = ++IL.seq;
             });
             IL.orders.forEach((o, i) => q('aiCards').appendChild(card(o, i)));
-            q('aiDrawAll').hidden = !IL.orders.length;
+            q('aiDrawAll').hidden = q('aiPutAll').hidden = !IL.orders.length;
             const dn = IL.orders.filter(o => o.src).length;
             if (IL.orders.length) ist('전에 만든 삽화 ' + IL.orders.length + '장면을 불러왔어요' + (dn ? ' · 그림 ' + dn + '장' : ''));
           })
