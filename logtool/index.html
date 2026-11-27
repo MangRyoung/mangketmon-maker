@@ -3370,14 +3370,16 @@ dialog.mtdlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
      원본은 장당 1.5~2MB 라 몇 장만 넣어도 한 건이 수 MB 가 되어 올리기가 실패하거나 여는 사람마다 그만큼 받는다 (2026-11-27 망령 「민나 원형경기장만 보인다」).
      이 브라우저에 있는 원본과 HTML 저장은 그대로다 */
   const illSmall = new Map();
-  function shrinkIll(src) {
-    if (illSmall.has(src)) return Promise.resolve(illSmall.get(src));
+  function shrinkIll(src, tight) {
+    const edge = tight ? 720 : 1024,
+      ck = (tight ? 't:' : '') + src;
+    if (illSmall.has(ck)) return Promise.resolve(illSmall.get(ck));
     return new Promise(res => {
       const im = new Image();
       im.onload = () => {
         let out = src;
         try {
-          const k = Math.min(1, 1024 / Math.max(im.naturalWidth, im.naturalHeight));
+          const k = Math.min(1, edge / Math.max(im.naturalWidth, im.naturalHeight));
           const c = document.createElement('canvas');
           c.width = Math.max(1, Math.round(im.naturalWidth * k));
           c.height = Math.max(1, Math.round(im.naturalHeight * k));
@@ -3385,24 +3387,24 @@ dialog.mtdlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
           g.fillStyle = '#fff';
           g.fillRect(0, 0, c.width, c.height);
           g.drawImage(im, 0, 0, c.width, c.height);
-          const d = c.toDataURL('image/jpeg', 0.82);
+          const d = c.toDataURL('image/jpeg', tight ? 0.72 : 0.82);
           if (/^data:image\/jpeg/.test(d) && d.length < src.length) out = d;
         } catch (e) {}
-        illSmall.set(src, out);
+        illSmall.set(ck, out);
         res(out);
       };
       im.onerror = () => res(src);
       im.src = src;
     });
   }
-  async function cloudMessages(log) {
+  async function cloudMessages(log, tight) {
     const out = [];
     for (const m of log.messages || []) {
       if (m.type === 'bgm' && m.audioId && !m.url) continue;
       if (m.ill && Array.isArray(m.tokens) && m.tokens.some(t => t.t === 'img' && t.ill && /^data:image\//i.test(t.src || '') && t.src.length > 200000)) {
         const tokens = [];
         for (const t of m.tokens)
-          tokens.push(t.t === 'img' && t.ill && /^data:image\//i.test(t.src || '') && t.src.length > 200000 ? Object.assign({}, t, { src: await shrinkIll(t.src) }) : t);
+          tokens.push(t.t === 'img' && t.ill && /^data:image\//i.test(t.src || '') && t.src.length > 200000 ? Object.assign({}, t, { src: await shrinkIll(t.src, tight) }) : t);
         out.push(Object.assign({}, m, { tokens }));
       } else out.push(m);
     }
@@ -3429,11 +3431,20 @@ dialog.mtdlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
     };
     setSt(id, 'up');
     try {
-      await put('mtlog', id, data);
+      try {
+        await put('mtlog', id, data);
+      } catch (e1) {
+        /* DB 가 시간 안에 못 받았거나(57014) 너무 크다고 하면(413) 삽화를 더 줄여 한 번 더 */
+        if (!/57014|^413|^5\d\d/.test(e1.message) || !data.messages.some(m => m.ill)) throw e1;
+        data.messages = await cloudMessages(log, true);
+        await put('mtlog', id, data);
+      }
       CL.idx.set(id, { u: data.updated, title: data.title });
       setSt(id, 'ok');
     } catch (err) {
-      CL.err = err.message;
+      CL.err = /57014/.test(err.message)
+        ? '보관소가 이 로그를 시간 안에 받지 못했어요 (한 건이 너무 큼, 약 ' + Math.round(JSON.stringify(data).length / 1024) + 'KB). ' + err.message
+        : err.message;
       setSt(id, 'err');
       console.warn('보관소 올리기', err);
     }
