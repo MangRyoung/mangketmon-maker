@@ -101,7 +101,7 @@ window.OM_DB.readymade={"섬란 카구라":{"text":"","ops":[{"k":"mult","tgt":"
 
 /* 11-18 망령 「오호게츠히메 — 비축 카운터」: 비축하기 · 꿀꺽 · 토해내기 (카운터는 fx 'stock' · 토해내기 위력 100×카운터는 웹툴 변칙 위력) */
 (()=>{const R=window.OM_DB.readymade;const put=(k,text,ops)=>{if(!R[k])R[k]={text,ops}};
- put('기술 : 비축하기','「방어/특방 : +1」. 「비축 카운터 : +1」 (최대 3 — 3이면 실패).',[{k:'stock',v:1,tgt:'self',fail:1}]);
+ put('기술 : 비축하기','「방어/특방 : +1」. 「비축 카운터 : +1」 (최대 3 — 3이면 실패).',[{k:'stock',v:1,tgt:'self',fail:1,rk:1}]); /* 11-27 rk: 방어/특방은 기술로 낼 때만 */
  put('기술 : 꿀꺽','「비축 카운터」를 모두 소모하여 1/4 · 1/2 · 1/1 회복. 0 이면 실패.',[{k:'stock',mode:'swallow',tgt:'self'}]);
  put('기술 : 토해내기','위력 = 비축 카운터 × 100. 맞힌 뒤 카운터를 모두 소모 (올린 방어/특방도 내려간다).',[{k:'stock',mode:'clear',tgt:'self'}]);
 })();

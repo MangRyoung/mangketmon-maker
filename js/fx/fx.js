@@ -951,6 +951,18 @@ window.OM_FX = (() => {
     const sv = +((m.states || {}).Stockpile || 0);
     return Math.max(0, Math.min(3, Math.max(+m.stock || 0, sv >= 1000 ? 1 : sv)));
   }
+  /* 11-27 19:20 망령 「비축하기의 방/특방 +1은 기술로 내보낼 때만 — 카운터 자체로는 안 오른다」: 오르는 건 구문 줄에 「랭크」가 있을 때(기술 비축하기)만, 오른 만큼을 m.stockUp 에 적어 둔다.
+    카운터가 줄면(꿀꺽 · 토해내기 · 손으로) 기술로 올린 몫 안에서만 같이 내린다 (기술 글 「카운터가 감소하면 상승한 능력치가 감소된다」). 돌려주는 값 = 실제로 움직인 랭크 */
+  function stockRank(m, d, up) {
+    const had = Math.max(0, +m.stockUp || 0);
+    const r = d > 0 ? (up ? d : 0) : -Math.min(-d, had);
+    if (!r) return 0;
+    m.rank = m.rank || {};
+    for (const k of ['defense', 'specialdefense']) m.rank[k] = Math.max(-6, Math.min(6, (+m.rank[k] || 0) + r));
+    if (had + r > 0) m.stockUp = had + r;
+    else delete m.stockUp;
+    return r;
+  }
   function setStock(m, nv) {
     delete m.stock;
     m.states = m.states || {};
@@ -2256,11 +2268,8 @@ window.OM_FX = (() => {
             }
             const d = nv - cur;
             setStock(m, nv);
-            if (d) {
-              m.rank = m.rank || {};
-              for (const k of ['defense', 'specialdefense']) m.rank[k] = Math.max(-6, Math.min(6, (+m.rank[k] || 0) + d));
-            }
-            L.push(`${m.name} 비축 카운터 ${cur} → ${nv}${d ? ` (방어/특방 ${d > 0 ? '+' : ''}${d})` : ''}`);
+            const rk = stockRank(m, d, !!op.rk);
+            L.push(`${m.name} 비축 카운터 ${cur} → ${nv}${rk ? ` (방어/특방 ${rk > 0 ? '+' : ''}${rk})` : ''}`);
           }
           break;
         }
@@ -6939,7 +6948,9 @@ window.OM_FX = (() => {
         if (has('소모') || has('전부') || has('초기화')) return { k: 'stock', mode: 'clear', tgt };
         const fail = has('실패') ? 1 : 0;
         const v = words.find(w => /^[+\-]?\d+$/.test(w));
-        return { k: 'stock', v: v != null ? +v : 1, tgt, fail };
+        const op = { k: 'stock', v: v != null ? +v : 1, tgt, fail };
+        if (has('랭크')) op.rk = 1; /* 11-27 「비축 +1 랭크」 = 기술 비축하기 — 방어/특방도 같이 */
+        return op;
       }
       case '소모': {
         const w = words.join('');
@@ -8767,7 +8778,8 @@ window.OM_FX = (() => {
             '비축' +
               (op.mode === 'swallow' ? ' 꿀꺽' : op.mode === 'clear' ? ' 소모' : ' ' + (+op.v > 0 ? '+' : '') + (+op.v || 0)) +
               (op.tgt && op.tgt !== 'self' ? tg(op.tgt) : '') +
-              (op.fail ? ' 실패' : '')
+              (op.fail ? ' 실패' : '') +
+              (op.rk ? ' 랭크' : '')
           );
           break;
         case 'role':
@@ -9122,6 +9134,7 @@ window.OM_FX = (() => {
     syncRoles,
     syncXOf,
     stockOf,
+    stockRank,
     setStock,
     isCountSt,
     roleFam,
