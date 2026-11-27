@@ -22,13 +22,14 @@
   /* 비밀 값(sa · nai)은 기억할 때 암호로 잠가서만 저장한다(AES-GCM, 키는 PBKDF2 31만 번). 저장 공간에는 암호문만 남는다.
    같은 주소(mangryoung.github.io)의 다른 도구가 저장 공간을 같이 쓰기 때문. */
   const ALT_DEFAULT = 'us-central1, us-east5, europe-west4, asia-northeast1';
-  const mem = { sa: '', region: 'global', model: '', nai: '', keep: false, safety: 'default', alts: ALT_DEFAULT, model2: '' };
+  const mem = { sa: '', region: 'global', model: '', nai: '', keep: false, safety: 'default', alts: ALT_DEFAULT, model2: '', prov: 'vertex', ckey: '', cmodel: 'claude-sonnet-5-5' };
   let locked = null,
     pass = '';
   try {
     const s = ls.get(KEY, null);
     if (s) {
-      for (const k of ['region', 'model', 'safety']) if (s[k]) mem[k] = s[k];
+      for (const k of ['region', 'model', 'safety', 'cmodel']) if (s[k]) mem[k] = s[k];
+      if (s.prov === 'claude') mem.prov = 'claude';
       for (const k of ['alts', 'model2']) if (typeof s[k] === 'string') mem[k] = s[k];
       if (s.enc) {
         locked = s.enc;
@@ -36,7 +37,7 @@
       } else if (s.sa || s.nai) {
         mem.sa = s.sa || '';
         mem.nai = s.nai || '';
-        ls.set(KEY, { region: mem.region, model: mem.model, safety: mem.safety, alts: mem.alts, model2: mem.model2 });
+        ls.set(KEY, { region: mem.region, model: mem.model, safety: mem.safety, alts: mem.alts, model2: mem.model2, prov: mem.prov, cmodel: mem.cmodel });
       } /* 옛 방식(그대로 저장)은 읽고 바로 지운다 */
     }
   } catch (e) {}
@@ -56,7 +57,7 @@
       await crypto.subtle.encrypt(
         { name: 'AES-GCM', iv },
         await passKey(pw, salt),
-        new TextEncoder().encode(JSON.stringify({ sa: mem.sa, nai: mem.nai }))
+        new TextEncoder().encode(JSON.stringify({ sa: mem.sa, nai: mem.nai, ckey: mem.ckey }))
       )
     );
     return { salt: hex(salt), iv: hex(iv), ct: hex(ct) };
@@ -66,12 +67,13 @@
     const o = JSON.parse(new TextDecoder().decode(d));
     mem.sa = o.sa || '';
     mem.nai = o.nai || '';
+    mem.ckey = o.ckey || '';
     pass = pw;
     locked = null;
   }
   async function persist() {
-    const plainPart = { region: mem.region, model: mem.model, safety: mem.safety, alts: mem.alts, model2: mem.model2 };
-    if (mem.keep && pass && (mem.sa || mem.nai)) {
+    const plainPart = { region: mem.region, model: mem.model, safety: mem.safety, alts: mem.alts, model2: mem.model2, prov: mem.prov, cmodel: mem.cmodel };
+    if (mem.keep && pass && (mem.sa || mem.nai || mem.ckey)) {
       plainPart.enc = await lockUp(pass);
     }
     ls.set(KEY, plainPart);
@@ -139,7 +141,82 @@
   }
   const pace = { last: 0, cool: 0, good: '', bad: new Set() };
   /* 한 번 부르기. 돌려주는 것: {text, finish} */
+  /* 글 AI 를 쓸 준비가 됐는지 (고른 쪽 기준) */
+  const ready = () => (mem.prov === 'claude' ? !!(mem.ckey && mem.cmodel) : !!(mem.sa && mem.model));
+  /* 글 AI 부르기 — 설정에서 고른 쪽으로 보낸다. 돌려주는 것은 양쪽 같다: {text, finish} */
   async function gemini(system, user, opt) {
+    return mem.prov === 'claude' ? claude(system, user, opt) : vertex(system, user, opt);
+  }
+  /* ---------- Claude API (2026-11-27 망령 「429 자주 걸리니까 클로드 api 로도」) ----------
+   브라우저에서 바로 부른다(anthropic-dangerous-direct-browser-access). 키는 다른 키와 같이 암호로 잠가서만 기억한다.
+   temperature 는 보내지 않는다(받지 않는 모델이 있음). JSON 이 필요하면 지침 끝에 한 줄을 붙이고, 읽는 쪽이 ``` 울타리를 벗긴다 */
+  async function claude(system, user, opt) {
+    opt = opt || {};
+    if (!mem.ckey) throw new Error('설정 탭에서 Claude API 키를 넣어 주세요.');
+    if (!mem.cmodel) throw new Error('설정 탭에서 Claude 모델 이름을 넣어 주세요.');
+    const content = [];
+    for (const p of opt.parts || [{ text: user }]) {
+      if (p.inlineData) {
+        if (/^image\/(jpeg|png|gif|webp)$/.test(p.inlineData.mimeType))
+          content.push({ type: 'image', source: { type: 'base64', media_type: p.inlineData.mimeType, data: p.inlineData.data } });
+      } else if (p.text) content.push({ type: 'text', text: p.text });
+    }
+    if (!content.length) content.push({ type: 'text', text: user || '.' });
+    const body = {
+      model: mem.cmodel,
+      max_tokens: opt.max ?? 12000,
+      system: system + (opt.json ? '\n\nOutput a single JSON value only. No prose before or after it, no code fences.' : ''),
+      messages: [{ role: 'user', content }]
+    };
+    const sleep = ms =>
+      new Promise((res, rej) => {
+        if (ms <= 0) return res();
+        const t = setTimeout(res, ms);
+        if (opt.signal)
+          opt.signal.addEventListener(
+            'abort',
+            () => {
+              clearTimeout(t);
+              rej(new DOMException('aborted', 'AbortError'));
+            },
+            { once: true }
+          );
+      });
+    const waits = [10, 30, 60];
+    let r = null;
+    for (let n = 0; ; n++) {
+      r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': mem.ckey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify(body),
+        signal: opt.signal
+      });
+      if (r.ok || ![429, 500, 529].includes(r.status) || n >= waits.length) break;
+      const ra = parseInt(r.headers.get('retry-after') || '', 10);
+      const sec = Math.round(Math.max(ra > 0 && ra < 300 ? ra : 0, waits[n] * (0.75 + Math.random() * 0.5)));
+      if (waitNote) waitNote('Claude 쪽이 붐벼서(HTTP ' + r.status + ') ' + sec + '초 쉬었다가 다시 해 볼게요… (' + (n + 1) + '/' + waits.length + ')');
+      await sleep(sec * 1000);
+    }
+    if (!r.ok) {
+      let d = '';
+      try {
+        d = ((await r.json()).error || {}).message || '';
+      } catch (e) {}
+      if (r.status === 401) throw new Error('Claude API 키가 받아들여지지 않았어요 (HTTP 401). 키를 다시 확인해 주세요. ' + String(d).slice(0, 200));
+      if (r.status === 429) throw new Error('Claude 쪽 사용 한도에 걸렸어요 (HTTP 429). 잠시 뒤에 다시 눌러 주세요. ' + String(d).slice(0, 240));
+      throw new Error('Claude 호출이 거절됐어요 (HTTP ' + r.status + ') ' + String(d).slice(0, 240));
+    }
+    const j = await r.json();
+    const text = (j.content || []).map(b => (b.type === 'text' ? b.text || '' : '')).join('');
+    if (!text) throw new Error('모델이 글을 돌려주지 않았어요 (사유: ' + (j.stop_reason || '알 수 없음') + ').');
+    return { text, finish: j.stop_reason === 'max_tokens' ? 'MAX_TOKENS' : j.stop_reason || '' };
+  }
+  async function vertex(system, user, opt) {
     opt = opt || {};
     if (!mem.model) throw new Error('설정 탭에서 모델 이름을 넣어 주세요.');
     const { token, sa } = await accessToken();
@@ -646,7 +723,7 @@
     const bg = E('div', { class: 'ai-bg' });
     const box = E('div', { class: 'ai-box', role: 'dialog', 'aria-label': 'AI 도구' });
     bg.appendChild(box);
-    box.innerHTML = `<h2>AI 도구</h2><div class="ai-note">글 AI 는 Vertex AI 의 Gemini 를 이 브라우저에서 바로 부릅니다. 키는 공유 DB 나 저장 파일에 들어가지 않습니다.</div>
+    box.innerHTML = `<h2>AI 도구</h2><div class="ai-note">글 AI 는 Vertex AI 의 Gemini 나 Claude API 를 이 브라우저에서 바로 부릅니다(설정 탭에서 고름). 키는 공유 DB 나 저장 파일에 들어가지 않습니다.</div>
 <div class="ai-tabs" role="tablist"><button type="button" data-t="novel" aria-selected="true">웹소설로</button><button type="button" data-t="ill" aria-selected="false">삽화</button><button type="button" data-t="set" aria-selected="false">설정</button></div>
 <section data-p="novel">
  <div class="ai-row"><label>시점<select id="aiPov"><option value="third">3인칭</option><option value="first">1인칭</option></select></label>
@@ -686,13 +763,21 @@
   <div class="ai-note">키는 암호로 잠가서 저장돼요. 그래서 새로 열면 칸이 비어 보여요. 잠금 암호를 넣으면 다시 채워집니다.</div>
   <div class="ai-row"><label>잠금 암호<input type="password" id="aiUnlockPw" autocomplete="off"></label><label style="flex:0 0 auto;justify-content:flex-end"><button class="btn primary" id="aiUnlock" type="button">잠금 풀기</button></label><label style="flex:0 0 auto;justify-content:flex-end"><button class="btn" id="aiForget" type="button">잠긴 키 지우기</button></label></div>
  </div>
- <h3>글 AI — Vertex AI (Gemini)</h3>
+ <h3>글 AI</h3>
+ <div class="ai-row"><label>쓸 곳<select id="aiProv"><option value="vertex">Vertex AI (Gemini)</option><option value="claude">Claude API</option></select></label></div>
+ <div id="aiClaudeBox" hidden>
+ <div class="ai-row"><label>Claude API 키<input type="password" id="aiCkey" spellcheck="false" autocomplete="off" placeholder="sk-ant-…"></label></div>
+ <div class="ai-row"><label>모델<select id="aiCmodelPick"><option value="claude-sonnet-5-5">claude-sonnet-5-5</option><option value="claude-opus-5-5">claude-opus-5-5</option><option value="claude-haiku-5-5">claude-haiku-5-5</option><option value="claude-fable-5-2">claude-fable-5-2</option><option value="">직접 입력</option></select></label><label>모델 이름<input type="text" id="aiCmodel" spellcheck="false" autocomplete="off" placeholder="직접 적어도 돼요"></label></div>
+ <div class="ai-note">Claude API 는 쓴 만큼 내는 요금이에요(Claude 앱 구독과는 별개). 키는 이 브라우저에서 Anthropic 으로만 바로 보내요. 삽화 그림은 그대로 NovelAI 가 그려요.</div>
+ </div>
+ <div id="aiVertexBox">
  <div class="ai-row"><label>서비스 계정 JSON (리수에 넣는 것과 같은 글 전체)<textarea id="aiSa" class="ai-mono" rows="5" spellcheck="false" autocomplete="off"></textarea></label></div>
  <div class="ai-row"><label>지역<input type="text" id="aiRegion" spellcheck="false" autocomplete="off"></label><label>모델<select id="aiModelPick"><option value="gemini-4-carbon">gemini-4-carbon</option><option value="gemini-4-neon">gemini-4-neon</option><option value="gemini-4-argon">gemini-4-argon</option><option value="">직접 입력</option></select></label><label>모델 이름<input type="text" id="aiModel" spellcheck="false" autocomplete="off" placeholder="직접 적어도 돼요"></label>
  <label>안전 필터<select id="aiSafe"><option value="default">기본</option><option value="loose">느슨하게 (전투 · 유혈 묘사가 막힐 때)</option></select></label></div>
  <div class="ai-row"><label>429 일 때 돌려 볼 지역 (쉼표로 · 비우면 안 돌림)<input type="text" id="aiAlts" spellcheck="false" autocomplete="off"></label><label>대신 쓸 모델 (비워도 됨)<input type="text" id="aiModel2" spellcheck="false" autocomplete="off" placeholder="예: gemini-4-neon"></label></div>
  <div class="ai-note">Google 이 「붐빈다(429)」고 하면 위 지역들을 차례로 불러 보고, 다 막히면 대신 쓸 모델로 같은 지역들을 돕니다. 그 지역에 모델이 없으면 알아서 건너뛰어요. 통한 곳은 창을 닫을 때까지 기억합니다.</div>
- <h3>그림 AI — NovelAI (삽화 기능에 쓸 예정)</h3>
+ </div>
+ <h3>그림 AI — NovelAI</h3>
  <div class="ai-row"><label>NovelAI 토큰<input type="password" id="aiNai" spellcheck="false" autocomplete="off"></label></div>
  <div class="ai-row"><label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="aiKeep" style="width:auto"> 이 브라우저에 기억하기 (끄면 창을 닫을 때 잊습니다)</label>
  <label id="aiPwWrap" hidden>잠금 암호 — 꼭 넣어야 기억돼요 (8자 이상)<input type="password" id="aiPw" autocomplete="new-password"></label></div>
@@ -743,6 +828,30 @@
       }
     };
     q('aiModel').addEventListener('input', syncModelPick);
+    const CMODELS = ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5', 'claude-fable-5-2'];
+    function syncCmodelPick() {
+      const v = q('aiCmodel').value.trim();
+      q('aiCmodelPick').value = CMODELS.includes(v) ? v : '';
+    }
+    q('aiCmodelPick').onchange = () => {
+      const v = q('aiCmodelPick').value;
+      if (v) q('aiCmodel').value = v;
+      else {
+        q('aiCmodel').focus();
+        q('aiCmodel').select();
+      }
+    };
+    q('aiCmodel').addEventListener('input', syncCmodelPick);
+    const syncProv = () => {
+      const c = q('aiProv').value === 'claude';
+      q('aiClaudeBox').hidden = !c;
+      q('aiVertexBox').hidden = c;
+    };
+    q('aiProv').value = mem.prov;
+    q('aiProv').onchange = syncProv;
+    syncProv();
+    q('aiCmodel').value = mem.cmodel;
+    syncCmodelPick();
     q('aiRegion').value = mem.region;
     q('aiAlts').value = mem.alts;
     q('aiModel2').value = mem.model2;
@@ -753,12 +862,16 @@
     const fillSet = () => {
       q('aiSa').value = mem.sa;
       q('aiNai').value = mem.nai;
+      q('aiCkey').value = mem.ckey;
       q('aiLockRow').hidden = !locked;
       q('aiPw').value = pass;
     };
     fillSet();
     const take = async () => {
       mem.sa = q('aiSa').value.trim();
+      mem.prov = q('aiProv').value === 'claude' ? 'claude' : 'vertex';
+      mem.ckey = q('aiCkey').value.trim();
+      mem.cmodel = q('aiCmodel').value.trim();
       mem.region = q('aiRegion').value.trim() || 'global';
       mem.alts = q('aiAlts').value.trim();
       mem.model2 = q('aiModel2').value.trim();
@@ -846,7 +959,7 @@
       }
     };
     syncPw();
-    if (!mem.sa || !mem.model) tab('set');
+    if (!ready()) tab('set');
     if (locked)
       setTimeout(() => {
         try {
@@ -969,7 +1082,7 @@
       };
       q('aiLookAuto').onclick = async () => {
         if (!l) return;
-        if (!mem.sa || !mem.model) {
+        if (!ready()) {
           tab('set');
           return;
         }
@@ -1102,7 +1215,7 @@ ${o.characters.map((c, k) => `<div class="ai-row"><label>${esc(c.name || '인물
           ist('먼저 로그를 골라 주세요.');
           return;
         }
-        if (!mem.sa || !mem.model) {
+        if (!ready()) {
           tab('set');
           return;
         }
@@ -1258,7 +1371,7 @@ ${o.characters.map((c, k) => `<div class="ai-row"><label>${esc(c.name || '인물
         st('먼저 로그를 골라 주세요.');
         return;
       }
-      if (!mem.sa || !mem.model) {
+      if (!ready()) {
         tab('set');
         return;
       }
