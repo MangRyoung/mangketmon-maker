@@ -780,6 +780,45 @@ window.MKM_POTLINT = (() => {
   }
   /* 조건 (거짓이면 뒤 줄을 멈춘다) — 엔진이 아는 것은 「조건 …」, 모르는 것은 「확인 "…"」 (GM 이 발동할 때 맞는지 묻는다) */
   const TRIG = /했을|받았을|되었을|됐을|등장했|내보낼|명중|받으면|만들었을|무효화했/;
+  /* 11-27 【동조】 표 — 동조의 꼴이 새로 생기면 여기에 한 줄 (엔진 구문 「동조확장 타입 | 확정」 · 조건 낱말 「동조중」) */
+  const SYNC_EXT = [
+    /* 같은 「타입」에 대해서도(끼리도) 【동조】한다 — 「필드 위의 (모든) 포켓몬은」이면 전체 */
+    {
+      re: /같은\s*「\s*타입\s*」\s*(?:에\s*대해서도|끼리도|에게도)\s*【\s*동조\s*】/,
+      line: c => '동조확장 타입' + (/(?:필드\s*위의\s*)?모든\s*포켓몬|필드\s*위의\s*포켓몬/.test(c) ? ' 전체' : '')
+    },
+    /* 【동조】가(는) 반드시 · 항상 · 확정으로 발동 · 성립한다 · 【동조】한 것으로 친다 · 항상 【동조】한다 */
+    {
+      re: /【\s*동조\s*】\s*(?:이|가|은|는)?\s*(?:반드시|항상|확정(?:으로|적으로)?)\s*(?:발동|성립)|【\s*동조\s*】\s*(?:한|된)\s*것으로\s*(?:친다|취급)|(?:항상|반드시)\s*【\s*동조\s*】\s*(?:한다|상태)/,
+      line: () => '동조확장 확정'
+    }
+  ];
+  /* 글 앞 조건 → 줄 끝 조건 낱말 (동조확장처럼 「맞는 동안만」 켜지는 줄에 붙인다) */
+  function syncCondW(c) {
+    let m,
+      w = '';
+    if ((m = c.match(/「\s*날씨\s*[:：]\s*([^」]+?)\s*」\s*일\s*때/))) w += ' 날씨:' + m[1].replace(/\s+/g, '');
+    if ((m = c.match(/「\s*필드\s*[:：]\s*([^」]+?)\s*」\s*일\s*때/))) w += ' 필드:' + m[1].replace(/\s+/g, '');
+    if ((m = c.match(/「\s*HP\s*[:：]\s*(\d+\s*\/\s*\d+)\s*」\s*이하\s*일\s*때/))) w += ' HP≤' + m[1].replace(/\s+/g, '');
+    if ((m = c.match(/「\s*([^」:：]+?)\s*」\s*상태\s*일\s*때/))) w += ' 상태:' + m[1].replace(/\s+/g, '');
+    return w;
+  }
+  const STATE_EACH_RE =
+    /(?:필드\s*위의\s*)?「\s*([^」:：]+?)\s*」\s*상태인\s*포켓몬은\s*(?:(\d할|드물게|저확률|중확률|고확률)\s*로?\s*)?「\s*([^」:：]+?)\s*」\s*상태가?\s*된다/;
+  /* 11-27 망령 「대치가 이어지는 동안 · 특성 파괴는 동조된 상대만」: 【동조】 글의 대상 아군 → 동조아군 · 상대 → 동조상대, 늘 켜지는 줄(이번 턴 · N턴이 아닌 위력 · 완화 …)에는 「동조중」 */
+  const SYNC_KEEP = new Set(['boost', 'guard', 'eva', 'mult', 'acc', 'prio', 'noind', 'immune']);
+  function syncLine(s) {
+    let t = String(s)
+      .replace(/(^|\s)아군(?:1체|전체)?(?=\s|$)/, '$1동조아군')
+      .replace(/(^|\s)상대(?:1체|전체)?(?=\s|$)/, '$1동조상대');
+    const F = window.OM_FX;
+    if (F && F.parse && !/(^|\s)동조중(?=\s|$)/.test(t)) {
+      const r = F.parse(t);
+      const op = (r.ops || [])[0];
+      if (op && SYNC_KEEP.has(op.k) && !op.turn && !op.tl && !/(^|\s)(이번턴|턴종료까지|임시|\d+턴)(?=\s|$)/.test(t)) t += ' 동조중';
+    }
+    return t;
+  }
   function condOf(c) {
     let m;
     const R = [];
@@ -1338,6 +1377,31 @@ window.MKM_POTLINT = (() => {
       const hW = t => (hold && t && t !== '자신' ? ' 있는한' : '');
       const L = [];
       let m;
+      /* 11-27 망령 「타입 동조 · 조건부 동조 · 동조의 확정 발동」: 표(SYNC_EXT) 한 줄 = 한 꼴. 글 앞 「날씨 · 필드 · HP」 조건은 줄 끝 조건 낱말로(맞을 때만 동조) */
+      {
+        const hit = SYNC_EXT.find(R => R.re.test(c));
+        if (hit) {
+          const s = hit.line(c) + syncCondW(c);
+          if (!lines.includes(s)) {
+            lines.push(s);
+            why.push(c0.length > 60 ? c0.slice(0, 60) + '…' : c0);
+          }
+          continue;
+        }
+      }
+      /* 11-27 「(필드 위의) 「X」 상태인 포켓몬은 (확률로) 「Y」 상태가 된다」 → 대상마다 따로 굴림 (사건 3 필드 효과) */
+      {
+        const q = c.match(STATE_EACH_RE);
+        if (q) {
+          const s =
+            (q[2] ? q[2] + ' ' : '') + '상태 ' + q[3].replace(/\s+/g, '') + ' 전체 대상상태:' + q[1].replace(/\s+/g, '') + (q[2] ? ' 각자' : '');
+          if (!lines.includes(s)) {
+            lines.push(s);
+            why.push(c0.length > 60 ? c0.slice(0, 60) + '…' : c0);
+          }
+          continue;
+        }
+      }
       const cond = condOf(c);
       /* 11-08 망령 「「돌던지기」가 「타입 : 물」에게 명중 했을 때 대상을 강제 교대 시킨다」 → 조건 명중 기술:돌던지기 상대타입:물 + 강제교대 대상 */
       {
@@ -2505,6 +2569,7 @@ window.MKM_POTLINT = (() => {
           L[0] = '선택:\n- 조건을 만족한다 → ' + L[0];
         } else if (cs.length && L.length) L.unshift(...cs);
       }
+      if (/【\s*동조\s*】/.test(tags)) for (let i = 0; i < L.length; i++) L[i] = syncLine(L[i]);
       /* 조건 줄은 거짓이면 그 뒤 줄을 다 멈춘다 → 조건이 붙은 마디(조건 + 그 효과)는 맨 뒤로 미룬다 */
       const dst = L.length && /^(조건|확인) |^선택:/.test(L[0]) ? (DEFER = DEFER || []) : null;
       for (const s of L) {

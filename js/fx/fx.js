@@ -276,7 +276,7 @@ window.OM_FX = (() => {
   };
   const fx = m => {
     m.fx = m.fx || { mods: [], noind: [], prio: [], immune: [], nodrop: [], roles: [] };
-    for (const k of ['mods', 'noind', 'prio', 'immune', 'nodrop', 'roles', 'mults', 'chance', 'sp', 'iuL', 'bases', 'cmults', 'rkx'])
+    for (const k of ['mods', 'noind', 'prio', 'immune', 'nodrop', 'roles', 'mults', 'chance', 'sp', 'iuL', 'bases', 'cmults', 'rkx', 'syncx'])
       m.fx[k] = m.fx[k] || [];
     return m.fx;
   };
@@ -941,19 +941,41 @@ window.OM_FX = (() => {
     if (r) o.add(r);
     return [...o];
   };
+  /* 웹툴이 역할 읽기(상위 역할 포함)를 한 번 넘겨 둔다 — 조건 낱말 「동조중」처럼 ctx 없이 판정할 때도 같은 기준 */
+  let SYNC_ROLES = null;
+  const syncRoles = fn => {
+    if (typeof fn === 'function') SYNC_ROLES = fn;
+  };
+  /* 11-27 망령 「타입 동조 · 조건부 동조 · 동조의 확정 발동은 꽤 쓰일 여지가 있으니 작업해둬」: 지속 효과 syncx (구문 「동조확장 타입 | 확정」)
+    type = 같은 『역할』이 아니어도 같은 「타입」끼리 대치하면 동조 · sure = 맞은편의 필드 위 포켓몬 모두와 동조(확정 발동).
+    줄에 조건 낱말(날씨 · HP · 상태 …)이 붙어 있으면 그 조건이 맞을 때만 — 「조건부 동조」. 필드 효과는 「필드 동안」 줄로 모두에게 건다 */
+  const SYNCX_KO = { type: '타입', sure: '확정' };
+  function syncXOf(m) {
+    const o = { type: false, sure: false };
+    for (const e of ((m && m.fx) || {}).syncx || []) if (e && !e.syn && SYNCX_KO[e.by] && dynOk(e, m, null, null)) o[e.by] = true;
+    return o;
+  }
   function syncPairs(b, self, rolesOf) {
-    const R = rolesOf || rolesDef;
+    const R = rolesOf || SYNC_ROLES || rolesDef;
     const out = { a: new Set(), e: new Set(), pairs: [] };
     if (!b || !self) return out;
     const tm = teamOf(b, self);
     const live = Object.values(b.mons || {}).filter(m => m.entry && alive(m));
     const al = live.filter(m => teamOf(b, m) === tm),
       en = live.filter(m => teamOf(b, m) !== tm);
+    const X = new Map(live.map(m => [m.id, syncXOf(m)]));
     for (const a of al) {
       const ra = [...new Set(R(a).flatMap(roleFams))].filter(r => r && r !== '바닐라');
-      if (!ra.length) continue;
+      const xa = X.get(a.id);
+      if (!ra.length && !xa.type && !xa.sure) continue;
       for (const e of en) {
-        const hit = [...new Set(R(e).flatMap(roleFams))].find(r => ra.includes(r));
+        const xe = X.get(e.id);
+        let hit = [...new Set(R(e).flatMap(roleFams))].find(r => ra.includes(r));
+        if (!hit && (xa.type || xe.type)) {
+          const t = typesOf(a).find(x => typesOf(e).includes(x));
+          if (t) hit = '타입 : ' + (TYPE_KO[t] || t);
+        }
+        if (!hit && xa.sure) hit = '확정'; /* 확정 발동은 가진 쪽만 — 상대에게 동조를 선물하지 않는다 */
         if (hit) {
           out.a.add(a.id);
           out.e.add(e.id);
@@ -1042,6 +1064,10 @@ window.OM_FX = (() => {
   }
   let RUNTP = null;
   let RUNTN = null;
+  /* 11-27 망령 (사건 3 필드 「「특성파괴」 상태인 포켓몬은 저확률로 「혼란」」): 줄 끝 「대상상태:X」 = 그 줄의 대상 중 그 상태인 포켓몬에게만 */
+  let RUNTS = null;
+  /* 11-27 줄 끝 「각자」(확률 줄): 대상마다 따로 굴린다 — 굴려서 맞은 대상 하나만 남기고 그 줄을 돈다 */
+  let RUNONLY = null;
   let RUNSELF = null;
   const abN = m =>
     String((m && m.ability) || '')
@@ -1057,6 +1083,8 @@ window.OM_FX = (() => {
       const nq = x => String(x || '').replace(/\s/g, '');
       r = (r || []).filter(m => m && RUNTN.map(nq).includes(nq(m.name)));
     }
+    if (RUNTS) r = (r || []).filter(m => m && hasSt(m, RUNTS));
+    if (RUNONLY) r = (r || []).filter(m => m && m.id === RUNONLY);
     /* 11-23 대상이름 */ /* 11-23 대상프라이드 */ const tt = RUNTT;
     return tt && tt.length ? (r || []).filter(m => m && typesOf(m).some(t => tt.includes(t))) : r;
   }
@@ -1071,7 +1099,9 @@ window.OM_FX = (() => {
     const pre = m =>
       (!RUNTP || priOk(m, RUNTP)) &&
       (!(RUNTN && RUNTN.length) || RUNTN.map(nq0).includes(nq0(m.name))) &&
-      (!(RUNTT && RUNTT.length) || typesOf(m).some(t => RUNTT.includes(t)));
+      (!(RUNTT && RUNTT.length) || typesOf(m).some(t => RUNTT.includes(t))) &&
+      (!RUNTS || hasSt(m, RUNTS)) &&
+      (!RUNONLY || m.id === RUNONLY);
     const live = Object.values(b.mons || {}).filter(m => m.entry && alive(m) && (m === self || pre(m)));
     const allies = live.filter(m => teamOf(b, m) === tm),
       enemies = live.filter(m => teamOf(b, m) !== tm && (!RUNTDX || analyzedBy(m, tm)));
@@ -1488,9 +1518,45 @@ window.OM_FX = (() => {
         }
       }
     } catch (e) {}
+    const runFilters = op => {
+      const prev = [RUNTT, RUNTDX, RUNTP, RUNTN, RUNTS];
+      RUNTT = op.ttype && op.ttype.length ? op.ttype : null;
+      RUNTDX = op.tdx ? 1 : 0;
+      RUNTP = op.tpri ? priSpec(op.tpri) : null;
+      RUNTN = op.tname && op.tname.length ? op.tname : null;
+      RUNTS = op.tst || null;
+      return () => ([RUNTT, RUNTDX, RUNTP, RUNTN, RUNTS] = prev);
+    };
     for (let op of ops || []) {
       if (stop) break; /* let: 「날씨 무작위」가 op 를 바꿔 끼운다 */
       try {
+        /* 11-27 「각자」: 확률 줄을 대상마다 따로 굴린다 (필드 「「특성파괴」 상태인 포켓몬은 저확률로 「혼란」」 — 둘이면 둘 다 굴림) */
+        if (op.each && (op.p || op.pl) && !ctx.noRoll && !PCK.has(op.k)) {
+          const base = op.p ? +op.p : percentOf(op.pl);
+          const lb = op.pl || (op.p % 10 === 0 ? op.p / 10 + '할' : op.p + '%');
+          let undo = runFilters(op);
+          let ts = [];
+          try {
+            ts = await targets(b, self, op.tgt || 'self', ctx);
+          } finally {
+            undo();
+          }
+          const op1 = Object.assign({}, op, { p: 0, pl: '', each: 0 });
+          for (const t of ts) {
+            const rr = rollP(self, base, ctx);
+            L.push(`${t.name} — ${lb} 판정 ${rr.ok ? '성공' : '실패'} (${rr.r}/${rr.p})${rr.adj}`);
+            if (!rr.ok) continue;
+            undo = runFilters(op1);
+            RUNONLY = t.id;
+            try {
+              await runOp(op1);
+            } finally {
+              RUNONLY = null;
+              undo();
+            }
+          }
+          continue;
+        }
         /* 10-23 망령: 줄 앞의 확률(「5할」 「30%」 「저확률」) — 이 줄만 굴린다 */
         if (
           (op.p || op.pl) &&
@@ -1518,11 +1584,13 @@ window.OM_FX = (() => {
           prevTD = RUNTDX,
           prevTP = RUNTP,
           prevTN = RUNTN,
+          prevTS = RUNTS,
           prevRS = RUNSELF;
         RUNTT = op.ttype && op.ttype.length ? op.ttype : null;
         RUNTDX = op.tdx ? 1 : 0;
         RUNTP = op.tpri ? priSpec(op.tpri) : null;
         RUNTN = op.tname && op.tname.length ? op.tname : null;
+        RUNTS = op.tst || null;
         RUNSELF = self || null;
         try {
           await runOp(op);
@@ -1531,6 +1599,7 @@ window.OM_FX = (() => {
           RUNTDX = prevTD;
           RUNTP = prevTP;
           RUNTN = prevTN;
+          RUNTS = prevTS;
           RUNSELF = prevRS;
         }
         if (hs) holdDiff(b, self, hs, name, ctx.uniq, op.ttype && op.ttype.length ? op.ttype : null);
@@ -1836,6 +1905,20 @@ window.OM_FX = (() => {
           }
           break;
         } /* 11-10 랭크전환 */
+        case 'syncx': {
+          const ts = await targets(b, self, op.tgt || 'self', ctx);
+          for (const m of ts) {
+            const F = fx(m);
+            const key = name + ' ← ' + self.name;
+            F.syncx = F.syncx.filter(e => !(e.key === key && e.by === op.by));
+            F.syncx.push(Object.assign({ key, name, by: op.by }, condCopy(op)));
+            const cs = hasCond(op) ? ` (${condStr(op).trim()}일 때)` : '';
+            L.push(
+              `${m.name} 「${name}」 【동조】 ${op.by === 'type' ? '같은 「타입」끼리도 대치' : '맞은편 모두와 대치(확정)'}${cs} — 필드에 있는 동안`
+            );
+          }
+          break;
+        } /* 11-27 동조확장 */
         case 'rank':
         case 'mult': {
           const ts = await targets(b, self, op.tgt, ctx);
@@ -2037,6 +2120,7 @@ window.OM_FX = (() => {
               'fm',
               'oeg',
               'onm',
+              'syn',
               'anm' /* 11-23 상대알그룹 · 상대이름 · 아군이름이 위력 · 완화 · 회피 줄에 붙어도 조용히 버려지던 것 */
             ])
               if (op[k] != null && op[k] !== '' && op[k] !== 0 && !(Array.isArray(op[k]) && !op[k].length))
@@ -2947,7 +3031,7 @@ window.OM_FX = (() => {
           for (const m of ts) {
             const F = fx(m);
             const have = new Set();
-            for (const k of ['mods', 'noind', 'prio', 'immune', 'nodrop', 'chance', 'sp', 'mults', 'iuL'])
+            for (const k of ['mods', 'noind', 'prio', 'immune', 'nodrop', 'chance', 'sp', 'mults', 'iuL', 'syncx'])
               for (const e of F[k] || []) if (e && e.name) have.add(e.name);
             if (F.ignoreUp && F.ignoreUp.name) have.add(F.ignoreUp.name);
             if (F.float && F.float.name) have.add(F.float.name);
@@ -3507,7 +3591,8 @@ window.OM_FX = (() => {
     'mults',
     'chance',
     'iuL',
-    'cmults'
+    'cmults',
+    'syncx'
   ]; /* 11-10: 조건부 배율도 (플라워기프트 · 새는비 — 나가면 풀리고 새로 들어온 포켓몬에게 옮겨 건다) */
   function holdSnap(b) {
     const s = { mons: {}, f: JSON.parse(JSON.stringify(b.field || {})) };
@@ -4466,8 +4551,19 @@ window.OM_FX = (() => {
     if (+(r[k] || 0) > 0 || (r[k] && typeof r[k] === 'object' && +(r[k].count || 0) > 0)) return true;
     return false;
   }
+  let SYN_DEPTH = 0;
   function dynOk(e, own, oth, q) {
     if (!e) return true;
+    if (e.syn) {
+      if (!own || SYN_DEPTH) return false;
+      const B0 = RUNB || (((window.OM_APP || {}).ST || {}).state || {}).battle || {};
+      SYN_DEPTH++;
+      try {
+        if (!syncPairs(B0, own).a.has(own.id)) return false;
+      } finally {
+        SYN_DEPTH--;
+      }
+    }
     /* 11-23 조건 토큰 「상태:하늘위」 · 「상대상태:하늘위」 = 구문 「하늘위」로 떠 있는 동안 (말레니아 『물새 난격』 「하늘 위에 떠있을 때」) */ const hs =
       (m, k) => (k === 'Fly' || k === '하늘위' ? !!(m && (hasSt(m, 'Fly') || floating(m))) : hasSt(m, k));
     if (e.cs && !hs(own, e.cs)) return false;
@@ -4534,6 +4630,11 @@ window.OM_FX = (() => {
     /^(?:타임|해석됨|미해석|상대해석됨|적진해석됨|변장중|지역[:：]|이계[:：]|필드특성[:：]|아군특성[:：]|날씨[:：]|필드[:：]|상태[:：]|자세[:：]|폼[:：])/; /* 수세유지 줄에 붙일 수 있는 조건 낱말 (그 밖의 낱말은 예전대로 기술 이름) */
   function condTok(w, op) {
     let m;
+    /* 11-27 망령 「대치가 이어지는 동안」: 「동조중」 = 이 효과를 가진 포켓몬이 지금 【동조】 대치 중일 때만 (풀리면 꺼지고, 다시 맞서면 켜진다) */
+    if (w === '동조중') {
+      op.syn = 1;
+      return true;
+    }
     const sp = s =>
       s
         .split(/[,·]/)
@@ -5006,6 +5107,7 @@ window.OM_FX = (() => {
   const pmS = op => (op.pmin ? ' 위력≥' + op.pmin : '') + (op.pmax ? ' 위력≤' + op.pmax : '');
   function condStr(op) {
     let s = '';
+    if (op.syn) s += ' 동조중';
     if (op.foe) s += ' 상대공격';
     if (op.dmv) s += ' 지정기술';
     if (op.mv && op.mv.length) s += ' 기술:' + op.mv.join(',');
@@ -5070,6 +5172,7 @@ window.OM_FX = (() => {
     return s;
   }
   const COND_F = [
+    'syn',
     'oeg',
     'onm',
     'anm',
@@ -6229,6 +6332,17 @@ window.OM_FX = (() => {
         id: 'rkx:' + e.key + '|' + e.a + '|' + e.b,
         name: e.name
       });
+    for (const e of (m.fx && m.fx.syncx) || [])
+      out.push({
+        t: (e.by === 'sure' ? '동조 확정' : '타입 동조') + (hasCond(e) ? ' *' : ''),
+        title:
+          (e.name || '') +
+          ' — ' +
+          (e.by === 'sure' ? '맞은편 필드 위 포켓몬 모두와 【동조】' : '같은 「타입」끼리도 【동조】') +
+          (hasCond(e) ? ' (조건:' + condStr(e) + ')' : ''),
+        id: 'syncx:' + e.key + '|' + e.by,
+        name: e.name
+      });
     for (const e of (m.fx && m.fx.iuL) || [])
       out.push({
         t: iuLabel(e) + (e.pc ? ' (' + (e.pcl || e.pc + '%') + ')' : '') + ' *',
@@ -6329,7 +6443,7 @@ window.OM_FX = (() => {
   function removeByName(m, name) {
     const F = fx(m);
     let n = 0;
-    for (const k of ['mods', 'noind', 'prio', 'immune', 'nodrop', 'chance', 'sp', 'iuL', 'rkx']) {
+    for (const k of ['mods', 'noind', 'prio', 'immune', 'nodrop', 'chance', 'sp', 'iuL', 'rkx', 'syncx']) {
       const b = F[k].length;
       F[k] = F[k].filter(e => e.name !== name);
       n += b - F[k].length;
@@ -6399,6 +6513,11 @@ window.OM_FX = (() => {
   function remove(m, id) {
     const F = fx(m);
     const [kind, key] = id.split(/:(.+)/);
+    if (kind === 'syncx') {
+      const [kk, by] = String(key).split('|');
+      F.syncx = F.syncx.filter(e => !(e.key === kk && e.by === by));
+      return true;
+    }
     if (kind === 'rkx') {
       const [kk, a, bb] = String(key).split('|');
       F.rkx = F.rkx.filter(e => !(e.key === kk && e.a === a && e.b === bb));
@@ -6497,6 +6616,7 @@ window.OM_FX = (() => {
     F.sp = [];
     F.iuL = [];
     F.rkx = [];
+    F.syncx = [];
     F.ignoreUp = null;
     F.float = null;
     F.roles = [];
@@ -6615,6 +6735,22 @@ window.OM_FX = (() => {
         line = line.replace(q[0], ' ').trim();
       }
     }
+    let each = 0;
+    {
+      const q = line.match(/(^|\s)(각자|각각)(?=\s|$)/);
+      if (q) {
+        each = 1;
+        line = line.replace(q[0], ' ').trim();
+      }
+    }
+    let tst = '';
+    {
+      const q = line.match(/(^|\s)대상상태[:：](\S+)/);
+      if (q) {
+        tst = stEn(q[2]) || q[2];
+        line = line.replace(q[0], ' ').trim();
+      }
+    }
     let tdx = 0;
     {
       const q = line.match(/(^|\s)(대상해석됨|해석된상대)(?=\s|$)/);
@@ -6671,6 +6807,8 @@ window.OM_FX = (() => {
       if (pl) op.pl = pl;
       if (hold) op.hold = 1;
       if (tt && tt.length) op.ttype = tt;
+      if (tst) op.tst = tst;
+      if (each) op.each = 1;
       if (tdx) op.tdx = 1;
       if (tpri) op.tpri = tpri;
       if (tname && tname.length) op.tname = tname;
@@ -6816,6 +6954,14 @@ window.OM_FX = (() => {
         if (!a || (q && !bb) || (!pair && !bb) || a === bb) return { k: '?', raw: line };
         return Object.assign({ k: 'rkswap', a, b: bb || '', pair }, tgt ? { tgt } : {});
       } /* 11-10 */
+      /* 11-27 「동조확장 타입 | 확정 [대상] [조건 낱말…]」 — 대상이 없으면 자신 */
+      case '동조확장': {
+        const by = has('타입') ? 'type' : has('확정') ? 'sure' : '';
+        if (!by) return { k: '?', raw: line };
+        const op = { k: 'syncx', by, tgt: tgtOf(words) || 'self' };
+        for (const w of words) if (w !== '타입' && w !== '확정') condTok(w, op);
+        return op;
+      }
       case '랭크전환':
       case '랭크교체': {
         const tgt = tgtOf(words) || 'self';
@@ -8273,6 +8419,8 @@ window.OM_FX = (() => {
         (op.p ? (op.p % 10 === 0 ? op.p / 10 + '할 ' : op.p + '% ') : op.pl ? op.pl + ' ' : '') +
         s +
         (op.ttype && op.ttype.length ? ' 대상타입:' + op.ttype.map(t => TYPE_KO[t] || t).join(',') : '') +
+        (op.tst ? ' 대상상태:' + stKoW(op.tst) : '') +
+        (op.each ? ' 각자' : '') +
         (op.tpri ? ' 대상프라이드:' + op.tpri : '') +
         (op.tname && op.tname.length ? ' 대상이름:' + op.tname.map(x => x.replace(/\s/g, '_')).join(',') : '') +
         (op.tdx ? ' 대상해석됨' : '') +
@@ -8296,6 +8444,9 @@ window.OM_FX = (() => {
               (STAT_KO[op.a] || op.a) +
               (op.b ? (op.pair ? '/' : '↔') + (STAT_KO[op.b] || op.b) : '')
           );
+          break;
+        case 'syncx':
+          L.push('동조확장 ' + SYNCX_KO[op.by] + (op.tgt && op.tgt !== 'self' ? tg(op.tgt) : '') + condStr(op));
           break;
         case 'rkx':
           L.push(
@@ -8954,6 +9105,8 @@ window.OM_FX = (() => {
     hitOk,
     hitDesc,
     syncPairs,
+    syncRoles,
+    syncXOf,
     roleFam,
     roleFams,
     ROLE_FAM,
