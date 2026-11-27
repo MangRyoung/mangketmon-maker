@@ -942,6 +942,21 @@ window.OM_FX = (() => {
     return [...o];
   };
   /* 웹툴이 역할 읽기(상위 역할 포함)를 한 번 넘겨 둔다 — 조건 낱말 「동조중」처럼 ctx 없이 판정할 때도 같은 기준 */
+  /* 11-27 망령 「비축하기가 스톡이 안 된다 — 턴으로 세지 말고 카운터로, 필드를 떠나기 전까지 그대로이고 추가 · 감소 · 초기화」:
+    카운터 상태(턴 경과로 줄지 않는 상태) — 비축 카운터는 상태 「Stockpile」의 수(1~3)가 곧 카운터. 예전 m.stock 도 읽는다 */
+  const COUNT_ST = new Set(['Stockpile']);
+  const isCountSt = (k, d) => COUNT_ST.has(k) || !!(d && d.prog === 'count');
+  function stockOf(m) {
+    if (!m) return 0;
+    const sv = +((m.states || {}).Stockpile || 0);
+    return Math.max(0, Math.min(3, Math.max(+m.stock || 0, sv >= 1000 ? 1 : sv)));
+  }
+  function setStock(m, nv) {
+    delete m.stock;
+    m.states = m.states || {};
+    if (nv > 0) m.states.Stockpile = Math.min(3, nv);
+    else delete m.states.Stockpile;
+  }
   let SYNC_ROLES = null;
   const syncRoles = fn => {
     if (typeof fn === 'function') SYNC_ROLES = fn;
@@ -2198,7 +2213,7 @@ window.OM_FX = (() => {
           }
           break;
         }
-        /* 11-18 망령 「오호게츠히메 — 비축 카운터」: m.stock 0~3. 늘면 방어/특방 + 같은 수, 줄면 − 같은 수 (흑안개 뒤라도). 꿀꺽 = 카운터 1/2/3 → 1/4 · 1/2 · 1/1 회복 후 0 (0 이면 실패). 교대하면 0 (웹툴 퇴장 정리) */
+        /* 11-18 망령 「오호게츠히메 — 비축 카운터」: 카운터 0~3 (11-27 부터 상태 Stockpile 의 수 = 카운터, stockOf · setStock). 늘면 방어/특방 + 같은 수, 줄면 − 같은 수 (흑안개 뒤라도). 꿀꺽 = 카운터 1/2/3 → 1/4 · 1/2 · 1/1 회복 후 0 (0 이면 실패). 교대하면 0 (웹툴 퇴장 정리) */
         /* 11-18 망령 「쌀공주의 경단 — 꽃가루경단 연속 사용 실패가 걸리지 않는다」: 이번 턴 자신이 내는 그 기술(아군 대상이면 아군 대상만)에 「연속 제한」 실패를 굴리지 않는다 — 웹툴 consecFail 앞에서 본다 */
         case 'noconsec': {
           const F = fx(self);
@@ -2211,7 +2226,7 @@ window.OM_FX = (() => {
         case 'stock': {
           const ts = await targets(b, self, op.tgt || 'self', ctx);
           for (const m of ts) {
-            const cur = Math.max(0, Math.min(3, +m.stock || 0));
+            const cur = stockOf(m);
             if (op.mode === 'swallow') {
               if (!cur) {
                 L.push(`${m.name} 「${name}」 비축 카운터 0 — 실패`);
@@ -2240,8 +2255,7 @@ window.OM_FX = (() => {
               continue;
             }
             const d = nv - cur;
-            m.stock = nv;
-            if (!nv) delete m.stock;
+            setStock(m, nv);
             if (d) {
               m.rank = m.rank || {};
               for (const k of ['defense', 'specialdefense']) m.rank[k] = Math.max(-6, Math.min(6, (+m.rank[k] || 0) + d));
@@ -4004,7 +4018,7 @@ window.OM_FX = (() => {
           continue;
         }
         const d = SD[k] || {};
-        if (!(d.prog === 'turn' || d.prog === 'once') || d.prog === 'move' || k === 'Freeze') continue;
+        if (!(d.prog === 'turn' || d.prog === 'once') || d.prog === 'move' || k === 'Freeze' || isCountSt(k, d)) continue;
         if (v - n <= 0) {
           delete st[k];
           rel.push(stKo(k));
@@ -5394,7 +5408,7 @@ window.OM_FX = (() => {
       if (r.lo ? v > r.v : v < r.v) return false;
     }
     if (e.stk) {
-      const v = +((own && own.stock) || 0);
+      const v = stockOf(own);
       if (e.stk.lo ? v > e.stk.v : v < e.stk.v) return false;
     }
     if (e.sure && !(q && q.sureMv)) return false;
@@ -9107,6 +9121,9 @@ window.OM_FX = (() => {
     syncPairs,
     syncRoles,
     syncXOf,
+    stockOf,
+    setStock,
+    isCountSt,
     roleFam,
     roleFams,
     ROLE_FAM,

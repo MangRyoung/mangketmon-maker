@@ -3999,7 +3999,7 @@ function loadFx() {
   const one = src =>
     new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = FX_SRC + src + '?v=202611270918sy';
+      s.src = FX_SRC + src + '?v=202611271815st';
       s.onload = () => res();
       s.onerror = () => rej(new Error(src));
       document.head.appendChild(s);
@@ -6437,12 +6437,13 @@ function fieldHTML(kind, n, v, row, isNew) {
   if (kind === 'st' && n === 12)
     return `<label class="lbl" for="${id}" style="grid-column:span 2">${c} <span class="small muted">파일 이름(오레마스 img/state) 또는 그림 주소 · 그림 파일을 고르면 작게 줄여 넣습니다</span><span class="row" style="gap:6px;flex-wrap:nowrap;align-items:center"><img data-sticon src="${esc(stIcon(v))}" alt="" style="width:40px;height:40px;object-fit:contain;border:1px solid var(--line,#ccc);border-radius:6px;${v ? '' : 'visibility:hidden'}"><input id="${id}" data-f="${n}" value="${esc(v ?? '')}" style="flex:1;min-width:0"><input type="file" accept="image/*" data-sticonf hidden><button type="button" class="btn sm" data-sticonpick>그림 고르기</button></span></label>`;
   if (kind === 'st' && n === 6)
-    return `<label class="lbl" for="${id}">${c} <span class="small muted">turn 턴 끝마다 · move 기술 낼 때 · once 한 번</span><select id="${id}" data-f="${n}">${[
+    return `<label class="lbl" for="${id}">${c} <span class="small muted">turn 턴 끝마다 · move 기술 낼 때 · once 한 번 · count 카운터(턴으로 안 줄고 필드를 떠나면 사라짐)</span><select id="${id}" data-f="${n}">${[
       'turn',
       'move',
-      'once'
+      'once',
+      'count'
     ]
-      .concat(v && !['turn', 'move', 'once'].includes(v) ? [v] : [])
+      .concat(v && !['turn', 'move', 'once', 'count'].includes(v) ? [v] : [])
       .map(t => `<option ${t === v ? 'selected' : ''}>${esc(t)}</option>`)
       .join('')}</select></label>`;
   if (kind === 'st' && n >= 7 && n <= 9)
