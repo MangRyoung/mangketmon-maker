@@ -4559,7 +4559,8 @@ window.OM_FX = (() => {
     if (e.sb === 'nonstab' && q.stab) return false;
     if (e.tg && e.tg.length && !(q.tags || []).some(t => e.tg.includes(t))) return false;
     if (e.pmin && !(q.pow >= e.pmin)) return false;
-    if (e.pmax && !(q.pow <= e.pmax)) return false;
+    /* 11-29: 위력이 없는(0 · 「-」) 기술은 「위력 N 이하」에 들지 않는다 — 비례무시 쪽(위력≤ 조건)과 같게 */
+    if (e.pmax && !(q.pow > 0 && q.pow <= e.pmax)) return false;
     if (e.ro && e.ro.length && !(q.roles || []).some(r => e.ro.includes(r))) return false;
     if (e.eg && !(q.egg || []).some(g => e.eg.split(',').includes(g))) return false;
     /* 11-08: 기술 이름 조건(기술:) · 상대 타입 조건(상대타입: — 위력 강화는 맞는 쪽, 완화 · 회피는 때리는 쪽 타입) */
