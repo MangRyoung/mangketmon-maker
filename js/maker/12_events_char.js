@@ -457,8 +457,7 @@ $('#v-char').addEventListener('change', e => {
   if (el.dataset.img) {
     const f = el.files[0];
     if (!f) return;
-    const t = S.trainers[+el.dataset.img];
-    readImg(f, 640, 'image/webp', u => setImgOf(t, 't', u, t));
+    setTrainerImg(S.trainers[+el.dataset.img], f);
   }
   if (el.dataset.stf) {
     const f = el.files[0];
@@ -700,6 +699,15 @@ document.addEventListener(
 document.addEventListener('mouseover', e => {
   window.__hoverFm = (e.target.closest && e.target.closest('[data-fdrop]')) || null;
 });
+function setTrainerImg(t, f) {
+  readImg(f, 640, 'image/webp', u => setImgOf(t, 't', u, t));
+}
+/* 11-28 망령 「포트레이트 따기 … 곧바로 연계」: 「이미지 삽입」 옆 「✂ 자르기」 — 웹툴 사이트의 포트레이트 따기(OM_CUTTER · /oremas/js/cutter.js)에서 자른 그림을 같은 길로 넣는다 */
+async function cutImage(label, use) {
+  if (!window.OM_CUTTER) return toast('포트레이트 따기를 불러오지 못했습니다');
+  const fs = await window.OM_CUTTER.open({ label });
+  if (fs.length) use(fs[0]);
+}
 function setPokeImg(a, b, f) {
   const t = S.trainers[a],
     p = t && t.pokemon[b];
@@ -1315,6 +1323,9 @@ $('#v-char').addEventListener('click', async e => {
       T.image = '';
       rf();
       break;
+    case 'imgCut':
+      cutImage('트레이너 그림', f => setTrainerImg(T, f));
+      break;
     case 'ivHatch':
       if (P) openIvHatch(T, P);
       break;
@@ -1777,6 +1788,9 @@ $('#v-char').addEventListener('click', async e => {
     case 'noPimg':
       P.image = '';
       rf();
+      break;
+    case 'pimgCut':
+      cutImage('포켓몬 그림', f => setPokeImg(+b.dataset.i, +b.dataset.j, f));
       break;
     case 'pstadd': {
       const l = ($('#pstl-' + P.id) || {}).value || '',

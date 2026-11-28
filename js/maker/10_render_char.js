@@ -2771,7 +2771,7 @@ function trainerHTML(t, ti) {
      ? `<div class="fb"><div class="tgrid">
   <div class="panel"><h3>프로필<span class="sp"></span><button class="btn sm" data-act="bioT" data-i="${ti}" title="백스토리 · 성격 · 말투 · 선호하는 전법 · 그 밖에 — 오레마스 캐릭터 탭에 그대로 보인다">상세${bioN(t) ? ` <b class="num">${bioN(t)}</b>` : ''}</button></h3><label class="lbl" for="tn-${t.id}">이름${inp(P + '.name', t.name, { id: 'tn-' + t.id })}</label>
    <div class="imgbox" style="margin-top:8px">${safeImg(t.image) ? `<img src="${safeImg(t.image)}" alt="트레이너 이미지">` : '<span class="small">이미지 없음</span>'}</div>
-   <div class="row" style="margin-top:6px"><label class="btn sm" for="img-${t.id}" tabindex="0" role="button" data-kbd>이미지 삽입</label><input type="file" id="img-${t.id}" accept="image/*" data-img="${ti}" hidden>${t.image ? `<button class="btn sm ghost" data-act="noimg" data-i="${ti}">제거</button>` : ''}</div>
+   <div class="row" style="margin-top:6px"><label class="btn sm" for="img-${t.id}" tabindex="0" role="button" data-kbd>이미지 삽입</label><input type="file" id="img-${t.id}" accept="image/*" data-img="${ti}" hidden><button type="button" class="btn sm ghost" data-act="imgCut" data-i="${ti}" title="포트레이트 따기를 열어 자른 뒤 넣는다">✂ 자르기</button>${t.image ? `<button class="btn sm ghost" data-act="noimg" data-i="${ti}">제거</button>` : ''}</div>
    <h3 style="margin-top:14px"><span style="white-space:nowrap;flex:none">스탠딩</span> <span class="small muted" style="font-weight:normal">오레마스 무대용 · 전신 투명 PNG</span></h3>
    ${standsHtml(t, 't:' + ti)}</div>
   <div class="tright"><div class="panel"><h3>자질<span class="sp"></span><button class="btn sm" data-act="tpl" data-i="${ti}" title="랭크 템플릿(테이블·계산식 탭)을 포인트 기본값에 다시 적용">템플릿 다시 적용</button></h3>
@@ -3060,7 +3060,7 @@ function baseTab(t, ti, p, pi, P) {
   const id = p.id;
   return `<div class="bgrid"><div style="display:flex;flex-direction:column;gap:10px;min-width:0">
   <div class="row" style="gap:12px;align-items:center;flex-wrap:nowrap"><div class="pimg" data-act="pimgPick" data-i="${ti}" data-j="${pi}" data-pdrop="${ti}.${pi}" role="button" tabindex="0" data-kbd title="클릭하거나 그림을 끌어다 놓거나 Ctrl+V로 붙여넣기">${safeImg(p.image) ? `<img src="${safeImg(p.image)}" alt="포켓몬 이미지">` : '<span class="small">이미지<br>클릭 · 끌어다 놓기 · 붙여넣기</span>'}</div>
-   <div style="display:flex;flex-direction:column;gap:6px;min-width:0"><div class="row"><label class="btn sm" for="pimg-${id}" tabindex="0" role="button" data-kbd>이미지 삽입</label><input type="file" id="pimg-${id}" accept="image/*" data-pimg="${ti}.${pi}" hidden>${p.image ? `<button class="btn sm ghost" data-act="noPimg" data-i="${ti}" data-j="${pi}">제거</button>` : ''}</div>
+   <div style="display:flex;flex-direction:column;gap:6px;min-width:0"><div class="row"><label class="btn sm" for="pimg-${id}" tabindex="0" role="button" data-kbd>이미지 삽입</label><input type="file" id="pimg-${id}" accept="image/*" data-pimg="${ti}.${pi}" hidden><button type="button" class="btn sm ghost" data-act="pimgCut" data-i="${ti}" data-j="${pi}" title="포트레이트 따기를 열어 자른 뒤 넣는다">✂ 자르기</button>${p.image ? `<button class="btn sm ghost" data-act="noPimg" data-i="${ti}" data-j="${pi}">제거</button>` : ''}</div>
    <button class="btn sm" data-act="pickOld" data-i="${ti}" data-j="${pi}" title="시트 「올드 타입 일람」의 타입·특성·알그룹·종족치를 채웁니다">올드 타입 일람에서 자동 입력</button></div></div>
   ${pStandsHtml(p, ti, pi)}
   <div class="fgrid">
