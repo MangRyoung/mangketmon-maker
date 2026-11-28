@@ -291,7 +291,7 @@ function openFieldEditor(o, k, done) {
    <div class="fedc"><button type="button" class="fedc1 none" data-fc="" title="없음">✕</button>${types.map(x => `<button type="button" class="fedc1" data-fc="${esc(x[3])}" title="${esc(x[0])}" style="background:${safeCss(x[1]) || 'var(--sunk2)'}${lightCol(x[1]) ? ';color:#1d2433;text-shadow:none' : ''}">${esc(x[0])}</button>`).join('')}</div>
    <div class="lbl">그림 <span class="small faint" style="font-weight:400">끌어다 놓기 · 붙여넣기(Ctrl+V) · 파일 · 주소 https://… · 오레마스 배경 목록 이름</span></div>
    <div class="feddrop" id="fe-d" tabindex="0" role="button" data-kbd title="눌러서 파일 고르기"><span id="fe-dt">여기에 그림을 끌어다 놓거나 눌러서 고르기</span></div>
-   <div class="row" style="gap:4px;flex-wrap:nowrap"><input id="fe-i" value="${esc(f.img)}" placeholder="https://… 또는 배경 이름" style="flex:1;min-width:0" autocomplete="off"><button type="button" class="btn sm ghost" id="fe-x" title="그림 지우기">✕</button><input type="file" id="fe-f" accept="image/*" hidden></div>
+   <div class="row" style="gap:4px;flex-wrap:nowrap"><input id="fe-i" value="${esc(f.img)}" placeholder="https://… 또는 배경 이름" style="flex:1;min-width:0" autocomplete="off"><button type="button" class="btn sm ghost" id="fe-c" title="포트레이트 따기에서 자른 뒤 올린다">✂</button><button type="button" class="btn sm ghost" id="fe-x" title="그림 지우기">✕</button><input type="file" id="fe-f" accept="image/*" hidden></div>
    <div class="lbl">효과 <span class="small faint" style="font-weight:400">한 줄에 하나 — 배틀 로그 카드에 그대로 나온다</span><span class="sp"></span><button type="button" class="btn xs" id="fe-num" title="줄 앞에 ① ② ③ … 를 붙인다">① 번호 매기기</button></div>
    <textarea id="fe-e" rows="6" placeholder="① …&#10;② …">${esc(f.eff)}</textarea>
    <div id="fe-a"></div>
@@ -374,6 +374,7 @@ function openFieldEditor(o, k, done) {
     ev.target.value = '';
     up(fl);
   };
+  $('#fe-c', l).onclick = () => cutImage('필드 그림', $('#fe-i', l).value, up);
   $('#fe-x', l).onclick = () => {
     $('#fe-i', l).value = '';
     prev();
@@ -854,7 +855,7 @@ function openSpEditor(t, k, done) {
    <div class="lbl">색</div><div class="row" style="gap:6px">${SP_COLS.map(c => `<button type="button" class="mkspcol ${c === col ? 'on' : ''}" data-spc="${c}" style="background:${c}"></button>`).join('')}</div>
    <div class="lbl">컷 그림 <span class="small faint" style="font-weight:400">끌어다 놓기 · 붙여넣기(Ctrl+V) · 파일 · 주소 — 비우면 트레이너 그림</span></div>
    <div class="feddrop" id="sp-d" tabindex="0" role="button" data-kbd><span id="sp-dt">여기에 그림을 끌어다 놓거나 눌러서 고르기</span></div>
-   <div class="row" style="gap:4px;flex-wrap:nowrap"><input id="sp-i" value="${esc(e.img)}" placeholder="https://…" style="flex:1;min-width:0" autocomplete="off"><button type="button" class="btn sm ghost" id="sp-x" title="그림 지우기">✕</button><input type="file" id="sp-f" accept="image/*" hidden></div>
+   <div class="row" style="gap:4px;flex-wrap:nowrap"><input id="sp-i" value="${esc(e.img)}" placeholder="https://…" style="flex:1;min-width:0" autocomplete="off"><button type="button" class="btn sm ghost" id="sp-c" title="포트레이트 따기에서 자른 뒤 올린다">✂</button><button type="button" class="btn sm ghost" id="sp-x" title="그림 지우기">✕</button><input type="file" id="sp-f" accept="image/*" hidden></div>
    <details class="autobox" ${String(e.auto || '').trim() ? 'open' : ''}><summary>⚙ 자동화 구문 <span class="small muted" id="sp-ah"></span></summary>
     <div class="small muted" style="margin:4px 0">발동에 성공하면 오레마스가 자동으로 처리할 내용 — 「구문 대상」이 소지면 발동할 때 내 포켓몬(벤치 포함)을 고르고, 기준 포켓몬이면 필드 위 한 마리를 골라 거기서 대상(자신 · 상대1체 · 아군전체 …)을 잡는다. 한 줄에 명령 하나 — 예: <code>랭크 공격+1 임시 아군전체</code> · <code>상태확률 화상 30% 상대1체</code></div>
     <div class="row small" style="gap:8px;margin:2px 0 6px;flex-wrap:wrap"><label>구문 대상 <select id="sp-g"><option value="party" ${e.tg === 'party' ? 'selected' : ''}>소지 포켓몬 — 기본 전원, 발동할 때 고른다</option><option value="" ${e.tg !== 'party' ? 'selected' : ''}>기준 포켓몬 한 마리 (필드 위)</option></select></label><label>몇 체까지 <input id="sp-tn" type="number" min="0" max="6" value="${+e.tn || ''}" placeholder="전원" style="width:64px"></label><span class="faint">소지 = 벤치 포함 · 준비 단계에서도 · 「자신」 줄은 고른 포켓몬마다, 나머지 줄(상대 · 아군전체 …)은 한 번 · 줄 앞 「3할」 「저확률」 은 줄마다 굴린다</span></div>
@@ -928,6 +929,7 @@ function openSpEditor(t, k, done) {
     ev.target.value = '';
     up(fl);
   };
+  $('#sp-c', l).onclick = () => cutImage('그림', $('#sp-i', l).value, up);
   $('#sp-x', l).onclick = () => {
     $('#sp-i', l).value = '';
     prev();

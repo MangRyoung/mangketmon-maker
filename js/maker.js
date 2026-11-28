@@ -4569,7 +4569,7 @@ function openFieldEditor(o, k, done) {
    <div class="fedc"><button type="button" class="fedc1 none" data-fc="" title="없음">✕</button>${types.map(x => `<button type="button" class="fedc1" data-fc="${esc(x[3])}" title="${esc(x[0])}" style="background:${safeCss(x[1]) || 'var(--sunk2)'}${lightCol(x[1]) ? ';color:#1d2433;text-shadow:none' : ''}">${esc(x[0])}</button>`).join('')}</div>
    <div class="lbl">그림 <span class="small faint" style="font-weight:400">끌어다 놓기 · 붙여넣기(Ctrl+V) · 파일 · 주소 https://… · 오레마스 배경 목록 이름</span></div>
    <div class="feddrop" id="fe-d" tabindex="0" role="button" data-kbd title="눌러서 파일 고르기"><span id="fe-dt">여기에 그림을 끌어다 놓거나 눌러서 고르기</span></div>
-   <div class="row" style="gap:4px;flex-wrap:nowrap"><input id="fe-i" value="${esc(f.img)}" placeholder="https://… 또는 배경 이름" style="flex:1;min-width:0" autocomplete="off"><button type="button" class="btn sm ghost" id="fe-x" title="그림 지우기">✕</button><input type="file" id="fe-f" accept="image/*" hidden></div>
+   <div class="row" style="gap:4px;flex-wrap:nowrap"><input id="fe-i" value="${esc(f.img)}" placeholder="https://… 또는 배경 이름" style="flex:1;min-width:0" autocomplete="off"><button type="button" class="btn sm ghost" id="fe-c" title="포트레이트 따기에서 자른 뒤 올린다">✂</button><button type="button" class="btn sm ghost" id="fe-x" title="그림 지우기">✕</button><input type="file" id="fe-f" accept="image/*" hidden></div>
    <div class="lbl">효과 <span class="small faint" style="font-weight:400">한 줄에 하나 — 배틀 로그 카드에 그대로 나온다</span><span class="sp"></span><button type="button" class="btn xs" id="fe-num" title="줄 앞에 ① ② ③ … 를 붙인다">① 번호 매기기</button></div>
    <textarea id="fe-e" rows="6" placeholder="① …&#10;② …">${esc(f.eff)}</textarea>
    <div id="fe-a"></div>
@@ -4652,6 +4652,7 @@ function openFieldEditor(o, k, done) {
     ev.target.value = '';
     up(fl);
   };
+  $('#fe-c', l).onclick = () => cutImage('필드 그림', $('#fe-i', l).value, up);
   $('#fe-x', l).onclick = () => {
     $('#fe-i', l).value = '';
     prev();
@@ -5132,7 +5133,7 @@ function openSpEditor(t, k, done) {
    <div class="lbl">색</div><div class="row" style="gap:6px">${SP_COLS.map(c => `<button type="button" class="mkspcol ${c === col ? 'on' : ''}" data-spc="${c}" style="background:${c}"></button>`).join('')}</div>
    <div class="lbl">컷 그림 <span class="small faint" style="font-weight:400">끌어다 놓기 · 붙여넣기(Ctrl+V) · 파일 · 주소 — 비우면 트레이너 그림</span></div>
    <div class="feddrop" id="sp-d" tabindex="0" role="button" data-kbd><span id="sp-dt">여기에 그림을 끌어다 놓거나 눌러서 고르기</span></div>
-   <div class="row" style="gap:4px;flex-wrap:nowrap"><input id="sp-i" value="${esc(e.img)}" placeholder="https://…" style="flex:1;min-width:0" autocomplete="off"><button type="button" class="btn sm ghost" id="sp-x" title="그림 지우기">✕</button><input type="file" id="sp-f" accept="image/*" hidden></div>
+   <div class="row" style="gap:4px;flex-wrap:nowrap"><input id="sp-i" value="${esc(e.img)}" placeholder="https://…" style="flex:1;min-width:0" autocomplete="off"><button type="button" class="btn sm ghost" id="sp-c" title="포트레이트 따기에서 자른 뒤 올린다">✂</button><button type="button" class="btn sm ghost" id="sp-x" title="그림 지우기">✕</button><input type="file" id="sp-f" accept="image/*" hidden></div>
    <details class="autobox" ${String(e.auto || '').trim() ? 'open' : ''}><summary>⚙ 자동화 구문 <span class="small muted" id="sp-ah"></span></summary>
     <div class="small muted" style="margin:4px 0">발동에 성공하면 오레마스가 자동으로 처리할 내용 — 「구문 대상」이 소지면 발동할 때 내 포켓몬(벤치 포함)을 고르고, 기준 포켓몬이면 필드 위 한 마리를 골라 거기서 대상(자신 · 상대1체 · 아군전체 …)을 잡는다. 한 줄에 명령 하나 — 예: <code>랭크 공격+1 임시 아군전체</code> · <code>상태확률 화상 30% 상대1체</code></div>
     <div class="row small" style="gap:8px;margin:2px 0 6px;flex-wrap:wrap"><label>구문 대상 <select id="sp-g"><option value="party" ${e.tg === 'party' ? 'selected' : ''}>소지 포켓몬 — 기본 전원, 발동할 때 고른다</option><option value="" ${e.tg !== 'party' ? 'selected' : ''}>기준 포켓몬 한 마리 (필드 위)</option></select></label><label>몇 체까지 <input id="sp-tn" type="number" min="0" max="6" value="${+e.tn || ''}" placeholder="전원" style="width:64px"></label><span class="faint">소지 = 벤치 포함 · 준비 단계에서도 · 「자신」 줄은 고른 포켓몬마다, 나머지 줄(상대 · 아군전체 …)은 한 번 · 줄 앞 「3할」 「저확률」 은 줄마다 굴린다</span></div>
@@ -5206,6 +5207,7 @@ function openSpEditor(t, k, done) {
     ev.target.value = '';
     up(fl);
   };
+  $('#sp-c', l).onclick = () => cutImage('그림', $('#sp-i', l).value, up);
   $('#sp-x', l).onclick = () => {
     $('#sp-i', l).value = '';
     prev();
@@ -14295,10 +14297,10 @@ function setTrainerImg(t, f) {
   readImg(f, 640, 'image/webp', u => setImgOf(t, 't', u, t));
 }
 /* 11-28 망령 「포트레이트 따기 … 곧바로 연계」: 「이미지 삽입」 옆 「✂ 자르기」 — 웹툴 사이트의 포트레이트 따기(OM_CUTTER · /oremas/js/cutter.js)에서 자른 그림을 같은 길로 넣는다. 이미 그림이 있으면 그 그림으로 시작한다 */
-async function cutImage(label, now, use) {
+async function cutImage(label, now, use, multi) {
   if (!window.OM_CUTTER) return toast('포트레이트 따기를 불러오지 못했습니다');
-  const fs = await window.OM_CUTTER.open({ label, src: now || '' });
-  if (fs.length) use(fs[0]);
+  const fs = await window.OM_CUTTER.open({ label, src: /^(https?:|data:|blob:)/.test(now || '') ? now : '', multi: !!multi });
+  if (fs.length) use(multi ? fs : fs[0]);
 }
 function setPokeImg(a, b, f) {
   const t = S.trainers[a],
@@ -14365,7 +14367,7 @@ function standsHtml(o, key, full) {
       ? st.map((s, k) => k)
       : [Math.min(a, st.length - 1), ...st.map((s, k) => k).filter(k => k !== Math.min(a, st.length - 1))].slice(0, LIM).sort((x, y) => x - y);
   return `<div class="stdw" data-sdz="${key}"><div class="stdz"><div class="stdzt"><b>그림을 여기로 끌어 놓기</b><span class="small muted">여러 장 · 폴더째 · 파일 이름이 라벨 · 같은 라벨은 그림만 바뀜</span></div>
-  <div class="row" style="gap:4px"><label class="btn sm pri" tabindex="0" role="button" data-kbd>파일 고르기<input type="file" accept="image/png,image/webp,image/gif,image/jpeg" multiple data-sfiles="${key}" hidden></label><label class="btn sm" tabindex="0" role="button" data-kbd>폴더 올리기<input type="file" webkitdirectory multiple data-sfiles="${key}" hidden></label><span class="small muted" data-sprog="${key}"></span></div></div>
+  <div class="row" style="gap:4px"><label class="btn sm pri" tabindex="0" role="button" data-kbd>파일 고르기<input type="file" accept="image/png,image/webp,image/gif,image/jpeg" multiple data-sfiles="${key}" hidden></label><label class="btn sm" tabindex="0" role="button" data-kbd>폴더 올리기<input type="file" webkitdirectory multiple data-sfiles="${key}" hidden></label><button type="button" class="btn sm ghost" data-act="scut" ${K} title="포트레이트 따기에서 자르거나 배경을 지운 뒤 스탠딩으로 올린다">✂ 자르기</button><span class="small muted" data-sprog="${key}"></span></div></div>
   ${
     st.length
       ? `<div class="stgrid">${show
@@ -14384,7 +14386,7 @@ function standsHtml(o, key, full) {
      .map(([v, n]) => `<option value="${v}" ${(s.kind || '') === v ? 'selected' : ''}>${n}</option>`)
      .join(
        ''
-     )}</select><label class="btn sm ghost" title="그림만 바꾸기" tabindex="0" role="button" data-kbd>교체<input type="file" accept="image/png,image/webp,image/gif,image/jpeg" data-srep="${key}:${k}" hidden></label><button type="button" class="btn sm ghost danger" data-act="sdel" ${K} data-k="${k}" aria-label="삭제">×</button></div></div>`
+     )}</select><label class="btn sm ghost" title="그림만 바꾸기" tabindex="0" role="button" data-kbd>교체<input type="file" accept="image/png,image/webp,image/gif,image/jpeg" data-srep="${key}:${k}" hidden></label><button type="button" class="btn sm ghost" data-act="scut" ${K} data-k="${k}" title="이 그림을 포트레이트 따기에서 다시 자르거나 배경을 지워 바꾼다" aria-label="자르기">✂</button><button type="button" class="btn sm ghost danger" data-act="sdel" ${K} data-k="${k}" aria-label="삭제">×</button></div></div>`
           )
           .join(
             ''
@@ -14392,6 +14394,26 @@ function standsHtml(o, key, full) {
       : '<div class="small muted" style="margin-top:6px">아직 없음 — 없으면 오레마스에서 위 이미지(초상)로 선다</div>'
   }
   <details class="stmore"><summary class="small muted">그림 주소로 추가</summary><div class="row" style="gap:4px;margin-top:4px"><input type="text" data-sul="${key}" placeholder="라벨" style="width:100px"><input type="text" data-suu="${key}" placeholder="https://…" style="flex:1;min-width:120px"><button type="button" class="btn sm" data-act="sadd" ${K}>추가</button></div></details></div>`;
+}
+/* 스탠딩 한 장의 그림만 바꾸기 (「교체」 · 「✂」 공통) */
+function stReplace(R, s, f) {
+  toast('올리는 중…');
+  uploadStand(R.o, f)
+    .then(u => {
+      s.src = u;
+      save();
+      refreshTrainer(R.t);
+      toast('그림을 바꿨습니다');
+    })
+    .catch(er => toast('올리지 못했습니다: ' + er.message));
+}
+/* 11-28 망령 「할거 다 해」: 스탠딩에도 「✂」 — 줄의 것(data-k)은 그 그림을 다시 잘라 바꾸고, 위의 것은 자른 그림들을 새 스탠딩으로 올린다 */
+function stCut(b) {
+  const key = b.dataset.sk;
+  if (b.dataset.k == null) return cutImage('스탠딩', '', fs => stUpload(key, fs), true);
+  const R = stRef(key);
+  const s = R.o && (R.o.stands || [])[+b.dataset.k];
+  if (s) cutImage('스탠딩 「' + (s.label || '기본') + '」', s.src, f => stReplace(R, s, f));
 }
 /* 스탠딩 칸 입력 (시트 · 관리 창 공통) — 처리했으면 true */
 function stChange(el) {
@@ -14410,16 +14432,7 @@ function stChange(el) {
     if (el.dataset.srep) {
       const f = el.files[0];
       el.value = '';
-      if (!f) return true;
-      toast('올리는 중…');
-      uploadStand(R.o, f)
-        .then(u => {
-          s.src = u;
-          save();
-          refreshTrainer(R.t);
-          toast('그림을 바꿨습니다');
-        })
-        .catch(er => toast('올리지 못했습니다: ' + er.message));
+      if (f) stReplace(R, s, f);
       return true;
     }
     if (el.dataset.sl != null) s.label = el.value.trim() || '기본';
@@ -14476,6 +14489,7 @@ function openStMgr(key) {
     }
     const b = e.target.closest('[data-act]');
     if (b && ['sdef', 'sdel', 'sadd'].includes(b.dataset.act)) await stAct(b);
+    if (b && b.dataset.act === 'scut') stCut(b);
   });
   l.addEventListener('change', e => stChange(e.target));
 }
@@ -15175,6 +15189,9 @@ $('#v-char').addEventListener('click', async e => {
     case 'sdel':
     case 'sadd':
       await stAct(b);
+      break;
+    case 'scut':
+      stCut(b);
       break;
     case 'smgr':
       openStMgr(b.dataset.sk);

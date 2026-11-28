@@ -703,10 +703,10 @@ function setTrainerImg(t, f) {
   readImg(f, 640, 'image/webp', u => setImgOf(t, 't', u, t));
 }
 /* 11-28 망령 「포트레이트 따기 … 곧바로 연계」: 「이미지 삽입」 옆 「✂ 자르기」 — 웹툴 사이트의 포트레이트 따기(OM_CUTTER · /oremas/js/cutter.js)에서 자른 그림을 같은 길로 넣는다. 이미 그림이 있으면 그 그림으로 시작한다 */
-async function cutImage(label, now, use) {
+async function cutImage(label, now, use, multi) {
   if (!window.OM_CUTTER) return toast('포트레이트 따기를 불러오지 못했습니다');
-  const fs = await window.OM_CUTTER.open({ label, src: now || '' });
-  if (fs.length) use(fs[0]);
+  const fs = await window.OM_CUTTER.open({ label, src: /^(https?:|data:|blob:)/.test(now || '') ? now : '', multi: !!multi });
+  if (fs.length) use(multi ? fs : fs[0]);
 }
 function setPokeImg(a, b, f) {
   const t = S.trainers[a],
@@ -773,7 +773,7 @@ function standsHtml(o, key, full) {
       ? st.map((s, k) => k)
       : [Math.min(a, st.length - 1), ...st.map((s, k) => k).filter(k => k !== Math.min(a, st.length - 1))].slice(0, LIM).sort((x, y) => x - y);
   return `<div class="stdw" data-sdz="${key}"><div class="stdz"><div class="stdzt"><b>그림을 여기로 끌어 놓기</b><span class="small muted">여러 장 · 폴더째 · 파일 이름이 라벨 · 같은 라벨은 그림만 바뀜</span></div>
-  <div class="row" style="gap:4px"><label class="btn sm pri" tabindex="0" role="button" data-kbd>파일 고르기<input type="file" accept="image/png,image/webp,image/gif,image/jpeg" multiple data-sfiles="${key}" hidden></label><label class="btn sm" tabindex="0" role="button" data-kbd>폴더 올리기<input type="file" webkitdirectory multiple data-sfiles="${key}" hidden></label><span class="small muted" data-sprog="${key}"></span></div></div>
+  <div class="row" style="gap:4px"><label class="btn sm pri" tabindex="0" role="button" data-kbd>파일 고르기<input type="file" accept="image/png,image/webp,image/gif,image/jpeg" multiple data-sfiles="${key}" hidden></label><label class="btn sm" tabindex="0" role="button" data-kbd>폴더 올리기<input type="file" webkitdirectory multiple data-sfiles="${key}" hidden></label><button type="button" class="btn sm ghost" data-act="scut" ${K} title="포트레이트 따기에서 자르거나 배경을 지운 뒤 스탠딩으로 올린다">✂ 자르기</button><span class="small muted" data-sprog="${key}"></span></div></div>
   ${
     st.length
       ? `<div class="stgrid">${show
@@ -792,7 +792,7 @@ function standsHtml(o, key, full) {
      .map(([v, n]) => `<option value="${v}" ${(s.kind || '') === v ? 'selected' : ''}>${n}</option>`)
      .join(
        ''
-     )}</select><label class="btn sm ghost" title="그림만 바꾸기" tabindex="0" role="button" data-kbd>교체<input type="file" accept="image/png,image/webp,image/gif,image/jpeg" data-srep="${key}:${k}" hidden></label><button type="button" class="btn sm ghost danger" data-act="sdel" ${K} data-k="${k}" aria-label="삭제">×</button></div></div>`
+     )}</select><label class="btn sm ghost" title="그림만 바꾸기" tabindex="0" role="button" data-kbd>교체<input type="file" accept="image/png,image/webp,image/gif,image/jpeg" data-srep="${key}:${k}" hidden></label><button type="button" class="btn sm ghost" data-act="scut" ${K} data-k="${k}" title="이 그림을 포트레이트 따기에서 다시 자르거나 배경을 지워 바꾼다" aria-label="자르기">✂</button><button type="button" class="btn sm ghost danger" data-act="sdel" ${K} data-k="${k}" aria-label="삭제">×</button></div></div>`
           )
           .join(
             ''
@@ -800,6 +800,26 @@ function standsHtml(o, key, full) {
       : '<div class="small muted" style="margin-top:6px">아직 없음 — 없으면 오레마스에서 위 이미지(초상)로 선다</div>'
   }
   <details class="stmore"><summary class="small muted">그림 주소로 추가</summary><div class="row" style="gap:4px;margin-top:4px"><input type="text" data-sul="${key}" placeholder="라벨" style="width:100px"><input type="text" data-suu="${key}" placeholder="https://…" style="flex:1;min-width:120px"><button type="button" class="btn sm" data-act="sadd" ${K}>추가</button></div></details></div>`;
+}
+/* 스탠딩 한 장의 그림만 바꾸기 (「교체」 · 「✂」 공통) */
+function stReplace(R, s, f) {
+  toast('올리는 중…');
+  uploadStand(R.o, f)
+    .then(u => {
+      s.src = u;
+      save();
+      refreshTrainer(R.t);
+      toast('그림을 바꿨습니다');
+    })
+    .catch(er => toast('올리지 못했습니다: ' + er.message));
+}
+/* 11-28 망령 「할거 다 해」: 스탠딩에도 「✂」 — 줄의 것(data-k)은 그 그림을 다시 잘라 바꾸고, 위의 것은 자른 그림들을 새 스탠딩으로 올린다 */
+function stCut(b) {
+  const key = b.dataset.sk;
+  if (b.dataset.k == null) return cutImage('스탠딩', '', fs => stUpload(key, fs), true);
+  const R = stRef(key);
+  const s = R.o && (R.o.stands || [])[+b.dataset.k];
+  if (s) cutImage('스탠딩 「' + (s.label || '기본') + '」', s.src, f => stReplace(R, s, f));
 }
 /* 스탠딩 칸 입력 (시트 · 관리 창 공통) — 처리했으면 true */
 function stChange(el) {
@@ -818,16 +838,7 @@ function stChange(el) {
     if (el.dataset.srep) {
       const f = el.files[0];
       el.value = '';
-      if (!f) return true;
-      toast('올리는 중…');
-      uploadStand(R.o, f)
-        .then(u => {
-          s.src = u;
-          save();
-          refreshTrainer(R.t);
-          toast('그림을 바꿨습니다');
-        })
-        .catch(er => toast('올리지 못했습니다: ' + er.message));
+      if (f) stReplace(R, s, f);
       return true;
     }
     if (el.dataset.sl != null) s.label = el.value.trim() || '기본';
@@ -884,6 +895,7 @@ function openStMgr(key) {
     }
     const b = e.target.closest('[data-act]');
     if (b && ['sdef', 'sdel', 'sadd'].includes(b.dataset.act)) await stAct(b);
+    if (b && b.dataset.act === 'scut') stCut(b);
   });
   l.addEventListener('change', e => stChange(e.target));
 }
@@ -1583,6 +1595,9 @@ $('#v-char').addEventListener('click', async e => {
     case 'sdel':
     case 'sadd':
       await stAct(b);
+      break;
+    case 'scut':
+      stCut(b);
       break;
     case 'smgr':
       openStMgr(b.dataset.sk);
