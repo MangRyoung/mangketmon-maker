@@ -14294,10 +14294,10 @@ document.addEventListener('mouseover', e => {
 function setTrainerImg(t, f) {
   readImg(f, 640, 'image/webp', u => setImgOf(t, 't', u, t));
 }
-/* 11-28 망령 「포트레이트 따기 … 곧바로 연계」: 「이미지 삽입」 옆 「✂ 자르기」 — 웹툴 사이트의 포트레이트 따기(OM_CUTTER · /oremas/js/cutter.js)에서 자른 그림을 같은 길로 넣는다 */
-async function cutImage(label, use) {
+/* 11-28 망령 「포트레이트 따기 … 곧바로 연계」: 「이미지 삽입」 옆 「✂ 자르기」 — 웹툴 사이트의 포트레이트 따기(OM_CUTTER · /oremas/js/cutter.js)에서 자른 그림을 같은 길로 넣는다. 이미 그림이 있으면 그 그림으로 시작한다 */
+async function cutImage(label, now, use) {
   if (!window.OM_CUTTER) return toast('포트레이트 따기를 불러오지 못했습니다');
-  const fs = await window.OM_CUTTER.open({ label });
+  const fs = await window.OM_CUTTER.open({ label, src: now || '' });
   if (fs.length) use(fs[0]);
 }
 function setPokeImg(a, b, f) {
@@ -14916,7 +14916,7 @@ $('#v-char').addEventListener('click', async e => {
       rf();
       break;
     case 'imgCut':
-      cutImage('트레이너 그림', f => setTrainerImg(T, f));
+      cutImage('트레이너 그림', T && T.image, f => setTrainerImg(T, f));
       break;
     case 'ivHatch':
       if (P) openIvHatch(T, P);
@@ -15382,7 +15382,7 @@ $('#v-char').addEventListener('click', async e => {
       rf();
       break;
     case 'pimgCut':
-      cutImage('포켓몬 그림', f => setPokeImg(+b.dataset.i, +b.dataset.j, f));
+      cutImage('포켓몬 그림', P && P.image, f => setPokeImg(+b.dataset.i, +b.dataset.j, f));
       break;
     case 'pstadd': {
       const l = ($('#pstl-' + P.id) || {}).value || '',

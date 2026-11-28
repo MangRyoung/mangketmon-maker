@@ -413,14 +413,14 @@ ${
 .ux-cut{position:absolute;bottom:-5px;right:-5px;width:16px;height:16px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:.6rem;line-height:1;padding:0;cursor:pointer}
 .ux-cut:hover{color:var(--fg);border-color:var(--accent)}
 </style>
-<script src="/oremas/js/cutter.js?v=202611281300ct"></script>
+<script src="/oremas/js/cutter.js?v=202611281200cs"></script>
 <script>
 (() => {
   const list = document.getElementById('spkList');
   if (!list || !window.OM_CUTTER) return;
   const nameOf = row => (row.querySelector('.pic').getAttribute('aria-label') || '').replace(/ 토큰 이미지$/, '');
-  async function cutFor(name) {
-    const fs = await window.OM_CUTTER.open({ label: name + ' 그림' });
+  async function cutFor(name, wrap) {
+    const fs = await window.OM_CUTTER.open({ label: name + ' 그림', src: window.OM_CUTTER.srcIn(wrap) });
     if (!fs.length) return;
     pickFor = name;
     document.getElementById('picOne').onchange({ target: { files: [fs[0]], value: '' } });
@@ -435,7 +435,7 @@ ${
       b.textContent = '✂';
       b.title = '자르기 — 포트레이트 따기를 열어 자른 그림을 이 화자에게';
       b.setAttribute('aria-label', name + ' 그림 자르기');
-      b.onclick = () => cutFor(name);
+      b.onclick = () => cutFor(name, wrap);
       wrap.appendChild(b);
     });
   }
