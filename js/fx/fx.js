@@ -2270,11 +2270,12 @@ window.OM_FX = (() => {
               if ((m.states || {}).HealBlock) L.push(`${m.name} 「회복봉인」이라 회복하지 못함`);
               else if (noHeal(m, 'heal', b)) L.push(`${m.name} ${noHeal(m, 'heal', b)} — 회복이 발동하지 않는다`);
               else {
-                const v = frac(m.hp.max, ['1/4', '1/2', '1/1'][cur - 1]);
-                const h = Math.min(v, m.hp.max - m.hp.cur);
+                const v0 = frac(m.hp.max, ['1/4', '1/2', '1/1'][cur - 1]);
+                const hc = healCut(m, v0);
+                const h = Math.min(hc ? hc.v : v0, m.hp.max - m.hp.cur);
                 m.hp.latest = m.hp.cur;
                 m.hp.cur += h;
-                L.push(`${m.name} 「${name}」 비축 ${cur} → 회복 +${h} (HP ${m.hp.cur}/${m.hp.max})`);
+                L.push(`${m.name} 「${name}」 비축 ${cur} → 회복 +${h}${hc ? ` (${hc.why})` : ''} (HP ${m.hp.cur}/${m.hp.max})`);
               }
             }
             const nv = op.mode === 'swallow' || op.mode === 'clear' ? 0 : Math.max(0, Math.min(3, cur + (+op.v || 0)));
@@ -2313,11 +2314,12 @@ window.OM_FX = (() => {
               L.push(`${m.name} ${TYPE_KO[op.ytype] || op.ytype} 타입이 아니라 회복 없음`);
               continue;
             }
-            const v = op.value === 'full' ? m.hp.max - m.hp.cur : frac(m.hp.max, op.value);
-            const h = Math.min(v, m.hp.max - m.hp.cur);
+            const v0 = op.value === 'full' ? m.hp.max - m.hp.cur : frac(m.hp.max, op.value);
+            const hc = healCut(m, v0);
+            const h = Math.min(hc ? hc.v : v0, m.hp.max - m.hp.cur);
             m.hp.latest = m.hp.cur;
             m.hp.cur += h;
-            L.push(`${m.name} 「${name}」 회복 +${h} (HP ${m.hp.cur}/${m.hp.max})`);
+            L.push(`${m.name} 「${name}」 회복 +${h}${hc ? ` (${hc.why})` : ''} (HP ${m.hp.cur}/${m.hp.max})`);
           }
           break;
         }
@@ -2387,9 +2389,10 @@ window.OM_FX = (() => {
               } else if (hasSt(self, 'HealBlock')) L.push(`${self.name} 「회복봉인」이라 드레인 회복 없음`);
               else if (noHeal(self, 'drain', b)) L.push(`${self.name} ${noHeal(self, 'drain', b)} — 드레인이 발동하지 않는다`);
               else {
-                const h = Math.min(d, self.hp.max - self.hp.cur);
+                const hc = healCut(self, d);
+                const h = Math.min(hc ? hc.v : d, self.hp.max - self.hp.cur);
                 self.hp.cur += h;
-                L.push(`${self.name} 「${name}」 드레인 +${h} (HP ${self.hp.cur}/${self.hp.max})`);
+                L.push(`${self.name} 「${name}」 드레인 +${h}${hc ? ` (${hc.why})` : ''} (HP ${self.hp.cur}/${self.hp.max})`);
               }
             }
           }
@@ -4393,6 +4396,12 @@ window.OM_FX = (() => {
     }
     return e.name || '비례 무시';
   } /* 강제 교대 무시(switch)는 「비례 대미지 무시」에 딸려 오지 않는다 */
+  /* 11-29 망령 「보스 회복 반감도 적용 시켜줘」 → 보스 = 레이드 배틀이 걸린 포켓몬(m.raid.segments), 받는 회복은 모두 반감 —
+    회복을 주는 곳(효과 · 지령 · 4식 · 기술 · 드레인 · 소지품 · 턴 종료)이 값을 이걸로 줄인다. HP 창에서 손으로 넣는 회복은 그대로. 돌려줌 {v, why} 또는 null */
+  function healCut(m, v) {
+    if (!m || !m.raid || !(+m.raid.segments > 0) || !(+v > 0)) return null;
+    return { v: Math.max(1, Math.floor(+v / 2)), why: '레이드 보스 회복 반감' };
+  }
   /* 11-29 망령 「비례 대미지 반감 자동화 안 된 듯」(그란돈 『차원의 특권』 ② 자신이 받는 비례 대미지를 반감한다): 구문 「비례무시 반감」 —
     비례 대미지를 주는 곳(턴 종료 상태 · 날씨 · 설치기 · 소지품 · 반동 · 효과의 대미지)이 이걸로 값을 줄인다. 돌려줌 {v, name} 또는 null */
   function indHalf(m, v) {
@@ -9191,6 +9200,7 @@ window.OM_FX = (() => {
     prioPcNote,
     noindUse,
     indHalf,
+    healCut,
     noindHit,
     condTok,
     condStr,
