@@ -6192,6 +6192,42 @@ ${
   onScroll();
 })();
 </script>
+<!-- 11-28 망령 「포트레이트 따기 … 세션노트/웹툴/로그 정리기에 곧바로 연계」: 등장인물 동그라미 아래 「✂」 — 웹툴 사이트의 포트레이트 따기(OM_CUTTER)에서 자른 그림을
+  원본의 「이미지 직접 지정」(picOne) 길 그대로 넣는다. 등장인물 목록은 원본이 통째로 다시 그리므로 지켜보다가 다시 붙인다 -->
+<style>
+.ux-cut{position:absolute;bottom:-5px;right:-5px;width:16px;height:16px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:.6rem;line-height:1;padding:0;cursor:pointer}
+.ux-cut:hover{color:var(--fg);border-color:var(--accent)}
+</style>
+<script src="/oremas/js/cutter.js?v=202611281300ct"></script>
+<script>
+(() => {
+  const list = document.getElementById('spkList');
+  if (!list || !window.OM_CUTTER) return;
+  const nameOf = row => (row.querySelector('.pic').getAttribute('aria-label') || '').replace(/ 토큰 이미지$/, '');
+  async function cutFor(name) {
+    const fs = await window.OM_CUTTER.open({ label: name + ' 그림' });
+    if (!fs.length) return;
+    pickFor = name;
+    document.getElementById('picOne').onchange({ target: { files: [fs[0]], value: '' } });
+  }
+  function addButtons() {
+    list.querySelectorAll('.spk .picwrap').forEach(wrap => {
+      if (wrap.querySelector('.ux-cut')) return;
+      const name = nameOf(wrap.parentElement);
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'ux-cut';
+      b.textContent = '✂';
+      b.title = '자르기 — 포트레이트 따기를 열어 자른 그림을 이 화자에게';
+      b.setAttribute('aria-label', name + ' 그림 자르기');
+      b.onclick = () => cutFor(name);
+      wrap.appendChild(b);
+    });
+  }
+  new MutationObserver(addButtons).observe(list, { childList: true });
+  addButtons();
+})();
+</script>
 <!-- ===== 화면 다듬기 끝 ===== -->
 
 </body></html>
