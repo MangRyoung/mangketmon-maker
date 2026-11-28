@@ -2365,11 +2365,15 @@ window.OM_FX = (() => {
               L.push(`${m.name} 비례 대미지를 받지 않는다 (${noindName(m, '')})`);
               continue;
             }
+            const hv = op.cost ? null : indHalf(m, v);
+            if (hv) v = hv.v;
             const floor = op.nofaint || (!op.cost && noind(m, 'noko')) ? 1 : 0;
             const d = Math.max(0, Math.min(v, m.hp.cur - floor));
             m.hp.latest = m.hp.cur;
             m.hp.cur -= d;
-            L.push(`${m.name} 「${name}」 대미지 −${d} (HP ${m.hp.cur}/${m.hp.max})${m.hp.cur <= 0 ? ' 빈사!' : ''}`);
+            L.push(
+              `${m.name} 「${name}」 대미지 −${d}${hv ? ` (「${hv.name}」 반감)` : ''} (HP ${m.hp.cur}/${m.hp.max})${m.hp.cur <= 0 ? ' 빈사!' : ''}`
+            );
             if (m.hp.cur <= 0) m.entry = '';
             if (op.drain && d > 0 && self && self.id !== m.id && self.hp && self.hp.cur > 0) {
               if (String(m.ability || '').replace(/\s/g, '') === '해감액') {
@@ -3838,6 +3842,7 @@ window.OM_FX = (() => {
     recoilko: '반동 비례 대미지로는 빈사가 되지 않는다',
     burn: '「화상」에 의한 비례 대미지를 받지 않는다',
     poison: '「독」에 의한 비례 대미지를 받지 않는다',
+    half: '받는 비례 대미지를 반감한다',
     switch: '강제 교대를 받지 않는다',
     freesw: '교대 제한을 받지 않고 반드시 교대할 수 있다'
   };
@@ -4388,6 +4393,13 @@ window.OM_FX = (() => {
     }
     return e.name || '비례 무시';
   } /* 강제 교대 무시(switch)는 「비례 대미지 무시」에 딸려 오지 않는다 */
+  /* 11-29 망령 「비례 대미지 반감 자동화 안 된 듯」(그란돈 『차원의 특권』 ② 자신이 받는 비례 대미지를 반감한다): 구문 「비례무시 반감」 —
+    비례 대미지를 주는 곳(턴 종료 상태 · 날씨 · 설치기 · 소지품 · 반동 · 효과의 대미지)이 이걸로 값을 줄인다. 돌려줌 {v, name} 또는 null */
+  function indHalf(m, v) {
+    const e = noindHit(m, 'half');
+    if (!e || e.kind !== 'half') return null;
+    return { v: Math.max(1, Math.floor(+v / 2)), name: e.name || '비례 반감' };
+  }
   function noindName(m, kind) {
     for (const e of (m.fx && m.fx.noind) || []) {
       if (itemOff(m, e)) continue;
@@ -6319,7 +6331,7 @@ window.OM_FX = (() => {
       );
     for (const e of (m.fx && m.fx.noind) || [])
       out.push({
-        t: e.kind === 'switch' ? '교대 무시' : e.kind === 'freesw' ? '반드시 교대' : '비례 무시',
+        t: e.kind === 'switch' ? '교대 무시' : e.kind === 'freesw' ? '반드시 교대' : e.kind === 'half' ? '비례 반감' : '비례 무시',
         title: e.name + ' — ' + NOIND_KO[e.kind || ''],
         id: 'noind:' + e.key,
         name: e.name
@@ -7542,6 +7554,7 @@ window.OM_FX = (() => {
         if (has('반동')) kind = 'recoil';
         if (has('화상')) kind = 'burn';
         if (has('독')) kind = 'poison';
+        if (has('반감')) kind = 'half';
         /* 11-25 망령 「②「화상」에 의한 비례 대미지를 받지 않는다」: 비례무시 화상 · 비례무시 독(독 · 맹독) — 턴 끝 상태 대미지만 */ const mode =
           has('해제') ? 'off' : 'on';
         const ui = words.findIndex(w => /^\d+회$/.test(w));
@@ -8751,7 +8764,8 @@ window.OM_FX = (() => {
                 recoil: ' 반동',
                 recoilko: ' 반동빈사',
                 burn: ' 화상',
-                poison: ' 독'
+                poison: ' 독',
+                half: ' 반감'
               }[op.kind || ''] +
               ty(op.types) +
               (op.tg && op.tg.length ? ' 태그:' + op.tg.join(',') : '') +
@@ -9175,6 +9189,7 @@ window.OM_FX = (() => {
     cmod,
     prioPcNote,
     noindUse,
+    indHalf,
     noindHit,
     condTok,
     condStr,

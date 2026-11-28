@@ -3999,7 +3999,7 @@ function loadFx() {
   const one = src =>
     new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = FX_SRC + src + '?v=202611282240rm';
+      s.src = FX_SRC + src + '?v=202611290010hv';
       s.onload = () => res();
       s.onerror = () => rej(new Error(src));
       document.head.appendChild(s);
