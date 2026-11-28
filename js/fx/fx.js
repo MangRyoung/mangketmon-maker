@@ -1022,9 +1022,11 @@ window.OM_FX = (() => {
     const nq = x => String(x || '').replace(/\s/g, '');
     if (RUNTX.it && !RUNTX.it.some(n => holds(m, n) || (itemNames(m).some(x => x.includes(n)) && !itemsDead(m)))) return false;
     if (RUNTX.ab && !RUNTX.ab.map(nq).includes(nq(m && m.ability))) return false;
+    if (RUNTX.nw && +(m && m.inT) === curTurn()) return false;
     return true;
   }
-  const tgtXOf = op => (op.titem || op.tabil ? { it: op.titem || null, ab: op.tabil || null } : null);
+  /* 11-28 망령 「레쿠쟈 전용 이번 턴 등장한 상대에게도 걸고 있음」(『천공을 장악한 것』 「이번 턴 등장하지 않은 상대 전체」): 줄 끝 대상미등장 = 이번 턴에 나온(inT = 이번 턴) 포켓몬은 뺀다 */
+  const tgtXOf = op => (op.titem || op.tabil || op.tnw ? { it: op.titem || null, ab: op.tabil || null, nw: op.tnw ? 1 : 0 } : null);
   /* 11-23 망령 「【프라이드 : X】 태그 · 상대의 프라이드를 지정하는 포텐셜」: 프라이드 순서 E < D < C < C+ < B < B+ < A < EX.
     priSpec 「B 이하」 · 「A이상」 · 「A」 · 「A, EX」 → {set} 또는 {lo,hi}. effPride = 시트 프라이드 + 배틀 중 올린 단계(m.priUp). priOk(m,spec) */
   const PRI_ORD = ['E', 'D', 'C', 'C+', 'B', 'B+', 'A', 'EX'];
@@ -6816,6 +6818,13 @@ window.OM_FX = (() => {
         line = line.replace(q[0], ' ').trim();
       }
     }
+    {
+      const q = line.match(/(^|\s)(대상미등장|이번턴미등장)(?=\s|$)/);
+      if (q) {
+        tx.tnw = 1;
+        line = line.replace(q[0], ' ').trim();
+      }
+    }
     let tdx = 0;
     {
       const q = line.match(/(^|\s)(대상해석됨|해석된상대)(?=\s|$)/);
@@ -8494,6 +8503,7 @@ window.OM_FX = (() => {
         (op.tdx ? ' 대상해석됨' : '') +
         (op.titem ? ' 대상소지품:' + op.titem.join(',') : '') +
         (op.tabil ? ' 대상특성:' + op.tabil.join(',') : '') +
+        (op.tnw ? ' 대상미등장' : '') +
         (op.hold ? ' 있는한' : '')
       );
     });
