@@ -2315,7 +2315,7 @@ window.OM_FX = (() => {
               continue;
             }
             const v0 = op.value === 'full' ? m.hp.max - m.hp.cur : frac(m.hp.max, op.value);
-            const hc = healCut(m, v0);
+            const hc = healCut(m, v0, name);
             const h = Math.min(hc ? hc.v : v0, m.hp.max - m.hp.cur);
             m.hp.latest = m.hp.cur;
             m.hp.cur += h;
@@ -4398,8 +4398,11 @@ window.OM_FX = (() => {
   } /* 강제 교대 무시(switch)는 「비례 대미지 무시」에 딸려 오지 않는다 */
   /* 11-29 망령 「보스 회복 반감도 적용 시켜줘」 → 보스 = 레이드 배틀이 걸린 포켓몬(m.raid.segments), 받는 회복은 모두 반감 —
     회복을 주는 곳(효과 · 지령 · 4식 · 기술 · 드레인 · 소지품 · 턴 종료)이 값을 이걸로 줄인다. HP 창에서 손으로 넣는 회복은 그대로. 돌려줌 {v, why} 또는 null */
-  function healCut(m, v) {
+  /* 11-29 00:29 망령 「주인의 호령 회복은 예외로 두자」: 반감하지 않는 회복 (src = 효과 이름) */
+  const HEAL_CUT_FREE = [/주인의\s*호령/];
+  function healCut(m, v, src) {
     if (!m || !m.raid || !(+m.raid.segments > 0) || !(+v > 0)) return null;
+    if (src && HEAL_CUT_FREE.some(re => re.test(String(src)))) return null;
     return { v: Math.max(1, Math.floor(+v / 2)), why: '레이드 보스 회복 반감' };
   }
   /* 11-29 망령 「비례 대미지 반감 자동화 안 된 듯」(그란돈 『차원의 특권』 ② 자신이 받는 비례 대미지를 반감한다): 구문 「비례무시 반감」 —
