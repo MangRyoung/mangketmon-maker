@@ -330,6 +330,7 @@ window.OM_FX = (() => {
       'il',
       'iw',
       'aab',
+      'oab',
       'wx',
       'trn',
       'cs',
@@ -1013,6 +1014,17 @@ window.OM_FX = (() => {
     return out;
   }
   /* 11-09 대상타입: run 이 지금 줄의 op.ttype 을 RUNTT 에 두면 대상에서 그 타입만 남긴다 */ let RUNTT = null;
+  /* 11-28 망령 「응. 만들어」(선녀 『날개선녀의 천의』 「「소지품 : 아름다운허물」인 아군」): 줄 끝 대상소지품:X · 대상특성:X — 그 소지품을 지닌 · 그 특성인 대상만.
+    run 이 지금 줄의 { it, ab } 를 RUNTX 에 둔다 */
+  let RUNTX = null;
+  function tgtXOk(m) {
+    if (!RUNTX) return true;
+    const nq = x => String(x || '').replace(/\s/g, '');
+    if (RUNTX.it && !RUNTX.it.some(n => holds(m, n) || (itemNames(m).some(x => x.includes(n)) && !itemsDead(m)))) return false;
+    if (RUNTX.ab && !RUNTX.ab.map(nq).includes(nq(m && m.ability))) return false;
+    return true;
+  }
+  const tgtXOf = op => (op.titem || op.tabil ? { it: op.titem || null, ab: op.tabil || null } : null);
   /* 11-23 망령 「【프라이드 : X】 태그 · 상대의 프라이드를 지정하는 포텐셜」: 프라이드 순서 E < D < C < C+ < B < B+ < A < EX.
     priSpec 「B 이하」 · 「A이상」 · 「A」 · 「A, EX」 → {set} 또는 {lo,hi}. effPride = 시트 프라이드 + 배틀 중 올린 단계(m.priUp). priOk(m,spec) */
   const PRI_ORD = ['E', 'D', 'C', 'C+', 'B', 'B+', 'A', 'EX'];
@@ -1112,6 +1124,7 @@ window.OM_FX = (() => {
     }
     if (RUNTS) r = (r || []).filter(m => m && hasSt(m, RUNTS));
     if (RUNONLY) r = (r || []).filter(m => m && m.id === RUNONLY);
+    if (RUNTX) r = (r || []).filter(m => m && tgtXOk(m));
     /* 11-23 대상이름 */ /* 11-23 대상프라이드 */ const tt = RUNTT;
     return tt && tt.length ? (r || []).filter(m => m && typesOf(m).some(t => tt.includes(t))) : r;
   }
@@ -1128,6 +1141,7 @@ window.OM_FX = (() => {
       (!(RUNTN && RUNTN.length) || RUNTN.map(nq0).includes(nq0(m.name))) &&
       (!(RUNTT && RUNTT.length) || typesOf(m).some(t => RUNTT.includes(t))) &&
       (!RUNTS || hasSt(m, RUNTS)) &&
+      tgtXOk(m) &&
       (!RUNONLY || m.id === RUNONLY);
     const live = Object.values(b.mons || {}).filter(m => m.entry && alive(m) && (m === self || pre(m)));
     const allies = live.filter(m => teamOf(b, m) === tm),
@@ -1546,13 +1560,14 @@ window.OM_FX = (() => {
       }
     } catch (e) {}
     const runFilters = op => {
-      const prev = [RUNTT, RUNTDX, RUNTP, RUNTN, RUNTS];
+      const prev = [RUNTT, RUNTDX, RUNTP, RUNTN, RUNTS, RUNTX];
+      RUNTX = tgtXOf(op);
       RUNTT = op.ttype && op.ttype.length ? op.ttype : null;
       RUNTDX = op.tdx ? 1 : 0;
       RUNTP = op.tpri ? priSpec(op.tpri) : null;
       RUNTN = op.tname && op.tname.length ? op.tname : null;
       RUNTS = op.tst || null;
-      return () => ([RUNTT, RUNTDX, RUNTP, RUNTN, RUNTS] = prev);
+      return () => ([RUNTT, RUNTDX, RUNTP, RUNTN, RUNTS, RUNTX] = prev);
     };
     for (let op of ops || []) {
       if (stop) break; /* let: 「날씨 무작위」가 op 를 바꿔 끼운다 */
@@ -1612,12 +1627,14 @@ window.OM_FX = (() => {
           prevTP = RUNTP,
           prevTN = RUNTN,
           prevTS = RUNTS,
+          prevTX = RUNTX,
           prevRS = RUNSELF;
         RUNTT = op.ttype && op.ttype.length ? op.ttype : null;
         RUNTDX = op.tdx ? 1 : 0;
         RUNTP = op.tpri ? priSpec(op.tpri) : null;
         RUNTN = op.tname && op.tname.length ? op.tname : null;
         RUNTS = op.tst || null;
+        RUNTX = tgtXOf(op);
         RUNSELF = self || null;
         try {
           await runOp(op);
@@ -1627,6 +1644,7 @@ window.OM_FX = (() => {
           RUNTP = prevTP;
           RUNTN = prevTN;
           RUNTS = prevTS;
+          RUNTX = prevTX;
           RUNSELF = prevRS;
         }
         if (hs) holdDiff(b, self, hs, name, ctx.uniq, op.ttype && op.ttype.length ? op.ttype : null);
@@ -2139,6 +2157,7 @@ window.OM_FX = (() => {
               'br',
               'at',
               'aab',
+              'oab',
               'sg',
               'og',
               'stp',
@@ -4598,6 +4617,7 @@ window.OM_FX = (() => {
     {
       const nq = x => String(x || '').replace(/\s/g, '');
       if (e.oeg && e.oeg.length && !(oth && [].concat(oth.egg || []).some(g => e.oeg.map(nq).includes(nq(g))))) return false;
+      if (e.oab && e.oab.length && !(oth && e.oab.map(nq).includes(nq(oth.ability)))) return false;
       if (e.onm && e.onm.length && !(oth && e.onm.map(nq).includes(nq(oth.name)))) return false;
       if (e.anm && e.anm.length) {
         const B0 = RUNB || (((window.OM_APP || {}).ST || {}).state || {}).battle || {};
@@ -4672,6 +4692,11 @@ window.OM_FX = (() => {
         .split(/[,/·]/)
         .map(x => KO_TYPE[x.trim()] || x.trim())
         .filter(Boolean);
+      return true;
+    }
+    /* 11-28 망령 「특성 대상을 확인하는 기능이 없다고?」: 상대특성:미라 = 상대(대상)가 그 특성일 때 (다키야샤히메 『해골조술의 반역』) */
+    if ((m = w.match(/^상대특성[:：](.+)$/))) {
+      op.oab = sp(m[1]);
       return true;
     }
     if ((m = w.match(/^상대상태[:：](.+)$/))) {
@@ -5138,6 +5163,7 @@ window.OM_FX = (() => {
     if (op.cs) s += ' 상태:' + stKoW(op.cs);
     for (const r of op.sc || []) s += ' 상태턴:' + stKoW(r.st) + (r.o === 'eq' ? '=' : r.o === 'le' ? '≤' : '≥') + r.v;
     if (op.os) s += ' 상대상태:' + stKoW(op.os);
+    if (op.oab && op.oab.length) s += ' 상대특성:' + op.oab.join(',');
     if (op.wx && op.wx.length) s += ' 날씨:' + op.wx.join(',');
     if (op.trn) s += ' 필드:' + op.trn;
     if (op.hs && op.hs.length) s += op.hs.map(x => ' HP' + x).join('');
@@ -5248,6 +5274,7 @@ window.OM_FX = (() => {
     'br',
     'at',
     'aab',
+    'oab',
     'sg',
     'og',
     'stp',
@@ -6162,7 +6189,8 @@ window.OM_FX = (() => {
     const t = curTurn();
     return ((m && m.fx && m.fx.mods) || []).filter(e => e.next && e.uses !== 0 && !itemOff(m, e));
   }
-  function prioOf(m, mv) {
+  /* 11-28: oth = 그 기술의 대상(있으면) — 상대특성 · 상대타입 같은 상대 조건 우선도 (웹툴 순서 열쇠가 고른 대상을 넘긴다) */
+  function prioOf(m, mv, oth) {
     let p = +(mv && mv.prio) || 0;
     let set = null;
     const t = curTurn();
@@ -6192,7 +6220,7 @@ window.OM_FX = (() => {
         !condAll(
           e,
           m,
-          null,
+          oth || null,
           {
             move: String((mv && mv.name) || ''),
             types: mty,
@@ -6774,6 +6802,20 @@ window.OM_FX = (() => {
         line = line.replace(q[0], ' ').trim();
       }
     }
+    const tx = {};
+    for (const [w, k] of [
+      ['대상소지품', 'titem'],
+      ['대상특성', 'tabil']
+    ]) {
+      const q = line.match(new RegExp('(^|\\s)' + w + '[:：](\\S+)'));
+      if (q) {
+        tx[k] = q[2]
+          .split(/[,·]/)
+          .map(x => x.replace(/_/g, ' ').trim())
+          .filter(Boolean);
+        line = line.replace(q[0], ' ').trim();
+      }
+    }
     let tdx = 0;
     {
       const q = line.match(/(^|\s)(대상해석됨|해석된상대)(?=\s|$)/);
@@ -6831,6 +6873,7 @@ window.OM_FX = (() => {
       if (hold) op.hold = 1;
       if (tt && tt.length) op.ttype = tt;
       if (tst) op.tst = tst;
+      Object.assign(op, tx);
       if (each) op.each = 1;
       if (tdx) op.tdx = 1;
       if (tpri) op.tpri = tpri;
@@ -8449,6 +8492,8 @@ window.OM_FX = (() => {
         (op.tpri ? ' 대상프라이드:' + op.tpri : '') +
         (op.tname && op.tname.length ? ' 대상이름:' + op.tname.map(x => x.replace(/\s/g, '_')).join(',') : '') +
         (op.tdx ? ' 대상해석됨' : '') +
+        (op.titem ? ' 대상소지품:' + op.titem.join(',') : '') +
+        (op.tabil ? ' 대상특성:' + op.tabil.join(',') : '') +
         (op.hold ? ' 있는한' : '')
       );
     });
