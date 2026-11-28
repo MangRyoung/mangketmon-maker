@@ -150,6 +150,7 @@ ul.impl{margin:4px 0 4px 18px;padding:0;max-height:180px;overflow:auto;font-size
 #mk .rgrid i.pick{background:var(--blue-soft);color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
 #mk .rgrid i.me{outline:1.5px solid var(--ink);outline-offset:-1.5px}
 #mk .rgwrap{display:inline-flex;align-items:center;gap:6px}
+#mk .mvpow{margin-top:2px;color:var(--ink2,var(--ink))}#mk .mvpow b{color:var(--acc,#c58b00)}#mk .mvpow .faint{margin-left:4px}
 #mk .xfrow{gap:6px}
 #mk .xfrow select{max-width:190px}
 #mk select.xfon{border-color:var(--blue);background:var(--blue-soft)}

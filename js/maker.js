@@ -13266,8 +13266,28 @@ function baseTab(t, ti, p, pi, P) {
       : '';
   })()}</div></div>`;
 }
+/* 11-28 망령 「결정력 계산기도 제작기에 · 기술 아래에 띄워주는 식으로」: 기술 줄 아래 「결정력」 — 식은 js/power.js (세션 노트와 같이 씀) */
+function powerCtx(t, p) {
+  const bu = baseUp(t, p);
+  return {
+    base: effB(t, p),
+    lv: lv(t, p),
+    ivs: p.ivs,
+    add: bu.add,
+    cp: bu.cp,
+    types: [p.t1, p.t2, p.t3].filter(x => x && x !== '-'),
+    ability: p.ability
+  };
+}
+function powerLine(o, m) {
+  const D = window.MKM_POWER && window.MKM_POWER.calc(o, mvRowOv(m));
+  return D
+    ? `<div class="small mvpow" title="결정력 = ${esc(D.why)}">결정력 <b class="num">${D.v.toLocaleString()}</b> <span class="faint">${esc(D.why)}</span></div>`
+    : '';
+}
 function movesTab(t, ti, p, pi, P, c) {
   const ms = p.moves;
+  const pwo = powerCtx(t, p);
   const over = c.cap != null && c.used > c.cap;
   return `<div class="capline"><b>${c.mode === 'count' ? '기술 개수' : '기술 소켓'}</b><span class="num ${over ? 'warn' : ''}">${capTxt(c, '종족치 입력 필요')}</span>${c.mode === 'count' ? `<span class="small muted">『${esc(classOf(p))}』 · PT 기술점 ${c.pt} 고정</span>` : ''}${c.cap ? `<div class="meter ${over ? 'over' : ''}"><i style="width:${Math.min(100, (c.used / c.cap) * 100)}%"></i></div>` : ''}
   <span class="small muted">상한 직접 지정</span>${inp(P + '.sockMax', p.sockMax, { w: '56px', num: 1, ph: String(c.auto ?? '') })}${(() => {
@@ -13312,7 +13332,7 @@ function movesTab(t, ti, p, pi, P, c) {
                  .join(' · ')
              )}">개별</span>`
            : ''
-       }</div><div class="small muted rgwrap">${R ? rangeGrid(V.range) + esc(V.cat + ' · ' + V.range + (V.contact && V.contact !== '-' ? ' · 접촉 ' + V.contact : '')) : ''}</div></div>
+       }</div><div class="small muted rgwrap">${R ? rangeGrid(V.range) + esc(V.cat + ' · ' + V.range + (V.contact && V.contact !== '-' ? ' · 접촉 ' + V.contact : '')) : ''}</div>${R ? powerLine(pwo, m) : ''}</div>
   <div class="st2"${ovc('pow')}>${R ? esc(V.pow) : '-'}<small>위력</small></div><div class="st2"${ovc('acc')}>${R ? esc(V.acc) : '-'}<small>명중</small></div><div class="st2"${ovc('prio')}>${R ? esc(V.prio) : '-'}<small>우선도</small></div><div class="st2${isBigMv(t, p, m) ? ' warn' : ''}"${isBigMv(t, p, m) ? ` title="${esc(bigMvRule(t))}"` : ''}>${isBigMv(t, p, m) ? '⚠ ' : ''}${moveSock(p, m)}<small>소켓</small></div>
   <div class="ef">${R ? rich(V.eff) : ''}</div><div class="row mva" style="gap:2px;flex-wrap:nowrap"><label class="small row" title="「기술 할인점」 1점을 써서 이 기술의 소켓을 0.5 할인합니다 (올드 타입 계열은 교배기·유전기 습득용)" style="gap:2px"><input type="checkbox" data-p="${P}.moves.${i}.half" ${m.half ? 'checked' : ''}>할인</label><label class="small row" title="켜면 이 기술은 한 장 요약 · 오레마스 한 장 요약 · 남의 도감에 안 나온다 (시트 · 배틀에는 그대로)" style="gap:2px"><input type="checkbox" data-p="${P}.moves.${i}.hide" ${m.hide ? 'checked' : ''}>숨김</label>
   ${R ? `<button class="btn sm ghost" data-act="mvOv" data-i="${ti}" data-j="${pi}" data-k="${i}" title="DB 는 그대로 두고 이 포켓몬의 이 기술만 바꾼다 (위력 · 효과 · 구문 …)">이 포켓몬만</button>${ME.gm ? `<button class="btn sm ghost" data-act="mvEdit" data-name="${esc(m.name)}" title="GM — 기술 DB 줄을 고친다 (이 기술을 가진 모든 포켓몬이 같이 바뀐다)">DB 수정</button>` : ''}` : ''}<button class="btn sm ghost danger" data-act="mvDel" data-i="${ti}" data-j="${pi}" data-k="${i}" aria-label="삭제">✕</button></div></div>`;
