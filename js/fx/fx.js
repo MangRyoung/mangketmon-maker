@@ -483,11 +483,12 @@ window.OM_FX = (() => {
     for (const k in all) if (all[k] && all[k].deleted) delete all[k];
     return all;
   }
+  /* 11-28 망령 「주인의 호령 1.5배 자동화 안 되고 있는 듯」: 포텐셜 이름은 「주인의 호령 : 능력」, 레디메이드 줄은 「주인의 호령 / 능력」 — 콜론 이름이 없으면 「X / Y」 줄로 */
   function rm(name) {
     if (!name) return null;
     const all = rmAll();
     name = String(name).replace(/『|』/g, '').trim();
-    return all[name] || null;
+    return all[name] || (/[:：]/.test(name) && all[name.replace(/\s*[:：]\s*/, ' / ')]) || null;
   }
   /* 포켓몬의 포텐셜/특성/소지품에 붙은 자동화: 개별 구문(m.auto[name]) → 레디메이드 */
   /* 11-22 【보급】 회복 대상 글 → 대상. 11-14 망령 「「아군」은 자신을 포함하지 않는다(자신 포함이면 「아군 전체」)」: 맨 「아군(포켓몬)의」 = 자신 뺀 아군 · 「아군 1체」 = 자신 뺀 1체 · 「자신을 포함한 아군 1체」 = 자신도.
